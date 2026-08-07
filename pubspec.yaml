@@ -1,0 +1,51 @@
+name: scenario_mobile
+description: "Scenario — omnichannel customer service. Mobile client for the same backend the web app uses."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management. Riverpod over Bloc/Provider because this app is mostly
+  # async server state (REST + WebSocket invalidation), which is exactly what
+  # AsyncNotifier models directly — and because providers are overridable in
+  # tests without a widget tree or a DI container.
+  flutter_riverpod: ^3.0.3
+
+  # HTTP. Dio for interceptors (auth refresh, CSRF header, error mapping) and
+  # a real cookie jar — the backend authenticates with a session cookie, so a
+  # cookie-persisting client is what makes mobile work with zero backend
+  # changes.
+  dio: ^5.9.0
+  cookie_jar: ^4.0.8
+  dio_cookie_manager: ^3.2.0
+
+  # Secure credential storage. Keychain on iOS, EncryptedSharedPreferences on
+  # Android. Session cookies never touch plain SharedPreferences.
+  flutter_secure_storage: ^9.2.4
+
+  # Navigation with deep links, needed for tapping a push notification
+  # straight into a conversation.
+  go_router: ^17.2.1
+
+  # Realtime. The backend speaks plain JSON over a Django Channels socket.
+  web_socket_channel: ^3.0.3
+
+  # Presentation helpers.
+  intl: ^0.20.2
+  cached_network_image: ^3.4.1
+  connectivity_plus: ^7.0.0
+  path_provider: ^2.1.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
