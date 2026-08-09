@@ -4,11 +4,13 @@
 /// that is what makes "run against my laptop", "run against the tunnel" and
 /// "run against production" a build flag rather than a code edit.
 ///
+/// Development defaults to the ngrok tunnel so the app can be launched
+/// directly from the IDE with Hot Reload.
+///
 /// Override at build/run time:
-/// ```
 /// flutter run --dart-define=SCENARIO_ENV=development \
-///             --dart-define=SCENARIO_API_HOST=10.0.2.2:8000
-/// ```
+///             --dart-define=SCENARIO_API_HOST=10.0.2.2:8000 \
+///             --dart-define=SCENARIO_USE_TLS=false
 library;
 
 enum AppEnvironment { development, production }
@@ -24,16 +26,17 @@ class Environment {
 
   /// Host and port only — no scheme, no trailing slash.
   final String host;
+
   final bool useTls;
 
-  /// The Android emulator reaches the host machine on 10.0.2.2, never
-  /// localhost: localhost inside the emulator is the emulated device itself.
-  /// This default is the single most common cause of "why can't my app reach
-  /// the backend", so it is the default rather than a note in a README.
+  /// Default development backend.
   ///
-  /// iOS simulators share the host network, so `localhost` works there; pass
-  /// `--dart-define=SCENARIO_API_HOST=localhost:8000` when running on iOS.
-  static const _defaultDevHost = '10.0.2.2:8000';
+  /// Used when running directly from the IDE without --dart-define.
+  static const _defaultDevHost =
+      'treelined-nonchurched-ona.ngrok-free.dev';
+
+  /// The ngrok tunnel uses HTTPS/WSS.
+  static const _defaultDevUseTls = true;
 
   static final Environment current = _resolve();
 
@@ -42,15 +45,19 @@ class Environment {
       'SCENARIO_ENV',
       defaultValue: 'development',
     );
+
     const host = String.fromEnvironment('SCENARIO_API_HOST');
-    const tls = bool.fromEnvironment('SCENARIO_USE_TLS');
+
+    const tls = bool.fromEnvironment(
+      'SCENARIO_USE_TLS',
+      defaultValue: _defaultDevUseTls,
+    );
 
     if (name == 'production') {
       return Environment._(
         name: AppEnvironment.production,
         // Deliberately empty rather than a guess: a production build with no
-        // host configured must fail loudly at startup, not quietly talk to
-        // someone's laptop.
+        // host configured must fail loudly at startup.
         host: host,
         useTls: true,
       );
@@ -64,22 +71,35 @@ class Environment {
   }
 
   bool get isConfigured => host.isNotEmpty;
+
   bool get isDevelopment => name == AppEnvironment.development;
 
   String get _httpScheme => useTls ? 'https' : 'http';
+
   String get _wsScheme => useTls ? 'wss' : 'ws';
 
-  /// REST root, e.g. `http://10.0.2.2:8000/api`.
+  /// REST root.
+  ///
+  /// Example:
+  /// https://treelined-nonchurched-ona.ngrok-free.dev/api
   String get apiBaseUrl => '$_httpScheme://$host/api';
 
-  /// Realtime endpoint — the same path the web client uses.
+  /// Realtime endpoint.
+  ///
+  /// Example:
+  /// wss://treelined-nonchurched-ona.ngrok-free.dev/ws/inbox/
   String get websocketUrl => '$_wsScheme://$host/ws/inbox/';
 
   /// Absolute URL for a media path the API returned relative.
   String resolveMedia(String path) {
     if (path.isEmpty) return '';
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+
     final normalised = path.startsWith('/') ? path : '/$path';
+
     return '$_httpScheme://$host$normalised';
   }
 

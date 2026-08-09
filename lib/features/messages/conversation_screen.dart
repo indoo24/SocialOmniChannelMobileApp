@@ -12,7 +12,6 @@ import 'package:go_router/go_router.dart';
 import '../../app/router.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/employee.dart';
-import '../../core/realtime/realtime_bridge.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
@@ -38,27 +37,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   bool _sending = false;
 
   @override
-  void initState() {
-    super.initState();
-    // Tell the realtime bridge which thread is open, so it subscribes to
-    // message events and suppresses push for this conversation.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(activeConversationProvider.notifier).opened(widget.conversationId);
-    });
-  }
-
-  @override
   void dispose() {
-    // Cannot use ref in dispose; clear via the container directly.
     _composerController.dispose();
     _scrollController.dispose();
     super.dispose();
-  }
-
-  @override
-  void deactivate() {
-    ref.read(activeConversationProvider.notifier).closed();
-    super.deactivate();
   }
 
   Future<void> _send() async {

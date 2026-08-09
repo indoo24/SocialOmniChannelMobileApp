@@ -19,10 +19,29 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
 
 import '../config/environment.dart';
+
+typedef WebSocketConnectFn = WebSocketChannel Function(
+  Uri uri, {
+  Iterable<String>? protocols,
+  Map<String, dynamic>? headers,
+});
+
+WebSocketChannel _defaultConnect(
+  Uri uri, {
+  Iterable<String>? protocols,
+  Map<String, dynamic>? headers,
+}) {
+  return IOWebSocketChannel.connect(
+    uri,
+    protocols: protocols,
+    headers: headers,
+  );
+}
 
 class RealtimeEvent {
   const RealtimeEvent(this.event, this.payload);
@@ -60,18 +79,18 @@ class RealtimeClient {
   RealtimeClient({
     required CookieJar cookieJar,
     Environment? environment,
-    WebSocketChannel Function(Uri, {Iterable<String>? protocols})? connect,
+    WebSocketConnectFn? connect,
   }) : this._(
           cookieJar,
           environment ?? Environment.current,
-          connect ?? WebSocketChannel.connect,
+          connect ?? _defaultConnect,
         );
 
   RealtimeClient._(this._cookieJar, this._environment, this._connectFn);
 
   final CookieJar _cookieJar;
   final Environment _environment;
-  final WebSocketChannel Function(Uri, {Iterable<String>? protocols}) _connectFn;
+  final WebSocketConnectFn _connectFn;
 
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _subscription;
@@ -114,7 +133,14 @@ class RealtimeClient {
       final cookieHeader =
           cookies.map((c) => '${c.name}=${c.value}').join('; ');
 
-      final channel = _connectFn(uri);
+      final headers = <String, String>{
+        if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
+      };
+
+      final channel = _connectFn(
+        uri,
+        headers: headers.isNotEmpty ? headers : null,
+      );
       _channel = channel;
 
       _subscription = channel.stream.listen(
@@ -124,9 +150,6 @@ class RealtimeClient {
         cancelOnError: false,
       );
 
-      // web_socket_channel cannot set headers on every platform, so the
-      // cookie also goes in an opening frame the consumer ignores; the
-      // platform's own cookie handling is what actually authenticates.
       if (cookieHeader.isNotEmpty) {
         _send({'action': 'ping'});
       }
@@ -134,17 +157,30 @@ class RealtimeClient {
       _attempt = 0;
       _setStatus(RealtimeStatus.connected);
       _startHeartbeat();
+      _resubscribeActive();
     } on Object {
       _scheduleReconnect();
     }
   }
 
-  /// Watch one conversation for message-level events.
-  void subscribe(int conversationId) =>
-      _send({'action': 'subscribe', 'conversation_id': conversationId});
+  final Set<int> _subscriptions = {};
 
-  void unsubscribe(int conversationId) =>
-      _send({'action': 'unsubscribe', 'conversation_id': conversationId});
+  /// Watch one conversation for message-level events.
+  void subscribe(int conversationId) {
+    _subscriptions.add(conversationId);
+    _send({'action': 'subscribe', 'conversation_id': conversationId});
+  }
+
+  void unsubscribe(int conversationId) {
+    _subscriptions.remove(conversationId);
+    _send({'action': 'unsubscribe', 'conversation_id': conversationId});
+  }
+
+  void _resubscribeActive() {
+    for (final conversationId in _subscriptions) {
+      _send({'action': 'subscribe', 'conversation_id': conversationId});
+    }
+  }
 
   /// Close deliberately — backgrounding or logging out. Suppresses reconnect.
   Future<void> disconnect() async {

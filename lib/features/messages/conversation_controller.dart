@@ -79,7 +79,11 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   }
 
   static List<Message> _chronological(List<Message> messages) {
-    final sorted = [...messages]..sort((a, b) => a.sentAt.compareTo(b.sentAt));
+    final sorted = [...messages]..sort((a, b) {
+      final timeCmp = a.sentAt.compareTo(b.sentAt);
+      if (timeCmp != 0) return timeCmp;
+      return a.id.compareTo(b.id);
+    });
     return sorted;
   }
 
@@ -163,12 +167,19 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   void _replaceLocal(String localId, Message replacement) {
     final current = state.value;
     if (current == null) return;
+
+    final Map<dynamic, Message> mergedMap = {};
+    for (final m in current.messages) {
+      final key = m.localId == localId ? (replacement.localId ?? replacement.id) : (m.localId ?? m.id);
+      mergedMap[key] = m.localId == localId ? replacement : m;
+    }
+    if (!mergedMap.containsKey(replacement.localId ?? replacement.id)) {
+      mergedMap[replacement.localId ?? replacement.id] = replacement;
+    }
+
     state = AsyncData(
       current.copyWith(
-        messages: [
-          for (final message in current.messages)
-            if (message.localId == localId) replacement else message,
-        ],
+        messages: _chronological(mergedMap.values.toList()),
       ),
     );
   }
@@ -186,18 +197,28 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         repository.messages(current.conversation.id),
       ]);
 
-      final server = _chronological((results[1] as Paginated<Message>).results);
+      final conversation = results[0] as Conversation;
+      final serverPage = results[1] as Paginated<Message>;
 
-      // Preserve in-flight and failed sends: the server does not know about
-      // them, so a naive replace would make the agent's unsent text vanish.
-      final local = current.messages
-          .where((m) => m.localId != null && m.sendState != SendState.sent)
-          .toList();
+      final Map<dynamic, Message> mergedMap = {};
+
+      for (final m in current.messages) {
+        final key = m.localId ?? m.id;
+        mergedMap[key] = m;
+      }
+
+      for (final m in serverPage.results) {
+        final key = m.localId ?? m.id;
+        mergedMap[key] = m;
+      }
+
+      final mergedMessages = _chronological(mergedMap.values.toList());
 
       state = AsyncData(
         current.copyWith(
-          conversation: results[0] as Conversation,
-          messages: [...server, ...local],
+          conversation: conversation,
+          messages: mergedMessages,
+          hasMore: current.hasMore || serverPage.hasMore,
         ),
       );
     } on ApiException {
