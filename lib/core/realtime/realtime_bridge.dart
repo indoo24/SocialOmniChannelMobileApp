@@ -13,6 +13,7 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/router.dart';
 import '../../features/authentication/auth_controller.dart';
 import '../../features/conversations/inbox_controller.dart';
 import '../../features/messages/conversation_controller.dart';
@@ -26,10 +27,39 @@ import 'realtime_client.dart';
 /// looking at.
 class ActiveConversation extends Notifier<int?> {
   @override
-  int? build() => null;
+  int? build() {
+    try {
+      final router = ref.watch(routerProvider);
+
+      void updateState() {
+        final idStr = router.routerDelegate.currentConfiguration.pathParameters['id'];
+        final id = idStr != null ? int.tryParse(idStr) : null;
+        if (state != id) {
+          state = id;
+        }
+      }
+
+      router.routerDelegate.addListener(updateState);
+      ref.onDispose(() {
+        router.routerDelegate.removeListener(updateState);
+      });
+
+      final idStr = router.routerDelegate.currentConfiguration.pathParameters['id'];
+      return idStr != null ? int.tryParse(idStr) : null;
+    } on Object {
+      return null;
+    }
+  }
 
   void opened(int conversationId) => state = conversationId;
-  void closed() => state = null;
+
+  /// Clears active conversation only if it matches [conversationId] (or if omitted).
+  /// Prevents delayed callbacks from an old conversation clearing a newer active conversation.
+  void closed([int? conversationId]) {
+    if (conversationId == null || state == conversationId) {
+      state = null;
+    }
+  }
 }
 
 final activeConversationProvider =
@@ -100,10 +130,14 @@ class _RealtimeBridgeState extends ConsumerState<RealtimeBridge>
     });
 
     // Subscribe/unsubscribe as the open conversation changes.
+    final active = ref.watch(activeConversationProvider);
+    if (active != null) {
+      ref.read(realtimeClientProvider).subscribe(active);
+    }
+
     ref.listen<int?>(activeConversationProvider, (previous, next) {
       final client = ref.read(realtimeClientProvider);
-      if (previous != null) client.unsubscribe(previous);
-      if (next != null) client.subscribe(next);
+      if (previous != null && previous != next) client.unsubscribe(previous);
     });
 
     ref.listen(realtimeEventProvider, (_, _) {});

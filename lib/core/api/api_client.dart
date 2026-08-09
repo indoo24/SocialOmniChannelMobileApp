@@ -46,6 +46,10 @@ class ApiClient {
     final dio = Dio(
       BaseOptions(
         baseUrl: env.apiBaseUrl,
+        headers: const {
+          'ngrok-skip-browser-warning': 'true',
+          'User-Agent': 'ScenarioMobileApp/1.0',
+        },
         // A support agent on mobile data needs a real timeout, not an
         // indefinite spinner. Long enough for a slow 3G handshake.
         connectTimeout: const Duration(seconds: 15),

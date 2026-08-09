@@ -12,12 +12,12 @@ import 'package:go_router/go_router.dart';
 import '../../app/router.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/employee.dart';
-import '../../core/realtime/realtime_bridge.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
+import '../../core/realtime/realtime_bridge.dart';
 import '../authentication/auth_controller.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
@@ -35,30 +35,26 @@ class ConversationScreen extends ConsumerStatefulWidget {
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _composerController = TextEditingController();
   final _scrollController = ScrollController();
+  late final ActiveConversation _activeNotifier;
   bool _sending = false;
 
   @override
   void initState() {
     super.initState();
-    // Tell the realtime bridge which thread is open, so it subscribes to
-    // message events and suppresses push for this conversation.
+    _activeNotifier = ref.read(activeConversationProvider.notifier);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(activeConversationProvider.notifier).opened(widget.conversationId);
+      if (mounted) {
+        _activeNotifier.opened(widget.conversationId);
+      }
     });
   }
 
   @override
   void dispose() {
-    // Cannot use ref in dispose; clear via the container directly.
+    _activeNotifier.closed(widget.conversationId);
     _composerController.dispose();
     _scrollController.dispose();
     super.dispose();
-  }
-
-  @override
-  void deactivate() {
-    ref.read(activeConversationProvider.notifier).closed();
-    super.deactivate();
   }
 
   Future<void> _send() async {
@@ -100,6 +96,30 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   Widget build(BuildContext context) {
     final async = ref.watch(conversationControllerProvider(widget.conversationId));
     final canReply = ref.watch(canProvider(Perm.conversationReply));
+
+    // Listen to realtime events to refresh messages in real time
+    ref.listen(realtimeEventProvider, (_, next) {
+      final event = next.value;
+      if (event != null &&
+          (event.conversationId == widget.conversationId ||
+              event.conversationId == null)) {
+        ref
+            .read(conversationControllerProvider(widget.conversationId).notifier)
+            .refreshFromServer();
+      }
+    });
+
+    // Automatically scroll down when a new message arrives
+    ref.listen(
+      conversationControllerProvider(widget.conversationId),
+      (previous, next) {
+        final prevCount = previous?.value?.messages.length ?? 0;
+        final nextCount = next.value?.messages.length ?? 0;
+        if (nextCount > prevCount) {
+          _scrollToBottom();
+        }
+      },
+    );
 
     return Scaffold(
       appBar: AppBar(
