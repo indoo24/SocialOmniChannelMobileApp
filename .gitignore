@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Kotlin incremental-compilation cache, written by the Android Gradle build.
+android/.kotlin/
+
 # Symbolication related
 app.*.symbols
 

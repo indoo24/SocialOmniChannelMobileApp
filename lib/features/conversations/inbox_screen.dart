@@ -16,8 +16,10 @@ import '../../core/realtime/realtime_bridge.dart';
 import '../../core/realtime/realtime_client.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
+import '../../core/widgets/app_drawer.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
+import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
 import '../../core/utils/formatting.dart';
 import '../authentication/auth_controller.dart';
@@ -69,6 +71,9 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     ref.watch(realtimeEventProvider);
 
     return Scaffold(
+      // The drawer is the mobile form of the web sidebar — every top-level
+      // section reaches every other one from here.
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: _searching
             ? _SearchField(
@@ -96,17 +101,17 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
           ),
           _FilterButton(active: !filters.isEmpty),
           IconButton(
-            tooltip: 'Profile',
+            tooltip: 'Settings',
             icon: InitialsAvatar(
               initials: employee?.initials ?? '',
               imageUrl: employee?.avatarUrl ?? '',
               size: 28,
             ),
-            onPressed: () => context.push(Routes.profile),
+            onPressed: () => context.go(Routes.settings),
           ),
           const SizedBox(width: Space.xs),
         ],
-        bottom: const _ConnectionBanner(),
+        bottom: const ConnectionBanner(),
       ),
       body: RefreshIndicator(
         onRefresh: () => ref.read(inboxControllerProvider.notifier).refresh(),
@@ -415,41 +420,10 @@ class _SearchField extends StatelessWidget {
   }
 }
 
-/// Shows a thin strip when realtime is down, so an agent knows the list may be
-/// stale rather than silently trusting it.
-class _ConnectionBanner extends ConsumerWidget implements PreferredSizeWidget {
-  const _ConnectionBanner();
-
-  @override
-  Size get preferredSize => const Size.fromHeight(0);
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final status = ref.watch(realtimeStatusProvider).value;
-    if (status != RealtimeStatus.disconnected) {
-      return const SizedBox.shrink();
-    }
-
-    return Material(
-      color: ScenarioColors.warningSurface,
-      child: SizedBox(
-        height: 22,
-        width: double.infinity,
-        child: Center(
-          child: Text(
-            'Reconnecting…',
-            style: TextStyle(
-              fontSize: 11,
-              color: ScenarioColors.warning,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
+/// Realtime connection state, watched by the banner every section shows.
+///
+/// Lives here because the inbox is what the socket exists for; the banner
+/// itself moved to `section_scaffold.dart` when every section gained one.
 final realtimeStatusProvider = StreamProvider<RealtimeStatus>(
   (ref) => ref.watch(realtimeClientProvider).statusChanges,
 );

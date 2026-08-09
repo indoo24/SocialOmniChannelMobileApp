@@ -25,6 +25,7 @@ import 'config/environment.dart';
 import 'realtime/realtime_client.dart';
 import 'storage/secure_store.dart';
 import '../features/conversations/conversation_repository.dart';
+import '../features/directory/directory_repository.dart';
 
 /// Overridden in `main()` once the cookie directory is known, and in tests
 /// with an in-memory jar.
@@ -52,6 +53,10 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 final conversationRepositoryProvider = Provider<ConversationRepository>((ref) {
   return ConversationRepository(ref.watch(apiClientProvider));
+});
+
+final directoryRepositoryProvider = Provider<DirectoryRepository>((ref) {
+  return DirectoryRepository(ref.watch(apiClientProvider));
 });
 
 final realtimeClientProvider = Provider<RealtimeClient>((ref) {

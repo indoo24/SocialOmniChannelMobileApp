@@ -85,6 +85,45 @@ class AuthRepository {
     return currentEmployee();
   }
 
+  /// Change the signed-in employee's password.
+  ///
+  /// The backend keeps the session valid across the hash change, so this does
+  /// not sign the device out — which matters on a phone, where being logged out
+  /// mid-shift means missing conversations.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) =>
+      _api.post<dynamic>(
+        '/auth/password/',
+        body: {
+          'current_password': currentPassword,
+          'new_password': newPassword,
+        },
+      );
+
+  /// Update the fields an employee may change about themselves.
+  ///
+  /// Role and active state are absent by design: the endpoint strips them, and
+  /// offering them here would be a control the server always refuses.
+  Future<Employee> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? title,
+    String? phone,
+  }) async {
+    await _api.patch<dynamic>(
+      '/auth/me/',
+      body: {
+        'first_name': ?firstName,
+        'last_name': ?lastName,
+        'title': ?title,
+        'phone': ?phone,
+      },
+    );
+    return currentEmployee();
+  }
+
   Future<void> _clearLocalSession() async {
     await _api.clearCookies();
     await _store.clearSession();
