@@ -17,6 +17,7 @@ import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
+import '../../core/realtime/realtime_bridge.dart';
 import '../authentication/auth_controller.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
@@ -34,10 +35,23 @@ class ConversationScreen extends ConsumerStatefulWidget {
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _composerController = TextEditingController();
   final _scrollController = ScrollController();
+  late final ActiveConversation _activeNotifier;
   bool _sending = false;
 
   @override
+  void initState() {
+    super.initState();
+    _activeNotifier = ref.read(activeConversationProvider.notifier);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _activeNotifier.opened(widget.conversationId);
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _activeNotifier.closed(widget.conversationId);
     _composerController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -82,6 +96,30 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   Widget build(BuildContext context) {
     final async = ref.watch(conversationControllerProvider(widget.conversationId));
     final canReply = ref.watch(canProvider(Perm.conversationReply));
+
+    // Listen to realtime events to refresh messages in real time
+    ref.listen(realtimeEventProvider, (_, next) {
+      final event = next.value;
+      if (event != null &&
+          (event.conversationId == widget.conversationId ||
+              event.conversationId == null)) {
+        ref
+            .read(conversationControllerProvider(widget.conversationId).notifier)
+            .refreshFromServer();
+      }
+    });
+
+    // Automatically scroll down when a new message arrives
+    ref.listen(
+      conversationControllerProvider(widget.conversationId),
+      (previous, next) {
+        final prevCount = previous?.value?.messages.length ?? 0;
+        final nextCount = next.value?.messages.length ?? 0;
+        if (nextCount > prevCount) {
+          _scrollToBottom();
+        }
+      },
+    );
 
     return Scaffold(
       appBar: AppBar(

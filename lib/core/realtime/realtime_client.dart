@@ -135,6 +135,8 @@ class RealtimeClient {
 
       final headers = <String, String>{
         if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
+        'ngrok-skip-browser-warning': 'true',
+        'User-Agent': 'ScenarioMobileApp/1.0',
       };
 
       final channel = _connectFn(
@@ -142,6 +144,13 @@ class RealtimeClient {
         headers: headers.isNotEmpty ? headers : null,
       );
       _channel = channel;
+
+      try {
+        await channel.ready;
+      } catch (e) {
+        _scheduleReconnect();
+        return;
+      }
 
       _subscription = channel.stream.listen(
         _onData,

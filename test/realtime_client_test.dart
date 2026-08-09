@@ -12,11 +12,24 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 class _FakeWebSocketChannel implements WebSocketChannel {
   @override
+  Future<void> get ready => Future.value();
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _ErrorHandshakeChannel implements WebSocketChannel {
+  @override
+  Future<void> get ready => Future.error(
+        WebSocketChannelException('HTTP status code: 403'),
+      );
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {
-  test('RealtimeClient passes session cookies in WebSocket connection headers', () async {
+  test('RealtimeClient passes session cookies and ngrok headers in WebSocket connection', () async {
     final jar = CookieJar();
     final apiUri = Uri.parse(Environment.current.apiBaseUrl);
     await jar.saveFromResponse(apiUri, [
@@ -42,6 +55,26 @@ void main() {
     expect(receivedHeaders, isNotNull);
     expect(receivedHeaders!['Cookie'], contains('scenario_session=sess-123'));
     expect(receivedHeaders!['Cookie'], contains('scenario_csrftoken=csrf-456'));
+    expect(receivedHeaders!['ngrok-skip-browser-warning'], 'true');
+    expect(receivedHeaders!['User-Agent'], isNotEmpty);
+  });
+
+  test('RealtimeClient handles WebSocket handshake error on ready gracefully', () async {
+    final jar = CookieJar();
+    var connectCalled = false;
+
+    final client = RealtimeClient(
+      cookieJar: jar,
+      connect: (uri, {protocols, headers}) {
+        connectCalled = true;
+        return _ErrorHandshakeChannel();
+      },
+    );
+
+    await client.connect();
+
+    expect(connectCalled, isTrue);
+    expect(client.status, RealtimeStatus.disconnected);
   });
 
   test('ActiveConversation opened and closed logic is lifecycle safe', () {
@@ -120,6 +153,9 @@ class _SinkCapturingChannel implements WebSocketChannel {
 
   final List<String> sent;
   final _controller = StreamController<dynamic>.broadcast();
+
+  @override
+  Future<void> get ready => Future.value();
 
   @override
   Stream<dynamic> get stream => _controller.stream;
