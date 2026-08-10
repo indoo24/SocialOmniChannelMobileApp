@@ -10,7 +10,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/conversation.dart';
 import '../../core/models/directory.dart';
+import '../../core/models/performance.dart';
 import '../../core/providers.dart';
+import '../authentication/auth_controller.dart';
 
 final dashboardProvider = FutureProvider<DashboardSummary>((ref) {
   return ref.watch(directoryRepositoryProvider).dashboard();
@@ -69,4 +71,55 @@ final customerConversationsProvider =
   final page =
       await ref.watch(directoryRepositoryProvider).customerConversations(id);
   return page.results;
+});
+
+// --------------------------------------------------------------------------- //
+// Performance
+// --------------------------------------------------------------------------- //
+/// Reporting window in days. Kept in a provider so the Analytics screen's
+/// 7/14/30 switch refetches without threading state through the widget tree.
+class PerformanceWindowController extends Notifier<int> {
+  @override
+  int build() => 14;
+
+  void update(int days) => state = days;
+}
+
+final performanceWindowProvider =
+    NotifierProvider<PerformanceWindowController, int>(
+  PerformanceWindowController.new,
+);
+
+final performanceProvider = FutureProvider<PerformanceReport>((ref) {
+  return ref
+      .watch(directoryRepositoryProvider)
+      .performance(days: ref.watch(performanceWindowProvider));
+});
+
+/// The signed-in employee's own row, or null before it arrives.
+///
+/// Every employee is entitled to their own numbers, so this needs no
+/// permission check — the endpoint returns exactly one row for an agent.
+final myPerformanceProvider = Provider<EmployeePerformance?>((ref) {
+  final me = ref.watch(currentEmployeeProvider);
+  final report = ref.watch(performanceProvider).value;
+  if (me == null || report == null) return null;
+
+  for (final row in report.results) {
+    if (row.employeeId == me.id) return row;
+  }
+  return null;
+});
+
+// --------------------------------------------------------------------------- //
+// Orders and captured details
+// --------------------------------------------------------------------------- //
+final conversationOrdersProvider =
+    FutureProvider.family<List<Order>, int>((ref, conversationId) {
+  return ref.watch(directoryRepositoryProvider).conversationOrders(conversationId);
+});
+
+final customerFactsProvider =
+    FutureProvider.family<List<CustomerFact>, int>((ref, customerId) {
+  return ref.watch(directoryRepositoryProvider).customerFacts(customerId);
 });

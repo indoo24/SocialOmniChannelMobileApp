@@ -18,6 +18,7 @@ import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
 import '../directory/directory_providers.dart';
+import '../performance/performance_card.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
@@ -137,9 +138,93 @@ class AnalyticsScreen extends ConsumerWidget {
             ),
           ),
 
+          const SizedBox(height: Space.xl),
+          const _TeamPerformance(),
+
           const SizedBox(height: Space.xxl),
         ],
       ),
+    );
+  }
+}
+
+/// Per-employee performance for everyone the caller may report on.
+///
+/// The backend decides who that is: a team leader gets their teams, ADMIN,
+/// SUPERVISOR and QA get the organization. An agent would get only themselves,
+/// but an agent has no `analytics.view` and never reaches this screen.
+///
+/// Sorted by conversations handled, not by any quality figure. A leaderboard
+/// ranked on response time invites gaming it with one-word replies, and the
+/// point of this list is to find who needs help.
+class _TeamPerformance extends ConsumerWidget {
+  const _TeamPerformance();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final report = ref.watch(performanceProvider);
+    final days = ref.watch(performanceWindowProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeading(
+          'Employee performance',
+          trailing: Wrap(
+            spacing: Space.xs,
+            children: [
+              for (final option in [7, 14, 30])
+                ChoiceChip(
+                  label: Text('${option}d'),
+                  selected: days == option,
+                  onSelected: (_) =>
+                      ref.read(performanceWindowProvider.notifier).update(option),
+                  visualDensity: VisualDensity.compact,
+                ),
+            ],
+          ),
+        ),
+        report.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(Space.xl),
+            child: LoadingState(),
+          ),
+          error: (error, _) => ErrorStateView(
+            error: error,
+            onRetry: () => ref.invalidate(performanceProvider),
+          ),
+          data: (data) {
+            final rows = data.results
+                .where((r) => r.conversationsHandled > 0 || r.messagesSent > 0)
+                .toList()
+              ..sort(
+                (a, b) => b.conversationsHandled.compareTo(a.conversationsHandled),
+              );
+
+            if (rows.isEmpty) {
+              return const Card(
+                margin: EdgeInsets.zero,
+                child: Padding(
+                  padding: EdgeInsets.all(Space.xl),
+                  child: Center(
+                    child: Text('Nobody handled a conversation in this window.'),
+                  ),
+                ),
+              );
+            }
+
+            return Column(
+              children: [
+                for (final row in rows)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: Space.md),
+                    child: PerformanceCard(row: row),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 }

@@ -19,6 +19,7 @@ import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
+import '../performance/performance_card.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -120,6 +121,12 @@ class DashboardScreen extends ConsumerWidget {
               _ReviewCallout(count: data.intelligence.pendingReview),
             ],
 
+            // Every employee is entitled to their own numbers — being measured
+            // without being allowed to see the measurement is not a defensible
+            // default. The endpoint returns one row for an agent, so this needs
+            // no permission check.
+            const _MyPerformance(),
+
             // Omitted by the server for roles without analytics.view.
             if (data.team != null) ...[
               const SizedBox(height: Space.xl),
@@ -136,6 +143,32 @@ class DashboardScreen extends ConsumerWidget {
             const SizedBox(height: Space.xxl),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The signed-in employee's own performance.
+///
+/// Renders nothing until there is something to show. A brand-new account with
+/// no replies, no hours and no orders would otherwise get a card of dashes that
+/// reads as a bad review rather than an empty one.
+class _MyPerformance extends ConsumerWidget {
+  const _MyPerformance();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mine = ref.watch(myPerformanceProvider);
+    if (mine == null || !mine.hasActivity) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: Space.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeading('Your last 14 days'),
+          PerformanceCard(row: mine, showIdentity: false),
+        ],
       ),
     );
   }

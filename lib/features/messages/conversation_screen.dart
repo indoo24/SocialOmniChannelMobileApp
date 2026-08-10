@@ -19,6 +19,8 @@ import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../core/realtime/realtime_bridge.dart';
 import '../authentication/auth_controller.dart';
+import '../directory/directory_providers.dart';
+import '../orders/customer_record_sheet.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
 import 'message_bubble.dart';
@@ -129,6 +131,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           orElse: () => const Text('Conversation'),
         ),
         actions: [
+          // Orders and captured details. Badged when the analyzer has read
+          // something out of the chat that nobody has reviewed — otherwise the
+          // suggestions sit in a sheet no one thinks to open.
+          async.maybeWhen(
+            data: (state) => _RecordButton(
+              conversationId: widget.conversationId,
+              customerId: state.conversation.customer.id,
+            ),
+            orElse: () => const SizedBox.shrink(),
+          ),
           IconButton(
             tooltip: 'Customer details',
             icon: const Icon(Icons.person_outline),
@@ -179,6 +191,61 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Opens the orders and customer-details sheet, badged when the analyzer has
+/// left something unreviewed.
+class _RecordButton extends ConsumerWidget {
+  const _RecordButton({required this.conversationId, required this.customerId});
+
+  final int conversationId;
+  final int customerId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final facts = ref.watch(customerFactsProvider(customerId)).value ?? const [];
+    final orders =
+        ref.watch(conversationOrdersProvider(conversationId)).value ?? const [];
+
+    final pending = facts.where((f) => f.needsReview).length +
+        orders.where((o) => o.isSuggestion).length;
+
+    return Stack(
+      children: [
+        IconButton(
+          tooltip: 'Orders and customer details',
+          icon: const Icon(Icons.inventory_2_outlined),
+          onPressed: () => showCustomerRecordSheet(
+            context,
+            conversationId: conversationId,
+            customerId: customerId,
+          ),
+        ),
+        if (pending > 0)
+          Positioned(
+            right: 6,
+            top: 6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              constraints: const BoxConstraints(minWidth: 15),
+              decoration: BoxDecoration(
+                color: ScenarioColors.warning,
+                borderRadius: BorderRadius.circular(Radii.pill),
+              ),
+              child: Text(
+                '$pending',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

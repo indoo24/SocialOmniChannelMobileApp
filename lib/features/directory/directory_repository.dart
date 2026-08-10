@@ -11,6 +11,7 @@ library;
 import '../../core/api/api_client.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/directory.dart';
+import '../../core/models/performance.dart';
 
 class DirectoryRepository {
   DirectoryRepository(this._api);
@@ -83,5 +84,111 @@ class DirectoryRepository {
     return rows
         .map((r) => ChannelVolume.fromJson(Map<String, dynamic>.from(r as Map)))
         .toList();
+  }
+
+  /// Per-employee performance for everyone the caller may report on.
+  ///
+  /// Open to every employee; the backend narrows the *result set* by role. An
+  /// agent gets a one-row report about themselves, which is why this needs no
+  /// permission check here — asking is always allowed and the answer is already
+  /// scoped.
+  Future<PerformanceReport> performance({int days = 14}) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/dashboard/performance/',
+      query: {'days': days},
+    );
+    return PerformanceReport.fromJson(data);
+  }
+
+  // ------------------------------------------------------------------ orders
+  Future<List<Order>> conversationOrders(int conversationId) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/orders/',
+      query: {'conversation': conversationId},
+    );
+    return Paginated.fromJson(data, Order.fromJson).results;
+  }
+
+  Future<List<Order>> customerOrders(int customerId) async {
+    final data = await _api.get<dynamic>('/customers/$customerId/orders/');
+    final rows = data is Map ? (data['results'] as List? ?? const []) : (data as List);
+    return rows
+        .map((o) => Order.fromJson(Map<String, dynamic>.from(o as Map)))
+        .toList();
+  }
+
+  Future<Order> recordOrder({
+    required int customerId,
+    required List<Map<String, dynamic>> items,
+    int? conversationId,
+    String note = '',
+  }) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/orders/',
+      body: {
+        'customer': customerId,
+        'conversation': ?conversationId,
+        'items': items,
+        if (note.isNotEmpty) 'note': note,
+      },
+    );
+    return Order.fromJson(data);
+  }
+
+  /// Attest that an order is real. The only route to CONFIRMED.
+  Future<Order> confirmOrder(int orderId, {String note = ''}) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/orders/$orderId/confirm/',
+      body: {'note': note},
+    );
+    return Order.fromJson(data);
+  }
+
+  Future<Order> cancelOrder(int orderId, {bool refunded = false}) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/orders/$orderId/cancel/',
+      body: {'refunded': refunded},
+    );
+    return Order.fromJson(data);
+  }
+
+  // ------------------------------------------------------- customer details
+  Future<List<CustomerFact>> customerFacts(int customerId) async {
+    final data = await _api.get<dynamic>('/customers/$customerId/facts/');
+    final rows = data is List ? data : const [];
+    return rows
+        .map((f) => CustomerFact.fromJson(Map<String, dynamic>.from(f as Map)))
+        .toList();
+  }
+
+  Future<CustomerFact> recordFact({
+    required int customerId,
+    required String key,
+    required String value,
+    int? conversationId,
+  }) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/customers/$customerId/facts/',
+      body: {'key': key, 'value': value, 'conversation': ?conversationId},
+    );
+    return CustomerFact.fromJson(data);
+  }
+
+  /// Accept or turn down one of the analyzer's suggestions.
+  ///
+  /// [value] corrects it on the way through — the common case is right digits,
+  /// wrong formatting, and forcing a reject plus a retype is how agents stop
+  /// reviewing altogether.
+  Future<CustomerFact> reviewFact({
+    required int customerId,
+    required int factId,
+    required bool confirmed,
+    String? value,
+  }) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/customers/$customerId/facts/$factId/review/',
+      body: {'confirmed': confirmed, 'value': ?value},
+    );
+    return CustomerFact.fromJson(data);
   }
 }

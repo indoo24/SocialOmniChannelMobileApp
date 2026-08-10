@@ -141,4 +141,10 @@ class Perm {
   static const analyticsView = 'analytics.view';
   static const channelView = 'channel.view';
   static const channelManage = 'channel.manage';
+
+  /// Record an order, and review the customer details the analyzer extracted.
+  /// Held by everyone who talks to customers — including agents, who are the
+  /// ones taking the order. QA does not have it: reviewing history is not
+  /// recording sales against it.
+  static const orderManage = 'order.manage';
 }
