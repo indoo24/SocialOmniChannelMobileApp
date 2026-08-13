@@ -72,7 +72,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(
               horizontal: Space.xl,
-              vertical: Space.xxl,
+              vertical: Space.xl,
             ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
@@ -82,7 +82,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const _Brand(),
-                    const SizedBox(height: Space.xxl),
+                    const SizedBox(height: 70),
                     Text('Sign in', style: theme.textTheme.titleLarge),
                     const SizedBox(height: Space.xs),
                     Text(
@@ -146,7 +146,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Sign in'),
+                          : const Text('Sign in',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Inter',
+                            ),
+                          ),
                     ),
                     if (environment.isDevelopment) ...[
                       const SizedBox(height: Space.lg),
@@ -175,8 +180,8 @@ class _Brand extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: 56,
-          height: 56,
+          width: 80,
+          height: 80,
           decoration: BoxDecoration(
             color: ScenarioColors.primary,
             borderRadius: BorderRadius.circular(Radii.lg),
@@ -184,7 +189,7 @@ class _Brand extends StatelessWidget {
           child: const Icon(
             Icons.forum_rounded,
             color: Colors.white,
-            size: 28,
+            size: 40,
           ),
         ),
         const SizedBox(height: Space.md),
