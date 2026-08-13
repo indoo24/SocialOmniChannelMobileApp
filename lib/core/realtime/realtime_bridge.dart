@@ -32,9 +32,10 @@ class ActiveConversation extends Notifier<int?> {
       final router = ref.watch(routerProvider);
 
       void updateState() {
-        final idStr = router.routerDelegate.currentConfiguration.pathParameters['id'];
+        final idStr =
+            router.routerDelegate.currentConfiguration.pathParameters['id'];
         final id = idStr != null ? int.tryParse(idStr) : null;
-        if (state != id) {
+        if (id != null && state != id) {
           state = id;
         }
       }
@@ -44,7 +45,8 @@ class ActiveConversation extends Notifier<int?> {
         router.routerDelegate.removeListener(updateState);
       });
 
-      final idStr = router.routerDelegate.currentConfiguration.pathParameters['id'];
+      final idStr =
+          router.routerDelegate.currentConfiguration.pathParameters['id'];
       return idStr != null ? int.tryParse(idStr) : null;
     } on Object {
       return null;
@@ -62,8 +64,9 @@ class ActiveConversation extends Notifier<int?> {
   }
 }
 
-final activeConversationProvider =
-    NotifierProvider<ActiveConversation, int?>(ActiveConversation.new);
+final activeConversationProvider = NotifierProvider<ActiveConversation, int?>(
+  ActiveConversation.new,
+);
 
 class RealtimeBridge extends ConsumerStatefulWidget {
   const RealtimeBridge({required this.child, super.key});
@@ -91,8 +94,7 @@ class _RealtimeBridgeState extends ConsumerState<RealtimeBridge>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final client = ref.read(realtimeClientProvider);
-    final isAuthenticated =
-        ref.read(authControllerProvider).isAuthenticated;
+    final isAuthenticated = ref.read(authControllerProvider).isAuthenticated;
 
     switch (state) {
       case AppLifecycleState.resumed:
@@ -119,6 +121,15 @@ class _RealtimeBridgeState extends ConsumerState<RealtimeBridge>
 
   @override
   Widget build(BuildContext context) {
+    final auth = ref.watch(authControllerProvider);
+
+    // Automatically connect socket if authenticated and not yet connected.
+    if (auth.isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(realtimeClientProvider).connect();
+      });
+    }
+
     // Connect and disconnect as the session comes and goes.
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
       final client = ref.read(realtimeClientProvider);
@@ -160,39 +171,41 @@ final realtimeEventProvider = StreamProvider<RealtimeEvent>((ref) {
 });
 
 void _apply(Ref ref, RealtimeEvent event) {
-  final conversationId = event.conversationId;
+  Future.microtask(() {
+    final conversationId = event.conversationId;
 
-  switch (event.event) {
-    // Anything that changes a list row: refetch the list.
-    case RealtimeEvents.conversationCreated:
-    case RealtimeEvents.conversationUpdated:
-    case RealtimeEvents.conversationAssigned:
-    case RealtimeEvents.conversationStatusChanged:
-      ref.read(inboxControllerProvider.notifier).refreshQuietly();
-      ref.invalidate(conversationCountsProvider);
-      if (conversationId != null) {
-        _refreshConversation(ref, conversationId);
-      }
+    switch (event.event) {
+      // Anything that changes a list row: refetch the list.
+      case RealtimeEvents.conversationCreated:
+      case RealtimeEvents.conversationUpdated:
+      case RealtimeEvents.conversationAssigned:
+      case RealtimeEvents.conversationStatusChanged:
+        ref.read(inboxControllerProvider.notifier).refreshQuietly();
+        ref.invalidate(conversationCountsProvider);
+        if (conversationId != null) {
+          _refreshConversation(ref, conversationId);
+        }
 
-    // A message changes both the thread and the list row's preview.
-    case RealtimeEvents.messageCreated:
-    case RealtimeEvents.messageDeleted:
-      ref.read(inboxControllerProvider.notifier).refreshQuietly();
-      ref.invalidate(conversationCountsProvider);
-      if (conversationId != null) {
-        _refreshConversation(ref, conversationId);
-      }
+      // A message changes both the thread and the list row's preview.
+      case RealtimeEvents.messageCreated:
+      case RealtimeEvents.messageDeleted:
+        ref.read(inboxControllerProvider.notifier).refreshQuietly();
+        ref.invalidate(conversationCountsProvider);
+        if (conversationId != null) {
+          _refreshConversation(ref, conversationId);
+        }
 
-    case RealtimeEvents.noteCreated:
-    case RealtimeEvents.intelligenceUpdated:
-      if (conversationId != null) {
-        _refreshConversation(ref, conversationId);
-      }
+      case RealtimeEvents.noteCreated:
+      case RealtimeEvents.intelligenceUpdated:
+        if (conversationId != null) {
+          _refreshConversation(ref, conversationId);
+        }
 
-    case RealtimeEvents.presenceChanged:
-    case RealtimeEvents.connectionReady:
-      break;
-  }
+      case RealtimeEvents.presenceChanged:
+      case RealtimeEvents.connectionReady:
+        break;
+    }
+  });
 }
 
 /// Only refresh a conversation that is actually loaded.

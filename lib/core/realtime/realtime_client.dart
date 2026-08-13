@@ -25,11 +25,12 @@ import 'package:web_socket_channel/status.dart' as ws_status;
 
 import '../config/environment.dart';
 
-typedef WebSocketConnectFn = WebSocketChannel Function(
-  Uri uri, {
-  Iterable<String>? protocols,
-  Map<String, dynamic>? headers,
-});
+typedef WebSocketConnectFn =
+    WebSocketChannel Function(
+      Uri uri, {
+      Iterable<String>? protocols,
+      Map<String, dynamic>? headers,
+    });
 
 WebSocketChannel _defaultConnect(
   Uri uri, {
@@ -50,8 +51,45 @@ class RealtimeEvent {
   final Map<String, dynamic> payload;
 
   int? get conversationId {
-    final value = payload['conversation_id'];
-    return value is int ? value : int.tryParse('${value ?? ''}');
+    // Top-level direct keys
+    final direct = payload['conversation_id'] ?? payload['conversationId'];
+    if (direct is int) return direct;
+    if (direct is String) {
+      final parsed = int.tryParse(direct);
+      if (parsed != null) return parsed;
+    }
+
+    // Nested payload['conversation'] (int, String, or Map with 'id')
+    final convo = payload['conversation'];
+    if (convo is int) return convo;
+    if (convo is String) {
+      final parsed = int.tryParse(convo);
+      if (parsed != null) return parsed;
+    }
+    if (convo is Map) {
+      final id = convo['id'];
+      if (id is int) return id;
+      if (id is String) {
+        final parsed = int.tryParse(id);
+        if (parsed != null) return parsed;
+      }
+    }
+
+    // Nested payload['message'] (Map with conversation_id or conversation)
+    final msg = payload['message'];
+    if (msg is Map) {
+      final id =
+          msg['conversation_id'] ??
+          msg['conversationId'] ??
+          msg['conversation'];
+      if (id is int) return id;
+      if (id is String) {
+        final parsed = int.tryParse(id);
+        if (parsed != null) return parsed;
+      }
+    }
+
+    return null;
   }
 
   @override
@@ -81,10 +119,10 @@ class RealtimeClient {
     Environment? environment,
     WebSocketConnectFn? connect,
   }) : this._(
-          cookieJar,
-          environment ?? Environment.current,
-          connect ?? _defaultConnect,
-        );
+         cookieJar,
+         environment ?? Environment.current,
+         connect ?? _defaultConnect,
+       );
 
   RealtimeClient._(this._cookieJar, this._environment, this._connectFn);
 
@@ -130,8 +168,9 @@ class RealtimeClient {
       final cookies = await _cookieJar.loadForRequest(
         Uri.parse(_environment.apiBaseUrl),
       );
-      final cookieHeader =
-          cookies.map((c) => '${c.name}=${c.value}').join('; ');
+      final cookieHeader = cookies
+          .map((c) => '${c.name}=${c.value}')
+          .join('; ');
 
       final headers = <String, String>{
         if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
@@ -260,8 +299,10 @@ class RealtimeClient {
     // server, and one whose session expired should not retry forever.
     _attempt += 1;
     final delay = Duration(
-      milliseconds: (500 * (1 << (_attempt.clamp(1, 6) - 1)))
-          .clamp(500, _maxBackoff.inMilliseconds),
+      milliseconds: (500 * (1 << (_attempt.clamp(1, 6) - 1))).clamp(
+        500,
+        _maxBackoff.inMilliseconds,
+      ),
     );
 
     _reconnectTimer = Timer(delay, () {

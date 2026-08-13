@@ -193,7 +193,7 @@ class MetricTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(Radii.lg),
         child: Padding(
-          padding: const EdgeInsets.all(Space.md),
+          padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 5),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -203,7 +203,7 @@ class MetricTile extends StatelessWidget {
                   Expanded(
                     child: Text(
                       label.toUpperCase(),
-                      maxLines: 1,
+                      maxLines:1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelSmall?.copyWith(
                         letterSpacing: 0.5,
@@ -224,14 +224,17 @@ class MetricTile extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: Space.sm),
-              Text(
-                value,
-                style: theme.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w700),
+              Center(
+                child: Text(
+                  value,
+                  style: theme.textTheme.headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
               ),
               if (hint != null) ...[
                 const SizedBox(height: 2),
                 Text(
+                  textAlign: TextAlign.center,
                   hint!,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,

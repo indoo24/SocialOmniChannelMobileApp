@@ -15,8 +15,8 @@ import 'conversation_repository.dart';
 
 final inboxFiltersProvider =
     NotifierProvider<InboxFiltersController, ConversationFilters>(
-  InboxFiltersController.new,
-);
+      InboxFiltersController.new,
+    );
 
 class InboxFiltersController extends Notifier<ConversationFilters> {
   @override
@@ -49,14 +49,13 @@ class InboxState {
     bool? hasMore,
     int? total,
     int? nextPage,
-  }) =>
-      InboxState(
-        conversations: conversations ?? this.conversations,
-        isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-        hasMore: hasMore ?? this.hasMore,
-        total: total ?? this.total,
-        nextPage: nextPage ?? this.nextPage,
-      );
+  }) => InboxState(
+    conversations: conversations ?? this.conversations,
+    isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+    hasMore: hasMore ?? this.hasMore,
+    total: total ?? this.total,
+    nextPage: nextPage ?? this.nextPage,
+  );
 }
 
 class InboxController extends AsyncNotifier<InboxState> {
@@ -68,7 +67,9 @@ class InboxController extends AsyncNotifier<InboxState> {
   }
 
   Future<InboxState> _fetchFirstPage(ConversationFilters filters) async {
-    final page = await ref.read(conversationRepositoryProvider).list(
+    final page = await ref
+        .read(conversationRepositoryProvider)
+        .list(
           filters: filters,
           page: 1,
           currentEmployeeId: ref.read(currentEmployeeProvider)?.id,
@@ -103,7 +104,9 @@ class InboxController extends AsyncNotifier<InboxState> {
     state = AsyncData(current.copyWith(isLoadingMore: true));
 
     try {
-      final page = await ref.read(conversationRepositoryProvider).list(
+      final page = await ref
+          .read(conversationRepositoryProvider)
+          .list(
             filters: ref.read(inboxFiltersProvider),
             page: current.nextPage,
             currentEmployeeId: ref.read(currentEmployeeProvider)?.id,
@@ -135,14 +138,27 @@ class InboxController extends AsyncNotifier<InboxState> {
   /// Called by the realtime bridge. Silent — no spinner for a background
   /// refresh the agent did not ask for.
   Future<void> refreshQuietly() async {
-    final current = state.value;
-    if (current == null) return;
     try {
       final fresh = await _fetchFirstPage(ref.read(inboxFiltersProvider));
       state = AsyncData(fresh);
     } on ApiException {
       // Leave the existing list in place.
     }
+  }
+
+  /// Locally mark a conversation as read to provide immediate UI feedback.
+  void markAsRead(int conversationId) {
+    final current = state.value;
+    if (current == null) return;
+
+    final updated = current.conversations.map((c) {
+      if (c.id == conversationId) {
+        return c.copyWith(unreadCount: 0);
+      }
+      return c;
+    }).toList();
+
+    state = AsyncData(current.copyWith(conversations: updated));
   }
 }
 

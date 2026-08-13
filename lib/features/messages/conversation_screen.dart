@@ -19,6 +19,7 @@ import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../core/realtime/realtime_bridge.dart';
 import '../authentication/auth_controller.dart';
+import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
 import '../orders/customer_record_sheet.dart';
 import 'conversation_actions_sheet.dart';
@@ -53,7 +54,14 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
   @override
   void dispose() {
-    _activeNotifier.closed(widget.conversationId);
+    Future.microtask(() {
+      _activeNotifier.closed(widget.conversationId);
+      ref
+          .read(inboxControllerProvider.notifier)
+          .markAsRead(widget.conversationId);
+      ref.invalidate(conversationCountsProvider);
+      ref.read(inboxControllerProvider.notifier).refreshQuietly();
+    });
     _composerController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -75,9 +83,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       if (!mounted) return;
       // The failed bubble already carries the detail; the snackbar is for the
       // case where the agent has scrolled away from it.
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -96,32 +104,41 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final async = ref.watch(conversationControllerProvider(widget.conversationId));
+    final async = ref.watch(
+      conversationControllerProvider(widget.conversationId),
+    );
     final canReply = ref.watch(canProvider(Perm.conversationReply));
 
-    // Listen to realtime events to refresh messages in real time
+    // Listen to realtime events to refresh messages when open
     ref.listen(realtimeEventProvider, (_, next) {
       final event = next.value;
-      if (event != null &&
-          (event.conversationId == widget.conversationId ||
-              event.conversationId == null)) {
-        ref
-            .read(conversationControllerProvider(widget.conversationId).notifier)
-            .refreshFromServer();
+      if (event != null) {
+        final id = event.conversationId;
+        if (id == widget.conversationId || id == null) {
+          Future.microtask(() {
+            ref
+                .read(
+                  conversationControllerProvider(
+                    widget.conversationId,
+                  ).notifier,
+                )
+                .refreshFromServer();
+          });
+        }
       }
     });
 
-    // Automatically scroll down when a new message arrives
-    ref.listen(
-      conversationControllerProvider(widget.conversationId),
-      (previous, next) {
-        final prevCount = previous?.value?.messages.length ?? 0;
-        final nextCount = next.value?.messages.length ?? 0;
-        if (nextCount > prevCount) {
-          _scrollToBottom();
-        }
-      },
-    );
+    // Automatically scroll down when a new message arrives.
+    ref.listen(conversationControllerProvider(widget.conversationId), (
+      previous,
+      next,
+    ) {
+      final prevCount = previous?.value?.messages.length ?? 0;
+      final nextCount = next.value?.messages.length ?? 0;
+      if (nextCount > prevCount) {
+        _scrollToBottom();
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -205,11 +222,13 @@ class _RecordButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final facts = ref.watch(customerFactsProvider(customerId)).value ?? const [];
+    final facts =
+        ref.watch(customerFactsProvider(customerId)).value ?? const [];
     final orders =
         ref.watch(conversationOrdersProvider(conversationId)).value ?? const [];
 
-    final pending = facts.where((f) => f.needsReview).length +
+    final pending =
+        facts.where((f) => f.needsReview).length +
         orders.where((o) => o.isSuggestion).length;
 
     return Stack(
@@ -279,7 +298,9 @@ class _Header extends StatelessWidget {
                 style: theme.textTheme.titleMedium,
               ),
               Text(
-                ConversationBadges.providerLabel(conversation.provider as String),
+                ConversationBadges.providerLabel(
+                  conversation.provider as String,
+                ),
                 style: theme.textTheme.labelSmall,
               ),
             ],
@@ -339,8 +360,8 @@ class _MessageList extends ConsumerWidget {
           final offset = state.isLoadingMore ? index - 1 : index;
           final message = messages[offset];
           final previous = offset > 0 ? messages[offset - 1] : null;
-          final showDay = previous == null ||
-              !_sameDay(previous.sentAt, message.sentAt);
+          final showDay =
+              previous == null || !_sameDay(previous.sentAt, message.sentAt);
 
           return Column(
             children: [
@@ -349,15 +370,21 @@ class _MessageList extends ConsumerWidget {
                 message: message,
                 onRetry: message.hasFailed && message.localId != null
                     ? () => ref
-                        .read(conversationControllerProvider(conversationId)
-                            .notifier)
-                        .retry(message.localId!)
+                          .read(
+                            conversationControllerProvider(
+                              conversationId,
+                            ).notifier,
+                          )
+                          .retry(message.localId!)
                     : null,
                 onDiscard: message.hasFailed && message.localId != null
                     ? () => ref
-                        .read(conversationControllerProvider(conversationId)
-                            .notifier)
-                        .discardFailed(message.localId!)
+                          .read(
+                            conversationControllerProvider(
+                              conversationId,
+                            ).notifier,
+                          )
+                          .discardFailed(message.localId!)
                     : null,
               ),
             ],
@@ -418,7 +445,12 @@ class _Composer extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(Space.md, Space.sm, Space.md, Space.sm),
+        padding: const EdgeInsets.fromLTRB(
+          Space.md,
+          Space.sm,
+          Space.md,
+          Space.sm,
+        ),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           border: Border(top: BorderSide(color: theme.colorScheme.outline)),

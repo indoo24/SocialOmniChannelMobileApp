@@ -163,6 +163,32 @@ class Conversation {
   bool get hasUnread => unreadCount > 0;
 
   bool isOwnedBy(int employeeId) => assignedTo?.id == employeeId;
+
+  Conversation copyWith({
+    int? unreadCount,
+    String? status,
+    String? priority,
+    EmployeeBrief? assignedTo,
+    ConversationCategory? category,
+  }) =>
+      Conversation(
+        id: id,
+        customer: customer,
+        provider: provider,
+        status: status ?? this.status,
+        priority: priority ?? this.priority,
+        unreadCount: unreadCount ?? this.unreadCount,
+        messageCount: messageCount,
+        channelName: channelName,
+        assignedTo: assignedTo ?? this.assignedTo,
+        assignedTeam: assignedTeam,
+        category: category ?? this.category,
+        intelligence: intelligence,
+        lastMessagePreview: lastMessagePreview,
+        lastMessageAt: lastMessageAt,
+        startedAt: startedAt,
+        subject: subject,
+      );
 }
 
 DateTime? _parseDate(Object? value) {

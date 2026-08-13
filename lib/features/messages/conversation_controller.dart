@@ -12,6 +12,7 @@ import '../../core/models/conversation.dart';
 import '../../core/models/message.dart';
 import '../../core/providers.dart';
 import '../authentication/auth_controller.dart';
+import '../conversations/inbox_controller.dart';
 
 class ConversationState {
   const ConversationState({
@@ -36,14 +37,13 @@ class ConversationState {
     bool? hasMore,
     int? nextPage,
     bool? isLoadingMore,
-  }) =>
-      ConversationState(
-        conversation: conversation ?? this.conversation,
-        messages: messages ?? this.messages,
-        hasMore: hasMore ?? this.hasMore,
-        nextPage: nextPage ?? this.nextPage,
-        isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-      );
+  }) => ConversationState(
+    conversation: conversation ?? this.conversation,
+    messages: messages ?? this.messages,
+    hasMore: hasMore ?? this.hasMore,
+    nextPage: nextPage ?? this.nextPage,
+    isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+  );
 }
 
 class ConversationController extends AsyncNotifier<ConversationState> {
@@ -52,6 +52,12 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   /// Riverpod 3 hands a family's argument to the constructor rather than to
   /// `build`, so the id is a field and `build` takes none.
   final int conversationId;
+
+  /// Guards [refreshFromServer] against concurrent executions. Without this,
+  /// two identical refresh calls (e.g. from _apply and a listener) would both
+  /// snapshot the same `state.value`, fetch the same data, and the slower one
+  /// would overwrite the faster one's merge with a stale base.
+  bool _isRefreshing = false;
 
   @override
   Future<ConversationState> build() async {
@@ -68,7 +74,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     // Opening a conversation clears its unread badge, same as the web client.
     // Fire and forget: failing to mark read must not block the screen.
     if (conversation.hasUnread) {
-      repository.markRead(conversationId).catchError((_) {});
+      markReadAndSync();
     }
 
     return ConversationState(
@@ -79,11 +85,12 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   }
 
   static List<Message> _chronological(List<Message> messages) {
-    final sorted = [...messages]..sort((a, b) {
-      final timeCmp = a.sentAt.compareTo(b.sentAt);
-      if (timeCmp != 0) return timeCmp;
-      return a.id.compareTo(b.id);
-    });
+    final sorted = [...messages]
+      ..sort((a, b) {
+        final timeCmp = a.sentAt.compareTo(b.sentAt);
+        if (timeCmp != 0) return timeCmp;
+        return a.id.compareTo(b.id);
+      });
     return sorted;
   }
 
@@ -146,8 +153,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
     state = AsyncData(
       current.copyWith(
-        messages:
-            current.messages.where((m) => m.localId != localId).toList(),
+        messages: current.messages.where((m) => m.localId != localId).toList(),
       ),
     );
 
@@ -170,7 +176,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
     final Map<dynamic, Message> mergedMap = {};
     for (final m in current.messages) {
-      final key = m.localId == localId ? (replacement.localId ?? replacement.id) : (m.localId ?? m.id);
+      final key = m.localId == localId
+          ? (replacement.localId ?? replacement.id)
+          : (m.localId ?? m.id);
       mergedMap[key] = m.localId == localId ? replacement : m;
     }
     if (!mergedMap.containsKey(replacement.localId ?? replacement.id)) {
@@ -178,18 +186,21 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     }
 
     state = AsyncData(
-      current.copyWith(
-        messages: _chronological(mergedMap.values.toList()),
-      ),
+      current.copyWith(messages: _chronological(mergedMap.values.toList())),
     );
   }
 
   /// A realtime event said this conversation changed. Refetch rather than
   /// patch — one authority, no divergence.
+  ///
+  /// Guarded against concurrent calls: if a refresh is already in flight, a
+  /// second request is silently dropped. The in-flight call will fetch the
+  /// latest data, so the second call would produce the same result anyway.
   Future<void> refreshFromServer() async {
     final current = state.value;
-    if (current == null) return;
+    if (current == null || _isRefreshing) return;
 
+    _isRefreshing = true;
     try {
       final repository = ref.read(conversationRepositoryProvider);
       final results = await Future.wait([
@@ -221,9 +232,35 @@ class ConversationController extends AsyncNotifier<ConversationState> {
           hasMore: current.hasMore || serverPage.hasMore,
         ),
       );
+
+      // If the refreshed conversation has unread messages and is currently
+      // being viewed, mark it as read. This handles the case where a new
+      // message arrives while the conversation is open — the agent is already
+      // looking at it, so it should be marked read immediately.
+      if (conversation.hasUnread) {
+        markReadAndSync();
+      }
     } on ApiException {
       // Keep the current view.
+    } finally {
+      _isRefreshing = false;
     }
+  }
+
+  /// Marks the conversation as read on the server and synchronizes all local
+  /// state: the inbox row's unread count and the conversation counts badge.
+  ///
+  /// Safe to call multiple times — the server treats repeated mark-read as a
+  /// no-op, and the local updates are idempotent.
+  void markReadAndSync() {
+    Future.microtask(() {
+      ref
+          .read(conversationRepositoryProvider)
+          .markRead(conversationId)
+          .catchError((_) {});
+      ref.read(inboxControllerProvider.notifier).markAsRead(conversationId);
+      ref.invalidate(conversationCountsProvider);
+    });
   }
 
   Future<void> loadOlder() async {
@@ -253,5 +290,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   }
 }
 
-final conversationControllerProvider = AsyncNotifierProvider.family<
-    ConversationController, ConversationState, int>(ConversationController.new);
+final conversationControllerProvider =
+    AsyncNotifierProvider.family<
+      ConversationController,
+      ConversationState,
+      int
+    >(ConversationController.new);

@@ -36,7 +36,7 @@ class MessageBubble extends StatelessWidget {
     final background = failed
         ? theme.colorScheme.error.withValues(alpha: 0.10)
         : isMine
-            ? ScenarioColors.primary
+            ? theme.colorScheme.primary
             : theme.colorScheme.surface;
 
     final foreground = failed

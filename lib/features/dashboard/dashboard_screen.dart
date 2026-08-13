@@ -222,7 +222,9 @@ class _ReviewCallout extends StatelessWidget {
               children: [
                 Text(
                   '$count conversation${count == 1 ? '' : 's'} need review',
-                  style: theme.textTheme.titleSmall,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.black38
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -230,6 +232,31 @@ class _ReviewCallout extends StatelessWidget {
                   'payments — check your records and confirm.',
                   style: theme.textTheme.bodySmall,
                 ),
+                SizedBox(height: 10,),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      elevation:3,
+                      shape: BeveledRectangleBorder(
+                        side: BorderSide(
+                          color: Colors.black45
+                        )
+                      ),
+                        backgroundColor: ScenarioColors.warningSurface,
+
+                    ),
+                    onPressed: () {
+                      context.go('/inbox');
+                    },
+                    child: const Text('Check Inbox',
+                    style: TextStyle(
+                      color: Colors.black45
+                    ) ,
+                    ),
+                  ),
+                ),
+
               ],
             ),
           ),
