@@ -22,6 +22,8 @@ class SecureStore {
 
   static const _keyLastEmail = 'scenario.last_email';
   static const _keyDeviceId = 'scenario.device_id';
+  static const _keyThemeMode = 'scenario.theme_mode';
+  static const _keyLocale = 'scenario.locale';
 
   /// Pre-fills the login field on next launch. Not a credential — but it is
   /// still an employee's email, so it lives here rather than in preferences.
@@ -44,6 +46,19 @@ class SecureStore {
     await _storage.write(key: _keyDeviceId, value: generated);
     return generated;
   }
+
+  /// Device-level display preferences. Deliberately not cleared on logout,
+  /// same reasoning as [deviceId]: theme and language belong to the device,
+  /// not the person signed into it.
+  Future<void> writeThemeMode(String mode) =>
+      _storage.write(key: _keyThemeMode, value: mode);
+
+  Future<String?> readThemeMode() => _storage.read(key: _keyThemeMode);
+
+  Future<void> writeLocale(String languageCode) =>
+      _storage.write(key: _keyLocale, value: languageCode);
+
+  Future<String?> readLocale() => _storage.read(key: _keyLocale);
 
   /// Clear everything tied to the signed-in employee.
   ///

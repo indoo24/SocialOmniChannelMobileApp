@@ -26,6 +26,14 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Matches AppLocalizations.supportedLocales / l10n.yaml — the app picks
+	     the active locale itself (Settings toggle), but declaring this lets
+	     iOS list Arabic under the app's own language setting too. -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ar</string>
+	</array>
 	<!-- Lets a push wake the app to sync in the background; required for FCM
 	     background/killed delivery (NOTIFICATIONS_INTEGRATION.md §4). The
 	     "Push Notifications" capability itself still has to be enabled on the

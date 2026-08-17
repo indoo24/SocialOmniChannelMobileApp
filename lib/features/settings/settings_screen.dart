@@ -13,12 +13,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/employee.dart';
+import '../../core/preferences/preferences_controller.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/app_drawer.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
 
@@ -36,9 +38,9 @@ class SettingsScreen extends ConsumerWidget {
 
     final canSeeChannels = employee.can(Perm.channelView);
     final tabs = <(String, Widget)>[
-      if (canSeeChannels) ('Channels', const _ChannelsTab()),
-      ('Profile', const ProfileTab()),
-      ('Security', const _SecurityTab()),
+      if (canSeeChannels) (context.l10n.tabChannels, const _ChannelsTab()),
+      (context.l10n.tabProfile, const ProfileTab()),
+      (context.l10n.tabSecurity, const _SecurityTab()),
     ];
 
     return DefaultTabController(
@@ -46,7 +48,7 @@ class SettingsScreen extends ConsumerWidget {
       child: Scaffold(
         drawer: const AppDrawer(),
         appBar: AppBar(
-          title: const Text('Settings'),
+          title: Text(context.l10n.settingsTitle),
           bottom: TabBar(
             tabs: [for (final (label, _) in tabs) Tab(text: label)],
           ),
@@ -93,18 +95,16 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text(
-          'You will stop receiving new conversations on this device.',
-        ),
+        title: Text(context.l10n.signOutDialogTitle),
+        content: Text(context.l10n.signOutDialogMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Sign out'),
+            child: Text(context.l10n.signOut),
           ),
         ],
       ),
@@ -161,13 +161,13 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
         const SizedBox(height: Space.xl),
 
         Text(
-          'AVAILABILITY',
+          context.l10n.availabilitySectionTitle,
           style: theme.textTheme.labelSmall
               ?.copyWith(letterSpacing: 0.6, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: Space.sm),
         Text(
-          'Only ONLINE receives automatically assigned conversations.',
+          context.l10n.availabilityHint,
           style: theme.textTheme.bodySmall,
         ),
         const SizedBox(height: Space.md),
@@ -177,7 +177,7 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
           children: [
             for (final value in _availabilities)
               ChoiceChip(
-                label: Text(_label(value)),
+                label: Text(_label(context, value)),
                 selected: employee.availability == value,
                 onSelected: _busy ? null : (_) => _setAvailability(value),
               ),
@@ -185,12 +185,15 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
         ),
 
         const SizedBox(height: Space.xl),
+        const _PreferencesSection(),
+
+        const SizedBox(height: Space.xl),
         if (employee.organization != null)
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.business_outlined),
             title: Text(employee.organization!.name),
-            subtitle: const Text('Organization'),
+            subtitle: Text(context.l10n.organizationLabel),
           ),
         ListTile(
           contentPadding: EdgeInsets.zero,
@@ -198,14 +201,16 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
           title: Text(employee.roleDisplay.isEmpty
               ? employee.role
               : employee.roleDisplay),
-          subtitle: Text('Visibility: ${employee.visibilityScope}'),
+          subtitle: Text(
+            context.l10n.visibilityLabel(employee.visibilityScope),
+          ),
         ),
 
         const Divider(height: Space.xxl),
         OutlinedButton.icon(
           onPressed: _logout,
           icon: const Icon(Icons.logout, size: 18),
-          label: const Text('Sign out'),
+          label: Text(context.l10n.signOut),
           style: OutlinedButton.styleFrom(
             foregroundColor: theme.colorScheme.error,
           ),
@@ -223,13 +228,98 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
     );
   }
 
-  static String _label(String value) => switch (value) {
-        'ONLINE' => 'Online',
-        'AWAY' => 'Away',
-        'BREAK' => 'On break',
-        'OFFLINE' => 'Offline',
+  static String _label(BuildContext context, String value) => switch (value) {
+        'ONLINE' => context.l10n.availabilityOnline,
+        'AWAY' => context.l10n.availabilityAway,
+        'BREAK' => context.l10n.availabilityOnBreak,
+        'OFFLINE' => context.l10n.availabilityOffline,
         _ => value,
       };
+}
+
+// --------------------------------------------------------------------------- //
+// Preferences — theme and language
+// --------------------------------------------------------------------------- //
+/// Device-level display settings, not tied to the signed-in employee — same
+/// section shape as Availability above (label + chips), just persisted
+/// locally via [SecureStore] instead of sent to the server.
+class _PreferencesSection extends ConsumerWidget {
+  const _PreferencesSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.l10n.preferencesSectionTitle,
+          style: theme.textTheme.labelSmall
+              ?.copyWith(letterSpacing: 0.6, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: Space.md),
+
+        Text(context.l10n.themeLabel, style: theme.textTheme.bodySmall),
+        const SizedBox(height: Space.sm),
+        Wrap(
+          spacing: Space.sm,
+          runSpacing: Space.sm,
+          children: [
+            ChoiceChip(
+              label: Text(context.l10n.themeSystem),
+              selected: themeMode == ThemeMode.system,
+              onSelected: (_) => ref
+                  .read(themeModeProvider.notifier)
+                  .update(ThemeMode.system),
+            ),
+            ChoiceChip(
+              label: Text(context.l10n.themeLight),
+              selected: themeMode == ThemeMode.light,
+              onSelected: (_) =>
+                  ref.read(themeModeProvider.notifier).update(ThemeMode.light),
+            ),
+            ChoiceChip(
+              label: Text(context.l10n.themeDark),
+              selected: themeMode == ThemeMode.dark,
+              onSelected: (_) =>
+                  ref.read(themeModeProvider.notifier).update(ThemeMode.dark),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: Space.lg),
+        Text(context.l10n.languageLabel, style: theme.textTheme.bodySmall),
+        const SizedBox(height: Space.sm),
+        Wrap(
+          spacing: Space.sm,
+          runSpacing: Space.sm,
+          children: [
+            // Each language's own name, in its own script — not translated
+            // by the active locale, the same convention every language
+            // picker uses (e.g. "Deutsch" reads the same regardless of the
+            // app's current language).
+            ChoiceChip(
+              label: const Text('English'),
+              selected: locale.languageCode == 'en',
+              onSelected: (_) => ref
+                  .read(localeProvider.notifier)
+                  .update(const Locale('en')),
+            ),
+            ChoiceChip(
+              label: const Text('العربية'),
+              selected: locale.languageCode == 'ar',
+              onSelected: (_) => ref
+                  .read(localeProvider.notifier)
+                  .update(const Locale('ar')),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
 
 // --------------------------------------------------------------------------- //
@@ -269,7 +359,7 @@ class _SecurityTabState extends ConsumerState<_SecurityTab> {
       _next.clear();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password changed')),
+          SnackBar(content: Text(context.l10n.passwordChangedMessage)),
         );
       }
     } on ApiException catch (error) {
@@ -286,22 +376,24 @@ class _SecurityTabState extends ConsumerState<_SecurityTab> {
     return ListView(
       padding: const EdgeInsets.all(Space.lg),
       children: [
-        Text('Change password', style: theme.textTheme.titleMedium),
+        Text(context.l10n.changePasswordTitle, style: theme.textTheme.titleMedium),
         const SizedBox(height: Space.lg),
         TextField(
           controller: _current,
           obscureText: true,
           autofillHints: const [AutofillHints.password],
-          decoration: const InputDecoration(labelText: 'Current password'),
+          decoration: InputDecoration(
+            labelText: context.l10n.currentPasswordLabel,
+          ),
         ),
         const SizedBox(height: Space.md),
         TextField(
           controller: _next,
           obscureText: true,
           autofillHints: const [AutofillHints.newPassword],
-          decoration: const InputDecoration(
-            labelText: 'New password',
-            helperText: 'At least 10 characters',
+          decoration: InputDecoration(
+            labelText: context.l10n.newPasswordLabel,
+            helperText: context.l10n.newPasswordHint,
           ),
         ),
         if (_error != null) ...[
@@ -317,7 +409,7 @@ class _SecurityTabState extends ConsumerState<_SecurityTab> {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Update password'),
+              : Text(context.l10n.updatePasswordButton),
         ),
 
         const Divider(height: Space.xxl),
@@ -330,14 +422,11 @@ class _SecurityTabState extends ConsumerState<_SecurityTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('How your session works',
+                  Text(context.l10n.sessionInfoTitle,
                       style: theme.textTheme.titleSmall),
                   const SizedBox(height: Space.xs),
                   Text(
-                    'This app signs in with an httpOnly session cookie, the same '
-                    'credential the web client uses. Platform tokens for Meta and '
-                    'WhatsApp stay encrypted on the server and are never sent to '
-                    'this device.',
+                    context.l10n.sessionInfoBody,
                     style: theme.textTheme.bodySmall,
                   ),
                 ],
@@ -382,11 +471,10 @@ class _ChannelsTab extends ConsumerWidget {
               children: [
                 SizedBox(
                   height: MediaQuery.sizeOf(context).height * 0.5,
-                  child: const EmptyState(
+                  child: EmptyState(
                     icon: Icons.hub_outlined,
-                    title: 'No channels connected',
-                    message: 'Connect Instagram, Messenger or WhatsApp from the '
-                        'web app to start receiving conversations.',
+                    title: context.l10n.noChannelsTitle,
+                    message: context.l10n.noChannelsMessage,
                   ),
                 ),
               ],
@@ -416,11 +504,14 @@ class _ChannelCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final (label, tone) = switch (channel.status) {
-      'CONNECTED' => ('Connected', BadgeTone.success),
-      'DEGRADED' => ('Degraded', BadgeTone.warning),
-      'ERROR' => ('Error', BadgeTone.danger),
-      'DISCONNECTED' => ('Disconnected', BadgeTone.neutral),
-      _ => ('Pending setup', BadgeTone.neutral),
+      'CONNECTED' => (context.l10n.channelStatusConnected, BadgeTone.success),
+      'DEGRADED' => (context.l10n.channelStatusDegraded, BadgeTone.warning),
+      'ERROR' => (context.l10n.channelStatusError, BadgeTone.danger),
+      'DISCONNECTED' => (
+          context.l10n.channelStatusDisconnected,
+          BadgeTone.neutral,
+        ),
+      _ => (context.l10n.channelStatusPending, BadgeTone.neutral),
     };
 
     return Card(
@@ -434,7 +525,7 @@ class _ChannelCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    ConversationBadges.providerLabel(channel.provider),
+                    ConversationBadges.providerLabel(context, channel.provider),
                     style: theme.textTheme.titleMedium,
                   ),
                 ),
@@ -452,8 +543,7 @@ class _ChannelCard extends StatelessWidget {
             ],
             const SizedBox(height: Space.sm),
             Text(
-              '${channel.conversationCount} conversation'
-              '${channel.conversationCount == 1 ? '' : 's'}',
+              context.l10n.channelConversationCount(channel.conversationCount),
               style: theme.textTheme.labelSmall,
             ),
           ],

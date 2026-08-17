@@ -13,6 +13,7 @@ import '../../core/models/message.dart';
 import '../../core/realtime/realtime_logger.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
+import '../../l10n/l10n_extensions.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
@@ -156,7 +157,7 @@ class _MetaRow extends StatelessWidget {
     final labels = <String>[
       if (message.isOutbound && message.senderName.isNotEmpty)
         message.senderName,
-      formatTime(message.sentAt),
+      formatTime(context, message.sentAt),
     ];
 
     return Row(
@@ -222,7 +223,7 @@ class _FailureActions extends StatelessWidget {
     final theme = Theme.of(context);
     final reason = message.deliveryError.isNotEmpty
         ? message.deliveryError
-        : 'Not delivered.';
+        : context.l10n.notDeliveredFallback;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -249,7 +250,7 @@ class _FailureActions extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: Space.sm),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Discard', style: TextStyle(fontSize: 12)),
+                  child: Text(context.l10n.discardAction, style: const TextStyle(fontSize: 12)),
                 ),
               if (onRetry != null)
                 TextButton(
@@ -259,7 +260,7 @@ class _FailureActions extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: Space.sm),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Retry', style: TextStyle(fontSize: 12)),
+                  child: Text(context.l10n.retryMessageAction, style: const TextStyle(fontSize: 12)),
                 ),
             ],
           ),

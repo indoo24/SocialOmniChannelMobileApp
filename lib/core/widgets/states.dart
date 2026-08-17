@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n_extensions.dart';
 import '../api/api_exception.dart';
 import '../theme/tokens.dart';
 
@@ -107,12 +108,17 @@ class ErrorStateView extends StatelessWidget {
             ),
             const SizedBox(height: Space.lg),
             Text(
-              isNetwork ? 'No connection' : 'Something went wrong',
+              isNetwork
+                  ? context.l10n.noConnectionTitle
+                  : context.l10n.genericErrorTitle,
               style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: Space.sm),
             Text(
-              api?.message ?? 'Please try again.',
+              // The backend's own message (api?.message) is server-generated
+              // English and not localizable client-side; only the fallback
+              // shown when there is no server message is translated.
+              api?.message ?? context.l10n.genericErrorFallbackMessage,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall,
             ),
@@ -121,7 +127,7 @@ class ErrorStateView extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Try again'),
+                label: Text(context.l10n.retryButton),
               ),
             ],
           ],

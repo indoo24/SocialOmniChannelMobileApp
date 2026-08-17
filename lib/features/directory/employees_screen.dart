@@ -16,6 +16,7 @@ import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/l10n_extensions.dart';
 import 'directory_providers.dart';
 import 'directory_search_field.dart';
 
@@ -35,17 +36,19 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
     final employees = ref.watch(employeeDirectoryProvider);
 
     return SectionScaffold(
-      title: 'Employees',
+      title: context.l10n.navEmployees,
       titleWidget: _searching
           ? DirectorySearchField(
-              hint: 'Search by name or email',
+              hint: context.l10n.searchEmployeesHint,
               onSubmitted: (value) =>
                   ref.read(employeeSearchProvider.notifier).update(value),
             )
           : null,
       actions: [
         IconButton(
-          tooltip: _searching ? 'Close search' : 'Search',
+          tooltip: _searching
+              ? context.l10n.commonCloseSearch
+              : context.l10n.commonSearch,
           icon: Icon(_searching ? Icons.close : Icons.search),
           onPressed: () {
             setState(() => _searching = !_searching);
@@ -91,11 +94,11 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                             child: EmptyState(
                               icon: Icons.badge_outlined,
                               title: _onlineOnly
-                                  ? 'Nobody is online'
-                                  : 'No employees found',
+                                  ? context.l10n.nobodyOnlineTitle
+                                  : context.l10n.noEmployeesFoundTitle,
                               message: _onlineOnly
-                                  ? 'Turn off the filter to see everyone.'
-                                  : 'Try a different search term.',
+                                  ? context.l10n.turnOffFilterMessage
+                                  : context.l10n.tryDifferentSearchMessage,
                             ),
                           ),
                         ],
@@ -138,12 +141,15 @@ class _FilterBar extends StatelessWidget {
       child: Row(
         children: [
           FilterChip(
-            label: const Text('Online now'),
+            label: Text(context.l10n.onlineNowFilter),
             selected: onlineOnly,
             onSelected: onToggle,
           ),
           const Spacer(),
-          Text('$total total', style: Theme.of(context).textTheme.labelSmall),
+          Text(
+            context.l10n.totalCountSuffix(total),
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
         ],
       ),
     );
@@ -189,7 +195,7 @@ class _EmployeeRow extends StatelessWidget {
           ),
           if (!employee.isActive) ...[
             const SizedBox(width: Space.sm),
-            const StatusBadge(label: 'Inactive', dense: true),
+            StatusBadge(label: context.l10n.inactiveBadge, dense: true),
           ],
         ],
       ),

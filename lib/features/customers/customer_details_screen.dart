@@ -14,6 +14,7 @@ import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../messages/conversation_controller.dart';
 
 class CustomerDetailsScreen extends ConsumerWidget {
@@ -26,7 +27,7 @@ class CustomerDetailsScreen extends ConsumerWidget {
     final async = ref.watch(conversationControllerProvider(conversationId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Customer')),
+      appBar: AppBar(title: Text(context.l10n.customerTitle)),
       body: async.when(
         loading: () => const LoadingState(),
         error: (error, _) => ErrorStateView(
@@ -67,7 +68,7 @@ class _Details extends StatelessWidget {
               Text(customer.displayName, style: theme.textTheme.titleLarge),
               const SizedBox(height: Space.xs),
               Text(
-                ConversationBadges.providerLabel(conversation.provider),
+                ConversationBadges.providerLabel(context, conversation.provider),
                 style: theme.textTheme.bodySmall,
               ),
             ],
@@ -76,41 +77,41 @@ class _Details extends StatelessWidget {
         const SizedBox(height: Space.xl),
 
         _Section(
-          title: 'Conversation',
+          title: context.l10n.conversationSectionTitle,
           rows: [
-            ('Status', ConversationBadges.status(conversation.status).$1),
-            ('Priority', ConversationBadges.priority(conversation.priority).$1),
-            ('Category', conversation.category?.label ?? '—'),
-            ('Assigned to', conversation.assignedTo?.fullName ?? 'Unassigned'),
-            ('Team', conversation.assignedTeam?.name ?? '—'),
-            ('Channel', conversation.channelName),
-            ('Messages', '${conversation.messageCount}'),
-            ('Started', formatDateTime(conversation.startedAt)),
-            ('Last message', formatDateTime(conversation.lastMessageAt)),
+            (context.l10n.statusSection, ConversationBadges.status(context, conversation.status).$1),
+            (context.l10n.prioritySection, ConversationBadges.priority(context, conversation.priority).$1),
+            (context.l10n.categoryFieldLabel, conversation.category?.label ?? '—'),
+            (context.l10n.assignedToFieldLabel, conversation.assignedTo?.fullName ?? context.l10n.unassignedBadge),
+            (context.l10n.teamFieldLabel, conversation.assignedTeam?.name ?? '—'),
+            (context.l10n.channelFieldLabel, conversation.channelName),
+            (context.l10n.messagesFieldLabel, '${conversation.messageCount}'),
+            (context.l10n.startedFieldLabel, formatDateTime(context, conversation.startedAt)),
+            (context.l10n.lastMessageFieldLabel, formatDateTime(context, conversation.lastMessageAt)),
           ],
         ),
 
         if (customer.lifecycleStage.isNotEmpty ||
             customer.preferredLanguage.isNotEmpty)
           _Section(
-            title: 'Customer',
+            title: context.l10n.customerSectionTitle,
             rows: [
               if (customer.lifecycleStage.isNotEmpty)
-                ('Lifecycle', humanizeEnum(customer.lifecycleStage)),
+                (context.l10n.lifecycleFieldLabel, humanizeEnum(customer.lifecycleStage)),
               if (customer.preferredLanguage.isNotEmpty)
-                ('Language', customer.preferredLanguage),
+                (context.l10n.languageLabel, customer.preferredLanguage),
             ],
           ),
 
         if (intelligence != null)
           _Section(
-            title: 'Intelligence',
+            title: context.l10n.intelligenceSectionTitle,
             rows: [
-              ('Stage', humanizeEnum(intelligence.stage)),
-              ('Lead score', '${intelligence.leadScore}'),
-              ('Purchase', humanizeEnum(intelligence.purchaseStatus)),
+              (context.l10n.stageFieldLabel, humanizeEnum(intelligence.stage)),
+              (context.l10n.leadScoreFieldLabel, '${intelligence.leadScore}'),
+              (context.l10n.purchaseFieldLabel, humanizeEnum(intelligence.purchaseStatus)),
               if (intelligence.needsHumanReview)
-                ('Review', 'Needs human review'),
+                (context.l10n.reviewFieldLabel, context.l10n.needsHumanReviewValue),
             ],
           ),
       ],

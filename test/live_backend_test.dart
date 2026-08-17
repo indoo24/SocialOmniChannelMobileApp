@@ -37,6 +37,14 @@ class _NoopStore implements SecureStore {
   @override
   Future<String> deviceId() async => 'test-device';
   @override
+  Future<void> writeThemeMode(String mode) async {}
+  @override
+  Future<String?> readThemeMode() async => null;
+  @override
+  Future<void> writeLocale(String languageCode) async {}
+  @override
+  Future<String?> readLocale() async => null;
+  @override
   Future<void> clearSession() async {}
   @override
   Future<void> wipe() async {}

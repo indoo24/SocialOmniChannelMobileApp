@@ -13,11 +13,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/router.dart';
 import 'core/config/dev_tls_overrides.dart';
 import 'core/notifications/push_bridge.dart';
+import 'core/preferences/preferences_controller.dart';
 import 'core/providers.dart';
 import 'core/realtime/realtime_bridge.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/states.dart';
 import 'features/authentication/auth_controller.dart';
+import 'l10n/generated/app_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,9 +54,13 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
   void initState() {
     super.initState();
     // Resume a stored session before the first frame settles, so a signed-in
-    // agent never sees the login screen flash past on launch.
+    // agent never sees the login screen flash past on launch. Theme/locale
+    // restore alongside it — both are safe to apply whenever they land,
+    // unlike auth there is no redirect logic waiting on them.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(authControllerProvider.notifier).restore();
+      ref.read(themeModeProvider.notifier).restore();
+      ref.read(localeProvider.notifier).restore();
     });
   }
 
@@ -67,6 +73,8 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
     }
 
     final auth = ref.watch(authControllerProvider);
+    final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
 
     // Hold a splash while the session is being checked. Building the router
     // during restore would let its redirect run against an unknown state.
@@ -74,6 +82,10 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
       return MaterialApp(
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
+        themeMode: themeMode,
+        locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         debugShowCheckedModeBanner: false,
         home: const Scaffold(body: LoadingState(label: 'Loading Scenario…')),
       );
@@ -83,6 +95,10 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
       return MaterialApp(
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
+        themeMode: themeMode,
+        locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: ErrorStateView(
@@ -99,6 +115,10 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
+      themeMode: themeMode,
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: ref.watch(routerProvider),
       builder: (context, child) => RealtimeBridge(
         child: PushBridge(

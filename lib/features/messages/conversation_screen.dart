@@ -19,6 +19,7 @@ import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../core/realtime/realtime_bridge.dart';
 import '../../core/realtime/realtime_logger.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
@@ -175,7 +176,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         titleSpacing: 0,
         title: async.maybeWhen(
           data: (state) => _Header(conversation: state.conversation),
-          orElse: () => const Text('Conversation'),
+          orElse: () => Text(context.l10n.conversationFallbackTitle),
         ),
         actions: [
           // Orders and captured details. Badged when the analyzer has read
@@ -189,13 +190,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             orElse: () => const SizedBox.shrink(),
           ),
           IconButton(
-            tooltip: 'Customer details',
+            tooltip: context.l10n.customerDetailsTooltip,
             icon: const Icon(Icons.person_outline),
             onPressed: () =>
                 context.push(Routes.customer(widget.conversationId)),
           ),
           IconButton(
-            tooltip: 'Actions',
+            tooltip: context.l10n.actionsTooltip,
             icon: const Icon(Icons.more_vert),
             onPressed: () => showConversationActionsSheet(
               context,
@@ -205,7 +206,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         ],
       ),
       body: async.when(
-        loading: () => const LoadingState(label: 'Loading conversation…'),
+        loading: () => LoadingState(label: context.l10n.loadingConversation),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(
@@ -216,9 +217,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           children: [
             Expanded(
               child: state.messages.isEmpty
-                  ? const EmptyState(
-                      title: 'No messages yet',
-                      message: 'This conversation has no history.',
+                  ? EmptyState(
+                      title: context.l10n.noMessagesYetTitle,
+                      message: context.l10n.noMessagesYetMessage,
                       icon: Icons.chat_bubble_outline,
                     )
                   : _MessageList(
@@ -264,7 +265,7 @@ class _RecordButton extends ConsumerWidget {
     return Stack(
       children: [
         IconButton(
-          tooltip: 'Orders and customer details',
+          tooltip: context.l10n.ordersTooltip,
           icon: const Icon(Icons.inventory_2_outlined),
           onPressed: () => showCustomerRecordSheet(
             context,
@@ -329,6 +330,7 @@ class _Header extends StatelessWidget {
               ),
               Text(
                 ConversationBadges.providerLabel(
+                  context,
                   conversation.provider as String,
                 ),
                 style: theme.textTheme.labelSmall,
@@ -448,7 +450,7 @@ class _DayDivider extends StatelessWidget {
             borderRadius: BorderRadius.circular(Radii.pill),
           ),
           child: Text(
-            formatDayHeading(date),
+            formatDayHeading(context, date),
             style: Theme.of(context).textTheme.labelSmall,
           ),
         ),
@@ -495,9 +497,9 @@ class _Composer extends StatelessWidget {
                 maxLines: 5,
                 textCapitalization: TextCapitalization.sentences,
                 keyboardType: TextInputType.multiline,
-                decoration: const InputDecoration(
-                  hintText: 'Write a reply…',
-                  contentPadding: EdgeInsets.symmetric(
+                decoration: InputDecoration(
+                  hintText: context.l10n.writeReplyHint,
+                  contentPadding: const EdgeInsets.symmetric(
                     horizontal: Space.md,
                     vertical: 10,
                   ),
@@ -554,7 +556,7 @@ class _ReadOnlyNotice extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: Space.sm),
-            Text('Read only', style: theme.textTheme.bodySmall),
+            Text(context.l10n.readOnlyLabel, style: theme.textTheme.bodySmall),
           ],
         ),
       ),

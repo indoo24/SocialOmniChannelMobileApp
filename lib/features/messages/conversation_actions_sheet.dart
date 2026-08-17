@@ -12,7 +12,8 @@ import '../../core/api/api_exception.dart';
 import '../../core/models/employee.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
-import '../../core/utils/formatting.dart';
+import '../../core/widgets/badges.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
 import 'conversation_controller.dart';
@@ -94,7 +95,7 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Actions', style: Theme.of(context).textTheme.titleLarge),
+            Text(context.l10n.actionsTitle, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: Space.md),
 
             if (_busy) const LinearProgressIndicator(minHeight: 2),
@@ -103,7 +104,7 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.person_add_alt),
-                title: const Text('Assign to me'),
+                title: Text(context.l10n.assignToMe),
                 enabled: !_busy,
                 onTap: _busy
                     ? null
@@ -112,7 +113,7 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                             widget.conversationId,
                             assigneeId: employee!.id,
                           ),
-                          'Assigned to you',
+                          context.l10n.assignedToYouMessage,
                         ),
               ),
 
@@ -120,26 +121,26 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.person_remove_alt_1_outlined),
-                title: const Text('Unassign'),
+                title: Text(context.l10n.unassignAction),
                 enabled: !_busy,
                 onTap: _busy
                     ? null
                     : () => _run(
                           () => repository.assign(widget.conversationId),
-                          'Unassigned',
+                          context.l10n.unassignedMessage,
                         ),
               ),
 
             if (canChangeStatus) ...[
               const Divider(height: Space.xl),
-              _Label('Status'),
+              _Label(context.l10n.statusSection),
               Wrap(
                 spacing: Space.sm,
                 runSpacing: Space.sm,
                 children: [
                   for (final status in _statuses)
                     ChoiceChip(
-                      label: Text(humanizeEnum(status)),
+                      label: Text(ConversationBadges.status(context, status).$1),
                       selected: conversation?.status == status,
                       onSelected: _busy
                           ? null
@@ -148,7 +149,7 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                                   widget.conversationId,
                                   status,
                                 ),
-                                'Status updated',
+                                context.l10n.statusUpdatedMessage,
                               ),
                     ),
                 ],
@@ -157,14 +158,14 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
 
             if (canChangePriority) ...[
               const SizedBox(height: Space.lg),
-              _Label('Priority'),
+              _Label(context.l10n.prioritySection),
               Wrap(
                 spacing: Space.sm,
                 runSpacing: Space.sm,
                 children: [
                   for (final priority in _priorities)
                     ChoiceChip(
-                      label: Text(humanizeEnum(priority)),
+                      label: Text(ConversationBadges.priority(context, priority).$1),
                       selected: conversation?.priority == priority,
                       onSelected: _busy
                           ? null
@@ -173,7 +174,7 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                                   widget.conversationId,
                                   priority,
                                 ),
-                                'Priority updated',
+                                context.l10n.priorityUpdatedMessage,
                               ),
                     ),
                 ],
@@ -187,7 +188,7 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: Space.lg),
                 child: Text(
-                  'You do not have permission to change this conversation.',
+                  context.l10n.noPermissionToChange,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),

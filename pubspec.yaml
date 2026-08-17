@@ -10,6 +10,13 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Localization. English + Arabic, hence flutter_localizations for the
+  # framework's own strings (dialog buttons, etc.) and RTL/Directionality
+  # support that Arabic needs — `intl` (already a dependency) supplies the
+  # ARB tooling `flutter gen-l10n` builds on.
+  flutter_localizations:
+    sdk: flutter
+
   # State management. Riverpod over Bloc/Provider because this app is mostly
   # async server state (REST + WebSocket invalidation), which is exactly what
   # AsyncNotifier models directly — and because providers are overridable in
@@ -56,3 +63,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true

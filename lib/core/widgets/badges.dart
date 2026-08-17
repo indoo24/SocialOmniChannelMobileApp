@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n_extensions.dart';
 import '../theme/tokens.dart';
 
 enum BadgeTone { neutral, success, warning, danger, info }
@@ -101,21 +102,29 @@ class StatusBadge extends StatelessWidget {
 class ConversationBadges {
   const ConversationBadges._();
 
-  static (String, BadgeTone) status(String value) => switch (value) {
-        'NEW' => ('New', BadgeTone.info),
-        'OPEN' => ('Open', BadgeTone.success),
-        'WAITING_CUSTOMER' => ('Waiting on customer', BadgeTone.warning),
-        'WAITING_INTERNAL' => ('Waiting internally', BadgeTone.warning),
-        'RESOLVED' => ('Resolved', BadgeTone.neutral),
-        'CLOSED' => ('Closed', BadgeTone.neutral),
+  static (String, BadgeTone) status(BuildContext context, String value) =>
+      switch (value) {
+        'NEW' => (context.l10n.statusNew, BadgeTone.info),
+        'OPEN' => (context.l10n.statusOpen, BadgeTone.success),
+        'WAITING_CUSTOMER' => (
+            context.l10n.statusWaitingCustomer,
+            BadgeTone.warning,
+          ),
+        'WAITING_INTERNAL' => (
+            context.l10n.statusWaitingInternal,
+            BadgeTone.warning,
+          ),
+        'RESOLVED' => (context.l10n.statusResolved, BadgeTone.neutral),
+        'CLOSED' => (context.l10n.statusClosed, BadgeTone.neutral),
         _ => (value, BadgeTone.neutral),
       };
 
-  static (String, BadgeTone) priority(String value) => switch (value) {
-        'URGENT' => ('Urgent', BadgeTone.danger),
-        'HIGH' => ('High', BadgeTone.warning),
-        'NORMAL' => ('Normal', BadgeTone.neutral),
-        'LOW' => ('Low', BadgeTone.neutral),
+  static (String, BadgeTone) priority(BuildContext context, String value) =>
+      switch (value) {
+        'URGENT' => (context.l10n.priorityUrgent, BadgeTone.danger),
+        'HIGH' => (context.l10n.priorityHigh, BadgeTone.warning),
+        'NORMAL' => (context.l10n.priorityNormal, BadgeTone.neutral),
+        'LOW' => (context.l10n.priorityLow, BadgeTone.neutral),
         _ => (value, BadgeTone.neutral),
       };
 
@@ -131,12 +140,13 @@ class ConversationBadges {
         _ => Icons.science_outlined,
       };
 
-  static String providerLabel(String provider) => switch (provider) {
-        'WHATSAPP' => 'WhatsApp',
-        'FACEBOOK' => 'Messenger',
-        'INSTAGRAM' => 'Instagram',
-        'TIKTOK' => 'TikTok',
-        'MOCK' => 'Sandbox',
+  static String providerLabel(BuildContext context, String provider) =>
+      switch (provider) {
+        'WHATSAPP' => context.l10n.providerWhatsapp,
+        'FACEBOOK' => context.l10n.providerFacebook,
+        'INSTAGRAM' => context.l10n.providerInstagram,
+        'TIKTOK' => context.l10n.providerTiktok,
+        'MOCK' => context.l10n.providerSandbox,
         _ => provider,
       };
 

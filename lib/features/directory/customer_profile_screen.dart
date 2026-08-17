@@ -18,6 +18,7 @@ import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../conversations/inbox_screen.dart' show ConversationRow;
 import '../authentication/auth_controller.dart';
 import 'directory_providers.dart';
@@ -41,7 +42,7 @@ class CustomerProfileScreen extends ConsumerWidget {
         customers.value?.where((c) => c.id == customerId).firstOrNull;
 
     return Scaffold(
-      appBar: AppBar(title: Text(customer?.displayName ?? 'Customer')),
+      appBar: AppBar(title: Text(customer?.displayName ?? context.l10n.customerTitle)),
       body: ListView(
         padding: const EdgeInsets.all(Space.lg),
         children: [
@@ -72,27 +73,27 @@ class CustomerProfileScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: Space.xl),
-            _Field(label: 'Email', value: customer.email),
-            _Field(label: 'Phone', value: customer.phone),
+            _Field(label: context.l10n.emailFieldLabel, value: customer.email),
+            _Field(label: context.l10n.phoneFieldLabel, value: customer.phone),
             _Field(
-              label: 'Location',
+              label: context.l10n.locationFieldLabel,
               value: [customer.city, customer.country]
                   .where((v) => v.isNotEmpty)
                   .join(', '),
             ),
             _Field(
-              label: 'Language',
+              label: context.l10n.languageLabel,
               value: customer.preferredLanguage.toUpperCase(),
             ),
             _Field(
-              label: 'Last seen',
-              value: formatDateTime(customer.lastSeenAt),
+              label: context.l10n.lastSeenFieldLabel,
+              value: formatDateTime(context, customer.lastSeenAt),
             ),
             const Divider(height: Space.xxl),
           ],
 
           Text(
-            'CONVERSATIONS',
+            context.l10n.conversationsCapsSectionTitle,
             style: theme.textTheme.labelSmall
                 ?.copyWith(letterSpacing: 0.6, fontWeight: FontWeight.w700),
           ),
@@ -109,9 +110,9 @@ class CustomerProfileScreen extends ConsumerWidget {
             ),
             data: (rows) {
               if (rows.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(Space.xl),
-                  child: Text('No conversations you can see.'),
+                return Padding(
+                  padding: const EdgeInsets.all(Space.xl),
+                  child: Text(context.l10n.noVisibleConversations),
                 );
               }
               return Column(

@@ -271,7 +271,7 @@ class _PlatformBar extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  ConversationBadges.providerLabel(platform.provider),
+                  ConversationBadges.providerLabel(context, platform.provider),
                   style: theme.textTheme.bodySmall,
                 ),
               ),
