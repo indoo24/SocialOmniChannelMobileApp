@@ -5,10 +5,14 @@
 /// all decided server-side, and this app renders whatever the API returns.
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/router.dart';
+import 'core/config/dev_tls_overrides.dart';
+import 'core/notifications/push_bridge.dart';
 import 'core/providers.dart';
 import 'core/realtime/realtime_bridge.dart';
 import 'core/theme/app_theme.dart';
@@ -17,6 +21,12 @@ import 'features/authentication/auth_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Must be installed before any HttpClient/WebSocket is created (both Dio
+  // and RealtimeClient create theirs lazily, but this is the earliest safe
+  // point). See dev_tls_overrides.dart — this only trusts a bad certificate
+  // in development builds, and only for the configured dev host.
+  HttpOverrides.global = DevTlsOverrides();
 
   // The cookie jar needs a directory, which needs the platform channels to be
   // up — hence the async main and the override rather than a lazy provider.
@@ -91,12 +101,14 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
       darkTheme: AppTheme.dark,
       routerConfig: ref.watch(routerProvider),
       builder: (context, child) => RealtimeBridge(
-        child: MediaQuery.withClampedTextScaling(
-          // Respect the reader's text size, but stop extreme scaling from
-          // destroying the inbox layout entirely.
-          minScaleFactor: 0.85,
-          maxScaleFactor: 1.4,
-          child: child ?? const SizedBox.shrink(),
+        child: PushBridge(
+          child: MediaQuery.withClampedTextScaling(
+            // Respect the reader's text size, but stop extreme scaling from
+            // destroying the inbox layout entirely.
+            minScaleFactor: 0.85,
+            maxScaleFactor: 1.4,
+            child: child ?? const SizedBox.shrink(),
+          ),
         ),
       ),
     );

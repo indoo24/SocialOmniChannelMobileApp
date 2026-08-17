@@ -6,6 +6,8 @@
 /// both clients are governed by one set of rules.
 library;
 
+import 'package:flutter/foundation.dart';
+
 import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../models/employee.dart';
@@ -20,24 +22,38 @@ class AuthRepository {
   final ApiClient _api;
   final SecureStore _store;
 
+  static void _log(String message) => debugPrint('[AuthRepository] $message');
+
   Future<Employee> login({
     required String email,
     required String password,
   }) async {
-    // Django only issues the CSRF cookie when asked. The browser gets one by
-    // loading a page; mobile has to request it before the first unsafe call.
-    await _api.primeCsrf();
+    _log('login() start for ${email.trim()}');
+    try {
+      // Django only issues the CSRF cookie when asked. The browser gets one
+      // by loading a page; mobile has to request it before the first unsafe
+      // call.
+      await _api.primeCsrf();
+      _log('CSRF primed');
 
-    final data = await _api.post<Map<String, dynamic>>(
-      '/auth/login/',
-      body: {'email': email.trim(), 'password': password},
-    );
+      final data = await _api.post<Map<String, dynamic>>(
+        '/auth/login/',
+        body: {'email': email.trim(), 'password': password},
+      );
 
-    final employee = Employee.fromJson(
-      Map<String, dynamic>.from(data['employee'] as Map),
-    );
-    await _store.writeLastEmail(employee.email);
-    return employee;
+      final employee = Employee.fromJson(
+        Map<String, dynamic>.from(data['employee'] as Map),
+      );
+      await _store.writeLastEmail(employee.email);
+      _log('login() succeeded — employee #${employee.id} (${employee.email})');
+      return employee;
+    } on ApiException catch (error) {
+      _log(
+        'login() failed — ${error.runtimeType}(status: ${error.statusCode}, '
+        'code: ${error.code}): ${error.message}',
+      );
+      rethrow;
+    }
   }
 
   /// Restore a session from the persisted cookie jar.
@@ -46,15 +62,23 @@ class AuthRepository {
   /// `/auth/me/` is the authority here rather than the cookie's presence: a
   /// cookie can exist and still be rejected, and only the server knows.
   Future<Employee?> restore() async {
-    if (!await _api.hasSessionCookie()) return null;
+    if (!await _api.hasSessionCookie()) {
+      _log('restore() — no session cookie, skipping.');
+      return null;
+    }
 
+    _log('restore() start');
     try {
       final data = await _api.get<Map<String, dynamic>>('/auth/me/');
-      return Employee.fromJson(data);
+      final employee = Employee.fromJson(data);
+      _log('restore() succeeded — employee #${employee.id} (${employee.email})');
+      return employee;
     } on SessionExpiredException {
+      _log('restore() — session expired, clearing local session.');
       await _clearLocalSession();
       return null;
-    } on NetworkException {
+    } on NetworkException catch (error) {
+      _log('restore() network failure: ${error.message}');
       // Offline at launch is not a logout. Rethrow so the UI can offer retry
       // instead of silently dumping the agent back to the login screen.
       rethrow;
@@ -67,9 +91,13 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
+    _log('logout() start');
     try {
       await _api.post<dynamic>('/auth/logout/');
-    } on ApiException {
+      _log('logout() — server session ended');
+    } on ApiException catch (error) {
+      _log('logout() — server call failed, clearing local session anyway: '
+          '${error.message}');
       // Logging out locally must succeed even when the server is unreachable —
       // otherwise a support agent cannot hand their phone over.
     } finally {

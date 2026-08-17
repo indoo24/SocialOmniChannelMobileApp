@@ -22,6 +22,7 @@ import 'package:path_provider/path_provider.dart';
 import 'api/api_client.dart';
 import 'auth/auth_repository.dart';
 import 'config/environment.dart';
+import 'notifications/device_repository.dart';
 import 'realtime/realtime_client.dart';
 import 'storage/secure_store.dart';
 import '../features/conversations/conversation_repository.dart';
@@ -57,6 +58,10 @@ final conversationRepositoryProvider = Provider<ConversationRepository>((ref) {
 
 final directoryRepositoryProvider = Provider<DirectoryRepository>((ref) {
   return DirectoryRepository(ref.watch(apiClientProvider));
+});
+
+final deviceRepositoryProvider = Provider<DeviceRepository>((ref) {
+  return DeviceRepository(ref.watch(apiClientProvider));
 });
 
 final realtimeClientProvider = Provider<RealtimeClient>((ref) {

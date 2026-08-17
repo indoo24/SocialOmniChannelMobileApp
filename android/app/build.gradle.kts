@@ -4,6 +4,13 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Applied only once a real Firebase project's config file is present, so a
+// build with push not yet configured still builds cleanly. Add
+// google-services.json here (see NOTIFICATIONS_INTEGRATION.md §4) to enable it.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.scenario.scenario_mobile"
     compileSdk = flutter.compileSdkVersion

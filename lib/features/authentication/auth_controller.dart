@@ -6,6 +6,7 @@
 /// sign-out actually happen.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
@@ -45,6 +46,8 @@ class AuthState {
 }
 
 class AuthController extends Notifier<AuthState> {
+  static void _log(String message) => debugPrint('[AuthController] $message');
+
   @override
   AuthState build() => const AuthState(isRestoring: true);
 
@@ -54,24 +57,47 @@ class AuthController extends Notifier<AuthState> {
     try {
       final employee = await ref.read(authRepositoryProvider).restore();
       state = AuthState(employee: employee, isRestoring: false);
-    } on NetworkException {
+    } on NetworkException catch (error) {
+      _log('restore() -> offline: ${error.message}');
       state = const AuthState(isRestoring: false, restoreFailedOffline: true);
-    } on ApiException {
+    } on ApiException catch (error) {
+      _log(
+        'restore() -> ${error.runtimeType}(status: ${error.statusCode}, '
+        'code: ${error.code}): ${error.message}',
+      );
       state = const AuthState(isRestoring: false);
     }
   }
 
   Future<void> login({required String email, required String password}) async {
-    final employee = await ref
-        .read(authRepositoryProvider)
-        .login(email: email, password: password);
-    state = AuthState(employee: employee, isRestoring: false);
+    try {
+      final employee = await ref
+          .read(authRepositoryProvider)
+          .login(email: email, password: password);
+      state = AuthState(employee: employee, isRestoring: false);
+    } on ApiException catch (error) {
+      _log(
+        'login() -> ${error.runtimeType}(status: ${error.statusCode}, '
+        'code: ${error.code}): ${error.message}',
+      );
+      rethrow;
+    }
   }
 
   Future<void> logout() async {
     // Drop the socket before the session dies, so the backend sees a clean
     // close rather than an authentication failure on the next frame.
     await ref.read(realtimeClientProvider).disconnect();
+
+    // Unregister push before the session dies too — unregister is itself an
+    // authenticated call, so it must go out while the cookie is still valid.
+    final deviceId = await ref.read(secureStoreProvider).deviceId();
+    try {
+      await ref.read(deviceRepositoryProvider).unregister(deviceId);
+    } on ApiException {
+      // Best-effort — signing out locally must still succeed.
+    }
+
     await ref.read(authRepositoryProvider).logout();
     state = const AuthState(isRestoring: false);
   }

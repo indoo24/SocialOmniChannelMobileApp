@@ -4,7 +4,7 @@
 /// that is what makes "run against my laptop", "run against the tunnel" and
 /// "run against production" a build flag rather than a code edit.
 ///
-/// Development defaults to the ngrok tunnel so the app can be launched
+/// Development defaults to the shared dev server so the app can be launched
 /// directly from the IDE with Hot Reload.
 ///
 /// Override at build/run time:
@@ -32,10 +32,10 @@ class Environment {
   /// Default development backend.
   ///
   /// Used when running directly from the IDE without --dart-define.
-  static const _defaultDevHost =
-      'treelined-nonchurched-ona.ngrok-free.dev';
+  static const _defaultDevHost = 'scenariomnchnl.tech';
 
-  /// The ngrok tunnel uses HTTPS/WSS.
+  /// The dev server terminates TLS itself, with a CA-signed (Let's Encrypt)
+  /// certificate — HTTPS/WSS.
   static const _defaultDevUseTls = true;
 
   static final Environment current = _resolve();
@@ -81,13 +81,13 @@ class Environment {
   /// REST root.
   ///
   /// Example:
-  /// https://treelined-nonchurched-ona.ngrok-free.dev/api
+  /// https://scenariomnchnl.tech/api
   String get apiBaseUrl => '$_httpScheme://$host/api';
 
   /// Realtime endpoint.
   ///
   /// Example:
-  /// wss://treelined-nonchurched-ona.ngrok-free.dev/ws/inbox/
+  /// wss://scenariomnchnl.tech/ws/inbox/
   String get websocketUrl => '$_wsScheme://$host/ws/inbox/';
 
   /// Absolute URL for a media path the API returned relative.

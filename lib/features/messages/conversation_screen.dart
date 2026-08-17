@@ -18,6 +18,7 @@ import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../core/realtime/realtime_bridge.dart';
+import '../../core/realtime/realtime_logger.dart';
 import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
@@ -39,29 +40,47 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _composerController = TextEditingController();
   final _scrollController = ScrollController();
   late final ActiveConversation _activeNotifier;
+  late final InboxController _inboxNotifier;
+  late ProviderContainer _container;
   bool _sending = false;
 
   @override
   void initState() {
     super.initState();
     _activeNotifier = ref.read(activeConversationProvider.notifier);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _inboxNotifier = ref.read(inboxControllerProvider.notifier);
+    final activeNotifier = _activeNotifier;
+    final conversationId = widget.conversationId;
+    Future.microtask(() {
       if (mounted) {
-        _activeNotifier.opened(widget.conversationId);
+        activeNotifier.opened(conversationId);
+        ref
+            .read(conversationControllerProvider(conversationId).notifier)
+            .refreshOnOpen();
       }
     });
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _container = ProviderScope.containerOf(context);
+  }
+
+  @override
   void dispose() {
+    final activeNotifier = _activeNotifier;
+    final inboxNotifier = _inboxNotifier;
+    final container = _container;
+    final conversationId = widget.conversationId;
+
     Future.microtask(() {
-      _activeNotifier.closed(widget.conversationId);
-      ref
-          .read(inboxControllerProvider.notifier)
-          .markAsRead(widget.conversationId);
-      ref.invalidate(conversationCountsProvider);
-      ref.read(inboxControllerProvider.notifier).refreshQuietly();
+      inboxNotifier.markAsRead(conversationId);
+      container.invalidate(conversationCountsProvider);
+      inboxNotifier.refreshQuietly();
+      activeNotifier.closed(conversationId);
     });
+
     _composerController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -109,23 +128,34 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     );
     final canReply = ref.watch(canProvider(Perm.conversationReply));
 
-    // Listen to realtime events to refresh messages when open
-    ref.listen(realtimeEventProvider, (_, next) {
-      final event = next.value;
-      if (event != null) {
-        final id = event.conversationId;
-        if (id == widget.conversationId || id == null) {
-          Future.microtask(() {
-            ref
-                .read(
-                  conversationControllerProvider(
-                    widget.conversationId,
-                  ).notifier,
-                )
-                .refreshFromServer();
-          });
-        }
-      }
+    async.whenData((state) {
+      final convoIdStr = widget.conversationId.toString();
+      final lastMsg = state.messages.isNotEmpty ? state.messages.last : null;
+      final active = ref.read(activeConversationProvider);
+      final trace = RealtimeLogger.findTraceByMessageOrConvo(
+        lastMsg?.id.toString(),
+        convoIdStr,
+      );
+      final traceId = trace?.traceId ?? 'ui_$convoIdStr';
+
+      RealtimeLogger.markStep(
+        traceId,
+        'UI_STATE_RECEIVED',
+        conversationId: convoIdStr,
+        messageId: lastMsg?.id.toString(),
+      );
+      RealtimeLogger.log(
+        'UI',
+        'CONVERSATION_SCREEN_STATE_RECEIVED',
+        traceId: traceId,
+        conversationId: convoIdStr,
+        messageId: lastMsg?.id.toString(),
+        activeConversationId: active?.toString() ?? 'null',
+        data: {
+          'messageCount': state.messages.length,
+          'lastMessageId': lastMsg?.id ?? 'none',
+        },
+      );
     });
 
     // Automatically scroll down when a new message arrives.

@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Runtime-requested via firebase_messaging's requestPermission() call;
+         Android 13+ requires the manifest declaration too. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="scenario_mobile"
         android:name="${applicationName}"

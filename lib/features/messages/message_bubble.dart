@@ -10,6 +10,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/models/message.dart';
+import '../../core/realtime/realtime_logger.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 
@@ -27,6 +28,23 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final msgIdStr = message.id.toString();
+    final trace = RealtimeLogger.findTraceByMessageOrConvo(msgIdStr, null);
+    if (trace != null) {
+      RealtimeLogger.markStep(
+        trace.traceId,
+        'WIDGET_BUILT',
+        messageId: msgIdStr,
+      );
+      RealtimeLogger.log(
+        'UI',
+        'MESSAGE_WIDGET_BUILT',
+        traceId: trace.traceId,
+        messageId: msgIdStr,
+      );
+      RealtimeLogger.finishTrace(trace.traceId);
+    }
+
     if (message.isSystem) return _SystemLine(message: message);
 
     final theme = Theme.of(context);
@@ -36,14 +54,14 @@ class MessageBubble extends StatelessWidget {
     final background = failed
         ? theme.colorScheme.error.withValues(alpha: 0.10)
         : isMine
-            ? theme.colorScheme.primary
-            : theme.colorScheme.surface;
+        ? theme.colorScheme.primary
+        : theme.colorScheme.surface;
 
     final foreground = failed
         ? theme.colorScheme.onSurface
         : isMine
-            ? Colors.white
-            : theme.colorScheme.onSurface;
+        ? Colors.white
+        : theme.colorScheme.onSurface;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -51,8 +69,9 @@ class MessageBubble extends StatelessWidget {
         vertical: Space.xs,
       ),
       child: Row(
-        mainAxisAlignment:
-            isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMine
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         children: [
           Flexible(
             child: ConstrainedBox(
@@ -60,8 +79,9 @@ class MessageBubble extends StatelessWidget {
                 maxWidth: MediaQuery.sizeOf(context).width * 0.78,
               ),
               child: Column(
-                crossAxisAlignment:
-                    isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                crossAxisAlignment: isMine
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -73,16 +93,20 @@ class MessageBubble extends StatelessWidget {
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(Radii.lg),
                         topRight: const Radius.circular(Radii.lg),
-                        bottomLeft: Radius.circular(isMine ? Radii.lg : Radii.sm),
-                        bottomRight:
-                            Radius.circular(isMine ? Radii.sm : Radii.lg),
+                        bottomLeft: Radius.circular(
+                          isMine ? Radii.lg : Radii.sm,
+                        ),
+                        bottomRight: Radius.circular(
+                          isMine ? Radii.sm : Radii.lg,
+                        ),
                       ),
                       border: isMine && !failed
                           ? null
                           : Border.all(
                               color: failed
-                                  ? theme.colorScheme.error
-                                      .withValues(alpha: 0.35)
+                                  ? theme.colorScheme.error.withValues(
+                                      alpha: 0.35,
+                                    )
                                   : theme.colorScheme.outline,
                             ),
                     ),
@@ -94,8 +118,9 @@ class MessageBubble extends StatelessWidget {
                         if (message.text.isNotEmpty)
                           Text(
                             message.text,
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(color: foreground),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: foreground,
+                            ),
                           ),
                       ],
                     ),
@@ -129,7 +154,8 @@ class _MetaRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final labels = <String>[
-      if (message.isOutbound && message.senderName.isNotEmpty) message.senderName,
+      if (message.isOutbound && message.senderName.isNotEmpty)
+        message.senderName,
       formatTime(message.sentAt),
     ];
 
@@ -167,7 +193,11 @@ class _DeliveryIcon extends StatelessWidget {
       );
     }
     if (message.hasFailed || message.isDeliveryFailure) {
-      return Icon(Icons.error_outline, size: 12, color: theme.colorScheme.error);
+      return Icon(
+        Icons.error_outline,
+        size: 12,
+        color: theme.colorScheme.error,
+      );
     }
 
     final (icon, color) = switch (message.deliveryStatus) {
@@ -181,11 +211,7 @@ class _DeliveryIcon extends StatelessWidget {
 }
 
 class _FailureActions extends StatelessWidget {
-  const _FailureActions({
-    required this.message,
-    this.onRetry,
-    this.onDiscard,
-  });
+  const _FailureActions({required this.message, this.onRetry, this.onDiscard});
 
   final Message message;
   final VoidCallback? onRetry;
@@ -206,8 +232,9 @@ class _FailureActions extends StatelessWidget {
           child: Text(
             reason,
             textAlign: TextAlign.right,
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: theme.colorScheme.error),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.error,
+            ),
           ),
         ),
         if (onRetry != null || onDiscard != null)
@@ -309,12 +336,12 @@ class _FileChip extends StatelessWidget {
   }
 
   static IconData _iconFor(String type) => switch (type) {
-        'IMAGE' => Icons.image_outlined,
-        'VIDEO' => Icons.videocam_outlined,
-        'AUDIO' => Icons.mic_none,
-        'LOCATION' => Icons.location_on_outlined,
-        _ => Icons.attach_file,
-      };
+    'IMAGE' => Icons.image_outlined,
+    'VIDEO' => Icons.videocam_outlined,
+    'AUDIO' => Icons.mic_none,
+    'LOCATION' => Icons.location_on_outlined,
+    _ => Icons.attach_file,
+  };
 }
 
 class _SystemLine extends StatelessWidget {

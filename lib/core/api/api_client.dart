@@ -19,6 +19,7 @@ import 'dart:io';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:flutter/foundation.dart';
 
 import '../config/environment.dart';
 import 'api_exception.dart';
@@ -107,19 +108,27 @@ class ApiClient {
     try {
       response = await request();
     } on DioException catch (error) {
+      _logTransportError(error);
       throw _mapTransportError(error);
     }
 
     final status = response.statusCode ?? 0;
+    final requestLabel =
+        '${response.requestOptions.method} ${response.requestOptions.path}';
 
     if (status >= 200 && status < 300) {
+      _log('$requestLabel -> $status');
       return response.data as T;
     }
 
     if (status == 401) {
+      _log('$requestLabel -> 401 (session expired)');
       throw SessionExpiredException();
     }
 
+    // This is the detail the friendly ApiException.message throws away —
+    // the raw status and body are what actually explain a "server problem".
+    _log('$requestLabel -> $status, body: ${response.data}');
     throw ApiException.fromResponse(status, response.data);
   }
 
@@ -137,11 +146,29 @@ class ApiClient {
               ? 'No connection to the server. Check your network.'
               : 'Could not reach the server.',
         );
+      case DioExceptionType.badCertificate:
+        return NetworkException(
+          'The server\'s certificate could not be verified.',
+        );
       case DioExceptionType.cancel:
         return NetworkException('The request was cancelled.');
       default:
         return NetworkException('Something went wrong talking to the server.');
     }
+  }
+
+  void _log(String message) => debugPrint('[ApiClient] $message');
+
+  /// Everything the friendly [NetworkException] message on screen hides:
+  /// which request, what kind of transport failure, and the raw platform
+  /// error (a `SocketException`, `HandshakeException` for a bad TLS cert,
+  /// etc.) underneath it.
+  void _logTransportError(DioException error) {
+    _log(
+      'Transport error on ${error.requestOptions.method} '
+      '${error.requestOptions.uri} — type: ${error.type}, '
+      'message: ${error.message}, error: ${error.error}',
+    );
   }
 }
 
