@@ -9,6 +9,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/tokens.dart';
+import '../utils/safe_url.dart';
 import 'badges.dart';
 
 class InitialsAvatar extends StatelessWidget {
@@ -31,14 +32,20 @@ class InitialsAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // Every avatar in the app renders through this widget, so sanitising here
+    // covers all of them — including the customer avatars whose URLs came from
+    // WhatsApp or Instagram rather than from Scenario. A rejected URL is
+    // indistinguishable from an absent one: both fall through to initials.
+    final safeUrl = SafeUrl.forImage(imageUrl);
+
     final avatar = ClipOval(
       child: SizedBox(
         width: size,
         height: size,
-        child: imageUrl.isEmpty
+        child: safeUrl.isEmpty
             ? _initials(theme)
             : CachedNetworkImage(
-                imageUrl: imageUrl,
+                imageUrl: safeUrl,
                 fit: BoxFit.cover,
                 // Platform CDN URLs are signed and expire. A broken image must
                 // degrade to initials, never to a broken-image glyph.

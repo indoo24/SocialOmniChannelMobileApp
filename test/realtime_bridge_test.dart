@@ -6,13 +6,10 @@
 /// without requiring a widget tree or real WebSocket connection.
 library;
 
-import 'dart:async';
-import 'dart:convert';
 
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scenario_mobile/core/config/environment.dart';
 import 'package:scenario_mobile/core/models/conversation.dart';
 import 'package:scenario_mobile/core/models/message.dart';
 import 'package:scenario_mobile/core/providers.dart';

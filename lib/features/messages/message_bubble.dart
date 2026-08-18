@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../../core/models/message.dart';
 import '../../core/realtime/realtime_logger.dart';
 import '../../core/theme/tokens.dart';
+import '../../core/utils/safe_url.dart';
 import '../../core/utils/formatting.dart';
 import '../../l10n/l10n_extensions.dart';
 
@@ -280,20 +281,29 @@ class _Attachments extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (final attachment in message.attachments)
-          Padding(
-            padding: const EdgeInsets.only(bottom: Space.sm),
-            child: attachment.isImage && attachment.url.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(Radii.md),
-                    child: CachedNetworkImage(
-                      imageUrl: attachment.url,
-                      width: 220,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, _, _) =>
-                          _FileChip(attachment: attachment),
-                    ),
-                  )
-                : _FileChip(attachment: attachment),
+          Builder(
+            builder: (context) {
+              // Attachment URLs reach the app from inbound channel messages,
+              // so their content is ultimately customer-controlled. Anything
+              // that is not an https URL degrades to the file chip, which
+              // names the attachment without fetching it.
+              final safeUrl = SafeUrl.forImage(attachment.url);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: Space.sm),
+                child: attachment.isImage && safeUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(Radii.md),
+                        child: CachedNetworkImage(
+                          imageUrl: safeUrl,
+                          width: 220,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) =>
+                              _FileChip(attachment: attachment),
+                        ),
+                      )
+                    : _FileChip(attachment: attachment),
+              );
+            },
           ),
       ],
     );

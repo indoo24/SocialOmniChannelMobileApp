@@ -18,6 +18,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
+import '../logging/app_log.dart';
+
 /// Registered with `FirebaseMessaging.onBackgroundMessage`, which requires a
 /// top-level (or static) function run in its own isolate.
 ///
@@ -52,7 +54,7 @@ class PushService {
 
   FirebaseMessaging get _messaging => FirebaseMessaging.instance;
 
-  static void _log(String message) => debugPrint('[PushService] $message');
+  static void _log(String message) => AppLog.debug('PushService', message);
 
   Future<void> ensureInitialized() async {
     if (_initialized) {

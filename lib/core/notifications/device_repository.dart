@@ -6,17 +6,16 @@
 /// back into the client.
 library;
 
-import 'package:flutter/foundation.dart';
-
 import '../api/api_client.dart';
 import '../api/api_exception.dart';
+import '../logging/app_log.dart';
 
 class DeviceRepository {
   DeviceRepository(this._api);
 
   final ApiClient _api;
 
-  static void _log(String message) => debugPrint('[DeviceRepository] $message');
+  static void _log(String message) => AppLog.debug('DeviceRepository', message);
 
   /// Idempotent on `deviceIdentifier` — safe to call on every launch and
   /// again whenever the FCM token rotates.
@@ -26,7 +25,7 @@ class DeviceRepository {
     String? pushToken,
   }) async {
     _log(
-      'register() start — device: $deviceIdentifier, platform: $platform, '
+      'register() start — device: ${AppLog.redact(deviceIdentifier)}, platform: $platform, '
       'hasToken: ${pushToken != null && pushToken.isNotEmpty}',
     );
     try {
@@ -39,10 +38,10 @@ class DeviceRepository {
             'push_token': pushToken,
         },
       );
-      _log('register() succeeded — device: $deviceIdentifier');
+      _log('register() succeeded — device: ${AppLog.redact(deviceIdentifier)}');
     } on ApiException catch (error) {
       _log(
-        'register() failed — device: $deviceIdentifier, '
+        'register() failed — device: ${AppLog.redact(deviceIdentifier)}, '
         '${error.runtimeType}(status: ${error.statusCode}, code: '
         '${error.code}): ${error.message}',
       );
@@ -57,7 +56,7 @@ class DeviceRepository {
     required String deviceIdentifier,
     String? pushToken,
   }) async {
-    _log('heartbeat() start — device: $deviceIdentifier');
+    _log('heartbeat() start — device: ${AppLog.redact(deviceIdentifier)}');
     try {
       await _api.post<dynamic>(
         '/devices/heartbeat/',
@@ -67,10 +66,10 @@ class DeviceRepository {
             'push_token': pushToken,
         },
       );
-      _log('heartbeat() succeeded — device: $deviceIdentifier');
+      _log('heartbeat() succeeded — device: ${AppLog.redact(deviceIdentifier)}');
     } on ApiException catch (error) {
       _log(
-        'heartbeat() failed — device: $deviceIdentifier, '
+        'heartbeat() failed — device: ${AppLog.redact(deviceIdentifier)}, '
         '${error.runtimeType}(status: ${error.statusCode}, code: '
         '${error.code}): ${error.message}',
       );
@@ -81,16 +80,16 @@ class DeviceRepository {
   /// Deactivates the device row so push stops. Never errors on an unknown
   /// device, so this is always safe to call from logout cleanup.
   Future<void> unregister(String deviceIdentifier) async {
-    _log('unregister() start — device: $deviceIdentifier');
+    _log('unregister() start — device: ${AppLog.redact(deviceIdentifier)}');
     try {
       await _api.post<dynamic>(
         '/devices/unregister/',
         body: {'device_identifier': deviceIdentifier},
       );
-      _log('unregister() succeeded — device: $deviceIdentifier');
+      _log('unregister() succeeded — device: ${AppLog.redact(deviceIdentifier)}');
     } on ApiException catch (error) {
       _log(
-        'unregister() failed — device: $deviceIdentifier, '
+        'unregister() failed — device: ${AppLog.redact(deviceIdentifier)}, '
         '${error.runtimeType}(status: ${error.statusCode}, code: '
         '${error.code}): ${error.message}',
       );

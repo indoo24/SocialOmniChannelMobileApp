@@ -8,6 +8,8 @@
 /// has to tell them apart.
 library;
 
+import '../utils/json_safe.dart';
+
 import 'employee.dart';
 
 class Team {
@@ -32,14 +34,14 @@ class Team {
   final String description;
 
   factory Team.fromJson(Map<String, dynamic> json) {
-    List<String> names(String key) => ((json[key] as List?) ?? const [])
-        .map((m) => m is Map ? (m['full_name'] as String?) ?? '' : m.toString())
+    List<String> names(String key) => JsonSafe.asObjectList(json[key])
+        .map((m) => m is Map ? JsonSafe.asString(m['full_name']) : m.toString())
         .where((n) => n.isNotEmpty)
         .toList();
 
     final members = json['members'];
     return Team(
-      id: json['id'] as int,
+      id: JsonSafe.asInt(json['id'], fallback: -1),
       name: (json['name'] as String?) ?? '',
       color: (json['color'] as String?) ?? '',
       language: (json['language'] as String?) ?? '',
@@ -85,7 +87,7 @@ class Customer {
   final DateTime? lastSeenAt;
 
   factory Customer.fromJson(Map<String, dynamic> json) => Customer(
-        id: json['id'] as int,
+        id: JsonSafe.asInt(json['id'], fallback: -1),
         displayName: (json['display_name'] as String?) ?? '',
         lifecycleStage: (json['lifecycle_stage'] as String?) ?? 'UNKNOWN',
         conversationCount: (json['conversation_count'] as num?)?.toInt() ?? 0,
@@ -95,8 +97,8 @@ class Customer {
         city: (json['city'] as String?) ?? '',
         country: (json['country'] as String?) ?? '',
         preferredLanguage: (json['preferred_language'] as String?) ?? '',
-        providers: ((json['identities'] as List?) ?? const [])
-            .map((i) => i is Map ? (i['provider'] as String?) ?? '' : '')
+        providers: JsonSafe.asObjectList(json['identities'])
+            .map((i) => i is Map ? JsonSafe.asString(i['provider']) : '')
             .where((p) => p.isNotEmpty)
             .toSet()
             .toList(),
@@ -132,7 +134,7 @@ class ChannelConnection {
 
   factory ChannelConnection.fromJson(Map<String, dynamic> json) =>
       ChannelConnection(
-        id: json['id'] as int,
+        id: JsonSafe.asInt(json['id'], fallback: -1),
         provider: (json['provider'] as String?) ?? '',
         displayName: (json['display_name'] as String?) ?? '',
         status: (json['status'] as String?) ?? 'PENDING',
@@ -237,7 +239,7 @@ class WorkloadEntry {
   final String avatarUrl;
 
   factory WorkloadEntry.fromJson(Map<String, dynamic> json) => WorkloadEntry(
-        id: json['id'] as int,
+        id: JsonSafe.asInt(json['id'], fallback: -1),
         fullName: (json['full_name'] as String?) ?? '',
         initials: (json['initials'] as String?) ?? '',
         availability: (json['availability'] as String?) ?? 'OFFLINE',
@@ -257,9 +259,7 @@ class TeamMetrics {
 
   factory TeamMetrics.fromJson(Map<String, dynamic> json) => TeamMetrics(
         onlineAgents: (json['online_agents'] as num?)?.toInt() ?? 0,
-        workload: ((json['workload'] as List?) ?? const [])
-            .map((w) => WorkloadEntry.fromJson(Map<String, dynamic>.from(w as Map)))
-            .toList(),
+        workload: JsonSafe.parseList(json['workload'], WorkloadEntry.fromJson),
       );
 }
 
@@ -281,13 +281,13 @@ class DashboardSummary {
   factory DashboardSummary.fromJson(Map<String, dynamic> json) =>
       DashboardSummary(
         conversations: ConversationMetrics.fromJson(
-          Map<String, dynamic>.from((json['conversations'] as Map?) ?? const {}),
+          JsonSafe.asMap(json['conversations']),
         ),
         intelligence: IntelligenceMetrics.fromJson(
-          Map<String, dynamic>.from((json['intelligence'] as Map?) ?? const {}),
+          JsonSafe.asMap(json['intelligence']),
         ),
         team: json['team'] is Map
-            ? TeamMetrics.fromJson(Map<String, dynamic>.from(json['team'] as Map))
+            ? TeamMetrics.fromJson(JsonSafe.asMap(json['team']))
             : null,
       );
 }
@@ -344,7 +344,7 @@ class DirectoryEmployee {
 
   factory DirectoryEmployee.fromJson(Map<String, dynamic> json) =>
       DirectoryEmployee(
-        id: json['id'] as int,
+        id: JsonSafe.asInt(json['id'], fallback: -1),
         fullName: (json['full_name'] as String?) ?? '',
         initials: (json['initials'] as String?) ?? '',
         email: (json['email'] as String?) ?? '',
@@ -352,8 +352,8 @@ class DirectoryEmployee {
         roleDisplay: (json['role_display'] as String?) ?? '',
         availability: (json['availability'] as String?) ?? 'OFFLINE',
         isActive: (json['is_active'] as bool?) ?? true,
-        teamNames: ((json['teams'] as List?) ?? const [])
-            .map((t) => t is Map ? (t['name'] as String?) ?? '' : '')
+        teamNames: JsonSafe.asObjectList(json['teams'])
+            .map((t) => t is Map ? JsonSafe.asString(t['name']) : '')
             .where((n) => n.isNotEmpty)
             .toList(),
         avatarUrl: (json['avatar_url'] as String?) ?? '',

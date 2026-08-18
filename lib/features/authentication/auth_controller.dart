@@ -6,12 +6,13 @@
 /// sign-out actually happen.
 library;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/logging/app_log.dart';
 import '../../core/models/employee.dart';
 import '../../core/providers.dart';
+import '../../core/session/session_reset.dart';
 
 class AuthState {
   const AuthState({
@@ -46,7 +47,7 @@ class AuthState {
 }
 
 class AuthController extends Notifier<AuthState> {
-  static void _log(String message) => debugPrint('[AuthController] $message');
+  static void _log(String message) => AppLog.debug('AuthController', message);
 
   @override
   AuthState build() => const AuthState(isRestoring: true);
@@ -99,15 +100,52 @@ class AuthController extends Notifier<AuthState> {
     }
 
     await ref.read(authRepositoryProvider).logout();
+
+    // Order matters. The state change goes first: it drives the router's
+    // refreshListenable, which redirects to /login and unmounts the inbox and
+    // any open conversation. Only then are their providers invalidated, so
+    // nothing is still watching them and nothing rebuilds — an invalidated
+    // provider with a live listener would refetch immediately, against a
+    // session that has just been ended, and get a 401 for its trouble.
     state = const AuthState(isRestoring: false);
+
+    // Drop the previous agent's loaded data before the next sign-in can render
+    // over the top of it. See core/session/session_reset.dart.
+    clearSessionScopedState(ref);
   }
 
   /// Called when any request comes back 401. Ends the session locally without
   /// a round trip — the server has already told us it is gone.
-  void onSessionExpired() {
+  ///
+  /// An expired session leaves exactly as much behind as a tapped Sign out, so
+  /// it gets the same cleanup: the cookie jar is cleared (a rejected cookie is
+  /// still a credential sitting in a file on disk), and the loaded data goes
+  /// with it. The one difference is that no server call is attempted — the
+  /// server has already refused this session, so `/auth/logout/` and the push
+  /// unregister would both come back 401.
+  Future<void> onSessionExpired() async {
     if (!state.isAuthenticated) return;
-    ref.read(realtimeClientProvider).disconnect();
+
+    // Synchronously, before the first await.
+    //
+    // The guard above is only a guard if nothing can interleave between the
+    // check and the change. A lapsed session does not produce one 401 — it
+    // produces a burst, because the inbox, the unread counts and any open
+    // conversation are all in flight together. Each of those would pass the
+    // check while an earlier one was still awaiting its disconnect, and the
+    // teardown would run several times over.
+    //
+    // Setting state first also drives the router's refreshListenable, which
+    // redirects to /login and unmounts the screens whose providers are about
+    // to be invalidated — so none of them is still being watched when
+    // clearSessionScopedState runs, and none of them refetches into the
+    // session that has just ended.
     state = const AuthState(isRestoring: false);
+
+    await ref.read(realtimeClientProvider).disconnect();
+    await ref.read(authRepositoryProvider).clearLocalSession();
+
+    clearSessionScopedState(ref);
   }
 
   Future<void> setAvailability(String availability) async {
@@ -122,7 +160,7 @@ class AuthController extends Notifier<AuthState> {
       final employee = await ref.read(authRepositoryProvider).currentEmployee();
       state = state.copyWith(employee: employee);
     } on SessionExpiredException {
-      onSessionExpired();
+      await onSessionExpired();
     } on ApiException {
       // A failed refresh is not a logout; keep what we have.
     }

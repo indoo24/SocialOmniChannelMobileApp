@@ -6,6 +6,8 @@
 /// a live credential for a customer-service system.
 library;
 
+import 'dart:math';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SecureStore {
@@ -71,9 +73,27 @@ class SecureStore {
 
   Future<void> wipe() => _storage.deleteAll();
 
+  /// 128 bits from the platform CSPRNG, hex-encoded.
+  ///
+  /// The previous version was `microsecondsSinceEpoch` plus
+  /// `Object().hashCode`. Neither is random: the first is the install time,
+  /// guessable to within a narrow window by anyone who knows roughly when the
+  /// app was first opened, and the second is a low-entropy identity hash the
+  /// VM hands out from a small space. Together they left the id enumerable.
+  ///
+  /// That id keys `EmployeeDevice` on the backend, so it is the handle for
+  /// `/devices/register/`, `/devices/heartbeat/` and `/devices/unregister/`.
+  /// A guessable handle is a guessable target for whatever those endpoints
+  /// allow a caller to do to someone else's registration — the backend is the
+  /// authority on that, but an unguessable id means the client never offers
+  /// the guess in the first place.
+  ///
+  /// [Random.secure] is the OS CSPRNG (`SecRandomCopyBytes` / `/dev/urandom`);
+  /// it throws rather than silently degrading if no secure source exists.
   static String _generateId() {
-    final now = DateTime.now().microsecondsSinceEpoch.toRadixString(16);
-    final entropy = Object().hashCode.toRadixString(16);
-    return 'mob-$now-$entropy';
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return 'mob-$hex';
   }
 }

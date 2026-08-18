@@ -22,6 +22,7 @@ import 'package:path_provider/path_provider.dart';
 import 'api/api_client.dart';
 import 'auth/auth_repository.dart';
 import 'config/environment.dart';
+import '../features/authentication/auth_controller.dart';
 import 'notifications/device_repository.dart';
 import 'realtime/realtime_client.dart';
 import 'storage/secure_store.dart';
@@ -42,6 +43,25 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient.create(
     cookieJar: ref.watch(cookieJarProvider),
     environment: ref.watch(environmentProvider),
+    // Any 401, from any call site, ends the session once: socket down, cookie
+    // jar cleared, loaded data dropped.
+    //
+    // Two deliberate choices here:
+    //
+    // * `ref.read` inside the callback rather than at build time — reading the
+    //   auth controller eagerly would make this provider depend on one that
+    //   depends back on it.
+    // * `Future.microtask` — the 401 is raised while a repository call is in
+    //   flight, which is frequently inside a provider's own `build`. Tearing
+    //   the session down invalidates providers, and mutating the container
+    //   from inside a build that is still running is not something Riverpod
+    //   promises to handle. The async gap lets the failing build finish and
+    //   throw its `SessionExpiredException` first, then does the teardown.
+    onSessionExpired: () {
+      Future.microtask(
+        () => ref.read(authControllerProvider.notifier).onSessionExpired(),
+      );
+    },
   );
 });
 

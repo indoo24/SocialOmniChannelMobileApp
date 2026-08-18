@@ -1,4 +1,16 @@
-/// Structured logger and trace collector for realtime WebSocket and chat latency.
+/// Structured logger and trace collector for realtime WebSocket and chat
+/// latency.
+///
+/// This is a **development instrument**. It emits a line per socket event, per
+/// dispatch step and per state transition, each carrying conversation ids,
+/// message ids and — through `ActiveConversation._getSanitizedCaller` — full
+/// stack traces. That is exactly the right amount of detail for diagnosing a
+/// latency regression and exactly the wrong amount to write into logcat on an
+/// agent's phone, where it becomes a running index of who was talking to whom.
+///
+/// [enabled] is therefore tied to `kDebugMode` rather than being a hardcoded
+/// `true`. Because it is a compile-time constant, the release tree shaker drops
+/// the call sites and the string interpolation feeding them.
 library;
 
 import 'package:flutter/foundation.dart';
@@ -25,6 +37,8 @@ class MessageTrace {
   }
 
   void printSummary() {
+    if (!RealtimeLogger.enabled) return;
+
     final t1 = timestamps['WS_MESSAGE_RECEIVED'];
     final t2 = timestamps['EVENT_PARSE_SUCCESS'];
     final t3 = timestamps['EVENT_DISPATCH_START'];
@@ -85,7 +99,8 @@ class MessageTrace {
 class RealtimeLogger {
   RealtimeLogger._();
 
-  static const bool enabled = true;
+  /// Development builds only — see the library comment.
+  static const bool enabled = kDebugMode;
   static final Map<String, MessageTrace> _traces = {};
 
   static void log(
@@ -169,6 +184,13 @@ class RealtimeLogger {
       trace.metadata.addAll(extra);
     }
   }
+
+  /// Drop every retained trace.
+  ///
+  /// Traces hold conversation and message ids for the agent who generated
+  /// them, so they are part of what sign-out has to clear — see
+  /// `core/session/session_reset.dart`.
+  static void reset() => _traces.clear();
 
   static void finishTrace(String traceId) {
     final trace = _traces.remove(traceId);

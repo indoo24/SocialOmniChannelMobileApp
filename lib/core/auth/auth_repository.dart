@@ -6,10 +6,9 @@
 /// both clients are governed by one set of rules.
 library;
 
-import 'package:flutter/foundation.dart';
-
 import '../api/api_client.dart';
 import '../api/api_exception.dart';
+import '../logging/app_log.dart';
 import '../models/employee.dart';
 import '../storage/secure_store.dart';
 
@@ -22,13 +21,13 @@ class AuthRepository {
   final ApiClient _api;
   final SecureStore _store;
 
-  static void _log(String message) => debugPrint('[AuthRepository] $message');
+  static void _log(String message) => AppLog.debug('AuthRepository', message);
 
   Future<Employee> login({
     required String email,
     required String password,
   }) async {
-    _log('login() start for ${email.trim()}');
+    _log('login() start for ${AppLog.redactEmail(email.trim())}');
     try {
       // Django only issues the CSRF cookie when asked. The browser gets one
       // by loading a page; mobile has to request it before the first unsafe
@@ -45,7 +44,10 @@ class AuthRepository {
         Map<String, dynamic>.from(data['employee'] as Map),
       );
       await _store.writeLastEmail(employee.email);
-      _log('login() succeeded — employee #${employee.id} (${employee.email})');
+      _log(
+        'login() succeeded — employee #${employee.id} '
+        '(${AppLog.redactEmail(employee.email)})',
+      );
       return employee;
     } on ApiException catch (error) {
       _log(
@@ -71,7 +73,10 @@ class AuthRepository {
     try {
       final data = await _api.get<Map<String, dynamic>>('/auth/me/');
       final employee = Employee.fromJson(data);
-      _log('restore() succeeded — employee #${employee.id} (${employee.email})');
+      _log(
+        'restore() succeeded — employee #${employee.id} '
+        '(${AppLog.redactEmail(employee.email)})',
+      );
       return employee;
     } on SessionExpiredException {
       _log('restore() — session expired, clearing local session.');
@@ -152,8 +157,17 @@ class AuthRepository {
     return currentEmployee();
   }
 
-  Future<void> _clearLocalSession() async {
+  /// Drop the local half of the session: the persisted cookie jar and the
+  /// secure-store entries tied to the person.
+  ///
+  /// Public because a 401 has to run it too. A session the server has already
+  /// rejected still leaves its cookie in a file inside the app's documents
+  /// directory, and a credential at rest is worth deleting whether or not it
+  /// would still be accepted.
+  Future<void> clearLocalSession() async {
     await _api.clearCookies();
     await _store.clearSession();
   }
+
+  Future<void> _clearLocalSession() => clearLocalSession();
 }

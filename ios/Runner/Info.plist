@@ -38,6 +38,22 @@
 	     background/killed delivery (NOTIFICATIONS_INTEGRATION.md §4). The
 	     "Push Notifications" capability itself still has to be enabled on the
 	     Runner target in Xcode — that isn't a plist edit. -->
+	<!-- App Transport Security, stated explicitly rather than left to the
+	     default. ATS already denies cleartext HTTP unless an exception is
+	     declared, so this changes nothing at runtime — it is here so that the
+	     absence of an exception is a visible, reviewable fact rather than
+	     something a reader has to infer, and so that adding one later is an
+	     obvious diff rather than a new key nobody notices.
+
+	     NSAllowsArbitraryLoads must stay false. Every endpoint this app talks
+	     to is HTTPS/WSS; Environment forces TLS in release builds, and a
+	     development build wanting plaintext should point at a debug build's
+	     own host, not weaken the shipped binary's transport policy. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

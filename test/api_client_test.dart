@@ -49,6 +49,8 @@ ResponseBody json(String body, int status) => ResponseBody.fromString(
     );
 
 void main() {
+  group('session expiry', _sessionExpiryTests);
+
   test('a successful response is returned decoded', () async {
     final client = buildClient(_StubAdapter((_) => json('{"id": 7}', 200)));
 
@@ -155,5 +157,97 @@ void main() {
     );
 
     expect(await client.hasSessionCookie(), isTrue);
+  });
+}
+
+/// Regression tests for the global 401 teardown.
+///
+/// Before this, session invalidation depended on whichever screen happened to
+/// call `refreshEmployee()`. A 401 raised while loading the inbox or sending a
+/// reply surfaced as a red error and left the app believing it was still
+/// signed in, with the rejected cookie still in a file on disk.
+void _sessionExpiryTests() {
+  test('a 401 notifies the session-expiry hook exactly once', () async {
+    var notifications = 0;
+
+    final client = ApiClient.create(
+      cookieJar: CookieJar(),
+      onSessionExpired: () => notifications += 1,
+    );
+    client.raw.httpClientAdapter = _StubAdapter((_) => json('{}', 401));
+
+    await expectLater(
+      client.get<Map<String, dynamic>>('/conversations/'),
+      throwsA(isA<SessionExpiredException>()),
+    );
+
+    expect(notifications, 1);
+  });
+
+  test('the hook fires wherever the 401 arose, not only on /auth/me/',
+      () async {
+    final paths = <String>[];
+
+    for (final path in const [
+      '/conversations/',
+      '/conversations/42/messages/',
+      '/customers/',
+      '/devices/heartbeat/',
+    ]) {
+      final client = ApiClient.create(
+        cookieJar: CookieJar(),
+        onSessionExpired: () => paths.add(path),
+      );
+      client.raw.httpClientAdapter = _StubAdapter((_) => json('{}', 401));
+
+      await expectLater(
+        client.get<Map<String, dynamic>>(path),
+        throwsA(isA<SessionExpiredException>()),
+      );
+    }
+
+    expect(paths, hasLength(4));
+  });
+
+  test('non-401 failures leave the session alone', () async {
+    var notifications = 0;
+
+    for (final status in const [400, 403, 404, 429, 500]) {
+      final client = ApiClient.create(
+        cookieJar: CookieJar(),
+        onSessionExpired: () => notifications += 1,
+      );
+      client.raw.httpClientAdapter = _StubAdapter((_) => json('{}', status));
+
+      await expectLater(
+        client.get<Map<String, dynamic>>('/conversations/'),
+        throwsA(isA<ApiException>()),
+      );
+    }
+
+    expect(
+      notifications,
+      0,
+      reason: 'a 403 is a permission answer, not an ended session',
+    );
+  });
+
+  test('a client with no hook still raises the typed exception', () async {
+    // The hook is optional; tests and the live-backend harness construct
+    // ApiClient without one.
+    final client = ApiClient.create(cookieJar: CookieJar());
+    client.raw.httpClientAdapter = _StubAdapter((_) => json('{}', 401));
+
+    await expectLater(
+      client.get<Map<String, dynamic>>('/auth/me/'),
+      throwsA(isA<SessionExpiredException>()),
+    );
+  });
+
+  test('redirects are capped so a credential cannot be walked onward', () {
+    final client = ApiClient.create(cookieJar: CookieJar());
+
+    // Every request carries the session cookie; each redirect hop re-sends it.
+    expect(client.raw.options.maxRedirects, lessThanOrEqualTo(1));
   });
 }

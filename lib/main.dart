@@ -19,6 +19,7 @@ import 'core/realtime/realtime_bridge.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/states.dart';
 import 'features/authentication/auth_controller.dart';
+import 'features/splash/splash_screen.dart';
 import 'l10n/generated/app_localizations.dart';
 
 Future<void> main() async {
@@ -27,8 +28,12 @@ Future<void> main() async {
   // Must be installed before any HttpClient/WebSocket is created (both Dio
   // and RealtimeClient create theirs lazily, but this is the earliest safe
   // point). See dev_tls_overrides.dart — this only trusts a bad certificate
-  // in development builds, and only for the configured dev host.
-  HttpOverrides.global = DevTlsOverrides();
+  // in a *development environment* running in a *non-release build*, and only
+  // for the configured dev host. A release binary never gets here, so it keeps
+  // Dart's default fully-verifying client for both REST and the socket.
+  if (DevTlsOverrides.shouldInstall) {
+    HttpOverrides.global = DevTlsOverrides();
+  }
 
   // The cookie jar needs a directory, which needs the platform channels to be
   // up — hence the async main and the override rather than a lazy provider.
@@ -87,7 +92,7 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         debugShowCheckedModeBanner: false,
-        home: const Scaffold(body: LoadingState(label: 'Loading Scenario…')),
+        home: const Scaffold(body: SplashScreen()),
       );
     }
 

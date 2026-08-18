@@ -95,6 +95,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autocorrect: false,
+                      // Lets Keychain / Google Password Manager fill these,
+                      // which is what makes a long unique password practical
+                      // on a phone. `enableSuggestions: false` on the password
+                      // field keeps it out of the keyboard's learned-word
+                      // dictionary, which is shared across apps.
+                      autofillHints: const [AutofillHints.username],
                       enabled: !_submitting,
                       decoration: const InputDecoration(
                         labelText: 'Email',
@@ -111,6 +117,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       controller: _passwordController,
                       obscureText: _obscure,
                       textInputAction: TextInputAction.done,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      autofillHints: const [AutofillHints.password],
                       enabled: !_submitting,
                       onFieldSubmitted: (_) => _submit(),
                       decoration: InputDecoration(
@@ -153,7 +162,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                     ),
-                    if (environment.isDevelopment) ...[
+                    // Development builds only. `showsDeveloperAffordances`
+                    // rather than `isDevelopment`: the environment defaults to
+                    // development, so the latter printed the backend host on
+                    // the login screen of any release build made without
+                    // --dart-define.
+                    if (environment.showsDeveloperAffordances) ...[
                       const SizedBox(height: Space.lg),
                       Text(
                         environment.apiBaseUrl,

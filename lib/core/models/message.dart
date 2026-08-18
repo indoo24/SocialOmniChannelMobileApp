@@ -6,6 +6,8 @@
 /// sees a clear failure and retries.
 library;
 
+import '../utils/json_safe.dart';
+
 class MessageAttachment {
   const MessageAttachment({
     required this.type,
@@ -73,17 +75,15 @@ class Message {
   final String? localId;
 
   factory Message.fromJson(Map<String, dynamic> json) => Message(
-        id: json['id'] as int,
+        id: JsonSafe.asInt(json['id'], fallback: -1),
         direction: (json['direction'] as String?) ?? 'INBOUND',
         senderType: (json['sender_type'] as String?) ?? 'CUSTOMER',
         senderName: (json['sender_name'] as String?) ?? '',
         senderInitials: (json['sender_initials'] as String?) ?? '',
         messageType: (json['message_type'] as String?) ?? 'TEXT',
         text: (json['text'] as String?) ?? '',
-        attachments: ((json['attachments'] as List?) ?? const [])
-            .map((a) =>
-                MessageAttachment.fromJson(Map<String, dynamic>.from(a as Map)))
-            .toList(),
+        attachments:
+            JsonSafe.parseList(json['attachments'], MessageAttachment.fromJson),
         deliveryStatus: (json['delivery_status'] as String?) ?? 'SENT',
         deliveryError: (json['delivery_error'] as String?) ?? '',
         sentAt:
@@ -154,7 +154,7 @@ class InternalNote {
   final DateTime createdAt;
 
   factory InternalNote.fromJson(Map<String, dynamic> json) => InternalNote(
-        id: json['id'] as int,
+        id: JsonSafe.asInt(json['id'], fallback: -1),
         body: (json['body'] as String?) ?? '',
         authorName: (json['author_name'] as String?) ?? '',
         authorInitials: (json['author_initials'] as String?) ?? '',

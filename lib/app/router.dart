@@ -21,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/security/screen_security.dart';
 import '../core/widgets/section_scaffold.dart';
 import '../features/analytics/analytics_screen.dart';
 import '../features/authentication/auth_controller.dart';
@@ -55,6 +56,16 @@ class Routes {
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _AuthRouterNotifier(ref);
   ref.onDispose(notifier.dispose);
+
+  /// Marks a route whose contents must not reach a screenshot or the
+  /// app-switcher snapshot.
+  ///
+  /// Applied at the router rather than inside each screen for two reasons: it
+  /// is one list to audit instead of a flag scattered across widgets, and the
+  /// protection then covers every way a route is entered — tab, deep link,
+  /// notification tap, restored location — rather than only the paths that
+  /// remembered to opt in. See core/security/screen_security.dart.
+  Widget sensitive(Widget child) => SecureScreen(child: child);
 
   /// Wraps a section so an unreachable one refuses rather than renders.
   ///
@@ -91,18 +102,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (atLogin) {
-        final next = state.uri.queryParameters['next'];
-        return (next != null && next.isNotEmpty)
-            ? Uri.decodeComponent(next)
-            : Routes.inbox;
+        return _safeNext(state.uri.queryParameters['next']) ?? Routes.inbox;
       }
 
       return null;
     },
     routes: [
+      // The password field itself, and the pre-filled employee email above it.
       GoRoute(
         path: Routes.login,
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) => sensitive(const LoginScreen()),
       ),
       GoRoute(
         path: Routes.dashboard,
@@ -112,20 +121,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.inbox,
         builder: (context, state) => const InboxScreen(),
         routes: [
+          // Message bodies — the most sensitive content the app renders.
           GoRoute(
             path: ':id',
             builder: (context, state) {
               final id = int.tryParse(state.pathParameters['id'] ?? '');
               if (id == null) return const _InvalidRoute();
-              return ConversationScreen(conversationId: id);
+              return sensitive(ConversationScreen(conversationId: id));
             },
             routes: [
+              // Customer PII: name, phone, email, order history.
               GoRoute(
                 path: 'customer',
                 builder: (context, state) {
                   final id = int.tryParse(state.pathParameters['id'] ?? '');
                   if (id == null) return const _InvalidRoute();
-                  return CustomerDetailsScreen(conversationId: id);
+                  return sensitive(CustomerDetailsScreen(conversationId: id));
                 },
               ),
             ],
@@ -145,7 +156,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               return guard(
                 Routes.customers,
                 'Customers',
-                CustomerProfileScreen(customerId: id),
+                sensitive(CustomerProfileScreen(customerId: id)),
               );
             },
           ),
@@ -181,6 +192,44 @@ final routerProvider = Provider<GoRouter>((ref) {
     errorBuilder: (context, state) => const _InvalidRoute(),
   );
 });
+
+/// Validates the `next` parameter before it is used as a redirect target.
+///
+/// `next` is written by the app itself when an unauthenticated request for a
+/// protected route is bounced to login — but it survives as a query parameter
+/// on a URL, and a URL is the one part of navigation state that can arrive
+/// from outside: a notification tap, a restored route, a link. Handing an
+/// arbitrary decoded string back to `go_router` as a location is the shape of
+/// an open redirect, so this narrows it to what it is actually for.
+///
+/// Accepted: a single-slash absolute in-app path (`/inbox/42`).
+///
+/// Rejected, each because it is a way to leave the app's own route space:
+/// * anything with a scheme (`https://…`, `scenario://…`)
+/// * protocol-relative paths (`//evil.example`), which many URL parsers read
+///   as a host rather than a path
+/// * anything not starting with `/`, which `go_router` would resolve
+///   relatively against the current location
+///
+/// Returns null when the value is absent or unusable; the caller falls back to
+/// the inbox.
+String? _safeNext(String? raw) {
+  if (raw == null || raw.isEmpty) return null;
+
+  final String decoded;
+  try {
+    decoded = Uri.decodeComponent(raw);
+  } on FormatException {
+    // Malformed percent-encoding — not something this app ever produced.
+    return null;
+  }
+
+  if (!decoded.startsWith('/')) return null;
+  if (decoded.startsWith('//')) return null;
+  if (decoded.contains('://')) return null;
+
+  return decoded;
+}
 
 /// Bridges Riverpod auth state to go_router's Listenable-based refresh.
 class _AuthRouterNotifier extends ChangeNotifier {

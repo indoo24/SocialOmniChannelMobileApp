@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 and below (`android:fullBackupContent`).
+
+  Only consulted if backup is re-enabled; `android:allowBackup="false"` in the
+  manifest is the actual control. Kept as defence in depth so that turning
+  backup on later — for preferences, say — cannot silently start including the
+  session cookie with it.
+
+  What must never leave the device:
+    files/.cookies/  — PersistCookieJar's storage. Holds `scenario_session`,
+                       which IS the authentication credential. A backup that
+                       includes it is a credential that can be restored onto a
+                       different device.
+-->
+<full-backup-content>
+    <exclude domain="file" path=".cookies/" />
+    <exclude domain="sharedpref" path="FlutterSecureStorage" />
+    <exclude domain="database" path="." />
+</full-backup-content>

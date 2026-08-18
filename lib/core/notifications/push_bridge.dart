@@ -15,6 +15,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../logging/app_log.dart';
+
 import '../../app/router.dart';
 import '../../features/authentication/auth_controller.dart';
 import '../../features/conversations/inbox_controller.dart';
@@ -38,7 +40,7 @@ class _PushBridgeState extends ConsumerState<PushBridge>
   bool _streamsAttached = false;
   bool _initialMessageChecked = false;
 
-  static void _log(String message) => debugPrint('[PushBridge] $message');
+  static void _log(String message) => AppLog.debug('PushBridge', message);
 
   @override
   void initState() {
@@ -160,13 +162,34 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     }
   }
 
+  /// Pull a positive conversation id out of a push payload, or null.
+  ///
+  /// A notification is the one input that reaches this app without the user
+  /// doing anything, and it is the only path that navigates on its own. It is
+  /// still authenticated data — FCM delivers only to tokens registered against
+  /// this employee — but the id it names is not proof of anything: it decides
+  /// which conversation to *open*, and the backend's `visible_to()` decides
+  /// whether that conversation loads. A hostile or malformed id therefore
+  /// costs a wasted navigation to a screen that 403s, which is why this
+  /// validates the shape and lets the server judge the substance.
+  static int? _conversationIdFrom(RemoteMessage message) {
+    final raw = message.data[PushDataKeys.conversationId];
+    final id = raw is int ? raw : int.tryParse(raw?.toString().trim() ?? '');
+    if (id == null || id <= 0) return null;
+    return id;
+  }
+
   /// A push arrived while the app was open. The socket already carries this
   /// signal (§5); treat this identically in case it arrives first or the
   /// socket had briefly dropped — never as a second source of truth.
   void _handleForegroundPush(RemoteMessage message) {
+    // Keys only, never values. Scenario's own pushes carry just `type` and
+    // `conversation_id`, but a notification payload is server-controlled and
+    // whatever it grows to carry would land in the device log verbatim.
     _log(
-      '_handleForegroundPush() — messageId: ${message.messageId}, '
-      'data: ${message.data}',
+      '_handleForegroundPush() — messageId: '
+      '${AppLog.redact(message.messageId)}, '
+      'dataKeys: ${message.data.keys.join(',')}',
     );
 
     if (!ref.read(authControllerProvider).isAuthenticated) {
@@ -174,16 +197,16 @@ class _PushBridgeState extends ConsumerState<PushBridge>
       return;
     }
 
-    final type = message.data[PushDataKeys.type] as String?;
+    // `message.data` is a server-controlled Map<String, dynamic>; a
+    // non-string value here would throw on the cast rather than be ignored.
+    final type = message.data[PushDataKeys.type]?.toString();
     if (type != PushDataKeys.typeNewMessage &&
         type != PushDataKeys.typeConversationAssigned) {
       _log('_handleForegroundPush() — unrecognised type "$type", ignoring.');
       return;
     }
 
-    final conversationId = int.tryParse(
-      (message.data[PushDataKeys.conversationId] as String?) ?? '',
-    );
+    final conversationId = _conversationIdFrom(message);
     if (conversationId == null) {
       _log('_handleForegroundPush() — missing/invalid conversation_id, ignoring.');
       return;
@@ -209,13 +232,12 @@ class _PushBridgeState extends ConsumerState<PushBridge>
   /// the conversation, whose detail fetch also marks it read (§4).
   void _handleNotificationTap(RemoteMessage message) {
     _log(
-      '_handleNotificationTap() — messageId: ${message.messageId}, '
-      'data: ${message.data}',
+      '_handleNotificationTap() — messageId: '
+      '${AppLog.redact(message.messageId)}, '
+      'dataKeys: ${message.data.keys.join(',')}',
     );
 
-    final conversationId = int.tryParse(
-      (message.data[PushDataKeys.conversationId] as String?) ?? '',
-    );
+    final conversationId = _conversationIdFrom(message);
     if (conversationId == null) {
       _log('_handleNotificationTap() — missing/invalid conversation_id, ignoring.');
       return;

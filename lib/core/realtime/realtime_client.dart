@@ -288,7 +288,35 @@ class RealtimeClient {
 
   static const _maxBackoff = Duration(seconds: 30);
 
-  Future<void> connect() async {
+  /// How many consecutive failed connects before the client stops retrying.
+  ///
+  /// The socket authenticates with the session cookie, so a rejected handshake
+  /// is usually a rejected *session*. Retrying that forever — which is what
+  /// uncapped backoff did, every 30s for as long as the app stayed
+  /// foregrounded — replays a dead credential indefinitely and holds the radio
+  /// awake to do it. After the cap the client stays down until something
+  /// deliberately reconnects it: a lifecycle resume, or a fresh sign-in.
+  static const maxConsecutiveFailures = 8;
+
+  bool _givenUp = false;
+
+  /// True when the client has stopped retrying by itself. [connect] clears it.
+  bool get hasGivenUp => _givenUp;
+
+  /// Open the socket.
+  ///
+  /// Every caller of this is a deliberate act — sign-in, a foreground resume,
+  /// an explicit retry — so each one is allowed a fresh run of attempts even
+  /// if the previous run gave up. The automatic retries scheduled by
+  /// [_scheduleReconnect] go through [_connect] instead, precisely so that
+  /// they do *not* reset the counter that bounds them.
+  Future<void> connect() {
+    _givenUp = false;
+    _attempt = 0;
+    return _connect();
+  }
+
+  Future<void> _connect() async {
     if (_channel != null || _currentStatus == RealtimeStatus.connecting) return;
 
     _intentionallyClosed = false;
@@ -307,6 +335,20 @@ class RealtimeClient {
     try {
       final uri = Uri.parse(url);
 
+      // The session cookie is about to be put in a header on this socket. If
+      // the URL is not `wss://` in a build that is supposed to use TLS,
+      // something has rewritten it between Environment and here — refuse
+      // rather than hand the credential to a plaintext connection.
+      if (_environment.useTls && uri.scheme != 'wss') {
+        RealtimeLogger.log(
+          'REALTIME',
+          'CONNECT_REFUSED_INSECURE_SCHEME',
+          data: {'socketId': socketId, 'scheme': uri.scheme},
+        );
+        _setStatus(RealtimeStatus.disconnected);
+        return;
+      }
+
       final cookies = await _cookieJar.loadForRequest(
         Uri.parse(_environment.apiBaseUrl),
       );
@@ -323,7 +365,9 @@ class RealtimeClient {
       final headers = <String, String>{
         if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
         'Origin': originHeader,
-        'ngrok-skip-browser-warning': 'true',
+        // Development tunnel affordance only; see ApiClient.create.
+        if (_environment.showsDeveloperAffordances)
+          'ngrok-skip-browser-warning': 'true',
         'User-Agent': 'ScenarioMobileApp/1.0',
       };
 
@@ -399,7 +443,9 @@ class RealtimeClient {
         _send({'action': 'ping'});
       }
 
+      // A successful connect ends the failure run.
       _attempt = 0;
+      _givenUp = false;
       _setStatus(RealtimeStatus.connected);
       RealtimeLogger.log(
         'REALTIME',
@@ -483,6 +529,18 @@ class RealtimeClient {
     _intentionallyClosed = true;
     _reconnectTimer?.cancel();
     _heartbeatTimer?.cancel();
+
+    // Subscriptions belong to the session that made them.
+    //
+    // They used to survive a disconnect, which meant sign-out left the
+    // previous agent's conversation ids in the set and the *next* agent's
+    // socket opened by sending `{"action":"subscribe"}` for every one of them.
+    // The backend refuses what that agent cannot see, so this was never a way
+    // to read another scope — but a client that asks is a client that leaks
+    // which conversations the last person had open, and re-establishes their
+    // event feed on the new session if the two scopes happen to overlap.
+    _subscriptions.clear();
+    _recentEventKeys.clear();
     if (_subscription != null) {
       await _subscription?.cancel();
       _subscription = null;
@@ -615,11 +673,24 @@ class RealtimeClient {
     _channel = null;
     _setStatus(RealtimeStatus.disconnected);
 
-    if (_intentionallyClosed || _reconnectTimer != null) return;
+    if (_intentionallyClosed || _reconnectTimer != null || _givenUp) return;
 
-    // Exponential backoff, capped. An agent in a lift should not hammer the
-    // server, and one whose session expired should not retry forever.
+    // Exponential backoff, capped in *delay* and in *count*. An agent in a lift
+    // should not hammer the server, and one whose session expired should not
+    // retry forever — the comment always said so, but nothing enforced the
+    // second half until maxConsecutiveFailures did.
     _attempt += 1;
+
+    if (_attempt > maxConsecutiveFailures) {
+      _givenUp = true;
+      RealtimeLogger.log(
+        'REALTIME',
+        'RECONNECT_ABANDONED',
+        data: {'attempts': _attempt - 1},
+      );
+      return;
+    }
+
     final delay = Duration(
       milliseconds: (500 * (1 << (_attempt.clamp(1, 6) - 1))).clamp(
         500,
@@ -629,7 +700,9 @@ class RealtimeClient {
 
     _reconnectTimer = Timer(delay, () {
       _reconnectTimer = null;
-      if (!_intentionallyClosed) connect();
+      // _connect, not connect: a retry must not clear the counter that is
+      // counting it.
+      if (!_intentionallyClosed) _connect();
     });
   }
 

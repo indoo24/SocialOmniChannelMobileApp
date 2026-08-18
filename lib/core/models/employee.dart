@@ -6,6 +6,8 @@
 /// that got this wrong would produce a clean 403, not an unauthorised write.
 library;
 
+import '../utils/json_safe.dart';
+
 class EmployeeBrief {
   const EmployeeBrief({
     required this.id,
@@ -22,7 +24,7 @@ class EmployeeBrief {
   final String availability;
 
   factory EmployeeBrief.fromJson(Map<String, dynamic> json) => EmployeeBrief(
-        id: json['id'] as int,
+        id: JsonSafe.asInt(json['id'], fallback: -1),
         fullName: (json['full_name'] as String?) ?? '',
         initials: (json['initials'] as String?) ?? '',
         avatarUrl: (json['avatar_url'] as String?) ?? '',
@@ -40,7 +42,7 @@ class Organization {
   final String timezone;
 
   factory Organization.fromJson(Map<String, dynamic> json) => Organization(
-        id: json['id'] as int,
+        id: JsonSafe.asInt(json['id'], fallback: -1),
         name: (json['name'] as String?) ?? '',
         timezone: (json['timezone'] as String?) ?? 'UTC',
       );
@@ -82,7 +84,7 @@ class Employee {
   final Organization? organization;
 
   factory Employee.fromJson(Map<String, dynamic> json) => Employee(
-        id: json['id'] as int,
+        id: JsonSafe.asInt(json['id'], fallback: -1),
         email: (json['email'] as String?) ?? '',
         fullName: (json['full_name'] as String?) ?? '',
         initials: (json['initials'] as String?) ?? '',
@@ -91,13 +93,17 @@ class Employee {
         availability: (json['availability'] as String?) ?? 'OFFLINE',
         avatarUrl: (json['avatar_url'] as String?) ?? '',
         title: (json['title'] as String?) ?? '',
-        permissions: ((json['permissions'] as List?) ?? const [])
+        // Permissions drive which controls the UI offers. A malformed list
+        // must therefore fail closed — an empty set hides everything — rather
+        // than throw, which would leave the employee unparseable and the
+        // session unusable.
+        permissions: JsonSafe.asObjectList(json['permissions'])
             .map((p) => p.toString())
             .toSet(),
         visibilityScope: (json['visibility_scope'] as String?) ?? 'ASSIGNED',
         organization: json['organization'] is Map
             ? Organization.fromJson(
-                Map<String, dynamic>.from(json['organization'] as Map))
+                JsonSafe.asMap(json['organization']))
             : null,
       );
 
