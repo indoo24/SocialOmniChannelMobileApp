@@ -121,6 +121,7 @@
   "unassignedFilter": "Unassigned",
   "statusSection": "Status",
   "prioritySection": "Priority",
+  "categorySection": "Category",
   "channelSection": "Channel",
   "showResultsButton": "Show results",
 
@@ -147,6 +148,8 @@
   "unassignedMessage": "Unassigned",
   "statusUpdatedMessage": "Status updated",
   "priorityUpdatedMessage": "Priority updated",
+  "categoryUpdatedMessage": "Category updated",
+  "categoryNoneOption": "Uncategorized",
   "noPermissionToChange": "You do not have permission to change this conversation.",
 
   "conversationFallbackTitle": "Conversation",

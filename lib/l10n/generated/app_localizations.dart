@@ -626,6 +626,12 @@ abstract class AppLocalizations {
   /// **'Priority'**
   String get prioritySection;
 
+  /// No description provided for @categorySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get categorySection;
+
   /// No description provided for @channelSection.
   ///
   /// In en, this message translates to:
@@ -769,6 +775,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Priority updated'**
   String get priorityUpdatedMessage;
+
+  /// No description provided for @categoryUpdatedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Category updated'**
+  String get categoryUpdatedMessage;
+
+  /// No description provided for @categoryNoneOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncategorized'**
+  String get categoryNoneOption;
 
   /// No description provided for @noPermissionToChange.
   ///

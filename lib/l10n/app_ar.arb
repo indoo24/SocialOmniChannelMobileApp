@@ -104,6 +104,7 @@
   "unassignedFilter": "غير مُسندة",
   "statusSection": "الحالة",
   "prioritySection": "الأولوية",
+  "categorySection": "الفئة",
   "channelSection": "القناة",
   "showResultsButton": "عرض النتائج",
 
@@ -130,6 +131,8 @@
   "unassignedMessage": "تم إلغاء الإسناد",
   "statusUpdatedMessage": "تم تحديث الحالة",
   "priorityUpdatedMessage": "تم تحديث الأولوية",
+  "categoryUpdatedMessage": "تم تحديث الفئة",
+  "categoryNoneOption": "بدون فئة",
   "noPermissionToChange": "ليس لديك صلاحية تعديل هذه المحادثة.",
 
   "conversationFallbackTitle": "المحادثة",

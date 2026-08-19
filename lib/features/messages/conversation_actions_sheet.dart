@@ -16,9 +16,16 @@ import '../../core/widgets/badges.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
+import '../directory/directory_providers.dart';
 import 'conversation_controller.dart';
 
-const _statuses = ['OPEN', 'WAITING_CUSTOMER', 'WAITING_INTERNAL', 'RESOLVED', 'CLOSED'];
+const _statuses = [
+  'OPEN',
+  'WAITING_CUSTOMER',
+  'WAITING_INTERNAL',
+  'RESOLVED',
+  'CLOSED',
+];
 const _priorities = ['URGENT', 'HIGH', 'NORMAL', 'LOW'];
 
 Future<void> showConversationActionsSheet(
@@ -58,8 +65,9 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
       ref.read(inboxControllerProvider.notifier).refreshQuietly();
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(success)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(success)));
     } on ApiException catch (error) {
       if (!mounted) return;
       setState(() => _busy = false);
@@ -74,20 +82,26 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final async =
-        ref.watch(conversationControllerProvider(widget.conversationId));
+    final async = ref.watch(
+      conversationControllerProvider(widget.conversationId),
+    );
     final employee = ref.watch(currentEmployeeProvider);
     final repository = ref.read(conversationRepositoryProvider);
 
     final canAssignSelf = employee?.can(Perm.conversationAssignSelf) ?? false;
     final canAssignAny = employee?.can(Perm.conversationAssignAny) ?? false;
-    final canChangeStatus = employee?.can(Perm.conversationChangeStatus) ?? false;
+    final canChangeStatus =
+        employee?.can(Perm.conversationChangeStatus) ?? false;
     final canChangePriority =
         employee?.can(Perm.conversationChangePriority) ?? false;
+    final canChangeCategory =
+        employee?.can(Perm.conversationChangeCategory) ?? false;
 
     final conversation = async.value?.conversation;
     final isMine =
-        conversation != null && employee != null && conversation.isOwnedBy(employee.id);
+        conversation != null &&
+        employee != null &&
+        conversation.isOwnedBy(employee.id);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -95,7 +109,10 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(context.l10n.actionsTitle, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.l10n.actionsTitle,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: Space.md),
 
             if (_busy) const LinearProgressIndicator(minHeight: 2),
@@ -109,12 +126,12 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                 onTap: _busy
                     ? null
                     : () => _run(
-                          () => repository.assign(
-                            widget.conversationId,
-                            assigneeId: employee!.id,
-                          ),
-                          context.l10n.assignedToYouMessage,
+                        () => repository.assign(
+                          widget.conversationId,
+                          assigneeId: employee!.id,
                         ),
+                        context.l10n.assignedToYouMessage,
+                      ),
               ),
 
             if (canAssignAny && conversation?.assignedTo != null)
@@ -126,9 +143,9 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                 onTap: _busy
                     ? null
                     : () => _run(
-                          () => repository.assign(widget.conversationId),
-                          context.l10n.unassignedMessage,
-                        ),
+                        () => repository.assign(widget.conversationId),
+                        context.l10n.unassignedMessage,
+                      ),
               ),
 
             if (canChangeStatus) ...[
@@ -140,17 +157,19 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                 children: [
                   for (final status in _statuses)
                     ChoiceChip(
-                      label: Text(ConversationBadges.status(context, status).$1),
+                      label: Text(
+                        ConversationBadges.status(context, status).$1,
+                      ),
                       selected: conversation?.status == status,
                       onSelected: _busy
                           ? null
                           : (_) => _run(
-                                () => repository.changeStatus(
-                                  widget.conversationId,
-                                  status,
-                                ),
-                                context.l10n.statusUpdatedMessage,
+                              () => repository.changeStatus(
+                                widget.conversationId,
+                                status,
                               ),
+                              context.l10n.statusUpdatedMessage,
+                            ),
                     ),
                 ],
               ),
@@ -165,26 +184,79 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                 children: [
                   for (final priority in _priorities)
                     ChoiceChip(
-                      label: Text(ConversationBadges.priority(context, priority).$1),
+                      label: Text(
+                        ConversationBadges.priority(context, priority).$1,
+                      ),
                       selected: conversation?.priority == priority,
                       onSelected: _busy
                           ? null
                           : (_) => _run(
-                                () => repository.changePriority(
-                                  widget.conversationId,
-                                  priority,
-                                ),
-                                context.l10n.priorityUpdatedMessage,
+                              () => repository.changePriority(
+                                widget.conversationId,
+                                priority,
                               ),
+                              context.l10n.priorityUpdatedMessage,
+                            ),
                     ),
                 ],
+              ),
+            ],
+
+            if (canChangeCategory) ...[
+              const SizedBox(height: Space.lg),
+              _Label(context.l10n.categorySection),
+              Consumer(
+                builder: (context, ref, _) {
+                  final categories = ref.watch(categoriesProvider);
+                  return categories.when(
+                    loading: () => const Padding(
+                      padding: EdgeInsets.symmetric(vertical: Space.sm),
+                      child: LinearProgressIndicator(minHeight: 2),
+                    ),
+                    error: (_, _) => const SizedBox.shrink(),
+                    data: (options) => Wrap(
+                      spacing: Space.sm,
+                      runSpacing: Space.sm,
+                      children: [
+                        ChoiceChip(
+                          label: Text(context.l10n.categoryNoneOption),
+                          selected: conversation?.category == null,
+                          onSelected: _busy
+                              ? null
+                              : (_) => _run(
+                                  () => repository.changeCategory(
+                                    widget.conversationId,
+                                    null,
+                                  ),
+                                  context.l10n.categoryUpdatedMessage,
+                                ),
+                        ),
+                        for (final category in options)
+                          ChoiceChip(
+                            label: Text(category.label),
+                            selected: conversation?.category?.id == category.id,
+                            onSelected: _busy
+                                ? null
+                                : (_) => _run(
+                                    () => repository.changeCategory(
+                                      widget.conversationId,
+                                      category.id,
+                                    ),
+                                    context.l10n.categoryUpdatedMessage,
+                                  ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
 
             if (!canAssignSelf &&
                 !canAssignAny &&
                 !canChangeStatus &&
-                !canChangePriority)
+                !canChangePriority &&
+                !canChangeCategory)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: Space.lg),
                 child: Text(
@@ -206,13 +278,13 @@ class _Label extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: Space.sm),
-        child: Text(
-          text.toUpperCase(),
-          style: Theme.of(context)
-              .textTheme
-              .labelSmall
-              ?.copyWith(letterSpacing: 0.6, fontWeight: FontWeight.w700),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: Space.sm),
+    child: Text(
+      text.toUpperCase(),
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        letterSpacing: 0.6,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
 }

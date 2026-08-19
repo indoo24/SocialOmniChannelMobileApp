@@ -293,6 +293,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get prioritySection => 'الأولوية';
 
   @override
+  String get categorySection => 'الفئة';
+
+  @override
   String get channelSection => 'القناة';
 
   @override
@@ -363,6 +366,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get priorityUpdatedMessage => 'تم تحديث الأولوية';
+
+  @override
+  String get categoryUpdatedMessage => 'تم تحديث الفئة';
+
+  @override
+  String get categoryNoneOption => 'بدون فئة';
 
   @override
   String get noPermissionToChange => 'ليس لديك صلاحية تعديل هذه المحادثة.';

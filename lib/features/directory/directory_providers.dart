@@ -32,6 +32,10 @@ final channelsProvider = FutureProvider<List<ChannelConnection>>((ref) async {
   return page.results;
 });
 
+final categoriesProvider = FutureProvider<List<ConversationCategory>>((ref) {
+  return ref.watch(directoryRepositoryProvider).categories();
+});
+
 /// Search text for a directory screen.
 ///
 /// One controller class, two providers: the two directories are searched
@@ -45,14 +49,17 @@ class SearchQueryController extends Notifier<String> {
   void clear() => state = '';
 }
 
-final employeeSearchProvider =
-    NotifierProvider<SearchQueryController, String>(SearchQueryController.new);
+final employeeSearchProvider = NotifierProvider<SearchQueryController, String>(
+  SearchQueryController.new,
+);
 
-final customerSearchProvider =
-    NotifierProvider<SearchQueryController, String>(SearchQueryController.new);
+final customerSearchProvider = NotifierProvider<SearchQueryController, String>(
+  SearchQueryController.new,
+);
 
-final employeeDirectoryProvider =
-    FutureProvider<List<DirectoryEmployee>>((ref) async {
+final employeeDirectoryProvider = FutureProvider<List<DirectoryEmployee>>((
+  ref,
+) async {
   final page = await ref
       .watch(directoryRepositoryProvider)
       .employees(search: ref.watch(employeeSearchProvider));
@@ -68,10 +75,11 @@ final customerDirectoryProvider = FutureProvider<List<Customer>>((ref) async {
 
 final customerConversationsProvider =
     FutureProvider.family<List<Conversation>, int>((ref, id) async {
-  final page =
-      await ref.watch(directoryRepositoryProvider).customerConversations(id);
-  return page.results;
-});
+      final page = await ref
+          .watch(directoryRepositoryProvider)
+          .customerConversations(id);
+      return page.results;
+    });
 
 // --------------------------------------------------------------------------- //
 // Performance
@@ -87,8 +95,8 @@ class PerformanceWindowController extends Notifier<int> {
 
 final performanceWindowProvider =
     NotifierProvider<PerformanceWindowController, int>(
-  PerformanceWindowController.new,
-);
+      PerformanceWindowController.new,
+    );
 
 final performanceProvider = FutureProvider<PerformanceReport>((ref) {
   return ref
@@ -114,12 +122,18 @@ final myPerformanceProvider = Provider<EmployeePerformance?>((ref) {
 // --------------------------------------------------------------------------- //
 // Orders and captured details
 // --------------------------------------------------------------------------- //
-final conversationOrdersProvider =
-    FutureProvider.family<List<Order>, int>((ref, conversationId) {
-  return ref.watch(directoryRepositoryProvider).conversationOrders(conversationId);
+final conversationOrdersProvider = FutureProvider.family<List<Order>, int>((
+  ref,
+  conversationId,
+) {
+  return ref
+      .watch(directoryRepositoryProvider)
+      .conversationOrders(conversationId);
 });
 
-final customerFactsProvider =
-    FutureProvider.family<List<CustomerFact>, int>((ref, customerId) {
+final customerFactsProvider = FutureProvider.family<List<CustomerFact>, int>((
+  ref,
+  customerId,
+) {
   return ref.watch(directoryRepositoryProvider).customerFacts(customerId);
 });

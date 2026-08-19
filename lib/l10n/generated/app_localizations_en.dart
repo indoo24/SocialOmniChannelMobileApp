@@ -290,6 +290,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get prioritySection => 'Priority';
 
   @override
+  String get categorySection => 'Category';
+
+  @override
   String get channelSection => 'Channel';
 
   @override
@@ -360,6 +363,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get priorityUpdatedMessage => 'Priority updated';
+
+  @override
+  String get categoryUpdatedMessage => 'Category updated';
+
+  @override
+  String get categoryNoneOption => 'Uncategorized';
 
   @override
   String get noPermissionToChange =>
