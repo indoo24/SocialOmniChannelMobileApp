@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/authentication/auth_controller.dart';
 import '../../features/conversations/inbox_controller.dart';
 import '../../features/messages/conversation_controller.dart';
+import '../../features/messages/intelligence_providers.dart';
 import '../models/message.dart';
 import '../providers.dart';
 import 'realtime_client.dart';
@@ -381,8 +382,21 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
         }
 
       case RealtimeEvents.noteCreated:
+        if (conversationId != null) {
+          _refreshConversation(
+            ref,
+            conversationId,
+            traceId: effectiveTraceId,
+            event: event,
+          );
+        }
+
+      // The dedicated intelligence panel has its own provider — invalidate it
+      // unconditionally (cheap even when nobody is watching it right now),
+      // in addition to the brief embedded in Conversation.detail.
       case RealtimeEvents.intelligenceUpdated:
         if (conversationId != null) {
+          ref.invalidate(conversationIntelligenceProvider(conversationId));
           _refreshConversation(
             ref,
             conversationId,

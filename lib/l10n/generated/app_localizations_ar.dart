@@ -380,6 +380,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get ordersTooltip => 'الطلبات وبيانات العميل';
 
   @override
+  String get intelligenceTooltip => 'ذكاء المحادثة';
+
+  @override
   String get loadingConversation => 'جارٍ تحميل المحادثة…';
 
   @override

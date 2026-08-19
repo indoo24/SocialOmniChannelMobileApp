@@ -24,28 +24,32 @@ class EmployeeBrief {
   final String availability;
 
   factory EmployeeBrief.fromJson(Map<String, dynamic> json) => EmployeeBrief(
-        id: JsonSafe.asInt(json['id'], fallback: -1),
-        fullName: (json['full_name'] as String?) ?? '',
-        initials: (json['initials'] as String?) ?? '',
-        avatarUrl: (json['avatar_url'] as String?) ?? '',
-        availability: (json['availability'] as String?) ?? 'OFFLINE',
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    fullName: (json['full_name'] as String?) ?? '',
+    initials: (json['initials'] as String?) ?? '',
+    avatarUrl: (json['avatar_url'] as String?) ?? '',
+    availability: (json['availability'] as String?) ?? 'OFFLINE',
+  );
 
   bool get isOnline => availability == 'ONLINE';
 }
 
 class Organization {
-  const Organization({required this.id, required this.name, this.timezone = 'UTC'});
+  const Organization({
+    required this.id,
+    required this.name,
+    this.timezone = 'UTC',
+  });
 
   final int id;
   final String name;
   final String timezone;
 
   factory Organization.fromJson(Map<String, dynamic> json) => Organization(
-        id: JsonSafe.asInt(json['id'], fallback: -1),
-        name: (json['name'] as String?) ?? '',
-        timezone: (json['timezone'] as String?) ?? 'UTC',
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    name: (json['name'] as String?) ?? '',
+    timezone: (json['timezone'] as String?) ?? 'UTC',
+  );
 }
 
 class Employee {
@@ -84,45 +88,44 @@ class Employee {
   final Organization? organization;
 
   factory Employee.fromJson(Map<String, dynamic> json) => Employee(
-        id: JsonSafe.asInt(json['id'], fallback: -1),
-        email: (json['email'] as String?) ?? '',
-        fullName: (json['full_name'] as String?) ?? '',
-        initials: (json['initials'] as String?) ?? '',
-        role: (json['role'] as String?) ?? 'AGENT',
-        roleDisplay: (json['role_display'] as String?) ?? '',
-        availability: (json['availability'] as String?) ?? 'OFFLINE',
-        avatarUrl: (json['avatar_url'] as String?) ?? '',
-        title: (json['title'] as String?) ?? '',
-        // Permissions drive which controls the UI offers. A malformed list
-        // must therefore fail closed — an empty set hides everything — rather
-        // than throw, which would leave the employee unparseable and the
-        // session unusable.
-        permissions: JsonSafe.asObjectList(json['permissions'])
-            .map((p) => p.toString())
-            .toSet(),
-        visibilityScope: (json['visibility_scope'] as String?) ?? 'ASSIGNED',
-        organization: json['organization'] is Map
-            ? Organization.fromJson(
-                JsonSafe.asMap(json['organization']))
-            : null,
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    email: (json['email'] as String?) ?? '',
+    fullName: (json['full_name'] as String?) ?? '',
+    initials: (json['initials'] as String?) ?? '',
+    role: (json['role'] as String?) ?? 'AGENT',
+    roleDisplay: (json['role_display'] as String?) ?? '',
+    availability: (json['availability'] as String?) ?? 'OFFLINE',
+    avatarUrl: (json['avatar_url'] as String?) ?? '',
+    title: (json['title'] as String?) ?? '',
+    // Permissions drive which controls the UI offers. A malformed list
+    // must therefore fail closed — an empty set hides everything — rather
+    // than throw, which would leave the employee unparseable and the
+    // session unusable.
+    permissions: JsonSafe.asObjectList(
+      json['permissions'],
+    ).map((p) => p.toString()).toSet(),
+    visibilityScope: (json['visibility_scope'] as String?) ?? 'ASSIGNED',
+    organization: json['organization'] is Map
+        ? Organization.fromJson(JsonSafe.asMap(json['organization']))
+        : null,
+  );
 
   bool can(String permission) => permissions.contains(permission);
 
   Employee copyWith({String? availability}) => Employee(
-        id: id,
-        email: email,
-        fullName: fullName,
-        initials: initials,
-        role: role,
-        roleDisplay: roleDisplay,
-        availability: availability ?? this.availability,
-        avatarUrl: avatarUrl,
-        title: title,
-        permissions: permissions,
-        visibilityScope: visibilityScope,
-        organization: organization,
-      );
+    id: id,
+    email: email,
+    fullName: fullName,
+    initials: initials,
+    role: role,
+    roleDisplay: roleDisplay,
+    availability: availability ?? this.availability,
+    avatarUrl: avatarUrl,
+    title: title,
+    permissions: permissions,
+    visibilityScope: visibilityScope,
+    organization: organization,
+  );
 }
 
 /// Permission slugs, mirroring `apps/core/permissions.py`.
@@ -141,6 +144,9 @@ class Perm {
   static const conversationChangeCategory = 'conversation.change_category';
   static const conversationDeleteMessage = 'conversation.delete_message';
   static const conversationConfirmPurchase = 'conversation.confirm_purchase';
+  static const conversationRefreshIntelligence =
+      'conversation.refresh_intelligence';
+  static const intelligenceOverrideScore = 'intelligence.override_score';
   static const customerView = 'customer.view';
   static const employeeView = 'employee.view';
   static const teamView = 'team.view';

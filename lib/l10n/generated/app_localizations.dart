@@ -800,6 +800,12 @@ abstract class AppLocalizations {
   /// **'Orders and customer details'**
   String get ordersTooltip;
 
+  /// No description provided for @intelligenceTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation intelligence'**
+  String get intelligenceTooltip;
+
   /// No description provided for @loadingConversation.
   ///
   /// In en, this message translates to:

@@ -8,8 +8,10 @@ library;
 
 import '../../core/api/api_client.dart';
 import '../../core/models/conversation.dart';
+import '../../core/models/intelligence.dart';
 import '../../core/models/message.dart';
 import '../../core/realtime/realtime_logger.dart';
+import '../../core/utils/json_safe.dart';
 
 /// Inbox filters, matching the query parameters the web inbox sends.
 class ConversationFilters {
@@ -220,5 +222,68 @@ class ConversationRepository {
       body: {'body': body},
     );
     return InternalNote.fromJson(data);
+  }
+
+  // ------------------------------------------------------------ intelligence
+  /// The current advisory read. Legitimately `null` before the analyzer has
+  /// run — not an error and not a zero score.
+  Future<ConversationIntelligence?> intelligence(int conversationId) async {
+    final data = await _api.get<dynamic>(
+      '/conversations/$conversationId/intelligence/',
+    );
+    return data is Map
+        ? ConversationIntelligence.fromJson(JsonSafe.asMap(data))
+        : null;
+  }
+
+  /// Re-run the analyzer now and return the fresh read.
+  Future<ConversationIntelligence?> refreshIntelligence(
+    int conversationId,
+  ) async {
+    final data = await _api.post<dynamic>(
+      '/conversations/$conversationId/intelligence/',
+    );
+    return data is Map
+        ? ConversationIntelligence.fromJson(JsonSafe.asMap(data))
+        : null;
+  }
+
+  /// Set the lead score by hand, or pass `score: null` to hand it back to the
+  /// analyzer. `score` is sent even when null — an omitted key and an
+  /// explicit null mean different things to the backend.
+  Future<ConversationIntelligence> setLeadScore(
+    int conversationId,
+    int? score,
+  ) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/lead-score/',
+      body: {'score': score},
+    );
+    return ConversationIntelligence.fromJson(data);
+  }
+
+  /// An employee ruling on a purchase claim — the only path that ever
+  /// produces `AGENT_CONFIRMED`.
+  Future<ConversationIntelligence> confirmPurchase(
+    int conversationId, {
+    required bool confirmed,
+    String note = '',
+  }) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/confirm-purchase/',
+      body: {'confirmed': confirmed, 'note': note},
+    );
+    return ConversationIntelligence.fromJson(data);
+  }
+
+  /// History of purchase rulings for this conversation. Plain array, not
+  /// paginated.
+  Future<List<PurchaseConfirmation>> purchaseConfirmations(
+    int conversationId,
+  ) async {
+    final data = await _api.get<dynamic>(
+      '/conversations/$conversationId/purchase-confirmations/',
+    );
+    return JsonSafe.parseList(data, PurchaseConfirmation.fromJson);
   }
 }

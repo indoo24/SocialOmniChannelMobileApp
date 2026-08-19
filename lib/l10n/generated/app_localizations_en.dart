@@ -378,6 +378,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ordersTooltip => 'Orders and customer details';
 
   @override
+  String get intelligenceTooltip => 'Conversation intelligence';
+
+  @override
   String get loadingConversation => 'Loading conversation…';
 
   @override

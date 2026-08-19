@@ -153,6 +153,7 @@
   "customerDetailsTooltip": "Customer details",
   "actionsTooltip": "Actions",
   "ordersTooltip": "Orders and customer details",
+  "intelligenceTooltip": "Conversation intelligence",
   "loadingConversation": "Loading conversation…",
   "noMessagesYetTitle": "No messages yet",
   "noMessagesYetMessage": "This conversation has no history.",

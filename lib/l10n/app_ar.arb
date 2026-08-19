@@ -136,6 +136,7 @@
   "customerDetailsTooltip": "بيانات العميل",
   "actionsTooltip": "الإجراءات",
   "ordersTooltip": "الطلبات وبيانات العميل",
+  "intelligenceTooltip": "ذكاء المحادثة",
   "loadingConversation": "جارٍ تحميل المحادثة…",
   "noMessagesYetTitle": "لا توجد رسائل بعد",
   "noMessagesYetMessage": "لا يوجد سجل لهذه المحادثة.",

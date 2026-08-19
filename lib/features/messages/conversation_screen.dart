@@ -26,6 +26,7 @@ import '../directory/directory_providers.dart';
 import '../orders/customer_record_sheet.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
+import 'intelligence_panel.dart';
 import 'message_bubble.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
@@ -189,6 +190,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             ),
             orElse: () => const SizedBox.shrink(),
           ),
+          // Lead score, funnel stage, purchase status and the rest of the
+          // analyzer's read. Badged when it needs a human's attention.
+          async.maybeWhen(
+            data: (state) => _IntelligenceButton(
+              conversationId: widget.conversationId,
+              needsHumanReview:
+                  state.conversation.intelligence?.needsHumanReview ?? false,
+            ),
+            orElse: () => const SizedBox.shrink(),
+          ),
           IconButton(
             tooltip: context.l10n.customerDetailsTooltip,
             icon: const Icon(Icons.person_outline),
@@ -291,6 +302,50 @@ class _RecordButton extends ConsumerWidget {
                   color: Colors.white,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Opens the intelligence panel, dotted when the analyzer flagged this
+/// conversation for a human to look at.
+class _IntelligenceButton extends StatelessWidget {
+  const _IntelligenceButton({
+    required this.conversationId,
+    required this.needsHumanReview,
+  });
+
+  final int conversationId;
+  final bool needsHumanReview;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          tooltip: context.l10n.intelligenceTooltip,
+          icon: const Icon(Icons.insights_outlined),
+          onPressed: () =>
+              showIntelligencePanel(context, conversationId: conversationId),
+        ),
+        if (needsHumanReview)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(
+                color: ScenarioColors.warning,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.surface,
+                  width: 1.5,
                 ),
               ),
             ),
