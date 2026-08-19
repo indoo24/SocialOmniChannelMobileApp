@@ -172,6 +172,20 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       }
     });
 
+    // A realtime `conversation.access_changed` event resolved to "access
+    // lost" for this conversation — leave rather than keep showing a thread
+    // this employee can no longer see.
+    ref.listen<int?>(revokedConversationProvider, (previous, next) {
+      if (next != widget.conversationId) return;
+      final navigator = Navigator.of(context);
+      Future.microtask(() {
+        ref.read(revokedConversationProvider.notifier).clear();
+        if (mounted && navigator.canPop()) {
+          navigator.pop();
+        }
+      });
+    });
+
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,

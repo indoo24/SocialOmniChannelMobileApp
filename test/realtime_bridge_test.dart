@@ -6,7 +6,6 @@
 /// without requiring a widget tree or real WebSocket connection.
 library;
 
-
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -170,6 +169,7 @@ void main() {
         RealtimeEvents.conversationStatusChanged,
         'conversation.status_changed',
       );
+      expect(RealtimeEvents.accessChanged, 'conversation.access_changed');
       expect(RealtimeEvents.noteCreated, 'note.created');
       expect(RealtimeEvents.intelligenceUpdated, 'intelligence.updated');
       expect(RealtimeEvents.presenceChanged, 'presence.changed');
@@ -252,5 +252,33 @@ void main() {
       expect(mergedMap.length, 3);
       expect(mergedMap.containsKey(3), isTrue);
     });
+
+    test(
+      'access_changed event correctly extracts conversation_id from payload',
+      () {
+        final event = RealtimeEvent(RealtimeEvents.accessChanged, {
+          'conversation_id': 77,
+        });
+        expect(event.conversationId, 77);
+        expect(event.event, 'conversation.access_changed');
+      },
+    );
+
+    test(
+      'RevokedConversation is a one-shot signal: revoke sets it, clear resets it',
+      () {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+
+        expect(container.read(revokedConversationProvider), isNull);
+
+        final notifier = container.read(revokedConversationProvider.notifier);
+        notifier.revoke(55);
+        expect(container.read(revokedConversationProvider), 55);
+
+        notifier.clear();
+        expect(container.read(revokedConversationProvider), isNull);
+      },
+    );
   });
 }
