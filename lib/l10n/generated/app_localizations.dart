@@ -326,6 +326,36 @@ abstract class AppLocalizations {
   /// **'{count, plural, one{1 conversation} other{{count} conversations}}'**
   String channelConversationCount(int count);
 
+  /// No description provided for @muteChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get muteChannelAction;
+
+  /// No description provided for @unmuteChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute'**
+  String get unmuteChannelAction;
+
+  /// No description provided for @testChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Test'**
+  String get testChannelAction;
+
+  /// No description provided for @channelMutedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Muted'**
+  String get channelMutedLabel;
+
+  /// No description provided for @channelMutedByLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Muted by {name}'**
+  String channelMutedByLabel(String name);
+
   /// No description provided for @noConnectionTitle.
   ///
   /// In en, this message translates to:

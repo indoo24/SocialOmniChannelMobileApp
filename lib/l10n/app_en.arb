@@ -58,6 +58,16 @@
       "count": {"type": "int"}
     }
   },
+  "muteChannelAction": "Mute",
+  "unmuteChannelAction": "Unmute",
+  "testChannelAction": "Test",
+  "channelMutedLabel": "Muted",
+  "channelMutedByLabel": "Muted by {name}",
+  "@channelMutedByLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
 
   "noConnectionTitle": "No connection",
   "genericErrorTitle": "Something went wrong",

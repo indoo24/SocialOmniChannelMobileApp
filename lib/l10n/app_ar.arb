@@ -46,6 +46,11 @@
   "channelStatusDisconnected": "غير متصل",
   "channelStatusPending": "بانتظار الإعداد",
   "channelConversationCount": "{count, plural, zero{بدون محادثات} one{محادثة واحدة} two{محادثتان} few{{count} محادثات} many{{count} محادثة} other{{count} محادثة}}",
+  "muteChannelAction": "كتم",
+  "unmuteChannelAction": "إلغاء الكتم",
+  "testChannelAction": "اختبار",
+  "channelMutedLabel": "مكتوم",
+  "channelMutedByLabel": "كتمه {name}",
 
   "noConnectionTitle": "لا يوجد اتصال",
   "genericErrorTitle": "حدث خطأ ما",

@@ -94,6 +94,32 @@ class DirectoryRepository {
     return Paginated.fromJson(data, ChannelConnection.fromJson);
   }
 
+  /// Stop showing this channel's conversations without disconnecting it.
+  /// Ingestion and analysis continue; the inbox just stops surfacing them.
+  Future<ChannelConnection> muteChannel(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/channels/$channelId/mute/',
+    );
+    return ChannelConnection.fromJson(data);
+  }
+
+  /// Return this channel to the inbox, backlog and all.
+  Future<ChannelConnection> unmuteChannel(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/channels/$channelId/unmute/',
+    );
+    return ChannelConnection.fromJson(data);
+  }
+
+  /// Run the adapter's liveness check. Always 200 — read
+  /// [ChannelTestResult.ok] rather than catching an exception.
+  Future<ChannelTestResult> testChannel(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/channels/$channelId/test/',
+    );
+    return ChannelTestResult.fromJson(data);
+  }
+
   /// The conversation-category taxonomy. Open to any active employee, and
   /// not paginated — every role that can see a conversation needs to be able
   /// to render and filter by its category.

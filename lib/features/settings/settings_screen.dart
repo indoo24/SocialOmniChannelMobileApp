@@ -83,8 +83,9 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
       await ref.read(authControllerProvider.notifier).setAvailability(value);
     } on ApiException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error.message)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -162,14 +163,13 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
 
         Text(
           context.l10n.availabilitySectionTitle,
-          style: theme.textTheme.labelSmall
-              ?.copyWith(letterSpacing: 0.6, fontWeight: FontWeight.w700),
+          style: theme.textTheme.labelSmall?.copyWith(
+            letterSpacing: 0.6,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: Space.sm),
-        Text(
-          context.l10n.availabilityHint,
-          style: theme.textTheme.bodySmall,
-        ),
+        Text(context.l10n.availabilityHint, style: theme.textTheme.bodySmall),
         const SizedBox(height: Space.md),
         Wrap(
           spacing: Space.sm,
@@ -198,9 +198,9 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.badge_outlined),
-          title: Text(employee.roleDisplay.isEmpty
-              ? employee.role
-              : employee.roleDisplay),
+          title: Text(
+            employee.roleDisplay.isEmpty ? employee.role : employee.roleDisplay,
+          ),
           subtitle: Text(
             context.l10n.visibilityLabel(employee.visibilityScope),
           ),
@@ -229,12 +229,12 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
   }
 
   static String _label(BuildContext context, String value) => switch (value) {
-        'ONLINE' => context.l10n.availabilityOnline,
-        'AWAY' => context.l10n.availabilityAway,
-        'BREAK' => context.l10n.availabilityOnBreak,
-        'OFFLINE' => context.l10n.availabilityOffline,
-        _ => value,
-      };
+    'ONLINE' => context.l10n.availabilityOnline,
+    'AWAY' => context.l10n.availabilityAway,
+    'BREAK' => context.l10n.availabilityOnBreak,
+    'OFFLINE' => context.l10n.availabilityOffline,
+    _ => value,
+  };
 }
 
 // --------------------------------------------------------------------------- //
@@ -257,8 +257,10 @@ class _PreferencesSection extends ConsumerWidget {
       children: [
         Text(
           context.l10n.preferencesSectionTitle,
-          style: theme.textTheme.labelSmall
-              ?.copyWith(letterSpacing: 0.6, fontWeight: FontWeight.w700),
+          style: theme.textTheme.labelSmall?.copyWith(
+            letterSpacing: 0.6,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: Space.md),
 
@@ -271,9 +273,8 @@ class _PreferencesSection extends ConsumerWidget {
             ChoiceChip(
               label: Text(context.l10n.themeSystem),
               selected: themeMode == ThemeMode.system,
-              onSelected: (_) => ref
-                  .read(themeModeProvider.notifier)
-                  .update(ThemeMode.system),
+              onSelected: (_) =>
+                  ref.read(themeModeProvider.notifier).update(ThemeMode.system),
             ),
             ChoiceChip(
               label: Text(context.l10n.themeLight),
@@ -304,16 +305,14 @@ class _PreferencesSection extends ConsumerWidget {
             ChoiceChip(
               label: const Text('English'),
               selected: locale.languageCode == 'en',
-              onSelected: (_) => ref
-                  .read(localeProvider.notifier)
-                  .update(const Locale('en')),
+              onSelected: (_) =>
+                  ref.read(localeProvider.notifier).update(const Locale('en')),
             ),
             ChoiceChip(
               label: const Text('العربية'),
               selected: locale.languageCode == 'ar',
-              onSelected: (_) => ref
-                  .read(localeProvider.notifier)
-                  .update(const Locale('ar')),
+              onSelected: (_) =>
+                  ref.read(localeProvider.notifier).update(const Locale('ar')),
             ),
           ],
         ),
@@ -351,7 +350,9 @@ class _SecurityTabState extends ConsumerState<_SecurityTab> {
       _error = null;
     });
     try {
-      await ref.read(authRepositoryProvider).changePassword(
+      await ref
+          .read(authRepositoryProvider)
+          .changePassword(
             currentPassword: _current.text,
             newPassword: _next.text,
           );
@@ -376,7 +377,10 @@ class _SecurityTabState extends ConsumerState<_SecurityTab> {
     return ListView(
       padding: const EdgeInsets.all(Space.lg),
       children: [
-        Text(context.l10n.changePasswordTitle, style: theme.textTheme.titleMedium),
+        Text(
+          context.l10n.changePasswordTitle,
+          style: theme.textTheme.titleMedium,
+        ),
         const SizedBox(height: Space.lg),
         TextField(
           controller: _current,
@@ -416,14 +420,20 @@ class _SecurityTabState extends ConsumerState<_SecurityTab> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.shield_outlined, size: 18, color: ScenarioColors.success),
+            Icon(
+              Icons.shield_outlined,
+              size: 18,
+              color: ScenarioColors.success,
+            ),
             const SizedBox(width: Space.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(context.l10n.sessionInfoTitle,
-                      style: theme.textTheme.titleSmall),
+                  Text(
+                    context.l10n.sessionInfoTitle,
+                    style: theme.textTheme.titleSmall,
+                  ),
                   const SizedBox(height: Space.xs),
                   Text(
                     context.l10n.sessionInfoBody,
@@ -486,8 +496,7 @@ class _ChannelsTab extends ConsumerWidget {
             padding: const EdgeInsets.all(Space.lg),
             itemCount: rows.length,
             separatorBuilder: (_, _) => const SizedBox(height: Space.md),
-            itemBuilder: (context, index) =>
-                _ChannelCard(channel: rows[index]),
+            itemBuilder: (context, index) => _ChannelCard(channel: rows[index]),
           );
         },
       ),
@@ -495,22 +504,75 @@ class _ChannelsTab extends ConsumerWidget {
   }
 }
 
-class _ChannelCard extends StatelessWidget {
+class _ChannelCard extends ConsumerStatefulWidget {
   const _ChannelCard({required this.channel});
 
   final ChannelConnection channel;
 
   @override
+  ConsumerState<_ChannelCard> createState() => _ChannelCardState();
+}
+
+class _ChannelCardState extends ConsumerState<_ChannelCard> {
+  bool _busy = false;
+
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+      ),
+    );
+  }
+
+  Future<void> _toggleMute() async {
+    setState(() => _busy = true);
+    try {
+      final repository = ref.read(directoryRepositoryProvider);
+      if (widget.channel.isMuted) {
+        await repository.unmuteChannel(widget.channel.id);
+      } else {
+        await repository.muteChannel(widget.channel.id);
+      }
+      ref.invalidate(channelsProvider);
+    } on ApiException catch (error) {
+      _showMessage(error.message, isError: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _test() async {
+    setState(() => _busy = true);
+    try {
+      final result = await ref
+          .read(directoryRepositoryProvider)
+          .testChannel(widget.channel.id);
+      ref.invalidate(channelsProvider);
+      // Always a plain snackbar with the adapter's own words — `ok: false`
+      // is a normal, informative outcome, never a client error.
+      _showMessage(result.detail);
+    } on ApiException catch (error) {
+      _showMessage(error.message, isError: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final channel = widget.channel;
+    final canManage = ref.watch(canProvider(Perm.channelManage));
     final (label, tone) = switch (channel.status) {
       'CONNECTED' => (context.l10n.channelStatusConnected, BadgeTone.success),
       'DEGRADED' => (context.l10n.channelStatusDegraded, BadgeTone.warning),
       'ERROR' => (context.l10n.channelStatusError, BadgeTone.danger),
       'DISCONNECTED' => (
-          context.l10n.channelStatusDisconnected,
-          BadgeTone.neutral,
-        ),
+        context.l10n.channelStatusDisconnected,
+        BadgeTone.neutral,
+      ),
       _ => (context.l10n.channelStatusPending, BadgeTone.neutral),
     };
 
@@ -529,6 +591,13 @@ class _ChannelCard extends StatelessWidget {
                     style: theme.textTheme.titleMedium,
                   ),
                 ),
+                if (channel.isMuted) ...[
+                  StatusBadge(
+                    label: context.l10n.channelMutedLabel,
+                    dense: true,
+                  ),
+                  const SizedBox(width: Space.xs),
+                ],
                 StatusBadge(label: label, tone: tone, dense: true),
               ],
             ),
@@ -546,6 +615,46 @@ class _ChannelCard extends StatelessWidget {
               context.l10n.channelConversationCount(channel.conversationCount),
               style: theme.textTheme.labelSmall,
             ),
+            if (channel.isMuted && channel.mutedByName.isNotEmpty) ...[
+              const SizedBox(height: Space.xs),
+              Text(
+                context.l10n.channelMutedByLabel(channel.mutedByName),
+                style: theme.textTheme.labelSmall,
+              ),
+            ],
+            if (canManage) ...[
+              const SizedBox(height: Space.md),
+              if (_busy) const LinearProgressIndicator(minHeight: 2),
+              const SizedBox(height: Space.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _busy ? null : _toggleMute,
+                      icon: Icon(
+                        channel.isMuted
+                            ? Icons.notifications_active_outlined
+                            : Icons.notifications_off_outlined,
+                        size: 16,
+                      ),
+                      label: Text(
+                        channel.isMuted
+                            ? context.l10n.unmuteChannelAction
+                            : context.l10n.muteChannelAction,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: Space.sm),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _busy ? null : _test,
+                      icon: const Icon(Icons.network_check, size: 16),
+                      label: Text(context.l10n.testChannelAction),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

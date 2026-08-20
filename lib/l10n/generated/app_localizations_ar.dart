@@ -140,6 +140,23 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get muteChannelAction => 'كتم';
+
+  @override
+  String get unmuteChannelAction => 'إلغاء الكتم';
+
+  @override
+  String get testChannelAction => 'اختبار';
+
+  @override
+  String get channelMutedLabel => 'مكتوم';
+
+  @override
+  String channelMutedByLabel(String name) {
+    return 'كتمه $name';
+  }
+
+  @override
   String get noConnectionTitle => 'لا يوجد اتصال';
 
   @override

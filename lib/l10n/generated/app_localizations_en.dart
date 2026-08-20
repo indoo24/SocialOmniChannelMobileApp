@@ -137,6 +137,23 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get muteChannelAction => 'Mute';
+
+  @override
+  String get unmuteChannelAction => 'Unmute';
+
+  @override
+  String get testChannelAction => 'Test';
+
+  @override
+  String get channelMutedLabel => 'Muted';
+
+  @override
+  String channelMutedByLabel(String name) {
+    return 'Muted by $name';
+  }
+
+  @override
   String get noConnectionTitle => 'No connection';
 
   @override
