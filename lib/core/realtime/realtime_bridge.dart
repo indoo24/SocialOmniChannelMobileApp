@@ -17,6 +17,7 @@ import '../../features/authentication/auth_controller.dart';
 import '../../features/conversations/inbox_controller.dart';
 import '../../features/messages/conversation_controller.dart';
 import '../../features/messages/intelligence_providers.dart';
+import '../api/api_exception.dart';
 import '../models/message.dart';
 import '../providers.dart';
 import 'realtime_client.dart';
@@ -153,6 +154,27 @@ final realtimeMessageCacheProvider =
 
 final activeConversationProvider = NotifierProvider<ActiveConversation, int?>(
   ActiveConversation.new,
+);
+
+/// One-shot signal: a `conversation.access_changed` event resolved to "access
+/// lost" (a 404 on refetch) for the conversation currently on screen.
+///
+/// `conversation.<id>` group membership is granted at subscribe time with no
+/// server-side eviction, so losing access is cooperative — the client has to
+/// notice and unsubscribe itself. `ConversationScreen` listens for this,
+/// pops itself, and clears it back to null — the same one-shot shape
+/// `ActiveConversation` uses for open/close, just narrower.
+class RevokedConversation extends Notifier<int?> {
+  @override
+  int? build() => null;
+
+  void revoke(int conversationId) => state = conversationId;
+
+  void clear() => state = null;
+}
+
+final revokedConversationProvider = NotifierProvider<RevokedConversation, int?>(
+  RevokedConversation.new,
 );
 
 class RealtimeBridge extends ConsumerStatefulWidget {
@@ -405,6 +427,15 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
           );
         }
 
+      // Group membership offers no server-side eviction, so this is the only
+      // signal that "you may no longer watch this thread" ever arrives on —
+      // ignoring it would leave a stale subscription receiving events for a
+      // conversation this employee has lost access to.
+      case RealtimeEvents.accessChanged:
+        if (conversationId != null) {
+          _checkAccess(ref, conversationId, traceId: effectiveTraceId);
+        }
+
       case RealtimeEvents.presenceChanged:
       case RealtimeEvents.connectionReady:
         break;
@@ -499,6 +530,47 @@ void _refreshConversation(
   }
 
   controller.refreshFromServer(triggerTraceId: traceId);
+}
+
+/// `conversation.access_changed` carries no content — it means "re-check that
+/// you still may watch this thread". A 404 on refetch means access was lost:
+/// unsubscribe so the socket stops delivering this conversation's events,
+/// refresh the inbox so the row disappears from it, and — if this is the
+/// conversation currently on screen — signal it to pop.
+///
+/// A resource in another organization also answers 404 rather than 403 (so a
+/// 403 would confirm the row exists), which is exactly the ambiguity this
+/// event exists to resolve cooperatively rather than the client guessing.
+void _checkAccess(Ref ref, int conversationId, {String? traceId}) {
+  Future<void> run() async {
+    try {
+      await ref.read(conversationRepositoryProvider).detail(conversationId);
+    } on ApiException catch (error) {
+      if (!error.isNotFound) return;
+
+      RealtimeLogger.log(
+        'BRIDGE',
+        'ACCESS_REVOKED',
+        traceId: traceId,
+        conversationId: conversationId.toString(),
+      );
+
+      ref.read(realtimeClientProvider).unsubscribe(conversationId);
+      ref.read(inboxControllerProvider.notifier).refreshQuietly();
+
+      final active = ref.read(activeConversationProvider);
+      if (active == conversationId) {
+        ref.read(revokedConversationProvider.notifier).revoke(conversationId);
+      }
+      return;
+    }
+
+    // Access is still granted, but something about it changed — treat this
+    // like any other "something changed" event and refresh normally.
+    _refreshConversation(ref, conversationId, traceId: traceId);
+  }
+
+  run();
 }
 
 Message? _tryExtractMessage(RealtimeEvent event) {

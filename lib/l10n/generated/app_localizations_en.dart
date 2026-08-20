@@ -290,6 +290,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get prioritySection => 'Priority';
 
   @override
+  String get categorySection => 'Category';
+
+  @override
   String get channelSection => 'Channel';
 
   @override
@@ -362,6 +365,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get priorityUpdatedMessage => 'Priority updated';
 
   @override
+  String get categoryUpdatedMessage => 'Category updated';
+
+  @override
+  String get categoryNoneOption => 'Uncategorized';
+
+  @override
   String get noPermissionToChange =>
       'You do not have permission to change this conversation.';
 
@@ -403,6 +412,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retryMessageAction => 'Retry';
+
+  @override
+  String get deleteMessageAction => 'Delete message';
+
+  @override
+  String get deleteMessageConfirmTitle => 'Delete this message?';
+
+  @override
+  String get deleteMessageConfirmBody =>
+      'This removes it from the timeline for everyone. It does not unsend it on the platform — the customer still has it.';
+
+  @override
+  String get deleteMessageReasonLabel => 'Reason (optional)';
+
+  @override
+  String get deleteMessageDeletedSnackbar => 'Message deleted';
 
   @override
   String get customerTitle => 'Customer';

@@ -12,6 +12,7 @@ import '../../core/api/api_client.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
+import '../../core/utils/json_safe.dart';
 
 class DirectoryRepository {
   DirectoryRepository(this._api);
@@ -45,7 +46,10 @@ class DirectoryRepository {
     return Paginated.fromJson(data, Team.fromJson);
   }
 
-  Future<Paginated<Customer>> customers({String search = '', int page = 1}) async {
+  Future<Paginated<Customer>> customers({
+    String search = '',
+    int page = 1,
+  }) async {
     final data = await _api.get<Map<String, dynamic>>(
       '/customers/',
       query: {
@@ -70,6 +74,14 @@ class DirectoryRepository {
       query: {'page_size': 50},
     );
     return Paginated.fromJson(data, ChannelConnection.fromJson);
+  }
+
+  /// The conversation-category taxonomy. Open to any active employee, and
+  /// not paginated — every role that can see a conversation needs to be able
+  /// to render and filter by its category.
+  Future<List<ConversationCategory>> categories() async {
+    final data = await _api.get<dynamic>('/categories/');
+    return JsonSafe.parseList(data, ConversationCategory.fromJson);
   }
 
   Future<DashboardSummary> dashboard() async {
@@ -111,7 +123,9 @@ class DirectoryRepository {
 
   Future<List<Order>> customerOrders(int customerId) async {
     final data = await _api.get<dynamic>('/customers/$customerId/orders/');
-    final rows = data is Map ? (data['results'] as List? ?? const []) : (data as List);
+    final rows = data is Map
+        ? (data['results'] as List? ?? const [])
+        : (data as List);
     return rows
         .map((o) => Order.fromJson(Map<String, dynamic>.from(o as Map)))
         .toList();

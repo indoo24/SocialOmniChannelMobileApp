@@ -296,7 +296,11 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         'CONTROLLER',
         'SEND_UNEXPECTED_FAILURE',
         conversationId: conversationId.toString(),
-        data: {'localId': localId, 'error': error.toString(), 'stack': stack.toString()},
+        data: {
+          'localId': localId,
+          'error': error.toString(),
+          'stack': stack.toString(),
+        },
       );
       _replaceLocal(
         localId,
@@ -339,6 +343,22 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     state = AsyncData(
       current.copyWith(
         messages: current.messages.where((m) => m.localId != localId).toList(),
+      ),
+    );
+  }
+
+  /// Removes a message the employee just soft-deleted on the server.
+  ///
+  /// Optimistic, like [discardFailed]: the realtime `message.deleted` event
+  /// (already handled in `realtime_bridge.dart`) will also refresh this
+  /// conversation, but this makes the removal feel immediate rather than
+  /// waiting on that round trip.
+  void removeMessage(int messageId) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(
+      current.copyWith(
+        messages: current.messages.where((m) => m.id != messageId).toList(),
       ),
     );
   }

@@ -44,13 +44,11 @@ WebSocketChannel _defaultConnect(
     headers: headers,
   );
 }
+
 class RealtimeEvent {
-  RealtimeEvent(
-      this.event,
-      this.payload, {
-        this.socketId,
-      })  : conversationId = _parseConversationId(event, payload),
-        messageId = _parseMessageId(event, payload);
+  RealtimeEvent(this.event, this.payload, {this.socketId})
+    : conversationId = _parseConversationId(event, payload),
+      messageId = _parseMessageId(event, payload);
 
   final String event;
   final Map<String, dynamic> payload;
@@ -58,15 +56,8 @@ class RealtimeEvent {
   final int? messageId;
   final String? socketId;
 
-  static int? _parseConversationId(
-      String event,
-      Map<String, dynamic> payload,
-      ) {
-    RealtimeLogger.log(
-      'PARSE',
-      'EVENT_PARSE_START',
-      eventType: event,
-    );
+  static int? _parseConversationId(String event, Map<String, dynamic> payload) {
+    RealtimeLogger.log('PARSE', 'EVENT_PARSE_START', eventType: event);
 
     final parseStart = DateTime.now();
 
@@ -74,8 +65,7 @@ class RealtimeEvent {
     String? source;
 
     // 1. Top-level direct keys
-    final direct =
-        payload['conversation_id'] ?? payload['conversationId'];
+    final direct = payload['conversation_id'] ?? payload['conversationId'];
 
     if (direct is int) {
       result = direct;
@@ -129,7 +119,8 @@ class RealtimeEvent {
       final msg = payload['message'];
 
       if (msg is Map) {
-        final id = msg['conversation_id'] ??
+        final id =
+            msg['conversation_id'] ??
             msg['conversationId'] ??
             msg['conversation'];
 
@@ -161,14 +152,11 @@ class RealtimeEvent {
       }
     }
 
-    final duration =
-        DateTime.now().difference(parseStart).inMilliseconds;
+    final duration = DateTime.now().difference(parseStart).inMilliseconds;
 
     RealtimeLogger.log(
       'PARSE',
-      result != null
-          ? 'EVENT_PARSE_SUCCESS'
-          : 'EVENT_PARSE_FAILED',
+      result != null ? 'EVENT_PARSE_SUCCESS' : 'EVENT_PARSE_FAILED',
       eventType: event,
       conversationId: result?.toString(),
       data: {
@@ -180,13 +168,9 @@ class RealtimeEvent {
     return result;
   }
 
-  static int? _parseMessageId(
-      String event,
-      Map<String, dynamic> payload,
-      ) {
+  static int? _parseMessageId(String event, Map<String, dynamic> payload) {
     // 1. Top-level message ID
-    final direct =
-        payload['message_id'] ?? payload['messageId'];
+    final direct = payload['message_id'] ?? payload['messageId'];
 
     if (direct is int) {
       return direct;
@@ -204,9 +188,7 @@ class RealtimeEvent {
     final message = payload['message'];
 
     if (message is Map) {
-      final id = message['id'] ??
-          message['message_id'] ??
-          message['messageId'];
+      final id = message['id'] ?? message['message_id'] ?? message['messageId'];
 
       if (id is int) {
         return id;
@@ -224,7 +206,6 @@ class RealtimeEvent {
     return null;
   }
 
-
   @override
   String toString() => 'RealtimeEvent($event, $payload)';
 }
@@ -238,6 +219,7 @@ class RealtimeEvents {
   static const conversationUpdated = 'conversation.updated';
   static const conversationAssigned = 'conversation.assigned';
   static const conversationStatusChanged = 'conversation.status_changed';
+  static const accessChanged = 'conversation.access_changed';
   static const noteCreated = 'note.created';
   static const intelligenceUpdated = 'intelligence.updated';
   static const presenceChanged = 'presence.changed';
