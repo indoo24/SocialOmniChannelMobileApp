@@ -386,6 +386,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get conversationHistoryEmpty => 'لا يوجد نشاط مسجل بعد.';
 
   @override
+  String get conversionsAction => 'التحويلات';
+
+  @override
+  String get conversionsEmpty => 'لم يتم إرسال أي شيء إلى Meta بعد.';
+
+  @override
+  String get reportConversionAction => 'إرسال الآن';
+
+  @override
   String get conversationFallbackTitle => 'المحادثة';
 
   @override

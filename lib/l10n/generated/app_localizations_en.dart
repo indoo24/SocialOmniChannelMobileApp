@@ -384,6 +384,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get conversationHistoryEmpty => 'No activity recorded yet.';
 
   @override
+  String get conversionsAction => 'Conversions';
+
+  @override
+  String get conversionsEmpty => 'Nothing reported to Meta yet.';
+
+  @override
+  String get reportConversionAction => 'Report now';
+
+  @override
   String get conversationFallbackTitle => 'Conversation';
 
   @override

@@ -137,6 +137,9 @@
   "conversationHistoryAction": "عرض السجل",
   "conversationHistoryTitle": "السجل",
   "conversationHistoryEmpty": "لا يوجد نشاط مسجل بعد.",
+  "conversionsAction": "التحويلات",
+  "conversionsEmpty": "لم يتم إرسال أي شيء إلى Meta بعد.",
+  "reportConversionAction": "إرسال الآن",
 
   "conversationFallbackTitle": "المحادثة",
   "customerDetailsTooltip": "بيانات العميل",

@@ -9,6 +9,7 @@ library;
 import '../../core/api/api_client.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/conversation_event.dart';
+import '../../core/models/conversion_event.dart';
 import '../../core/models/intelligence.dart';
 import '../../core/models/message.dart';
 import '../../core/realtime/realtime_logger.dart';
@@ -310,5 +311,29 @@ class ConversationRepository {
       '/conversations/$conversationId/events/',
     );
     return JsonSafe.parseList(data, ConversationEvent.fromJson);
+  }
+
+  // ------------------------------------------------------------ conversions
+  /// Everything reported to Meta for this conversation. Plain array, newest
+  /// first, including the refusals — a panel that listed only the accepted
+  /// events would answer "did Meta get this?" with silence exactly when
+  /// someone is asking.
+  Future<List<ConversionEvent>> conversions(int conversationId) async {
+    final data = await _api.get<dynamic>(
+      '/conversations/$conversationId/conversions/',
+    );
+    return JsonSafe.parseList(data, ConversionEvent.fromJson);
+  }
+
+  /// Push this conversation's current stage to the Meta Conversions API.
+  ///
+  /// Always answers 200 — read [ConversionReportResult.status] to tell an
+  /// accepted send apart from an already-reported, skipped or refused one.
+  /// None of the non-`sent` outcomes is a client error.
+  Future<ConversionReportResult> reportConversion(int conversationId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/report-conversion/',
+    );
+    return ConversionReportResult.fromJson(data);
   }
 }

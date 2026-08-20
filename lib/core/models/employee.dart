@@ -147,6 +147,7 @@ class Perm {
   static const conversationRefreshIntelligence =
       'conversation.refresh_intelligence';
   static const intelligenceOverrideScore = 'intelligence.override_score';
+  static const conversionReport = 'conversion.report';
   static const customerView = 'customer.view';
   static const employeeView = 'employee.view';
   static const teamView = 'team.view';

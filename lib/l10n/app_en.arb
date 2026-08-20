@@ -154,6 +154,9 @@
   "conversationHistoryAction": "View history",
   "conversationHistoryTitle": "History",
   "conversationHistoryEmpty": "No activity recorded yet.",
+  "conversionsAction": "Conversions",
+  "conversionsEmpty": "Nothing reported to Meta yet.",
+  "reportConversionAction": "Report now",
 
   "conversationFallbackTitle": "Conversation",
   "customerDetailsTooltip": "Customer details",

@@ -812,6 +812,24 @@ abstract class AppLocalizations {
   /// **'No activity recorded yet.'**
   String get conversationHistoryEmpty;
 
+  /// No description provided for @conversionsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversions'**
+  String get conversionsAction;
+
+  /// No description provided for @conversionsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing reported to Meta yet.'**
+  String get conversionsEmpty;
+
+  /// No description provided for @reportConversionAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Report now'**
+  String get reportConversionAction;
+
   /// No description provided for @conversationFallbackTitle.
   ///
   /// In en, this message translates to:
