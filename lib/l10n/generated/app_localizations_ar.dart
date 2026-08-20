@@ -416,6 +416,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get retryMessageAction => 'إعادة المحاولة';
 
   @override
+  String get deleteMessageAction => 'حذف الرسالة';
+
+  @override
+  String get deleteMessageConfirmTitle => 'هل تريد حذف هذه الرسالة؟';
+
+  @override
+  String get deleteMessageConfirmBody =>
+      'سيؤدي هذا إلى إزالتها من السجل للجميع. لن يتم إلغاء إرسالها على المنصة — ستظل لدى العميل.';
+
+  @override
+  String get deleteMessageReasonLabel => 'السبب (اختياري)';
+
+  @override
+  String get deleteMessageDeletedSnackbar => 'تم حذف الرسالة';
+
+  @override
   String get customerTitle => 'العميل';
 
   @override

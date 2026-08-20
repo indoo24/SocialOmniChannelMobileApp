@@ -224,6 +224,20 @@ class ConversationRepository {
     return InternalNote.fromJson(data);
   }
 
+  /// Remove a message from the timeline. ADMIN/SUPERVISOR only, server-side.
+  ///
+  /// Soft delete: the row survives for audit and webhook idempotency but
+  /// stops being shown. Does **not** unsend the message on the platform — the
+  /// customer still has it.
+  Future<void> deleteMessage(
+    int conversationId,
+    int messageId, {
+    String reason = '',
+  }) => _api.delete<dynamic>(
+    '/conversations/$conversationId/messages/$messageId/',
+    body: reason.isNotEmpty ? {'reason': reason} : null,
+  );
+
   // ------------------------------------------------------------ intelligence
   /// The current advisory read. Legitimately `null` before the analyzer has
   /// run — not an error and not a zero score.

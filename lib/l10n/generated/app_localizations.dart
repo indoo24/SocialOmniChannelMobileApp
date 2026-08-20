@@ -872,6 +872,36 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get retryMessageAction;
 
+  /// No description provided for @deleteMessageAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete message'**
+  String get deleteMessageAction;
+
+  /// No description provided for @deleteMessageConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this message?'**
+  String get deleteMessageConfirmTitle;
+
+  /// No description provided for @deleteMessageConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes it from the timeline for everyone. It does not unsend it on the platform — the customer still has it.'**
+  String get deleteMessageConfirmBody;
+
+  /// No description provided for @deleteMessageReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason (optional)'**
+  String get deleteMessageReasonLabel;
+
+  /// No description provided for @deleteMessageDeletedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Message deleted'**
+  String get deleteMessageDeletedSnackbar;
+
   /// No description provided for @customerTitle.
   ///
   /// In en, this message translates to:

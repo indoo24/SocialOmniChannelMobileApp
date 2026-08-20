@@ -149,6 +149,11 @@
   "notDeliveredFallback": "لم يتم التسليم.",
   "discardAction": "تجاهل",
   "retryMessageAction": "إعادة المحاولة",
+  "deleteMessageAction": "حذف الرسالة",
+  "deleteMessageConfirmTitle": "هل تريد حذف هذه الرسالة؟",
+  "deleteMessageConfirmBody": "سيؤدي هذا إلى إزالتها من السجل للجميع. لن يتم إلغاء إرسالها على المنصة — ستظل لدى العميل.",
+  "deleteMessageReasonLabel": "السبب (اختياري)",
+  "deleteMessageDeletedSnackbar": "تم حذف الرسالة",
 
   "customerTitle": "العميل",
   "conversationSectionTitle": "المحادثة",

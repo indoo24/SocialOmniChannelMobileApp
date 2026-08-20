@@ -166,6 +166,11 @@
   "notDeliveredFallback": "Not delivered.",
   "discardAction": "Discard",
   "retryMessageAction": "Retry",
+  "deleteMessageAction": "Delete message",
+  "deleteMessageConfirmTitle": "Delete this message?",
+  "deleteMessageConfirmBody": "This removes it from the timeline for everyone. It does not unsend it on the platform — the customer still has it.",
+  "deleteMessageReasonLabel": "Reason (optional)",
+  "deleteMessageDeletedSnackbar": "Message deleted",
 
   "customerTitle": "Customer",
   "conversationSectionTitle": "Conversation",

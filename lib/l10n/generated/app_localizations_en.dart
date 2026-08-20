@@ -414,6 +414,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retryMessageAction => 'Retry';
 
   @override
+  String get deleteMessageAction => 'Delete message';
+
+  @override
+  String get deleteMessageConfirmTitle => 'Delete this message?';
+
+  @override
+  String get deleteMessageConfirmBody =>
+      'This removes it from the timeline for everyone. It does not unsend it on the platform — the customer still has it.';
+
+  @override
+  String get deleteMessageReasonLabel => 'Reason (optional)';
+
+  @override
+  String get deleteMessageDeletedSnackbar => 'Message deleted';
+
+  @override
   String get customerTitle => 'Customer';
 
   @override

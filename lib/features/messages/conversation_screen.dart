@@ -12,6 +12,8 @@ import 'package:go_router/go_router.dart';
 import '../../app/router.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/employee.dart';
+import '../../core/models/message.dart';
+import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
@@ -426,6 +428,7 @@ class _MessageList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final messages = state.messages;
+    final canDelete = ref.watch(canProvider(Perm.conversationDeleteMessage));
 
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
@@ -487,6 +490,19 @@ class _MessageList extends ConsumerWidget {
                           )
                           .discardFailed(message.localId!)
                     : null,
+                onDelete:
+                    canDelete &&
+                        !message.isSystem &&
+                        !message.isPending &&
+                        !message.hasFailed &&
+                        message.id >= 0
+                    ? () => _confirmDeleteMessage(
+                        context,
+                        ref,
+                        conversationId,
+                        message,
+                      )
+                    : null,
               ),
             ],
           );
@@ -497,6 +513,78 @@ class _MessageList extends ConsumerWidget {
 
   static bool _sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
+}
+
+/// Confirms, then soft-deletes a message. ADMIN/SUPERVISOR only — the caller
+/// only ever wires this up when `Perm.conversationDeleteMessage` is held.
+///
+/// Removed optimistically on success rather than waiting on the realtime
+/// `message.deleted` round trip, matching how a failed send's `onDiscard`
+/// already behaves.
+Future<void> _confirmDeleteMessage(
+  BuildContext context,
+  WidgetRef ref,
+  int conversationId,
+  Message message,
+) async {
+  final reasonController = TextEditingController();
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(dialogContext.l10n.deleteMessageConfirmTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(dialogContext.l10n.deleteMessageConfirmBody),
+          const SizedBox(height: Space.md),
+          TextField(
+            controller: reasonController,
+            decoration: InputDecoration(
+              labelText: dialogContext.l10n.deleteMessageReasonLabel,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: Text(dialogContext.l10n.cancel),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(dialogContext).colorScheme.error,
+          ),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: Text(dialogContext.l10n.deleteMessageAction),
+        ),
+      ],
+    ),
+  );
+  final reason = reasonController.text.trim();
+  reasonController.dispose();
+  if (confirmed != true) return;
+
+  try {
+    await ref
+        .read(conversationRepositoryProvider)
+        .deleteMessage(conversationId, message.id, reason: reason);
+    ref
+        .read(conversationControllerProvider(conversationId).notifier)
+        .removeMessage(message.id);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(context.l10n.deleteMessageDeletedSnackbar)),
+    );
+  } on ApiException catch (error) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error.message),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+  }
 }
 
 class _DayDivider extends StatelessWidget {

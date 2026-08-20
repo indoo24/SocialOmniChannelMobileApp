@@ -21,12 +21,18 @@ class MessageBubble extends StatelessWidget {
     required this.message,
     this.onRetry,
     this.onDiscard,
+    this.onDelete,
     super.key,
   });
 
   final Message message;
   final VoidCallback? onRetry;
   final VoidCallback? onDiscard;
+
+  /// Long-press to delete. Null hides the affordance entirely — the caller
+  /// only supplies this for a real, server-confirmed message when the
+  /// signed-in employee holds `conversation.delete_message` (ADMIN/SUPERVISOR).
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -85,46 +91,49 @@ class MessageBubble extends StatelessWidget {
                     ? CrossAxisAlignment.end
                     : CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Space.md,
-                      vertical: Space.sm,
-                    ),
-                    decoration: BoxDecoration(
-                      color: background,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(Radii.lg),
-                        topRight: const Radius.circular(Radii.lg),
-                        bottomLeft: Radius.circular(
-                          isMine ? Radii.lg : Radii.sm,
-                        ),
-                        bottomRight: Radius.circular(
-                          isMine ? Radii.sm : Radii.lg,
-                        ),
+                  GestureDetector(
+                    onLongPress: onDelete,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Space.md,
+                        vertical: Space.sm,
                       ),
-                      border: isMine && !failed
-                          ? null
-                          : Border.all(
-                              color: failed
-                                  ? theme.colorScheme.error.withValues(
-                                      alpha: 0.35,
-                                    )
-                                  : theme.colorScheme.outline,
-                            ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (message.attachments.isNotEmpty)
-                          _Attachments(message: message),
-                        if (message.text.isNotEmpty)
-                          Text(
-                            message.text,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: foreground,
-                            ),
+                      decoration: BoxDecoration(
+                        color: background,
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(Radii.lg),
+                          topRight: const Radius.circular(Radii.lg),
+                          bottomLeft: Radius.circular(
+                            isMine ? Radii.lg : Radii.sm,
                           ),
-                      ],
+                          bottomRight: Radius.circular(
+                            isMine ? Radii.sm : Radii.lg,
+                          ),
+                        ),
+                        border: isMine && !failed
+                            ? null
+                            : Border.all(
+                                color: failed
+                                    ? theme.colorScheme.error.withValues(
+                                        alpha: 0.35,
+                                      )
+                                    : theme.colorScheme.outline,
+                              ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (message.attachments.isNotEmpty)
+                            _Attachments(message: message),
+                          if (message.text.isNotEmpty)
+                            Text(
+                              message.text,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: foreground,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -251,7 +260,10 @@ class _FailureActions extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: Space.sm),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: Text(context.l10n.discardAction, style: const TextStyle(fontSize: 12)),
+                  child: Text(
+                    context.l10n.discardAction,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                 ),
               if (onRetry != null)
                 TextButton(
@@ -261,7 +273,10 @@ class _FailureActions extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: Space.sm),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: Text(context.l10n.retryMessageAction, style: const TextStyle(fontSize: 12)),
+                  child: Text(
+                    context.l10n.retryMessageAction,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                 ),
             ],
           ),
