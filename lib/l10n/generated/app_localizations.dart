@@ -1292,6 +1292,24 @@ abstract class AppLocalizations {
   /// **'Last seen'**
   String get lastSeenFieldLabel;
 
+  /// No description provided for @confirmedPurchasesFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed purchases'**
+  String get confirmedPurchasesFieldLabel;
+
+  /// No description provided for @customerNotesFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get customerNotesFieldLabel;
+
+  /// No description provided for @recordedDetailsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded details'**
+  String get recordedDetailsSectionTitle;
+
   /// No description provided for @conversationsCapsSectionTitle.
   ///
   /// In en, this message translates to:

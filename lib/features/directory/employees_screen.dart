@@ -58,6 +58,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
       ],
       onRefresh: () async {
         ref.invalidate(employeeDirectoryProvider);
+        ref.invalidate(onlineEmployeesProvider);
         await ref.read(employeeDirectoryProvider.future);
       },
       body: employees.when(
@@ -71,12 +72,13 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
           onRetry: () => ref.invalidate(employeeDirectoryProvider),
         ),
         data: (all) {
-          // Filtered on the client because it is a view over a page already in
-          // hand — sending a round trip for a toggle this cheap would make the
-          // list flicker for no gain.
+          // "Online only" reads the dedicated endpoint — the whole set in one
+          // call — rather than filtering whichever page of the paginated
+          // directory happens to already be loaded, which could only ever
+          // show whoever was on that page.
           final rows = _onlineOnly
-              ? all.where((e) => e.availability == 'ONLINE').toList()
-              : all;
+              ? ref.watch(onlineEmployeesProvider)
+              : AsyncValue.data(all);
 
           return Column(
             children: [
@@ -86,31 +88,38 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                 total: all.length,
               ),
               Expanded(
-                child: rows.isEmpty
-                    ? ListView(
-                        children: [
-                          SizedBox(
-                            height: MediaQuery.sizeOf(context).height * 0.5,
-                            child: EmptyState(
-                              icon: Icons.badge_outlined,
-                              title: _onlineOnly
-                                  ? context.l10n.nobodyOnlineTitle
-                                  : context.l10n.noEmployeesFoundTitle,
-                              message: _onlineOnly
-                                  ? context.l10n.turnOffFilterMessage
-                                  : context.l10n.tryDifferentSearchMessage,
+                child: rows.when(
+                  loading: () => const LoadingState(),
+                  error: (error, _) => ErrorStateView(
+                    error: error,
+                    onRetry: () => ref.invalidate(onlineEmployeesProvider),
+                  ),
+                  data: (list) => list.isEmpty
+                      ? ListView(
+                          children: [
+                            SizedBox(
+                              height: MediaQuery.sizeOf(context).height * 0.5,
+                              child: EmptyState(
+                                icon: Icons.badge_outlined,
+                                title: _onlineOnly
+                                    ? context.l10n.nobodyOnlineTitle
+                                    : context.l10n.noEmployeesFoundTitle,
+                                message: _onlineOnly
+                                    ? context.l10n.turnOffFilterMessage
+                                    : context.l10n.tryDifferentSearchMessage,
+                              ),
                             ),
-                          ),
-                        ],
-                      )
-                    : ListView.separated(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount: rows.length,
-                        separatorBuilder: (_, _) =>
-                            const Divider(height: 1, indent: 68),
-                        itemBuilder: (context, index) =>
-                            _EmployeeRow(employee: rows[index]),
-                      ),
+                          ],
+                        )
+                      : ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: list.length,
+                          separatorBuilder: (_, _) =>
+                              const Divider(height: 1, indent: 68),
+                          itemBuilder: (context, index) =>
+                              _EmployeeRow(employee: list[index]),
+                        ),
+                ),
               ),
             ],
           );
@@ -228,10 +237,10 @@ class _EmployeeRow extends StatelessWidget {
   /// Matches the web RoleBadge's colouring, so the same role reads the same in
   /// both clients.
   static BadgeTone _roleTone(String role) => switch (role) {
-        'ADMIN' => BadgeTone.danger,
-        'SUPERVISOR' => BadgeTone.info,
-        'TEAM_LEADER' => BadgeTone.success,
-        'QA' => BadgeTone.warning,
-        _ => BadgeTone.neutral,
-      };
+    'ADMIN' => BadgeTone.danger,
+    'SUPERVISOR' => BadgeTone.info,
+    'TEAM_LEADER' => BadgeTone.success,
+    'QA' => BadgeTone.warning,
+    _ => BadgeTone.neutral,
+  };
 }

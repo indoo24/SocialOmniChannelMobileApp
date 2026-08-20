@@ -12,7 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
-import '../../core/models/directory.dart';
+import '../../core/models/customer_detail.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
@@ -30,72 +30,43 @@ class CustomerProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final customers = ref.watch(customerDirectoryProvider);
+    final detailAsync = ref.watch(customerDetailProvider(customerId));
     final conversations = ref.watch(customerConversationsProvider(customerId));
     final employee = ref.watch(currentEmployeeProvider);
     final theme = Theme.of(context);
 
-    // The directory list is the source for the header. Reaching this screen
-    // always goes through that list, so it is loaded; a deep link that skips it
-    // still renders the conversations below.
-    final Customer? customer =
-        customers.value?.where((c) => c.id == customerId).firstOrNull;
-
     return Scaffold(
-      appBar: AppBar(title: Text(customer?.displayName ?? context.l10n.customerTitle)),
+      appBar: AppBar(
+        title: Text(
+          detailAsync.value?.displayName ?? context.l10n.customerTitle,
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(Space.lg),
         children: [
-          if (customer != null) ...[
-            Row(
-              children: [
-                InitialsAvatar(
-                  initials: customer.displayName.isEmpty
-                      ? '?'
-                      : customer.displayName[0].toUpperCase(),
-                  imageUrl: customer.avatarUrl,
-                  size: 56,
-                ),
-                const SizedBox(width: Space.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(customer.displayName, style: theme.textTheme.titleLarge),
-                      const SizedBox(height: Space.xs),
-                      StatusBadge(
-                        label: humanizeEnum(customer.lifecycleStage),
-                        dense: true,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+          detailAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: Space.xxl),
+              child: LoadingState(),
             ),
-            const SizedBox(height: Space.xl),
-            _Field(label: context.l10n.emailFieldLabel, value: customer.email),
-            _Field(label: context.l10n.phoneFieldLabel, value: customer.phone),
-            _Field(
-              label: context.l10n.locationFieldLabel,
-              value: [customer.city, customer.country]
-                  .where((v) => v.isNotEmpty)
-                  .join(', '),
+            error: (error, _) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: Space.lg),
+              child: ErrorStateView(
+                error: error,
+                onRetry: () =>
+                    ref.invalidate(customerDetailProvider(customerId)),
+              ),
             ),
-            _Field(
-              label: context.l10n.languageLabel,
-              value: customer.preferredLanguage.toUpperCase(),
-            ),
-            _Field(
-              label: context.l10n.lastSeenFieldLabel,
-              value: formatDateTime(context, customer.lastSeenAt),
-            ),
-            const Divider(height: Space.xxl),
-          ],
+            data: (customer) => _CustomerHeader(customer: customer),
+          ),
+          const Divider(height: Space.xxl),
 
           Text(
             context.l10n.conversationsCapsSectionTitle,
-            style: theme.textTheme.labelSmall
-                ?.copyWith(letterSpacing: 0.6, fontWeight: FontWeight.w700),
+            style: theme.textTheme.labelSmall?.copyWith(
+              letterSpacing: 0.6,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: Space.sm),
           conversations.when(
@@ -134,6 +105,86 @@ class CustomerProfileScreen extends ConsumerWidget {
   }
 }
 
+class _CustomerHeader extends StatelessWidget {
+  const _CustomerHeader({required this.customer});
+
+  final CustomerDetail customer;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            InitialsAvatar(
+              initials: customer.displayName.isEmpty
+                  ? '?'
+                  : customer.displayName[0].toUpperCase(),
+              imageUrl: customer.avatarUrl,
+              size: 56,
+            ),
+            const SizedBox(width: Space.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(customer.displayName, style: theme.textTheme.titleLarge),
+                  const SizedBox(height: Space.xs),
+                  StatusBadge(
+                    label: humanizeEnum(customer.lifecycleStage),
+                    dense: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: Space.xl),
+        _Field(label: context.l10n.emailFieldLabel, value: customer.email),
+        _Field(label: context.l10n.phoneFieldLabel, value: customer.phone),
+        _Field(
+          label: context.l10n.locationFieldLabel,
+          value: [
+            customer.city,
+            customer.country,
+          ].where((v) => v.isNotEmpty).join(', '),
+        ),
+        _Field(
+          label: context.l10n.languageLabel,
+          value: customer.preferredLanguage.toUpperCase(),
+        ),
+        _Field(
+          label: context.l10n.lastSeenFieldLabel,
+          value: formatDateTime(context, customer.lastSeenAt),
+        ),
+        // Only from the detail endpoint — the list representation omits both.
+        _Field(
+          label: context.l10n.confirmedPurchasesFieldLabel,
+          value: '${customer.confirmedPurchaseCount}',
+        ),
+        if (customer.notes.isNotEmpty)
+          _Field(
+            label: context.l10n.customerNotesFieldLabel,
+            value: customer.notes,
+          ),
+        if (customer.facts.isNotEmpty) ...[
+          const SizedBox(height: Space.md),
+          Text(
+            context.l10n.recordedDetailsSectionTitle,
+            style: theme.textTheme.labelSmall,
+          ),
+          const SizedBox(height: Space.xs),
+          for (final fact in customer.facts)
+            _Field(label: humanizeEnum(fact.key), value: fact.value),
+        ],
+      ],
+    );
+  }
+}
+
 class _Field extends StatelessWidget {
   const _Field({required this.label, required this.value});
 
@@ -153,7 +204,10 @@ class _Field extends StatelessWidget {
             child: Text(label, style: theme.textTheme.bodySmall),
           ),
           Expanded(
-            child: Text(value.isEmpty ? '—' : value, style: theme.textTheme.bodyMedium),
+            child: Text(
+              value.isEmpty ? '—' : value,
+              style: theme.textTheme.bodyMedium,
+            ),
           ),
         ],
       ),

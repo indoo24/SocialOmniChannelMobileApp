@@ -10,6 +10,7 @@ library;
 
 import '../../core/api/api_client.dart';
 import '../../core/models/conversation.dart';
+import '../../core/models/customer_detail.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
 import '../../core/utils/json_safe.dart';
@@ -38,6 +39,14 @@ class DirectoryRepository {
     return Paginated.fromJson(data, DirectoryEmployee.fromJson);
   }
 
+  /// Currently-available agents, unpaginated. Unlike filtering the paginated
+  /// list client-side, this returns the whole set in one call — the right
+  /// source for an "online now" toggle or a transfer picker.
+  Future<List<DirectoryEmployee>> onlineEmployees() async {
+    final data = await _api.get<dynamic>('/employees/online/');
+    return JsonSafe.parseList(data, DirectoryEmployee.fromJson);
+  }
+
   Future<Paginated<Team>> teams({int page = 1}) async {
     final data = await _api.get<Map<String, dynamic>>(
       '/teams/',
@@ -59,6 +68,15 @@ class DirectoryRepository {
       },
     );
     return Paginated.fromJson(data, Customer.fromJson);
+  }
+
+  /// The customer detail representation — adds `confirmed_purchase_count`
+  /// and the full `facts` list that the list representation omits.
+  Future<CustomerDetail> customerDetail(int customerId) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/customers/$customerId/',
+    );
+    return CustomerDetail.fromJson(data);
   }
 
   Future<Paginated<Conversation>> customerConversations(int customerId) async {

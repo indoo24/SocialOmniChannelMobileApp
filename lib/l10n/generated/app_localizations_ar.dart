@@ -657,6 +657,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get lastSeenFieldLabel => 'آخر ظهور';
 
   @override
+  String get confirmedPurchasesFieldLabel => 'المشتريات المؤكدة';
+
+  @override
+  String get customerNotesFieldLabel => 'ملاحظات';
+
+  @override
+  String get recordedDetailsSectionTitle => 'التفاصيل المسجلة';
+
+  @override
   String get conversationsCapsSectionTitle => 'المحادثات';
 
   @override

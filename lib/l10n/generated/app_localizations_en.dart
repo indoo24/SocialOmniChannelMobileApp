@@ -651,6 +651,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lastSeenFieldLabel => 'Last seen';
 
   @override
+  String get confirmedPurchasesFieldLabel => 'Confirmed purchases';
+
+  @override
+  String get customerNotesFieldLabel => 'Notes';
+
+  @override
+  String get recordedDetailsSectionTitle => 'Recorded details';
+
+  @override
   String get conversationsCapsSectionTitle => 'CONVERSATIONS';
 
   @override
