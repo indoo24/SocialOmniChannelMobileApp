@@ -134,6 +134,9 @@
   "categoryUpdatedMessage": "تم تحديث الفئة",
   "categoryNoneOption": "بدون فئة",
   "noPermissionToChange": "ليس لديك صلاحية تعديل هذه المحادثة.",
+  "conversationHistoryAction": "عرض السجل",
+  "conversationHistoryTitle": "السجل",
+  "conversationHistoryEmpty": "لا يوجد نشاط مسجل بعد.",
 
   "conversationFallbackTitle": "المحادثة",
   "customerDetailsTooltip": "بيانات العميل",

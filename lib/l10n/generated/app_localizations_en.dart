@@ -375,6 +375,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'You do not have permission to change this conversation.';
 
   @override
+  String get conversationHistoryAction => 'View history';
+
+  @override
+  String get conversationHistoryTitle => 'History';
+
+  @override
+  String get conversationHistoryEmpty => 'No activity recorded yet.';
+
+  @override
   String get conversationFallbackTitle => 'Conversation';
 
   @override

@@ -151,6 +151,9 @@
   "categoryUpdatedMessage": "Category updated",
   "categoryNoneOption": "Uncategorized",
   "noPermissionToChange": "You do not have permission to change this conversation.",
+  "conversationHistoryAction": "View history",
+  "conversationHistoryTitle": "History",
+  "conversationHistoryEmpty": "No activity recorded yet.",
 
   "conversationFallbackTitle": "Conversation",
   "customerDetailsTooltip": "Customer details",

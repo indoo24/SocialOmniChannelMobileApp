@@ -377,6 +377,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noPermissionToChange => 'ليس لديك صلاحية تعديل هذه المحادثة.';
 
   @override
+  String get conversationHistoryAction => 'عرض السجل';
+
+  @override
+  String get conversationHistoryTitle => 'السجل';
+
+  @override
+  String get conversationHistoryEmpty => 'لا يوجد نشاط مسجل بعد.';
+
+  @override
   String get conversationFallbackTitle => 'المحادثة';
 
   @override

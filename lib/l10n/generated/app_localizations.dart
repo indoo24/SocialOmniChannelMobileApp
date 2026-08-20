@@ -794,6 +794,24 @@ abstract class AppLocalizations {
   /// **'You do not have permission to change this conversation.'**
   String get noPermissionToChange;
 
+  /// No description provided for @conversationHistoryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'View history'**
+  String get conversationHistoryAction;
+
+  /// No description provided for @conversationHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get conversationHistoryTitle;
+
+  /// No description provided for @conversationHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No activity recorded yet.'**
+  String get conversationHistoryEmpty;
+
   /// No description provided for @conversationFallbackTitle.
   ///
   /// In en, this message translates to:

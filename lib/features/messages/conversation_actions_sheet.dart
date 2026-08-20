@@ -18,6 +18,7 @@ import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
 import 'conversation_controller.dart';
+import 'conversation_history_sheet.dart';
 
 const _statuses = [
   'OPEN',
@@ -116,6 +117,18 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
             const SizedBox(height: Space.md),
 
             if (_busy) const LinearProgressIndicator(minHeight: 2),
+
+            // Open to any active employee — no permission gate, unlike the
+            // mutating actions below.
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.history),
+              title: Text(context.l10n.conversationHistoryAction),
+              onTap: () => showConversationHistorySheet(
+                context,
+                conversationId: widget.conversationId,
+              ),
+            ),
 
             if (canAssignSelf && !isMine)
               ListTile(
