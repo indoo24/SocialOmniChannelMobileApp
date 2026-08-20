@@ -4,6 +4,11 @@
   "settingsTitle": "Settings",
   "@settingsTitle": {"description": "Settings screen app bar title"},
 
+  "newActivityBannerTitle": "New activity",
+  "@newActivityBannerTitle": {
+    "description": "Fallback title for the foreground push banner, used only if the server payload carries no notification.title"
+  },
+
   "tabChannels": "Channels",
   "tabProfile": "Profile",
   "tabSecurity": "Security",

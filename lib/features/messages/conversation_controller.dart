@@ -363,6 +363,19 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     );
   }
 
+  /// Replaces the conversation object in state with one already fetched by
+  /// the caller (`realtime_bridge.dart`'s `conversation.access_changed`
+  /// handler re-fetches `detail()` to check whether access was lost; when it
+  /// wasn't, that same response is the freshest read of the conversation —
+  /// [refreshFromServer] only re-fetches messages, not this, so reusing the
+  /// fetch already in hand is both more correct and one round trip cheaper
+  /// than triggering a second, message-only refresh).
+  void updateConversation(Conversation conversation) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(current.copyWith(conversation: conversation));
+  }
+
   void _replaceLocal(String localId, Message replacement) {
     final current = state.value;
     if (current == null) return;

@@ -12,6 +12,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsTitle => 'الإعدادات';
 
   @override
+  String get newActivityBannerTitle => 'نشاط جديد';
+
+  @override
   String get tabChannels => 'القنوات';
 
   @override

@@ -104,6 +104,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
+  /// Fallback title for the foreground push banner, used only if the server payload carries no notification.title
+  ///
+  /// In en, this message translates to:
+  /// **'New activity'**
+  String get newActivityBannerTitle;
+
   /// No description provided for @tabChannels.
   ///
   /// In en, this message translates to:

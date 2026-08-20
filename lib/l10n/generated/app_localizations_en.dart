@@ -12,6 +12,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
+  String get newActivityBannerTitle => 'New activity';
+
+  @override
   String get tabChannels => 'Channels';
 
   @override
