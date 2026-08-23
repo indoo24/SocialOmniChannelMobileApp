@@ -181,8 +181,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       if (next != widget.conversationId) return;
       final navigator = Navigator.of(context);
       Future.microtask(() {
+        // ref use here throws "Using ref when a widget is about to or has
+        // been unmounted" if this screen was already popped by the time
+        // this microtask runs.
+        if (!mounted) return;
         ref.read(revokedConversationProvider.notifier).clear();
-        if (mounted && navigator.canPop()) {
+        if (navigator.canPop()) {
           navigator.pop();
         }
       });
@@ -562,17 +566,22 @@ Future<void> _confirmDeleteMessage(
     ),
   );
   final reason = reasonController.text.trim();
-  reasonController.dispose();
+  // Not disposed — see intelligence_panel.dart's _LeadScoreSectionState
+  // _editScore() for why: disposing here would race the AlertDialog's
+  // still-animating exit transition and can throw a use-after-dispose error.
   if (confirmed != true) return;
 
   try {
     await ref
         .read(conversationRepositoryProvider)
         .deleteMessage(conversationId, message.id, reason: reason);
+    // ref use here throws "Using ref when a widget is about to or has been
+    // unmounted" if the screen was popped while deleteMessage() was in
+    // flight — checked before any of it runs.
+    if (!context.mounted) return;
     ref
         .read(conversationControllerProvider(conversationId).notifier)
         .removeMessage(message.id);
-    if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(context.l10n.deleteMessageDeletedSnackbar)),
     );

@@ -11,8 +11,10 @@
 ///   killed (§4).
 library;
 
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../logging/app_log.dart';
@@ -21,9 +23,11 @@ import '../../app/router.dart';
 import '../../features/authentication/auth_controller.dart';
 import '../../features/conversations/inbox_controller.dart';
 import '../../features/messages/conversation_controller.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../api/api_exception.dart';
 import '../providers.dart';
 import '../realtime/realtime_bridge.dart';
+import '../theme/tokens.dart';
 import 'push_service.dart';
 
 class PushBridge extends ConsumerStatefulWidget {
@@ -39,6 +43,13 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     with WidgetsBindingObserver {
   bool _streamsAttached = false;
   bool _initialMessageChecked = false;
+
+  /// A foreground push for a conversation other than the one on screen.
+  /// Null hides the banner. Set by [_handleForegroundPush], cleared by a tap,
+  /// the close button, or the auto-dismiss timer.
+  RemoteMessage? _bannerMessage;
+  int? _bannerConversationId;
+  Timer? _bannerTimer;
 
   static void _log(String message) => AppLog.debug('PushBridge', message);
 
@@ -59,6 +70,7 @@ class _PushBridgeState extends ConsumerState<PushBridge>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _bannerTimer?.cancel();
     super.dispose();
   }
 
@@ -80,7 +92,28 @@ class _PushBridgeState extends ConsumerState<PushBridge>
       }
     });
 
-    return widget.child;
+    final message = _bannerMessage;
+    final conversationId = _bannerConversationId;
+
+    return Stack(
+      children: [
+        widget.child,
+        if (message != null && conversationId != null)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ForegroundPushBanner(
+              title:
+                  message.notification?.title ??
+                  context.l10n.newActivityBannerTitle,
+              body: message.notification?.body ?? '',
+              onTap: () => _openBannerConversation(conversationId),
+              onDismiss: _dismissBanner,
+            ),
+          ),
+      ],
+    );
   }
 
   /// Runs on first launch with a restored session, and on every fresh login.
@@ -131,11 +164,13 @@ class _PushBridgeState extends ConsumerState<PushBridge>
   Future<void> _registerDevice({String? token}) async {
     final deviceId = await ref.read(secureStoreProvider).deviceId();
     try {
-      await ref.read(deviceRepositoryProvider).register(
-        deviceIdentifier: deviceId,
-        platform: PushService.platformName,
-        pushToken: token,
-      );
+      await ref
+          .read(deviceRepositoryProvider)
+          .register(
+            deviceIdentifier: deviceId,
+            platform: PushService.platformName,
+            pushToken: token,
+          );
     } on ApiException catch (error) {
       _log(
         '_registerDevice() — best-effort failure, will retry on next '
@@ -148,10 +183,9 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     final deviceId = await ref.read(secureStoreProvider).deviceId();
     try {
       final token = await PushService.instance.getToken();
-      await ref.read(deviceRepositoryProvider).heartbeat(
-        deviceIdentifier: deviceId,
-        pushToken: token,
-      );
+      await ref
+          .read(deviceRepositoryProvider)
+          .heartbeat(deviceIdentifier: deviceId, pushToken: token);
     } on ApiException catch (error) {
       if (error.code == 'not_registered') {
         _log('_heartbeat() — device row gone, re-registering.');
@@ -208,7 +242,9 @@ class _PushBridgeState extends ConsumerState<PushBridge>
 
     final conversationId = _conversationIdFrom(message);
     if (conversationId == null) {
-      _log('_handleForegroundPush() — missing/invalid conversation_id, ignoring.');
+      _log(
+        '_handleForegroundPush() — missing/invalid conversation_id, ignoring.',
+      );
       return;
     }
 
@@ -221,10 +257,43 @@ class _PushBridgeState extends ConsumerState<PushBridge>
 
     final active = ref.read(activeConversationProvider);
     if (active == conversationId) {
+      // Already looking at it — the silent refresh above is the whole
+      // story. A banner on top of the screen the agent is already reading
+      // would only be noise.
       ref
           .read(conversationControllerProvider(conversationId).notifier)
           .refreshFromServer();
+    } else {
+      _showBanner(message, conversationId);
     }
+  }
+
+  /// Surfaces a foreground push as an in-app banner. Foreground is the one
+  /// state neither the OS notification tray (no `notification` UI is shown
+  /// while the app has focus) nor the socket's silent refetch covers with
+  /// anything visible — until now this was a signal with no presenter.
+  void _showBanner(RemoteMessage message, int conversationId) {
+    if (!mounted) return;
+    _bannerTimer?.cancel();
+    setState(() {
+      _bannerMessage = message;
+      _bannerConversationId = conversationId;
+    });
+    _bannerTimer = Timer(const Duration(seconds: 6), _dismissBanner);
+  }
+
+  void _dismissBanner() {
+    _bannerTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _bannerMessage = null;
+      _bannerConversationId = null;
+    });
+  }
+
+  void _openBannerConversation(int conversationId) {
+    _dismissBanner();
+    ref.read(routerProvider).go(Routes.conversation(conversationId));
   }
 
   /// The agent tapped a notification (backgrounded or cold-started). Both
@@ -239,13 +308,121 @@ class _PushBridgeState extends ConsumerState<PushBridge>
 
     final conversationId = _conversationIdFrom(message);
     if (conversationId == null) {
-      _log('_handleNotificationTap() — missing/invalid conversation_id, ignoring.');
+      _log(
+        '_handleNotificationTap() — missing/invalid conversation_id, ignoring.',
+      );
       return;
     }
 
-    _log('_handleNotificationTap() — navigating to conversation $conversationId.');
+    _log(
+      '_handleNotificationTap() — navigating to conversation $conversationId.',
+    );
     // Works even if the session has since expired: the router's auth guard
     // redirects to login and preserves this as the `next` target.
     ref.read(routerProvider).go(Routes.conversation(conversationId));
+  }
+}
+
+/// A dismissible in-app banner for a foreground push, styled to match the
+/// existing `SnackBarThemeData` (`ScenarioColors.sidebar`, white text) rather
+/// than reaching for an unconfigured Material color this app doesn't
+/// otherwise use.
+///
+/// Public (unlike the rest of this file's helpers) so it can be pumped and
+/// tested directly — `PushBridge`'s own wiring runs off the real
+/// `FirebaseMessaging.onMessage` stream, which nothing in this codebase
+/// fakes, so this presentational widget is the part of the feature that can
+/// actually be exercised in a test.
+class ForegroundPushBanner extends StatelessWidget {
+  const ForegroundPushBanner({
+    required this.title,
+    required this.body,
+    required this.onTap,
+    required this.onDismiss,
+    super.key,
+  });
+
+  final String title;
+  final String body;
+  final VoidCallback onTap;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(Space.sm),
+        child: Material(
+          color: ScenarioColors.sidebar,
+          elevation: 4,
+          borderRadius: BorderRadius.circular(Radii.md),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(Radii.md),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: Space.md,
+                vertical: Space.sm,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.chat_bubble_outline,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: Space.sm),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (body.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            body,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: onDismiss,
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

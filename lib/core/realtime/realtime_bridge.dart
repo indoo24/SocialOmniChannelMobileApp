@@ -17,7 +17,9 @@ import '../../features/authentication/auth_controller.dart';
 import '../../features/conversations/inbox_controller.dart';
 import '../../features/messages/conversation_controller.dart';
 import '../../features/messages/intelligence_providers.dart';
+import '../../features/messages/notes_controller.dart';
 import '../api/api_exception.dart';
+import '../models/conversation.dart';
 import '../models/message.dart';
 import '../providers.dart';
 import 'realtime_client.dart';
@@ -403,8 +405,12 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
           );
         }
 
+      // The internal-notes sheet has its own provider — invalidate it
+      // unconditionally (cheap even when nobody is watching it right now),
+      // matching how intelligenceUpdated below handles its own provider.
       case RealtimeEvents.noteCreated:
         if (conversationId != null) {
+          ref.invalidate(notesControllerProvider(conversationId));
           _refreshConversation(
             ref,
             conversationId,
@@ -543,8 +549,11 @@ void _refreshConversation(
 /// event exists to resolve cooperatively rather than the client guessing.
 void _checkAccess(Ref ref, int conversationId, {String? traceId}) {
   Future<void> run() async {
+    final Conversation conversation;
     try {
-      await ref.read(conversationRepositoryProvider).detail(conversationId);
+      conversation = await ref
+          .read(conversationRepositoryProvider)
+          .detail(conversationId);
     } on ApiException catch (error) {
       if (!error.isNotFound) return;
 
@@ -565,9 +574,18 @@ void _checkAccess(Ref ref, int conversationId, {String? traceId}) {
       return;
     }
 
-    // Access is still granted, but something about it changed — treat this
-    // like any other "something changed" event and refresh normally.
-    _refreshConversation(ref, conversationId, traceId: traceId);
+    // Access is still granted, but this event most often means a
+    // reassignment (it is published alongside `conversation.assigned`,
+    // which already handles its own inbox refresh — see that case above).
+    // The one thing unique to this branch is the conversation object itself,
+    // which refreshFromServer() does not cover; apply the read already in
+    // hand rather than triggering a second, message-only fetch for it.
+    final active = ref.read(activeConversationProvider);
+    if (active == conversationId) {
+      ref
+          .read(conversationControllerProvider(conversationId).notifier)
+          .updateConversation(conversation);
+    }
   }
 
   run();

@@ -4,6 +4,11 @@
   "settingsTitle": "Settings",
   "@settingsTitle": {"description": "Settings screen app bar title"},
 
+  "newActivityBannerTitle": "New activity",
+  "@newActivityBannerTitle": {
+    "description": "Fallback title for the foreground push banner, used only if the server payload carries no notification.title"
+  },
+
   "tabChannels": "Channels",
   "tabProfile": "Profile",
   "tabSecurity": "Security",
@@ -56,6 +61,16 @@
   "@channelConversationCount": {
     "placeholders": {
       "count": {"type": "int"}
+    }
+  },
+  "muteChannelAction": "Mute",
+  "unmuteChannelAction": "Unmute",
+  "testChannelAction": "Test",
+  "channelMutedLabel": "Muted",
+  "channelMutedByLabel": "Muted by {name}",
+  "@channelMutedByLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
     }
   },
 
@@ -151,6 +166,24 @@
   "categoryUpdatedMessage": "Category updated",
   "categoryNoneOption": "Uncategorized",
   "noPermissionToChange": "You do not have permission to change this conversation.",
+  "conversationHistoryAction": "View history",
+  "conversationHistoryTitle": "History",
+  "conversationHistoryEmpty": "No activity recorded yet.",
+  "conversionsAction": "Conversions",
+  "conversionsEmpty": "Nothing reported to Meta yet.",
+  "reportConversionAction": "Report now",
+  "conversionsTruncatedNote": "Showing the most recent {shown} of {total}.",
+  "@conversionsTruncatedNote": {
+    "placeholders": {
+      "shown": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "internalNotesAction": "Internal notes",
+  "internalNotesTitle": "Internal notes",
+  "internalNotesEmpty": "No internal notes yet.",
+  "internalNoteInputHint": "Add a note for your team…",
+  "addNoteAction": "Add note",
 
   "conversationFallbackTitle": "Conversation",
   "customerDetailsTooltip": "Customer details",
@@ -271,6 +304,9 @@
   "phoneFieldLabel": "Phone",
   "locationFieldLabel": "Location",
   "lastSeenFieldLabel": "Last seen",
+  "confirmedPurchasesFieldLabel": "Confirmed purchases",
+  "customerNotesFieldLabel": "Notes",
+  "recordedDetailsSectionTitle": "Recorded details",
   "conversationsCapsSectionTitle": "CONVERSATIONS",
   "noVisibleConversations": "No conversations you can see.",
   "searchCustomersHint": "Search name, email, phone or handle",
@@ -429,5 +465,61 @@
   },
 
   "misconfiguredTitle": "No API host configured",
-  "misconfiguredMessage": "Build with --dart-define=SCENARIO_API_HOST=host:port"
+  "misconfiguredMessage": "Build with --dart-define=SCENARIO_API_HOST=host:port",
+
+  "editAction": "Edit",
+  "deactivateAction": "Deactivate",
+
+  "editCustomerTitle": "Edit customer",
+  "customerUpdatedSnackbar": "Customer updated",
+  "displayNameFieldLabel": "Display name",
+  "cityFieldLabel": "City",
+  "countryFieldLabel": "Country",
+  "tagsFieldLabel": "Tags",
+
+  "addEmployeeTitle": "Add employee",
+  "editEmployeeTitle": "Edit employee",
+  "employeeAddedSnackbar": "Employee added",
+  "employeeUpdatedSnackbar": "Employee updated",
+  "employeeFormRequiredFieldsError": "Enter an email, first name and last name.",
+  "employeeFormPasswordRequiredError": "Enter a password for the new employee.",
+  "firstNameFieldLabel": "First name",
+  "lastNameFieldLabel": "Last name",
+  "roleFieldLabel": "Role",
+  "employeeTitleFieldLabel": "Title",
+  "avatarUrlFieldLabel": "Avatar URL",
+  "maxOpenChatsFieldLabel": "Max open chats",
+  "newPasswordOptionalFieldLabel": "New password (leave blank to keep current)",
+  "activeFieldLabel": "Active",
+  "teamsFieldLabel": "Teams",
+  "teamsLoadFailedMessage": "Couldn't load teams.",
+  "roleAdmin": "Admin",
+  "roleSupervisor": "Supervisor",
+  "roleTeamLeader": "Team leader",
+  "roleQa": "QA",
+  "roleAgent": "Agent",
+
+  "deactivateEmployeeConfirmTitle": "Deactivate employee?",
+  "deactivateEmployeeConfirmBody": "{name} will no longer be able to sign in or receive conversations. Their history and past conversations are kept.",
+  "@deactivateEmployeeConfirmBody": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "employeeDeactivatedSnackbar": "{name} deactivated",
+  "@employeeDeactivatedSnackbar": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "addTeamTitle": "Add team",
+  "teamAddedSnackbar": "Team added",
+  "addTeamNameRequiredError": "Enter a team name.",
+  "teamNameFieldLabel": "Team name",
+  "descriptionFieldLabel": "Description",
+  "colorFieldLabel": "Color",
+  "leadersFieldLabel": "Leaders",
+  "membersFieldLabel": "Members",
+  "employeesLoadFailedMessage": "Couldn't load employees."
 }

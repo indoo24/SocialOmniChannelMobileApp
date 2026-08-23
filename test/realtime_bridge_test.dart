@@ -264,6 +264,29 @@ void main() {
       },
     );
 
+    // Exercises the same replacement `ConversationController.updateConversation`
+    // performs (`current.copyWith(conversation: ...)`), at the state-shape
+    // level — the same boundary `ConversationState merge preserves pending
+    // messages` above already tests other mutations at, since driving the
+    // real AsyncNotifier requires stubbing the full detail/messages fetch
+    // cascade its build() triggers.
+    test(
+      'ConversationState.copyWith replaces the conversation and keeps messages',
+      () {
+        final messages = [_makeMessage(id: 1, text: 'Hello')];
+        final state = ConversationState(
+          conversation: _makeConversation(id: 1, unreadCount: 3),
+          messages: messages,
+        );
+
+        final freshlyFetched = _makeConversation(id: 1, unreadCount: 0);
+        final updated = state.copyWith(conversation: freshlyFetched);
+
+        expect(updated.conversation.unreadCount, 0);
+        expect(updated.messages, messages);
+      },
+    );
+
     test(
       'RevokedConversation is a one-shot signal: revoke sets it, clear resets it',
       () {

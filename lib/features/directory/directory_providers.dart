@@ -9,6 +9,7 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/conversation.dart';
+import '../../core/models/customer_detail.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
 import '../../core/providers.dart';
@@ -66,11 +67,24 @@ final employeeDirectoryProvider = FutureProvider<List<DirectoryEmployee>>((
   return page.results;
 });
 
+/// Currently-available agents — the whole set, not a client-side filter over
+/// whichever page of [employeeDirectoryProvider] happens to be loaded.
+final onlineEmployeesProvider = FutureProvider<List<DirectoryEmployee>>((ref) {
+  return ref.watch(directoryRepositoryProvider).onlineEmployees();
+});
+
 final customerDirectoryProvider = FutureProvider<List<Customer>>((ref) async {
   final page = await ref
       .watch(directoryRepositoryProvider)
       .customers(search: ref.watch(customerSearchProvider));
   return page.results;
+});
+
+final customerDetailProvider = FutureProvider.family<CustomerDetail, int>((
+  ref,
+  customerId,
+) {
+  return ref.watch(directoryRepositoryProvider).customerDetail(customerId);
 });
 
 final customerConversationsProvider =

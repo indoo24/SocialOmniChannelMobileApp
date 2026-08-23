@@ -87,23 +87,23 @@ class Customer {
   final DateTime? lastSeenAt;
 
   factory Customer.fromJson(Map<String, dynamic> json) => Customer(
-        id: JsonSafe.asInt(json['id'], fallback: -1),
-        displayName: (json['display_name'] as String?) ?? '',
-        lifecycleStage: (json['lifecycle_stage'] as String?) ?? 'UNKNOWN',
-        conversationCount: (json['conversation_count'] as num?)?.toInt() ?? 0,
-        avatarUrl: (json['avatar_url'] as String?) ?? '',
-        email: (json['email'] as String?) ?? '',
-        phone: (json['phone'] as String?) ?? '',
-        city: (json['city'] as String?) ?? '',
-        country: (json['country'] as String?) ?? '',
-        preferredLanguage: (json['preferred_language'] as String?) ?? '',
-        providers: JsonSafe.asObjectList(json['identities'])
-            .map((i) => i is Map ? JsonSafe.asString(i['provider']) : '')
-            .where((p) => p.isNotEmpty)
-            .toSet()
-            .toList(),
-        lastSeenAt: DateTime.tryParse((json['last_seen_at'] as String?) ?? ''),
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    displayName: (json['display_name'] as String?) ?? '',
+    lifecycleStage: (json['lifecycle_stage'] as String?) ?? 'UNKNOWN',
+    conversationCount: (json['conversation_count'] as num?)?.toInt() ?? 0,
+    avatarUrl: (json['avatar_url'] as String?) ?? '',
+    email: (json['email'] as String?) ?? '',
+    phone: (json['phone'] as String?) ?? '',
+    city: (json['city'] as String?) ?? '',
+    country: (json['country'] as String?) ?? '',
+    preferredLanguage: (json['preferred_language'] as String?) ?? '',
+    providers: JsonSafe.asObjectList(json['identities'])
+        .map((i) => i is Map ? JsonSafe.asString(i['provider']) : '')
+        .where((p) => p.isNotEmpty)
+        .toSet()
+        .toList(),
+    lastSeenAt: DateTime.tryParse((json['last_seen_at'] as String?) ?? ''),
+  );
 
   String get subtitle {
     if (email.isNotEmpty) return email;
@@ -122,6 +122,9 @@ class ChannelConnection {
     required this.isActive,
     this.statusDetail = '',
     this.conversationCount = 0,
+    this.isMuted = false,
+    this.mutedAt,
+    this.mutedByName = '',
   });
 
   final int id;
@@ -132,6 +135,16 @@ class ChannelConnection {
   final String statusDetail;
   final int conversationCount;
 
+  /// Muted channels keep ingesting and analysing messages — they simply stop
+  /// appearing in the inbox, stop counting toward badges and stop being
+  /// routed. Distinct from disconnecting, which stops ingestion entirely.
+  final bool isMuted;
+  final DateTime? mutedAt;
+
+  /// Empty when the channel isn't muted, or Scenario acted rather than an
+  /// employee.
+  final String mutedByName;
+
   factory ChannelConnection.fromJson(Map<String, dynamic> json) =>
       ChannelConnection(
         id: JsonSafe.asInt(json['id'], fallback: -1),
@@ -141,9 +154,28 @@ class ChannelConnection {
         isActive: (json['is_active'] as bool?) ?? false,
         statusDetail: (json['status_detail'] as String?) ?? '',
         conversationCount: (json['conversation_count'] as num?)?.toInt() ?? 0,
+        isMuted: (json['is_muted'] as bool?) ?? false,
+        mutedAt: DateTime.tryParse((json['muted_at'] as String?) ?? ''),
+        mutedByName: (json['muted_by_name'] as String?) ?? '',
       );
 
   bool get isConnected => status == 'CONNECTED';
+}
+
+/// The result of `POST /channels/{id}/test/` — always a 200, `ok: false`
+/// included. Never treat a false [ok] as a client error; it's the adapter
+/// honestly reporting it could not verify the connection.
+class ChannelTestResult {
+  const ChannelTestResult({required this.ok, required this.detail});
+
+  final bool ok;
+  final String detail;
+
+  factory ChannelTestResult.fromJson(Map<String, dynamic> json) =>
+      ChannelTestResult(
+        ok: (json['ok'] as bool?) ?? false,
+        detail: (json['detail'] as String?) ?? '',
+      );
 }
 
 // --------------------------------------------------------------------------- //
@@ -213,8 +245,7 @@ class IntelligenceMetrics {
       agentConfirmedPurchases: at('agent_confirmed_purchases'),
       confirmedToday: at('confirmed_today'),
       pendingReview: at('pending_review'),
-      averageLeadScore:
-          (json['average_lead_score'] as num?)?.toDouble() ?? 0,
+      averageLeadScore: (json['average_lead_score'] as num?)?.toDouble() ?? 0,
     );
   }
 }
@@ -239,16 +270,14 @@ class WorkloadEntry {
   final String avatarUrl;
 
   factory WorkloadEntry.fromJson(Map<String, dynamic> json) => WorkloadEntry(
-        id: JsonSafe.asInt(json['id'], fallback: -1),
-        fullName: (json['full_name'] as String?) ?? '',
-        initials: (json['initials'] as String?) ?? '',
-        availability: (json['availability'] as String?) ?? 'OFFLINE',
-        openConversations:
-            (json['open_conversations'] as num?)?.toInt() ?? 0,
-        unreadConversations:
-            (json['unread_conversations'] as num?)?.toInt() ?? 0,
-        avatarUrl: (json['avatar_url'] as String?) ?? '',
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    fullName: (json['full_name'] as String?) ?? '',
+    initials: (json['initials'] as String?) ?? '',
+    availability: (json['availability'] as String?) ?? 'OFFLINE',
+    openConversations: (json['open_conversations'] as num?)?.toInt() ?? 0,
+    unreadConversations: (json['unread_conversations'] as num?)?.toInt() ?? 0,
+    avatarUrl: (json['avatar_url'] as String?) ?? '',
+  );
 }
 
 class TeamMetrics {
@@ -258,9 +287,9 @@ class TeamMetrics {
   final List<WorkloadEntry> workload;
 
   factory TeamMetrics.fromJson(Map<String, dynamic> json) => TeamMetrics(
-        onlineAgents: (json['online_agents'] as num?)?.toInt() ?? 0,
-        workload: JsonSafe.parseList(json['workload'], WorkloadEntry.fromJson),
-      );
+    onlineAgents: (json['online_agents'] as num?)?.toInt() ?? 0,
+    workload: JsonSafe.parseList(json['workload'], WorkloadEntry.fromJson),
+  );
 }
 
 class DashboardSummary {
@@ -306,11 +335,11 @@ class ChannelVolume {
   final int unread;
 
   factory ChannelVolume.fromJson(Map<String, dynamic> json) => ChannelVolume(
-        provider: (json['provider'] as String?) ?? 'MOCK',
-        total: (json['total'] as num?)?.toInt() ?? 0,
-        open: (json['open'] as num?)?.toInt() ?? 0,
-        unread: (json['unread'] as num?)?.toInt() ?? 0,
-      );
+    provider: (json['provider'] as String?) ?? 'MOCK',
+    total: (json['total'] as num?)?.toInt() ?? 0,
+    open: (json['open'] as num?)?.toInt() ?? 0,
+    unread: (json['unread'] as num?)?.toInt() ?? 0,
+  );
 }
 
 /// A directory employee row. Richer than [EmployeeBrief], which only carries
@@ -326,8 +355,11 @@ class DirectoryEmployee {
     required this.availability,
     required this.isActive,
     required this.teamNames,
+    this.teamIds = const [],
     this.avatarUrl = '',
     this.title = '',
+    this.phone = '',
+    this.maxOpenChats,
   });
 
   final int id;
@@ -339,8 +371,17 @@ class DirectoryEmployee {
   final String availability;
   final bool isActive;
   final List<String> teamNames;
+
+  /// Same order as [teamNames] — used to prefill Edit Employee's team
+  /// picker, which needs ids the read model didn't otherwise carry.
+  final List<int> teamIds;
   final String avatarUrl;
   final String title;
+  final String phone;
+
+  /// Null when the backend omits it rather than 0, which is a real (if
+  /// unusual) capacity value.
+  final int? maxOpenChats;
 
   factory DirectoryEmployee.fromJson(Map<String, dynamic> json) =>
       DirectoryEmployee(
@@ -356,7 +397,13 @@ class DirectoryEmployee {
             .map((t) => t is Map ? JsonSafe.asString(t['name']) : '')
             .where((n) => n.isNotEmpty)
             .toList(),
+        teamIds: JsonSafe.asObjectList(json['teams'])
+            .map((t) => t is Map ? JsonSafe.asIntOrNull(t['id']) : null)
+            .whereType<int>()
+            .toList(),
         avatarUrl: (json['avatar_url'] as String?) ?? '',
         title: (json['title'] as String?) ?? '',
+        phone: (json['phone'] as String?) ?? '',
+        maxOpenChats: JsonSafe.asIntOrNull(json['max_open_chats']),
       );
 }

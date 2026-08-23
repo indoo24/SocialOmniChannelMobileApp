@@ -6,12 +6,14 @@
 library;
 
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/router.dart';
 import 'core/config/dev_tls_overrides.dart';
+import 'core/logging/client_error_reporter.dart';
 import 'core/notifications/push_bridge.dart';
 import 'core/preferences/preferences_controller.dart';
 import 'core/providers.dart';
@@ -24,6 +26,25 @@ import 'l10n/generated/app_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Global crash reporting — installed as early as possible so it also
+  // covers a failure during the setup below, before ScenarioApp ever mounts.
+  // Additive only: FlutterError.onError still does what Flutter's own
+  // default would (`FlutterError.presentError`) and then also reports;
+  // handlePlatformError returns `true` so registering it does not change
+  // whether an uncaught async error is fatal — see its doc comment.
+  // `reportClientError` itself never throws and no-ops until
+  // `configureClientErrorReporter` runs (see `ScenarioApp.initState()`), so
+  // neither hook can crash the app or recurse into itself.
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    reportClientError(
+      section: 'flutter',
+      message: details.exceptionAsString(),
+      stack: details.stack?.toString() ?? '',
+    );
+  };
+  PlatformDispatcher.instance.onError = handlePlatformError;
 
   // Must be installed before any HttpClient/WebSocket is created (both Dio
   // and RealtimeClient create theirs lazily, but this is the earliest safe
@@ -58,6 +79,10 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
   @override
   void initState() {
     super.initState();
+    // The earliest point a real ApiClient exists — wires the crash hooks
+    // installed in main() (which ran before this widget existed) to the
+    // app's one HTTP client, rather than standing up a second one.
+    configureClientErrorReporter(ref.read(apiClientProvider));
     // Resume a stored session before the first frame settles, so a signed-in
     // agent never sees the login screen flash past on launch. Theme/locale
     // restore alongside it — both are safe to apply whenever they land,
@@ -108,8 +133,7 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
         home: Scaffold(
           body: ErrorStateView(
             error: _offlineError,
-            onRetry: () =>
-                ref.read(authControllerProvider.notifier).restore(),
+            onRetry: () => ref.read(authControllerProvider.notifier).restore(),
           ),
         ),
       );

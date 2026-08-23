@@ -104,6 +104,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
+  /// Fallback title for the foreground push banner, used only if the server payload carries no notification.title
+  ///
+  /// In en, this message translates to:
+  /// **'New activity'**
+  String get newActivityBannerTitle;
+
   /// No description provided for @tabChannels.
   ///
   /// In en, this message translates to:
@@ -325,6 +331,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, one{1 conversation} other{{count} conversations}}'**
   String channelConversationCount(int count);
+
+  /// No description provided for @muteChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get muteChannelAction;
+
+  /// No description provided for @unmuteChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute'**
+  String get unmuteChannelAction;
+
+  /// No description provided for @testChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Test'**
+  String get testChannelAction;
+
+  /// No description provided for @channelMutedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Muted'**
+  String get channelMutedLabel;
+
+  /// No description provided for @channelMutedByLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Muted by {name}'**
+  String channelMutedByLabel(String name);
 
   /// No description provided for @noConnectionTitle.
   ///
@@ -794,6 +830,78 @@ abstract class AppLocalizations {
   /// **'You do not have permission to change this conversation.'**
   String get noPermissionToChange;
 
+  /// No description provided for @conversationHistoryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'View history'**
+  String get conversationHistoryAction;
+
+  /// No description provided for @conversationHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get conversationHistoryTitle;
+
+  /// No description provided for @conversationHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No activity recorded yet.'**
+  String get conversationHistoryEmpty;
+
+  /// No description provided for @conversionsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversions'**
+  String get conversionsAction;
+
+  /// No description provided for @conversionsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing reported to Meta yet.'**
+  String get conversionsEmpty;
+
+  /// No description provided for @reportConversionAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Report now'**
+  String get reportConversionAction;
+
+  /// No description provided for @conversionsTruncatedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing the most recent {shown} of {total}.'**
+  String conversionsTruncatedNote(int shown, int total);
+
+  /// No description provided for @internalNotesAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal notes'**
+  String get internalNotesAction;
+
+  /// No description provided for @internalNotesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal notes'**
+  String get internalNotesTitle;
+
+  /// No description provided for @internalNotesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No internal notes yet.'**
+  String get internalNotesEmpty;
+
+  /// No description provided for @internalNoteInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a note for your team…'**
+  String get internalNoteInputHint;
+
+  /// No description provided for @addNoteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add note'**
+  String get addNoteAction;
+
   /// No description provided for @conversationFallbackTitle.
   ///
   /// In en, this message translates to:
@@ -1256,6 +1364,24 @@ abstract class AppLocalizations {
   /// **'Last seen'**
   String get lastSeenFieldLabel;
 
+  /// No description provided for @confirmedPurchasesFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed purchases'**
+  String get confirmedPurchasesFieldLabel;
+
+  /// No description provided for @customerNotesFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get customerNotesFieldLabel;
+
+  /// No description provided for @recordedDetailsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded details'**
+  String get recordedDetailsSectionTitle;
+
   /// No description provided for @conversationsCapsSectionTitle.
   ///
   /// In en, this message translates to:
@@ -1711,6 +1837,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Build with --dart-define=SCENARIO_API_HOST=host:port'**
   String get misconfiguredMessage;
+
+  /// No description provided for @editAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get editAction;
+
+  /// No description provided for @deactivateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate'**
+  String get deactivateAction;
+
+  /// No description provided for @editCustomerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit customer'**
+  String get editCustomerTitle;
+
+  /// No description provided for @customerUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer updated'**
+  String get customerUpdatedSnackbar;
+
+  /// No description provided for @displayNameFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Display name'**
+  String get displayNameFieldLabel;
+
+  /// No description provided for @cityFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get cityFieldLabel;
+
+  /// No description provided for @countryFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Country'**
+  String get countryFieldLabel;
+
+  /// No description provided for @tagsFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get tagsFieldLabel;
+
+  /// No description provided for @addEmployeeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add employee'**
+  String get addEmployeeTitle;
+
+  /// No description provided for @editEmployeeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit employee'**
+  String get editEmployeeTitle;
+
+  /// No description provided for @employeeAddedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Employee added'**
+  String get employeeAddedSnackbar;
+
+  /// No description provided for @employeeUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Employee updated'**
+  String get employeeUpdatedSnackbar;
+
+  /// No description provided for @employeeFormRequiredFieldsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an email, first name and last name.'**
+  String get employeeFormRequiredFieldsError;
+
+  /// No description provided for @employeeFormPasswordRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a password for the new employee.'**
+  String get employeeFormPasswordRequiredError;
+
+  /// No description provided for @firstNameFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'First name'**
+  String get firstNameFieldLabel;
+
+  /// No description provided for @lastNameFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last name'**
+  String get lastNameFieldLabel;
+
+  /// No description provided for @roleFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get roleFieldLabel;
+
+  /// No description provided for @employeeTitleFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get employeeTitleFieldLabel;
+
+  /// No description provided for @avatarUrlFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Avatar URL'**
+  String get avatarUrlFieldLabel;
+
+  /// No description provided for @maxOpenChatsFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max open chats'**
+  String get maxOpenChatsFieldLabel;
+
+  /// No description provided for @newPasswordOptionalFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New password (leave blank to keep current)'**
+  String get newPasswordOptionalFieldLabel;
+
+  /// No description provided for @activeFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get activeFieldLabel;
+
+  /// No description provided for @teamsFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Teams'**
+  String get teamsFieldLabel;
+
+  /// No description provided for @teamsLoadFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load teams.'**
+  String get teamsLoadFailedMessage;
+
+  /// No description provided for @roleAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get roleAdmin;
+
+  /// No description provided for @roleSupervisor.
+  ///
+  /// In en, this message translates to:
+  /// **'Supervisor'**
+  String get roleSupervisor;
+
+  /// No description provided for @roleTeamLeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Team leader'**
+  String get roleTeamLeader;
+
+  /// No description provided for @roleQa.
+  ///
+  /// In en, this message translates to:
+  /// **'QA'**
+  String get roleQa;
+
+  /// No description provided for @roleAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent'**
+  String get roleAgent;
+
+  /// No description provided for @deactivateEmployeeConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate employee?'**
+  String get deactivateEmployeeConfirmTitle;
+
+  /// No description provided for @deactivateEmployeeConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will no longer be able to sign in or receive conversations. Their history and past conversations are kept.'**
+  String deactivateEmployeeConfirmBody(String name);
+
+  /// No description provided for @employeeDeactivatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} deactivated'**
+  String employeeDeactivatedSnackbar(String name);
+
+  /// No description provided for @addTeamTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add team'**
+  String get addTeamTitle;
+
+  /// No description provided for @teamAddedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Team added'**
+  String get teamAddedSnackbar;
+
+  /// No description provided for @addTeamNameRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a team name.'**
+  String get addTeamNameRequiredError;
+
+  /// No description provided for @teamNameFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Team name'**
+  String get teamNameFieldLabel;
+
+  /// No description provided for @descriptionFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get descriptionFieldLabel;
+
+  /// No description provided for @colorFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get colorFieldLabel;
+
+  /// No description provided for @leadersFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaders'**
+  String get leadersFieldLabel;
+
+  /// No description provided for @membersFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Members'**
+  String get membersFieldLabel;
+
+  /// No description provided for @employeesLoadFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load employees.'**
+  String get employeesLoadFailedMessage;
 }
 
 class _AppLocalizationsDelegate

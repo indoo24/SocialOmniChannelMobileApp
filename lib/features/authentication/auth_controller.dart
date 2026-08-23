@@ -38,12 +38,11 @@ class AuthState {
     bool? isRestoring,
     bool? restoreFailedOffline,
     bool clearEmployee = false,
-  }) =>
-      AuthState(
-        employee: clearEmployee ? null : (employee ?? this.employee),
-        isRestoring: isRestoring ?? this.isRestoring,
-        restoreFailedOffline: restoreFailedOffline ?? this.restoreFailedOffline,
-      );
+  }) => AuthState(
+    employee: clearEmployee ? null : (employee ?? this.employee),
+    isRestoring: isRestoring ?? this.isRestoring,
+    restoreFailedOffline: restoreFailedOffline ?? this.restoreFailedOffline,
+  );
 }
 
 class AuthController extends Notifier<AuthState> {
@@ -149,8 +148,9 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> setAvailability(String availability) async {
-    final employee =
-        await ref.read(authRepositoryProvider).setAvailability(availability);
+    final employee = await ref
+        .read(authRepositoryProvider)
+        .setAvailability(availability);
     state = state.copyWith(employee: employee);
   }
 
@@ -167,8 +167,9 @@ class AuthController extends Notifier<AuthState> {
   }
 }
 
-final authControllerProvider =
-    NotifierProvider<AuthController, AuthState>(AuthController.new);
+final authControllerProvider = NotifierProvider<AuthController, AuthState>(
+  AuthController.new,
+);
 
 /// Convenience for widgets that only need the employee.
 final currentEmployeeProvider = Provider<Employee?>(
@@ -182,4 +183,11 @@ final currentEmployeeProvider = Provider<Employee?>(
 /// 403 rather than an unauthorised write.
 final canProvider = Provider.family<bool, String>((ref, permission) {
   return ref.watch(currentEmployeeProvider)?.can(permission) ?? false;
+});
+
+/// Presentation-only ADMIN check, for the four directory-management actions
+/// the backend documents as ADMIN only. Combine with [canProvider] rather
+/// than in place of it — see `Employee.isAdmin`'s doc comment.
+final isAdminProvider = Provider<bool>((ref) {
+  return ref.watch(currentEmployeeProvider)?.isAdmin ?? false;
 });

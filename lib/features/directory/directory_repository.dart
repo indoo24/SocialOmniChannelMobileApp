@@ -10,6 +10,7 @@ library;
 
 import '../../core/api/api_client.dart';
 import '../../core/models/conversation.dart';
+import '../../core/models/customer_detail.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
 import '../../core/utils/json_safe.dart';
@@ -38,6 +39,14 @@ class DirectoryRepository {
     return Paginated.fromJson(data, DirectoryEmployee.fromJson);
   }
 
+  /// Currently-available agents, unpaginated. Unlike filtering the paginated
+  /// list client-side, this returns the whole set in one call — the right
+  /// source for an "online now" toggle or a transfer picker.
+  Future<List<DirectoryEmployee>> onlineEmployees() async {
+    final data = await _api.get<dynamic>('/employees/online/');
+    return JsonSafe.parseList(data, DirectoryEmployee.fromJson);
+  }
+
   Future<Paginated<Team>> teams({int page = 1}) async {
     final data = await _api.get<Map<String, dynamic>>(
       '/teams/',
@@ -61,6 +70,86 @@ class DirectoryRepository {
     return Paginated.fromJson(data, Customer.fromJson);
   }
 
+  /// The customer detail representation — adds `confirmed_purchase_count`
+  /// and the full `facts` list that the list representation omits.
+  Future<CustomerDetail> customerDetail(int customerId) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/customers/$customerId/',
+    );
+    return CustomerDetail.fromJson(data);
+  }
+
+  /// `PATCH /customers/{id}/` — gated server-side on `customer.manage`.
+  ///
+  /// [fields] should only carry what actually changed; the caller decides
+  /// that, this method just forwards it. The response is the full detail
+  /// representation, the same shape [customerDetail] returns.
+  Future<CustomerDetail> updateCustomer(
+    int customerId,
+    Map<String, dynamic> fields,
+  ) async {
+    final data = await _api.patch<Map<String, dynamic>>(
+      '/customers/$customerId/',
+      body: fields,
+    );
+    return CustomerDetail.fromJson(data);
+  }
+
+  /// `POST /employees/` — ADMIN only server-side (`employee.manage`).
+  ///
+  /// The response is richer than [DirectoryEmployee] models (working hours,
+  /// work schedule, routing/capacity fields) but every field that type does
+  /// read — id, name, role, availability, active state, teams — is present
+  /// verbatim, so reusing it here is a safe subset rather than a guess.
+  Future<DirectoryEmployee> createEmployee(Map<String, dynamic> fields) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/employees/',
+      body: fields,
+    );
+    return DirectoryEmployee.fromJson(data);
+  }
+
+  /// `PATCH /employees/{id}/` — ADMIN only server-side (`employee.manage`).
+  ///
+  /// [fields] should only carry what the administrator actually changed —
+  /// notably never a password the admin did not intend to reset.
+  Future<DirectoryEmployee> updateEmployee(
+    int employeeId,
+    Map<String, dynamic> fields,
+  ) async {
+    final data = await _api.patch<Map<String, dynamic>>(
+      '/employees/$employeeId/',
+      body: fields,
+    );
+    return DirectoryEmployee.fromJson(data);
+  }
+
+  /// `DELETE /employees/{id}/` — ADMIN only server-side (`employee.manage`).
+  ///
+  /// Despite the verb, this deactivates rather than deletes: employees are
+  /// referenced by messages, assignments and audit events, so the row stays
+  /// and `is_active` flips to false. The backend refuses self-deactivation
+  /// with a 400 rather than a 403 — surface that like any other validation
+  /// error, not as a permission failure.
+  Future<DirectoryEmployee> deactivateEmployee(int employeeId) async {
+    final data = await _api.delete<Map<String, dynamic>>(
+      '/employees/$employeeId/',
+    );
+    return DirectoryEmployee.fromJson(data);
+  }
+
+  /// `POST /teams/` — ADMIN only server-side (`team.manage`).
+  ///
+  /// `member_ids`/`leader_ids` outside the caller's organization are silently
+  /// dropped by the backend rather than attached — nothing to reconcile here.
+  /// [Team.fromJson] already reads a `members`/`leaders` object list (it only
+  /// needs `full_name` off each for the leader-names line and a count for
+  /// the rest), so the created-team response reuses it directly.
+  Future<Team> createTeam(Map<String, dynamic> fields) async {
+    final data = await _api.post<Map<String, dynamic>>('/teams/', body: fields);
+    return Team.fromJson(data);
+  }
+
   Future<Paginated<Conversation>> customerConversations(int customerId) async {
     final data = await _api.get<Map<String, dynamic>>(
       '/customers/$customerId/conversations/',
@@ -74,6 +163,32 @@ class DirectoryRepository {
       query: {'page_size': 50},
     );
     return Paginated.fromJson(data, ChannelConnection.fromJson);
+  }
+
+  /// Stop showing this channel's conversations without disconnecting it.
+  /// Ingestion and analysis continue; the inbox just stops surfacing them.
+  Future<ChannelConnection> muteChannel(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/channels/$channelId/mute/',
+    );
+    return ChannelConnection.fromJson(data);
+  }
+
+  /// Return this channel to the inbox, backlog and all.
+  Future<ChannelConnection> unmuteChannel(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/channels/$channelId/unmute/',
+    );
+    return ChannelConnection.fromJson(data);
+  }
+
+  /// Run the adapter's liveness check. Always 200 — read
+  /// [ChannelTestResult.ok] rather than catching an exception.
+  Future<ChannelTestResult> testChannel(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/channels/$channelId/test/',
+    );
+    return ChannelTestResult.fromJson(data);
   }
 
   /// The conversation-category taxonomy. Open to any active employee, and
