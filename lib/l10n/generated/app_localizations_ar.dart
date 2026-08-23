@@ -415,6 +415,26 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportConversionAction => 'إرسال الآن';
 
   @override
+  String conversionsTruncatedNote(int shown, int total) {
+    return 'عرض أحدث $shown من أصل $total.';
+  }
+
+  @override
+  String get internalNotesAction => 'الملاحظات الداخلية';
+
+  @override
+  String get internalNotesTitle => 'الملاحظات الداخلية';
+
+  @override
+  String get internalNotesEmpty => 'لا توجد ملاحظات داخلية بعد.';
+
+  @override
+  String get internalNoteInputHint => 'أضف ملاحظة لفريقك…';
+
+  @override
+  String get addNoteAction => 'إضافة ملاحظة';
+
+  @override
   String get conversationFallbackTitle => 'المحادثة';
 
   @override
@@ -1001,4 +1021,134 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get misconfiguredMessage =>
       'قم بالبناء باستخدام --dart-define=SCENARIO_API_HOST=host:port';
+
+  @override
+  String get editAction => 'تعديل';
+
+  @override
+  String get deactivateAction => 'إلغاء التفعيل';
+
+  @override
+  String get editCustomerTitle => 'تعديل بيانات العميل';
+
+  @override
+  String get customerUpdatedSnackbar => 'تم تحديث بيانات العميل';
+
+  @override
+  String get displayNameFieldLabel => 'الاسم المعروض';
+
+  @override
+  String get cityFieldLabel => 'المدينة';
+
+  @override
+  String get countryFieldLabel => 'الدولة';
+
+  @override
+  String get tagsFieldLabel => 'الوسوم';
+
+  @override
+  String get addEmployeeTitle => 'إضافة موظف';
+
+  @override
+  String get editEmployeeTitle => 'تعديل بيانات الموظف';
+
+  @override
+  String get employeeAddedSnackbar => 'تمت إضافة الموظف';
+
+  @override
+  String get employeeUpdatedSnackbar => 'تم تحديث بيانات الموظف';
+
+  @override
+  String get employeeFormRequiredFieldsError =>
+      'أدخل البريد الإلكتروني والاسم الأول والاسم الأخير.';
+
+  @override
+  String get employeeFormPasswordRequiredError =>
+      'أدخل كلمة مرور للموظف الجديد.';
+
+  @override
+  String get firstNameFieldLabel => 'الاسم الأول';
+
+  @override
+  String get lastNameFieldLabel => 'الاسم الأخير';
+
+  @override
+  String get roleFieldLabel => 'الدور';
+
+  @override
+  String get employeeTitleFieldLabel => 'المسمى الوظيفي';
+
+  @override
+  String get avatarUrlFieldLabel => 'رابط الصورة الرمزية';
+
+  @override
+  String get maxOpenChatsFieldLabel => 'الحد الأقصى للمحادثات المفتوحة';
+
+  @override
+  String get newPasswordOptionalFieldLabel =>
+      'كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)';
+
+  @override
+  String get activeFieldLabel => 'نشط';
+
+  @override
+  String get teamsFieldLabel => 'الفرق';
+
+  @override
+  String get teamsLoadFailedMessage => 'تعذّر تحميل الفرق.';
+
+  @override
+  String get roleAdmin => 'مسؤول';
+
+  @override
+  String get roleSupervisor => 'مشرف';
+
+  @override
+  String get roleTeamLeader => 'قائد فريق';
+
+  @override
+  String get roleQa => 'ضبط الجودة';
+
+  @override
+  String get roleAgent => 'موظف دعم';
+
+  @override
+  String get deactivateEmployeeConfirmTitle => 'إلغاء تفعيل الموظف؟';
+
+  @override
+  String deactivateEmployeeConfirmBody(String name) {
+    return 'لن يتمكن $name بعد الآن من تسجيل الدخول أو استلام محادثات جديدة. يتم الاحتفاظ بسجله ومحادثاته السابقة.';
+  }
+
+  @override
+  String employeeDeactivatedSnackbar(String name) {
+    return 'تم إلغاء تفعيل $name';
+  }
+
+  @override
+  String get addTeamTitle => 'إضافة فريق';
+
+  @override
+  String get teamAddedSnackbar => 'تمت إضافة الفريق';
+
+  @override
+  String get addTeamNameRequiredError => 'أدخل اسم الفريق.';
+
+  @override
+  String get teamNameFieldLabel => 'اسم الفريق';
+
+  @override
+  String get descriptionFieldLabel => 'الوصف';
+
+  @override
+  String get colorFieldLabel => 'اللون';
+
+  @override
+  String get leadersFieldLabel => 'القادة';
+
+  @override
+  String get membersFieldLabel => 'الأعضاء';
+
+  @override
+  String get employeesLoadFailedMessage => 'تعذّر تحميل الموظفين.';
 }

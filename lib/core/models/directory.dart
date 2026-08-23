@@ -355,8 +355,11 @@ class DirectoryEmployee {
     required this.availability,
     required this.isActive,
     required this.teamNames,
+    this.teamIds = const [],
     this.avatarUrl = '',
     this.title = '',
+    this.phone = '',
+    this.maxOpenChats,
   });
 
   final int id;
@@ -368,8 +371,17 @@ class DirectoryEmployee {
   final String availability;
   final bool isActive;
   final List<String> teamNames;
+
+  /// Same order as [teamNames] — used to prefill Edit Employee's team
+  /// picker, which needs ids the read model didn't otherwise carry.
+  final List<int> teamIds;
   final String avatarUrl;
   final String title;
+  final String phone;
+
+  /// Null when the backend omits it rather than 0, which is a real (if
+  /// unusual) capacity value.
+  final int? maxOpenChats;
 
   factory DirectoryEmployee.fromJson(Map<String, dynamic> json) =>
       DirectoryEmployee(
@@ -385,7 +397,13 @@ class DirectoryEmployee {
             .map((t) => t is Map ? JsonSafe.asString(t['name']) : '')
             .where((n) => n.isNotEmpty)
             .toList(),
+        teamIds: JsonSafe.asObjectList(json['teams'])
+            .map((t) => t is Map ? JsonSafe.asIntOrNull(t['id']) : null)
+            .whereType<int>()
+            .toList(),
         avatarUrl: (json['avatar_url'] as String?) ?? '',
         title: (json['title'] as String?) ?? '',
+        phone: (json['phone'] as String?) ?? '',
+        maxOpenChats: JsonSafe.asIntOrNull(json['max_open_chats']),
       );
 }

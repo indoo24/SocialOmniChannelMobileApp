@@ -413,6 +413,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportConversionAction => 'Report now';
 
   @override
+  String conversionsTruncatedNote(int shown, int total) {
+    return 'Showing the most recent $shown of $total.';
+  }
+
+  @override
+  String get internalNotesAction => 'Internal notes';
+
+  @override
+  String get internalNotesTitle => 'Internal notes';
+
+  @override
+  String get internalNotesEmpty => 'No internal notes yet.';
+
+  @override
+  String get internalNoteInputHint => 'Add a note for your team…';
+
+  @override
+  String get addNoteAction => 'Add note';
+
+  @override
   String get conversationFallbackTitle => 'Conversation';
 
   @override
@@ -976,4 +996,134 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get misconfiguredMessage =>
       'Build with --dart-define=SCENARIO_API_HOST=host:port';
+
+  @override
+  String get editAction => 'Edit';
+
+  @override
+  String get deactivateAction => 'Deactivate';
+
+  @override
+  String get editCustomerTitle => 'Edit customer';
+
+  @override
+  String get customerUpdatedSnackbar => 'Customer updated';
+
+  @override
+  String get displayNameFieldLabel => 'Display name';
+
+  @override
+  String get cityFieldLabel => 'City';
+
+  @override
+  String get countryFieldLabel => 'Country';
+
+  @override
+  String get tagsFieldLabel => 'Tags';
+
+  @override
+  String get addEmployeeTitle => 'Add employee';
+
+  @override
+  String get editEmployeeTitle => 'Edit employee';
+
+  @override
+  String get employeeAddedSnackbar => 'Employee added';
+
+  @override
+  String get employeeUpdatedSnackbar => 'Employee updated';
+
+  @override
+  String get employeeFormRequiredFieldsError =>
+      'Enter an email, first name and last name.';
+
+  @override
+  String get employeeFormPasswordRequiredError =>
+      'Enter a password for the new employee.';
+
+  @override
+  String get firstNameFieldLabel => 'First name';
+
+  @override
+  String get lastNameFieldLabel => 'Last name';
+
+  @override
+  String get roleFieldLabel => 'Role';
+
+  @override
+  String get employeeTitleFieldLabel => 'Title';
+
+  @override
+  String get avatarUrlFieldLabel => 'Avatar URL';
+
+  @override
+  String get maxOpenChatsFieldLabel => 'Max open chats';
+
+  @override
+  String get newPasswordOptionalFieldLabel =>
+      'New password (leave blank to keep current)';
+
+  @override
+  String get activeFieldLabel => 'Active';
+
+  @override
+  String get teamsFieldLabel => 'Teams';
+
+  @override
+  String get teamsLoadFailedMessage => 'Couldn\'t load teams.';
+
+  @override
+  String get roleAdmin => 'Admin';
+
+  @override
+  String get roleSupervisor => 'Supervisor';
+
+  @override
+  String get roleTeamLeader => 'Team leader';
+
+  @override
+  String get roleQa => 'QA';
+
+  @override
+  String get roleAgent => 'Agent';
+
+  @override
+  String get deactivateEmployeeConfirmTitle => 'Deactivate employee?';
+
+  @override
+  String deactivateEmployeeConfirmBody(String name) {
+    return '$name will no longer be able to sign in or receive conversations. Their history and past conversations are kept.';
+  }
+
+  @override
+  String employeeDeactivatedSnackbar(String name) {
+    return '$name deactivated';
+  }
+
+  @override
+  String get addTeamTitle => 'Add team';
+
+  @override
+  String get teamAddedSnackbar => 'Team added';
+
+  @override
+  String get addTeamNameRequiredError => 'Enter a team name.';
+
+  @override
+  String get teamNameFieldLabel => 'Team name';
+
+  @override
+  String get descriptionFieldLabel => 'Description';
+
+  @override
+  String get colorFieldLabel => 'Color';
+
+  @override
+  String get leadersFieldLabel => 'Leaders';
+
+  @override
+  String get membersFieldLabel => 'Members';
+
+  @override
+  String get employeesLoadFailedMessage => 'Couldn\'t load employees.';
 }

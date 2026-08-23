@@ -1,20 +1,23 @@
 /// Teams — how conversations are grouped for routing.
 ///
-/// Read-only, for the same reason as Employees: creating and editing a team is
-/// gated behind `team.manage` (ADMIN only) on the web, and an org-configuration
-/// form is not work anyone does from a phone. What matters here is seeing which
-/// team owns what, which every role can already read.
+/// Reading is open to every role with `team.view`. Add Team is gated on
+/// `isAdminProvider && Perm.teamManage` together, same belt-and-suspenders
+/// reasoning as `employees_screen.dart` — edit/delete are out of scope, per
+/// the spec's "do not implement team edit/delete unless requested."
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/directory.dart';
+import '../../core/models/employee.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../authentication/auth_controller.dart';
+import 'add_team_sheet.dart';
 import 'directory_providers.dart';
 
 class TeamsScreen extends ConsumerWidget {
@@ -23,9 +26,18 @@ class TeamsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teams = ref.watch(teamsProvider);
+    final canManage =
+        ref.watch(isAdminProvider) && ref.watch(canProvider(Perm.teamManage));
 
     return SectionScaffold(
       title: context.l10n.navTeams,
+      floatingActionButton: canManage
+          ? FloatingActionButton(
+              tooltip: context.l10n.addTeamTitle,
+              onPressed: () => showAddTeamSheet(context),
+              child: const Icon(Icons.add),
+            )
+          : null,
       onRefresh: () async {
         ref.invalidate(teamsProvider);
         await ref.read(teamsProvider.future);

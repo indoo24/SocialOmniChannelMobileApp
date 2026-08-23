@@ -1,24 +1,29 @@
 /// Employees — the organization's directory.
 ///
-/// Read-only on mobile, deliberately. The web client gates creating and editing
-/// employees behind `employee.manage` (ADMIN only); rather than reproduce that
-/// form on a phone, this shows the directory every role can already read — the
-/// part an agent actually needs mid-shift, to find who is online before
-/// transferring a conversation.
+/// Reading is open to every role with `employee.view`, same as before.
+/// Add/Edit/Deactivate are gated on `isAdminProvider && Perm.employeeManage`
+/// together — belt and suspenders on top of the backend's own ADMIN-only
+/// enforcement, per the spec's "the UI must also check the application's
+/// current authenticated employee role/permission state" rather than trust
+/// the capability mirror alone.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/directory.dart';
+import '../../core/models/employee.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../authentication/auth_controller.dart';
+import 'deactivate_employee_dialog.dart';
 import 'directory_providers.dart';
 import 'directory_search_field.dart';
+import 'employee_form_sheet.dart';
 
 class EmployeesScreen extends ConsumerStatefulWidget {
   const EmployeesScreen({super.key});
@@ -34,6 +39,10 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   @override
   Widget build(BuildContext context) {
     final employees = ref.watch(employeeDirectoryProvider);
+    final currentEmployee = ref.watch(currentEmployeeProvider);
+    final canManage =
+        ref.watch(isAdminProvider) &&
+        ref.watch(canProvider(Perm.employeeManage));
 
     return SectionScaffold(
       title: context.l10n.navEmployees,
@@ -56,6 +65,13 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
           },
         ),
       ],
+      floatingActionButton: canManage
+          ? FloatingActionButton(
+              tooltip: context.l10n.addEmployeeTitle,
+              onPressed: () => showAddEmployeeSheet(context),
+              child: const Icon(Icons.person_add_alt_1),
+            )
+          : null,
       onRefresh: () async {
         ref.invalidate(employeeDirectoryProvider);
         ref.invalidate(onlineEmployeesProvider);
@@ -116,8 +132,11 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                           itemCount: list.length,
                           separatorBuilder: (_, _) =>
                               const Divider(height: 1, indent: 68),
-                          itemBuilder: (context, index) =>
-                              _EmployeeRow(employee: list[index]),
+                          itemBuilder: (context, index) => _EmployeeRow(
+                            employee: list[index],
+                            canManage: canManage,
+                            isSelf: list[index].id == currentEmployee?.id,
+                          ),
                         ),
                 ),
               ),
@@ -165,16 +184,57 @@ class _FilterBar extends StatelessWidget {
   }
 }
 
-class _EmployeeRow extends StatelessWidget {
-  const _EmployeeRow({required this.employee});
+class _EmployeeRow extends ConsumerWidget {
+  const _EmployeeRow({
+    required this.employee,
+    required this.canManage,
+    required this.isSelf,
+  });
 
   final DirectoryEmployee employee;
 
+  /// `isAdminProvider && Perm.employeeManage`, computed once by the screen —
+  /// see its own doc comment for why both are checked.
+  final bool canManage;
+
+  /// The backend refuses to deactivate the caller's own account (400). Hiding
+  /// the action here is a UX nicety on top of that, not the enforcement.
+  final bool isSelf;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
     return ListTile(
+      onTap: canManage
+          ? () => showEditEmployeeSheet(context, employee: employee)
+          : null,
+      trailing: canManage
+          ? PopupMenuButton<_EmployeeAction>(
+              onSelected: (action) => switch (action) {
+                _EmployeeAction.edit => showEditEmployeeSheet(
+                  context,
+                  employee: employee,
+                ),
+                _EmployeeAction.deactivate => confirmDeactivateEmployee(
+                  context,
+                  ref,
+                  employee: employee,
+                ),
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: _EmployeeAction.edit,
+                  child: Text(context.l10n.editAction),
+                ),
+                if (!isSelf && employee.isActive)
+                  PopupMenuItem(
+                    value: _EmployeeAction.deactivate,
+                    child: Text(context.l10n.deactivateAction),
+                  ),
+              ],
+            )
+          : null,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: Space.lg,
         vertical: Space.xs,
@@ -244,3 +304,5 @@ class _EmployeeRow extends StatelessWidget {
     _ => BadgeTone.neutral,
   };
 }
+
+enum _EmployeeAction { edit, deactivate }

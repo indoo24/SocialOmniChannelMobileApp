@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
 import '../../core/models/customer_detail.dart';
+import '../../core/models/employee.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
@@ -22,6 +23,7 @@ import '../../l10n/l10n_extensions.dart';
 import '../conversations/inbox_screen.dart' show ConversationRow;
 import '../authentication/auth_controller.dart';
 import 'directory_providers.dart';
+import 'edit_customer_sheet.dart';
 
 class CustomerProfileScreen extends ConsumerWidget {
   const CustomerProfileScreen({required this.customerId, super.key});
@@ -33,6 +35,7 @@ class CustomerProfileScreen extends ConsumerWidget {
     final detailAsync = ref.watch(customerDetailProvider(customerId));
     final conversations = ref.watch(customerConversationsProvider(customerId));
     final employee = ref.watch(currentEmployeeProvider);
+    final canEdit = ref.watch(canProvider(Perm.customerManage));
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -40,6 +43,15 @@ class CustomerProfileScreen extends ConsumerWidget {
         title: Text(
           detailAsync.value?.displayName ?? context.l10n.customerTitle,
         ),
+        actions: [
+          if (canEdit && detailAsync.value != null)
+            IconButton(
+              tooltip: context.l10n.editCustomerTitle,
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () =>
+                  showEditCustomerSheet(context, customer: detailAsync.value!),
+            ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(Space.lg),

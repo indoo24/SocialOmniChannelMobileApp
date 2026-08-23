@@ -17,6 +17,7 @@ import '../../features/authentication/auth_controller.dart';
 import '../../features/conversations/inbox_controller.dart';
 import '../../features/messages/conversation_controller.dart';
 import '../../features/messages/intelligence_providers.dart';
+import '../../features/messages/notes_controller.dart';
 import '../api/api_exception.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
@@ -404,8 +405,12 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
           );
         }
 
+      // The internal-notes sheet has its own provider — invalidate it
+      // unconditionally (cheap even when nobody is watching it right now),
+      // matching how intelligenceUpdated below handles its own provider.
       case RealtimeEvents.noteCreated:
         if (conversationId != null) {
+          ref.invalidate(notesControllerProvider(conversationId));
           _refreshConversation(
             ref,
             conversationId,

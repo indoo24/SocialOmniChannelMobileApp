@@ -26,6 +26,7 @@ class CustomerDetail {
     this.country = '',
     this.preferredLanguage = '',
     this.notes = '',
+    this.tags = '',
     this.providers = const [],
     this.lastSeenAt,
     this.firstSeenAt,
@@ -54,6 +55,9 @@ class CustomerDetail {
   final String country;
   final String preferredLanguage;
   final String notes;
+
+  /// Free-text tags, as the backend stores them — a single string, not a list.
+  final String tags;
 
   /// Channels this customer has been seen on.
   final List<String> providers;
@@ -86,6 +90,7 @@ class CustomerDetail {
     country: JsonSafe.asString(json['country']),
     preferredLanguage: JsonSafe.asString(json['preferred_language']),
     notes: JsonSafe.asString(json['notes']),
+    tags: JsonSafe.asString(json['tags']),
     providers: JsonSafe.asObjectList(json['identities'])
         .map((i) => i is Map ? JsonSafe.asString(i['provider']) : '')
         .where((p) => p.isNotEmpty)

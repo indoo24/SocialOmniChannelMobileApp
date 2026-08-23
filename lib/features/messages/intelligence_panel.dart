@@ -56,8 +56,14 @@ class _IntelligencePanel extends ConsumerStatefulWidget {
 class _IntelligencePanelState extends ConsumerState<_IntelligencePanel> {
   bool _analyzing = false;
 
-  void _invalidateIntelligence() =>
-      ref.invalidate(conversationIntelligenceProvider(widget.conversationId));
+  void _invalidateIntelligence() {
+    // Called from child sections after an await (e.g. _setScore(),
+    // _decide()) — ref.invalidate() throws "Using ref when a widget is
+    // about to or has been unmounted" if this panel's sheet closed while
+    // that request was in flight.
+    if (!mounted) return;
+    ref.invalidate(conversationIntelligenceProvider(widget.conversationId));
+  }
 
   void _showMessage(String message, {bool isError = false}) {
     if (!mounted) return;
@@ -408,7 +414,13 @@ class _LeadScoreSectionState extends ConsumerState<_LeadScoreSection> {
         ],
       ),
     );
-    controller.dispose();
+    // Not disposed: showDialog's Future resolves the instant Navigator.pop()
+    // runs in the Save button, before the AlertDialog's own exit transition
+    // has finished animating this TextField off screen. Disposing here raced
+    // that still-mounted TextField and threw "A TextEditingController was
+    // used after being disposed." Dropping the reference is enough — this
+    // controller was never retained beyond this function, so it is
+    // collectible as soon as the dialog actually unmounts either way.
     if (entered != null) await _setScore(entered);
   }
 
@@ -564,7 +576,9 @@ class _PurchaseClaimSectionState extends ConsumerState<_PurchaseClaimSection> {
       ),
     );
     final note = noteController.text.trim();
-    noteController.dispose();
+    // Not disposed — see the matching comment in _LeadScoreSectionState's
+    // _editScore(): disposing here would race the AlertDialog's still-
+    // animating exit transition and can throw a use-after-dispose error.
     if (proceed != true) return;
 
     setState(() => _busy = true);
@@ -577,7 +591,11 @@ class _PurchaseClaimSectionState extends ConsumerState<_PurchaseClaimSection> {
             note: note,
           );
       widget.onChanged();
-      ref.invalidate(purchaseConfirmationsProvider(widget.conversationId));
+      // ref.invalidate() on this State's own ref throws if this sheet
+      // closed while confirmPurchase() was in flight.
+      if (mounted) {
+        ref.invalidate(purchaseConfirmationsProvider(widget.conversationId));
+      }
       widget.onMessage(
         confirmed ? 'Purchase confirmed' : 'Recorded as not confirmed',
       );

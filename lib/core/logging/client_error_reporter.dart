@@ -70,3 +70,27 @@ Future<void> reportClientError({
     // reporting, or double-faulting inside a global error hook.
   }
 }
+
+/// `main.dart`'s `PlatformDispatcher.instance.onError` handler.
+///
+/// **Must return `true`.** Per `dart:ui`'s own contract on
+/// `PlatformDispatcher.onError`: returning `false` tells the engine the
+/// error was *not* handled, and "the VM or the process may exit" as a
+/// result. With no handler registered at all, an uncaught async error
+/// outside Flutter's widget-build error zone is non-fatal — the engine's
+/// embedder-level fallback logs it and the app keeps running, which is what
+/// let every `on ApiException catch` (never a bare `catch`) throughout this
+/// app degrade safely for anything else that could be thrown. Registering a
+/// handler that then declines to handle the error (`return false`) does not
+/// reproduce that fallback; it changes the engine's fatality decision for
+/// every such error app-wide, turning what used to be a silently logged,
+/// survivable error into a crash. Returning `true` here reports the error
+/// exactly as before while restoring that original resilience.
+bool handlePlatformError(Object error, StackTrace stack) {
+  reportClientError(
+    section: 'async',
+    message: error.toString(),
+    stack: stack.toString(),
+  );
+  return true;
+}

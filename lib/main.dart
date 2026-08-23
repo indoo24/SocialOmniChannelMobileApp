@@ -29,10 +29,10 @@ Future<void> main() async {
 
   // Global crash reporting — installed as early as possible so it also
   // covers a failure during the setup below, before ScenarioApp ever mounts.
-  // Additive only: each handler still does what Flutter's own default would
-  // (`FlutterError.presentError`, and — by returning `false` — letting the
-  // engine's own default handling of an unhandled async error proceed
-  // exactly as if this hook were never installed) and then also reports.
+  // Additive only: FlutterError.onError still does what Flutter's own
+  // default would (`FlutterError.presentError`) and then also reports;
+  // handlePlatformError returns `true` so registering it does not change
+  // whether an uncaught async error is fatal — see its doc comment.
   // `reportClientError` itself never throws and no-ops until
   // `configureClientErrorReporter` runs (see `ScenarioApp.initState()`), so
   // neither hook can crash the app or recurse into itself.
@@ -44,14 +44,7 @@ Future<void> main() async {
       stack: details.stack?.toString() ?? '',
     );
   };
-  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
-    reportClientError(
-      section: 'async',
-      message: error.toString(),
-      stack: stack.toString(),
-    );
-    return false;
-  };
+  PlatformDispatcher.instance.onError = handlePlatformError;
 
   // Must be installed before any HttpClient/WebSocket is created (both Dio
   // and RealtimeClient create theirs lazily, but this is the earliest safe

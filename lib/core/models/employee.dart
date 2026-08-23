@@ -112,6 +112,16 @@ class Employee {
 
   bool can(String permission) => permissions.contains(permission);
 
+  /// True for the ADMIN role specifically.
+  ///
+  /// Backs the four directory-management actions the backend documents as
+  /// ADMIN only (add/edit/deactivate employee, add team). Those already carry
+  /// a capability slug (`employee.manage`, `team.manage`) that `can()` can
+  /// check, but the spec is explicit that the UI must also gate on the role
+  /// itself rather than trust the capability mirror alone — see `Perm`'s doc
+  /// comment on why that mirror is presentation-only in the first place.
+  bool get isAdmin => role == 'ADMIN';
+
   Employee copyWith({String? availability}) => Employee(
     id: id,
     email: email,
@@ -149,8 +159,11 @@ class Perm {
   static const intelligenceOverrideScore = 'intelligence.override_score';
   static const conversionReport = 'conversion.report';
   static const customerView = 'customer.view';
+  static const customerManage = 'customer.manage';
   static const employeeView = 'employee.view';
+  static const employeeManage = 'employee.manage';
   static const teamView = 'team.view';
+  static const teamManage = 'team.manage';
   static const analyticsView = 'analytics.view';
   static const channelView = 'channel.view';
   static const channelManage = 'channel.manage';

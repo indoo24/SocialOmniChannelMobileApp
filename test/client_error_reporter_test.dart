@@ -166,4 +166,54 @@ void main() {
       expect(sendAttempts, 1);
     },
   );
+
+  group('handlePlatformError', () {
+    // Regression test for the crash this fixed: registering
+    // PlatformDispatcher.instance.onError and returning false tells the
+    // engine the error was NOT handled, which — per dart:ui's own
+    // documented contract — "the VM or the process may exit" as a result.
+    // With no handler installed at all, that same uncaught error was
+    // non-fatal (logged by the engine's own fallback). Returning false here
+    // silently turned every `on ApiException catch`-only handler across the
+    // app (any other thrown type was never caught) into a potential crash.
+    // This must always return true.
+    test('returns true, so registering it cannot make an error fatal', () {
+      final client = _clientReturning((_) => _json('', 204));
+      configureClientErrorReporter(client);
+
+      final handled = handlePlatformError(
+        StateError('boom'),
+        StackTrace.current,
+      );
+
+      expect(handled, isTrue);
+    });
+
+    test('still reports the error with section "async"', () async {
+      RequestOptions? captured;
+      final client = _clientReturning((options) {
+        captured = options;
+        return _json('', 204);
+      });
+      configureClientErrorReporter(client);
+
+      handlePlatformError(StateError('boom'), StackTrace.current);
+      // reportClientError isn't awaited by the handler (PlatformDispatcher's
+      // onError is synchronous) — pump the event queue so its network call,
+      // which goes through a few more turns than a single microtask, settles.
+      await pumpEventQueue();
+
+      expect(captured!.data['section'], 'async');
+      expect(captured!.data['message'], 'Bad state: boom');
+    });
+
+    test('never throws, even when nothing is configured', () {
+      resetClientErrorReporterForTest();
+
+      expect(
+        () => handlePlatformError(StateError('boom'), StackTrace.current),
+        returnsNormally,
+      );
+    });
+  });
 }

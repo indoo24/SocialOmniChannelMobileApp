@@ -52,45 +52,78 @@ class _HistorySheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final async = ref.watch(conversationEventsProvider(conversationId));
 
-    return ListView(
+    // A CustomScrollView/SliverList, not ListView(children: [...]) — every
+    // status/priority/category/assignment/note/intelligence change logs an
+    // event, so a conversation reused heavily across a long test session can
+    // accumulate a large history. An eager Column(children: [for (...) ...])
+    // builds and lays out every row synchronously in a single frame instead
+    // of only the ones actually visible — see the matching fix and comment
+    // in conversion_sheet.dart, which hit this same shape as a real,
+    // device-confirmed ANR ("Input dispatching timed out").
+    return CustomScrollView(
       controller: scrollController,
-      padding: const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.xxl),
-      children: [
-        Text(
-          context.l10n.conversationHistoryTitle,
-          style: theme.textTheme.titleLarge,
-        ),
-        const SizedBox(height: Space.md),
-        async.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.all(Space.xl),
-            child: LoadingState(),
-          ),
-          error: (error, _) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: Space.lg),
-            child: ErrorStateView(
-              error: error,
-              onRetry: () =>
-                  ref.invalidate(conversationEventsProvider(conversationId)),
-            ),
-          ),
-          // Newest first — the backend's own order is chronological (oldest
-          // first, for a natural audit-log read), but a "what just happened"
-          // panel reads better with the most recent entry on top.
-          data: (events) => events.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(vertical: Space.lg),
-                  child: Text(
-                    context.l10n.conversationHistoryEmpty,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                )
-              : Column(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.xxl),
+          sliver: SliverMainAxisGroup(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final event in events.reversed)
-                      _HistoryRow(event: event),
+                    Text(
+                      context.l10n.conversationHistoryTitle,
+                      style: theme.textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: Space.md),
                   ],
                 ),
+              ),
+              async.when(
+                loading: () => const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(Space.xl),
+                    child: LoadingState(),
+                  ),
+                ),
+                error: (error, _) => SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: Space.lg),
+                    child: ErrorStateView(
+                      error: error,
+                      onRetry: () => ref.invalidate(
+                        conversationEventsProvider(conversationId),
+                      ),
+                    ),
+                  ),
+                ),
+                // Newest first — the backend's own order is chronological
+                // (oldest first, for a natural audit-log read), but a "what
+                // just happened" panel reads better with the most recent
+                // entry on top.
+                data: (events) {
+                  if (events.isEmpty) {
+                    return SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: Space.lg),
+                        child: Text(
+                          context.l10n.conversationHistoryEmpty,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
+                    );
+                  }
+                  final reversed = events.reversed.toList(growable: false);
+                  return SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => _HistoryRow(event: reversed[index]),
+                      childCount: reversed.length,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
