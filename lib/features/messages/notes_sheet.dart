@@ -193,7 +193,15 @@ class _NoteRow extends StatelessWidget {
                 vertical: Space.sm,
               ),
               decoration: BoxDecoration(
-                color: ScenarioColors.warningSurface,
+                // warningSurface is a fixed pale colour, not a dark-mode
+                // variant — text.bodyMedium's default foreground flips to a
+                // light colour in dark mode, which is invisible against it.
+                // Same fix badges.dart already uses for this tone: a
+                // translucent overlay of the accent colour over the dark
+                // surface instead, which reads correctly with light text.
+                color: theme.brightness == Brightness.dark
+                    ? ScenarioColors.warning.withValues(alpha: 0.18)
+                    : ScenarioColors.warningSurface,
                 borderRadius: BorderRadius.circular(Radii.md),
                 border: Border.all(
                   color: ScenarioColors.warning.withValues(alpha: 0.35),
@@ -221,9 +229,7 @@ class _NoteRow extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text(note.body, style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.secondary,
-                  )),
+                  Text(note.body, style: theme.textTheme.bodyMedium),
                 ],
               ),
             ),
