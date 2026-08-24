@@ -72,13 +72,13 @@ class ApiException implements Exception {
   }
 
   static String _fallbackFor(int status) => switch (status) {
-        400 => 'That request was not valid.',
-        403 => 'You do not have permission to do that.',
-        404 => 'Not found.',
-        429 => 'Too many requests. Please wait a moment.',
-        >= 500 => 'The server had a problem. Please try again.',
-        _ => 'Something went wrong.',
-      };
+    400 => 'That request was not valid.',
+    403 => 'You do not have permission to do that.',
+    404 => 'Not found.',
+    429 => 'Too many requests. Please wait a moment.',
+    >= 500 => 'The server had a problem. Please try again.',
+    _ => 'Something went wrong.',
+  };
 
   @override
   String toString() => 'ApiException($statusCode, $code): $message';
@@ -90,11 +90,11 @@ class ApiException implements Exception {
 /// clear credentials, return to login, preserve where the user was going.
 class SessionExpiredException extends ApiException {
   SessionExpiredException()
-      : super(
-          statusCode: 401,
-          code: 'session_expired',
-          message: 'Your session has expired. Please sign in again.',
-        );
+    : super(
+        statusCode: 401,
+        code: 'session_expired',
+        message: 'Your session has expired. Please sign in again.',
+      );
 }
 
 /// Transport failed — no connection, timeout, DNS, TLS.
@@ -103,7 +103,7 @@ class SessionExpiredException extends ApiException {
 /// whereas a 400 will fail identically no matter how many times it is sent.
 class NetworkException extends ApiException {
   NetworkException(String message)
-      : super(statusCode: 0, code: 'network', message: message);
+    : super(statusCode: 0, code: 'network', message: message);
 
   bool get isRetryable => true;
 }

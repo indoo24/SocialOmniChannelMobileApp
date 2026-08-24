@@ -8,7 +8,12 @@ library;
 
 import '../../core/api/api_client.dart';
 import '../../core/models/conversation.dart';
+import '../../core/models/conversation_event.dart';
+import '../../core/models/conversion_event.dart';
+import '../../core/models/intelligence.dart';
 import '../../core/models/message.dart';
+import '../../core/realtime/realtime_logger.dart';
+import '../../core/utils/json_safe.dart';
 
 /// Inbox filters, matching the query parameters the web inbox sends.
 class ConversationFilters {
@@ -51,15 +56,14 @@ class ConversationFilters {
     bool clearStatus = false,
     bool clearPriority = false,
     bool clearProvider = false,
-  }) =>
-      ConversationFilters(
-        status: clearStatus ? null : (status ?? this.status),
-        priority: clearPriority ? null : (priority ?? this.priority),
-        provider: clearProvider ? null : (provider ?? this.provider),
-        assignedToMe: assignedToMe ?? this.assignedToMe,
-        unassigned: unassigned ?? this.unassigned,
-        search: search ?? this.search,
-      );
+  }) => ConversationFilters(
+    status: clearStatus ? null : (status ?? this.status),
+    priority: clearPriority ? null : (priority ?? this.priority),
+    provider: clearProvider ? null : (provider ?? this.provider),
+    assignedToMe: assignedToMe ?? this.assignedToMe,
+    unassigned: unassigned ?? this.unassigned,
+    search: search ?? this.search,
+  );
 
   bool get isEmpty =>
       status == null &&
@@ -94,15 +98,60 @@ class ConversationRepository {
 
   Future<Map<String, int>> counts() async {
     final data = await _api.get<Map<String, dynamic>>('/conversations/counts/');
-    return data.map((key, value) => MapEntry(key, (value as num?)?.toInt() ?? 0));
+    return data.map(
+      (key, value) => MapEntry(key, (value as num?)?.toInt() ?? 0),
+    );
   }
 
-  Future<Paginated<Message>> messages(int conversationId, {int page = 1}) async {
+  Future<Paginated<Message>> messages(
+    int conversationId, {
+    int page = 1,
+  }) async {
+    final convoIdStr = conversationId.toString();
+    final trace = RealtimeLogger.findTraceByMessageOrConvo(null, convoIdStr);
+    final traceId = trace?.traceId;
+
+    RealtimeLogger.markStep(
+      traceId ?? 'api_$convoIdStr',
+      'API_REQUEST_START',
+      conversationId: convoIdStr,
+    );
+    RealtimeLogger.log(
+      'API',
+      'CONVERSATION_MESSAGES_REQUEST_START',
+      traceId: traceId,
+      conversationId: convoIdStr,
+      data: {'page': page},
+    );
+
+    final reqStart = DateTime.now();
+
     final data = await _api.get<Map<String, dynamic>>(
       '/conversations/$conversationId/messages/',
       query: {'page': page},
     );
-    return Paginated.fromJson(data, Message.fromJson);
+
+    final duration = DateTime.now().difference(reqStart).inMilliseconds;
+    final paginated = Paginated.fromJson(data, Message.fromJson);
+
+    RealtimeLogger.markStep(
+      traceId ?? 'api_$convoIdStr',
+      'API_REQUEST_SUCCESS',
+      conversationId: convoIdStr,
+    );
+    RealtimeLogger.log(
+      'API',
+      'CONVERSATION_MESSAGES_RESPONSE',
+      traceId: traceId,
+      conversationId: convoIdStr,
+      data: {
+        'status': 200,
+        'duration': '${duration}ms',
+        'messagesCount': paginated.results.length,
+      },
+    );
+
+    return paginated;
   }
 
   /// Send a reply through the backend's own provider adapter.
@@ -127,18 +176,17 @@ class ConversationRepository {
     int? assigneeId,
     int? teamId,
     String note = '',
-  }) =>
-      _api.post<dynamic>(
-        '/conversations/$conversationId/assign/',
-        body: {
-          // Null-aware map entries: an omitted key means "leave unchanged",
-          // which is exactly how the backend reads a missing field. Sending
-          // an explicit null would unassign instead.
-          'assignee_id': ?assigneeId,
-          'team_id': ?teamId,
-          if (note.isNotEmpty) 'note': note,
-        },
-      );
+  }) => _api.post<dynamic>(
+    '/conversations/$conversationId/assign/',
+    body: {
+      // Null-aware map entries: an omitted key means "leave unchanged",
+      // which is exactly how the backend reads a missing field. Sending
+      // an explicit null would unassign instead.
+      'assignee_id': ?assigneeId,
+      'team_id': ?teamId,
+      if (note.isNotEmpty) 'note': note,
+    },
+  );
 
   Future<void> changeStatus(int conversationId, String status) =>
       _api.post<dynamic>(
@@ -159,8 +207,12 @@ class ConversationRepository {
       );
 
   Future<List<InternalNote>> notes(int conversationId) async {
-    final data = await _api.get<dynamic>('/conversations/$conversationId/notes/');
-    final rows = data is Map ? (data['results'] as List? ?? const []) : (data as List);
+    final data = await _api.get<dynamic>(
+      '/conversations/$conversationId/notes/',
+    );
+    final rows = data is Map
+        ? (data['results'] as List? ?? const [])
+        : (data as List);
     return rows
         .map((n) => InternalNote.fromJson(Map<String, dynamic>.from(n as Map)))
         .toList();
@@ -172,5 +224,116 @@ class ConversationRepository {
       body: {'body': body},
     );
     return InternalNote.fromJson(data);
+  }
+
+  /// Remove a message from the timeline. ADMIN/SUPERVISOR only, server-side.
+  ///
+  /// Soft delete: the row survives for audit and webhook idempotency but
+  /// stops being shown. Does **not** unsend the message on the platform — the
+  /// customer still has it.
+  Future<void> deleteMessage(
+    int conversationId,
+    int messageId, {
+    String reason = '',
+  }) => _api.delete<dynamic>(
+    '/conversations/$conversationId/messages/$messageId/',
+    body: reason.isNotEmpty ? {'reason': reason} : null,
+  );
+
+  // ------------------------------------------------------------ intelligence
+  /// The current advisory read. Legitimately `null` before the analyzer has
+  /// run — not an error and not a zero score.
+  Future<ConversationIntelligence?> intelligence(int conversationId) async {
+    final data = await _api.get<dynamic>(
+      '/conversations/$conversationId/intelligence/',
+    );
+    return data is Map
+        ? ConversationIntelligence.fromJson(JsonSafe.asMap(data))
+        : null;
+  }
+
+  /// Re-run the analyzer now and return the fresh read.
+  Future<ConversationIntelligence?> refreshIntelligence(
+    int conversationId,
+  ) async {
+    final data = await _api.post<dynamic>(
+      '/conversations/$conversationId/intelligence/',
+    );
+    return data is Map
+        ? ConversationIntelligence.fromJson(JsonSafe.asMap(data))
+        : null;
+  }
+
+  /// Set the lead score by hand, or pass `score: null` to hand it back to the
+  /// analyzer. `score` is sent even when null — an omitted key and an
+  /// explicit null mean different things to the backend.
+  Future<ConversationIntelligence> setLeadScore(
+    int conversationId,
+    int? score,
+  ) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/lead-score/',
+      body: {'score': score},
+    );
+    return ConversationIntelligence.fromJson(data);
+  }
+
+  /// An employee ruling on a purchase claim — the only path that ever
+  /// produces `AGENT_CONFIRMED`.
+  Future<ConversationIntelligence> confirmPurchase(
+    int conversationId, {
+    required bool confirmed,
+    String note = '',
+  }) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/confirm-purchase/',
+      body: {'confirmed': confirmed, 'note': note},
+    );
+    return ConversationIntelligence.fromJson(data);
+  }
+
+  /// History of purchase rulings for this conversation. Plain array, not
+  /// paginated.
+  Future<List<PurchaseConfirmation>> purchaseConfirmations(
+    int conversationId,
+  ) async {
+    final data = await _api.get<dynamic>(
+      '/conversations/$conversationId/purchase-confirmations/',
+    );
+    return JsonSafe.parseList(data, PurchaseConfirmation.fromJson);
+  }
+
+  // ------------------------------------------------------------------ audit
+  /// The full audit timeline: assignments, status/priority/category changes,
+  /// notes, purchase rulings. Plain array, oldest first.
+  Future<List<ConversationEvent>> events(int conversationId) async {
+    final data = await _api.get<dynamic>(
+      '/conversations/$conversationId/events/',
+    );
+    return JsonSafe.parseList(data, ConversationEvent.fromJson);
+  }
+
+  // ------------------------------------------------------------ conversions
+  /// Everything reported to Meta for this conversation. Plain array, newest
+  /// first, including the refusals — a panel that listed only the accepted
+  /// events would answer "did Meta get this?" with silence exactly when
+  /// someone is asking.
+  Future<List<ConversionEvent>> conversions(int conversationId) async {
+    final data = await _api.get<dynamic>(
+      '/conversations/$conversationId/conversions/',
+    );
+    return JsonSafe.parseList(data, ConversionEvent.fromJson);
+  }
+
+  /// Push this conversation's current stage to the Meta Conversions API.
+  ///
+  /// Always answers 200 — read [ConversionReportResult.status] to tell an
+  /// accepted send apart from an already-reported, skipped or refused one.
+  /// None of the non-`sent` outcomes is a client error.
+  Future<ConversionReportResult> reportConversion(int conversationId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/report-conversion/',
+    );
+    return ConversionReportResult.fromJson(data);
   }
 }

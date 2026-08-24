@@ -37,6 +37,14 @@ class _NoopStore implements SecureStore {
   @override
   Future<String> deviceId() async => 'test-device';
   @override
+  Future<void> writeThemeMode(String mode) async {}
+  @override
+  Future<String?> readThemeMode() async => null;
+  @override
+  Future<void> writeLocale(String languageCode) async {}
+  @override
+  Future<String?> readLocale() async => null;
+  @override
   Future<void> clearSession() async {}
   @override
   Future<void> wipe() async {}
@@ -44,8 +52,11 @@ class _NoopStore implements SecureStore {
 
 void main() {
   if (!_live) {
-    test('live backend slice (skipped — pass --dart-define=SCENARIO_LIVE=1)',
-        () {}, skip: true);
+    test(
+      'live backend slice (skipped — pass --dart-define=SCENARIO_LIVE=1)',
+      () {},
+      skip: true,
+    );
     return;
   }
 
@@ -67,9 +78,11 @@ void main() {
     expect(employee.permissions, isNotEmpty);
     expect(employee.visibilityScope, isNotEmpty);
     // ignore: avoid_print
-    print('  employee: ${employee.fullName} (${employee.role}), '
-        '${employee.permissions.length} permissions, '
-        'scope=${employee.visibilityScope}');
+    print(
+      '  employee: ${employee.fullName} (${employee.role}), '
+      '${employee.permissions.length} permissions, '
+      'scope=${employee.visibilityScope}',
+    );
   });
 
   test('the session restores from the cookie jar', () async {
@@ -106,8 +119,10 @@ void main() {
 
     expect(detail.id, target.id);
     // ignore: avoid_print
-    print('  conversation #${detail.id} "${detail.customer.displayName}" '
-        '— ${messages.count} messages, provider=${detail.provider}');
+    print(
+      '  conversation #${detail.id} "${detail.customer.displayName}" '
+      '— ${messages.count} messages, provider=${detail.provider}',
+    );
     for (final message in messages.results) {
       expect(message.sentAt, isA<DateTime>());
     }
@@ -136,8 +151,10 @@ void main() {
     final after = await conversations.messages(target.id);
     expect(after.count, greaterThan(before.count));
     // ignore: avoid_print
-    print('  reply #${sent.id} accepted, status=${sent.deliveryStatus}, '
-        'thread ${before.count} → ${after.count}');
+    print(
+      '  reply #${sent.id} accepted, status=${sent.deliveryStatus}, '
+      'thread ${before.count} → ${after.count}',
+    );
   });
 
   test('logs out and the session stops working', () async {

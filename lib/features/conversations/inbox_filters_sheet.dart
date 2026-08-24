@@ -8,7 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/tokens.dart';
-import '../../core/utils/formatting.dart';
+import '../../core/widgets/badges.dart';
+import '../../l10n/l10n_extensions.dart';
 import 'conversation_repository.dart';
 import 'inbox_controller.dart';
 
@@ -49,7 +50,10 @@ class _FiltersSheet extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Text('Filters', style: theme.textTheme.titleLarge),
+                Text(
+                  context.l10n.filtersTitle,
+                  style: theme.textTheme.titleLarge,
+                ),
                 const Spacer(),
                 if (!filters.isEmpty)
                   TextButton(
@@ -57,18 +61,18 @@ class _FiltersSheet extends ConsumerWidget {
                       controller.clear();
                       Navigator.of(context).pop();
                     },
-                    child: const Text('Clear all'),
+                    child: Text(context.l10n.clearAll),
                   ),
               ],
             ),
             const SizedBox(height: Space.md),
 
-            _SectionLabel('Assignment'),
+            _SectionLabel(context.l10n.assignmentSection),
             Wrap(
               spacing: Space.sm,
               children: [
                 FilterChip(
-                  label: const Text('Assigned to me'),
+                  label: Text(context.l10n.assignedToMeFilter),
                   selected: filters.assignedToMe,
                   onSelected: (selected) => controller.update(
                     filters.copyWith(
@@ -78,7 +82,7 @@ class _FiltersSheet extends ConsumerWidget {
                   ),
                 ),
                 FilterChip(
-                  label: const Text('Unassigned'),
+                  label: Text(context.l10n.unassignedFilter),
                   selected: filters.unassigned,
                   onSelected: (selected) => controller.update(
                     filters.copyWith(
@@ -91,10 +95,12 @@ class _FiltersSheet extends ConsumerWidget {
             ),
 
             const SizedBox(height: Space.lg),
-            _SectionLabel('Status'),
+            _SectionLabel(context.l10n.statusSection),
             _ChoiceRow(
               options: _statuses,
               selected: filters.status,
+              labelOf: (context, value) =>
+                  ConversationBadges.status(context, value).$1,
               onSelected: (value) => controller.update(
                 value == null
                     ? filters.copyWith(clearStatus: true)
@@ -103,10 +109,12 @@ class _FiltersSheet extends ConsumerWidget {
             ),
 
             const SizedBox(height: Space.lg),
-            _SectionLabel('Priority'),
+            _SectionLabel(context.l10n.prioritySection),
             _ChoiceRow(
               options: _priorities,
               selected: filters.priority,
+              labelOf: (context, value) =>
+                  ConversationBadges.priority(context, value).$1,
               onSelected: (value) => controller.update(
                 value == null
                     ? filters.copyWith(clearPriority: true)
@@ -115,10 +123,11 @@ class _FiltersSheet extends ConsumerWidget {
             ),
 
             const SizedBox(height: Space.lg),
-            _SectionLabel('Channel'),
+            _SectionLabel(context.l10n.channelSection),
             _ChoiceRow(
               options: _providers,
               selected: filters.provider,
+              labelOf: ConversationBadges.providerLabel,
               onSelected: (value) => controller.update(
                 value == null
                     ? filters.copyWith(clearProvider: true)
@@ -129,7 +138,7 @@ class _FiltersSheet extends ConsumerWidget {
             const SizedBox(height: Space.xl),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Show results'),
+              child: Text(context.l10n.showResultsButton),
             ),
           ],
         ),
@@ -145,26 +154,30 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: Space.sm),
-        child: Text(
-          text.toUpperCase(),
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                letterSpacing: 0.6,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: Space.sm),
+    child: Text(
+      text.toUpperCase(),
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        letterSpacing: 0.6,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
 }
 
 class _ChoiceRow extends StatelessWidget {
   const _ChoiceRow({
     required this.options,
     required this.selected,
+    required this.labelOf,
     required this.onSelected,
   });
 
   final List<String> options;
   final String? selected;
+
+  /// Maps a raw backend value (`'WAITING_CUSTOMER'`) to its localized label.
+  final String Function(BuildContext context, String value) labelOf;
 
   /// Null clears the choice — tapping the selected chip again deselects it.
   final ValueChanged<String?> onSelected;
@@ -177,10 +190,9 @@ class _ChoiceRow extends StatelessWidget {
       children: [
         for (final option in options)
           ChoiceChip(
-            label: Text(humanizeEnum(option)),
+            label: Text(labelOf(context, option)),
             selected: selected == option,
-            onSelected: (isSelected) =>
-                onSelected(isSelected ? option : null),
+            onSelected: (isSelected) => onSelected(isSelected ? option : null),
           ),
       ],
     );
@@ -191,7 +203,6 @@ class _ChoiceRow extends StatelessWidget {
 ConversationFilters filtersWithStatus(
   ConversationFilters base,
   String? status,
-) =>
-    status == null
-        ? base.copyWith(clearStatus: true)
-        : base.copyWith(status: status);
+) => status == null
+    ? base.copyWith(clearStatus: true)
+    : base.copyWith(status: status);

@@ -19,18 +19,31 @@ import 'dart:io';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
-
 import '../config/environment.dart';
+import '../logging/app_log.dart';
 import 'api_exception.dart';
 
 class ApiClient {
-  ApiClient({required Dio dio, required CookieJar cookieJar})
-      : this._(dio, cookieJar);
+  ApiClient({
+    required Dio dio,
+    required CookieJar cookieJar,
+    void Function()? onSessionExpired,
+  }) : this._(dio, cookieJar, onSessionExpired);
 
-  ApiClient._(this._dio, this._cookieJar);
+  ApiClient._(this._dio, this._cookieJar, this._onSessionExpired);
 
   final Dio _dio;
   final CookieJar _cookieJar;
+
+  /// Fired once per 401, before the typed exception is thrown.
+  ///
+  /// Session invalidation used to depend on whichever screen happened to be
+  /// calling `refreshEmployee()`; a 401 raised while loading the inbox or
+  /// sending a reply propagated to the UI as a red error and left the app
+  /// believing it was still signed in, with the rejected cookie still on disk.
+  /// Routing every 401 through one hook makes "the server ended this session"
+  /// a single event with a single response, wherever it surfaced.
+  final void Function()? _onSessionExpired;
 
   Dio get raw => _dio;
 
@@ -41,13 +54,18 @@ class ApiClient {
   static ApiClient create({
     required CookieJar cookieJar,
     Environment? environment,
+    void Function()? onSessionExpired,
   }) {
     final env = environment ?? Environment.current;
     final dio = Dio(
       BaseOptions(
         baseUrl: env.apiBaseUrl,
-        headers: const {
-          'ngrok-skip-browser-warning': 'true',
+        headers: {
+          // Tunnel affordance for local development only. Shipping it
+          // advertises the dev topology to anyone inspecting traffic and
+          // serves no purpose against the real backend.
+          if (env.showsDeveloperAffordances)
+            'ngrok-skip-browser-warning': 'true',
           'User-Agent': 'ScenarioMobileApp/1.0',
         },
         // A support agent on mobile data needs a real timeout, not an
@@ -59,20 +77,32 @@ class ApiClient {
         // Never throw on a status code; errors are mapped explicitly below so
         // every failure reaches the UI as a typed exception.
         validateStatus: (_) => true,
+        // A redirect carries the session cookie to wherever it points. Dio
+        // follows up to five by default; one is all a legitimate Django
+        // response ever needs, and capping it bounds how far a compromised or
+        // misconfigured backend can walk this client's credential.
+        followRedirects: true,
+        maxRedirects: 1,
       ),
     );
 
     dio.interceptors.add(CookieManager(cookieJar));
     dio.interceptors.add(_CsrfInterceptor(cookieJar, env));
 
-    return ApiClient(dio: dio, cookieJar: cookieJar);
+    return ApiClient(
+      dio: dio,
+      cookieJar: cookieJar,
+      onSessionExpired: onSessionExpired,
+    );
   }
 
   Future<bool> hasSessionCookie() async {
     final cookies = await _cookieJar.loadForRequest(
       Uri.parse(Environment.current.apiBaseUrl),
     );
-    return cookies.any((c) => c.name == _sessionCookieName && c.value.isNotEmpty);
+    return cookies.any(
+      (c) => c.name == _sessionCookieName && c.value.isNotEmpty,
+    );
   }
 
   Future<void> clearCookies() => _cookieJar.deleteAll();
@@ -107,19 +137,31 @@ class ApiClient {
     try {
       response = await request();
     } on DioException catch (error) {
+      _logTransportError(error);
       throw _mapTransportError(error);
     }
 
     final status = response.statusCode ?? 0;
+    final requestLabel =
+        '${response.requestOptions.method} ${response.requestOptions.path}';
 
     if (status >= 200 && status < 300) {
+      _log('$requestLabel -> $status');
       return response.data as T;
     }
 
     if (status == 401) {
+      _log('$requestLabel -> 401 (session expired)');
+      _onSessionExpired?.call();
       throw SessionExpiredException();
     }
 
+    // The raw body is what actually explains a "server problem", and it is
+    // also where customer records, message text and validation echoes of
+    // whatever was submitted live. Development gets the body; a shipped build
+    // gets the status only, which is enough to correlate with a server log.
+    _log('$requestLabel -> $status');
+    AppLog.debug('ApiClient', '$requestLabel body: ${response.data}');
     throw ApiException.fromResponse(status, response.data);
   }
 
@@ -137,11 +179,34 @@ class ApiClient {
               ? 'No connection to the server. Check your network.'
               : 'Could not reach the server.',
         );
+      case DioExceptionType.badCertificate:
+        return NetworkException(
+          'The server\'s certificate could not be verified.',
+        );
       case DioExceptionType.cancel:
         return NetworkException('The request was cancelled.');
       default:
         return NetworkException('Something went wrong talking to the server.');
     }
+  }
+
+  void _log(String message) => AppLog.debug('ApiClient', message);
+
+  /// Everything the friendly [NetworkException] message on screen hides:
+  /// which request, what kind of transport failure, and the raw platform
+  /// error (a `SocketException`, `HandshakeException` for a bad TLS cert,
+  /// etc.) underneath it.
+  ///
+  /// The URI is reduced to scheme/host/path: the query string carries the
+  /// inbox `search=` term, which in this app is routinely a customer's name
+  /// or phone number, and a transport failure is exactly when it would be
+  /// logged.
+  void _logTransportError(DioException error) {
+    _log(
+      'Transport error on ${error.requestOptions.method} '
+      '${AppLog.redactUri(error.requestOptions.uri)} — type: ${error.type}, '
+      'message: ${error.message}, error: ${error.error}',
+    );
   }
 }
 

@@ -17,6 +17,7 @@ import '../../core/theme/tokens.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
 import '../performance/performance_card.dart';
@@ -31,7 +32,7 @@ class DashboardScreen extends ConsumerWidget {
     final firstName = employee?.fullName.split(' ').first ?? 'there';
 
     return SectionScaffold(
-      title: 'Good to see you, $firstName',
+      title: context.l10n.dashboardGreeting(firstName),
       onRefresh: () async {
         ref.invalidate(dashboardProvider);
         await ref.read(dashboardProvider.future);
@@ -52,17 +53,17 @@ class DashboardScreen extends ConsumerWidget {
         data: (data) => ListView(
           padding: const EdgeInsets.all(Space.lg),
           children: [
-            const SectionHeading('Conversations'),
+            SectionHeading(context.l10n.conversationsSectionTitle),
             _MetricGrid(
               tiles: [
                 MetricTile(
-                  label: 'Open',
+                  label: context.l10n.openMetric,
                   value: '${data.conversations.open}',
                   icon: Icons.inbox_outlined,
                   onTap: () => context.go('/inbox'),
                 ),
                 MetricTile(
-                  label: 'Unassigned',
+                  label: context.l10n.unassignedBadge,
                   value: '${data.conversations.unassigned}',
                   icon: Icons.person_off_outlined,
                   tone: data.conversations.unassigned > 0
@@ -71,12 +72,12 @@ class DashboardScreen extends ConsumerWidget {
                   onTap: () => context.go('/inbox'),
                 ),
                 MetricTile(
-                  label: 'Waiting',
+                  label: context.l10n.waitingMetric,
                   value: '${data.conversations.waiting}',
                   icon: Icons.schedule_outlined,
                 ),
                 MetricTile(
-                  label: 'Resolved today',
+                  label: context.l10n.resolvedTodayMetric,
                   value: '${data.conversations.resolvedToday}',
                   icon: Icons.check_circle_outline,
                   tone: MetricTone.success,
@@ -85,33 +86,33 @@ class DashboardScreen extends ConsumerWidget {
             ),
 
             const SizedBox(height: Space.xl),
-            const SectionHeading('Customer intelligence'),
+            SectionHeading(context.l10n.customerIntelligenceSectionTitle),
             _MetricGrid(
               tiles: [
                 MetricTile(
-                  label: 'Qualified leads',
+                  label: context.l10n.qualifiedLeadsMetric,
                   value: '${data.intelligence.qualifiedLeads}',
                   icon: Icons.verified_user_outlined,
                 ),
                 MetricTile(
-                  label: 'Hot leads',
+                  label: context.l10n.hotLeadsMetric,
                   value: '${data.intelligence.hotLeads}',
                   icon: Icons.local_fire_department_outlined,
                   tone: MetricTone.danger,
                 ),
                 MetricTile(
-                  label: 'Purchase claims',
+                  label: context.l10n.purchaseClaimsMetric,
                   value: '${data.intelligence.purchaseClaims}',
                   icon: Icons.warning_amber_outlined,
                   tone: MetricTone.warning,
-                  hint: 'Said they ordered. Not verified.',
+                  hint: context.l10n.purchaseClaimsHint,
                 ),
                 MetricTile(
-                  label: 'Confirmed',
+                  label: context.l10n.confirmedMetric,
                   value: '${data.intelligence.agentConfirmedPurchases}',
                   icon: Icons.task_alt_outlined,
                   tone: MetricTone.success,
-                  hint: 'Checked by an employee.',
+                  hint: context.l10n.confirmedHint,
                 ),
               ],
             ),
@@ -131,9 +132,9 @@ class DashboardScreen extends ConsumerWidget {
             if (data.team != null) ...[
               const SizedBox(height: Space.xl),
               SectionHeading(
-                'Team workload',
+                context.l10n.teamWorkloadTitle,
                 trailing: Text(
-                  '${data.team!.onlineAgents} online',
+                  context.l10n.onlineAgentsSuffix(data.team!.onlineAgents),
                   style: Theme.of(context).textTheme.labelSmall,
                 ),
               ),
@@ -166,7 +167,7 @@ class _MyPerformance extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeading('Your last 14 days'),
+          SectionHeading(context.l10n.myLast14DaysTitle),
           PerformanceCard(row: mine, showIdentity: false),
         ],
       ),
@@ -209,54 +210,54 @@ class _ReviewCallout extends StatelessWidget {
       decoration: BoxDecoration(
         color: ScenarioColors.warningSurface,
         borderRadius: BorderRadius.circular(Radii.lg),
-        border: Border.all(color: ScenarioColors.warning.withValues(alpha: 0.35)),
+        border: Border.all(
+          color: ScenarioColors.warning.withValues(alpha: 0.35),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_rounded, size: 20, color: ScenarioColors.warning),
+          Icon(
+            Icons.warning_amber_rounded,
+            size: 20,
+            color: ScenarioColors.warning,
+          ),
           const SizedBox(width: Space.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$count conversation${count == 1 ? '' : 's'} need review',
+                  context.l10n.reviewNeededMessage(count),
                   style: theme.textTheme.titleSmall?.copyWith(
-                    color: Colors.black38
+                    color: Colors.black38,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'A customer claimed a purchase. Scenario cannot verify '
-                  'payments — check your records and confirm.',
+                  context.l10n.reviewNeededDescription,
                   style: theme.textTheme.bodySmall,
                 ),
-                SizedBox(height: 10,),
+                SizedBox(height: 10),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                      elevation:3,
+                      elevation: 3,
                       shape: BeveledRectangleBorder(
-                        side: BorderSide(
-                          color: Colors.black45
-                        )
+                        side: BorderSide(color: Colors.black45),
                       ),
-                        backgroundColor: ScenarioColors.warningSurface,
-
+                      backgroundColor: ScenarioColors.warningSurface,
                     ),
                     onPressed: () {
                       context.go('/inbox');
                     },
-                    child: const Text('Check Inbox',
-                    style: TextStyle(
-                      color: Colors.black45
-                    ) ,
+                    child: Text(
+                      context.l10n.checkInboxButton,
+                      style: const TextStyle(color: Colors.black45),
                     ),
                   ),
                 ),
-
               ],
             ),
           ),
@@ -274,11 +275,11 @@ class _WorkloadCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (team.workload.isEmpty) {
-      return const Card(
+      return Card(
         margin: EdgeInsets.zero,
         child: Padding(
-          padding: EdgeInsets.all(Space.xl),
-          child: Center(child: Text('Nothing assigned right now.')),
+          padding: const EdgeInsets.all(Space.xl),
+          child: Center(child: Text(context.l10n.nothingAssignedMessage)),
         ),
       );
     }
@@ -317,17 +318,19 @@ class _WorkloadRow extends StatelessWidget {
           const SizedBox(width: Space.xs),
           Text(
             entry.unreadConversations > 0
-                ? '${entry.openConversations} open · ${entry.unreadConversations} unread'
-                : '${entry.openConversations} open',
+                ? context.l10n.openUnreadSummary(
+                    entry.openConversations,
+                    entry.unreadConversations,
+                  )
+                : context.l10n.openSummary(entry.openConversations),
           ),
         ],
       ),
       trailing: Text(
         '${entry.openConversations}',
-        style: Theme.of(context)
-            .textTheme
-            .titleMedium
-            ?.copyWith(fontWeight: FontWeight.w700),
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
       ),
     );
   }

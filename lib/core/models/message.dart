@@ -6,6 +6,8 @@
 /// sees a clear failure and retries.
 library;
 
+import '../utils/json_safe.dart';
+
 class MessageAttachment {
   const MessageAttachment({
     required this.type,
@@ -21,10 +23,10 @@ class MessageAttachment {
 
   factory MessageAttachment.fromJson(Map<String, dynamic> json) =>
       MessageAttachment(
-        type: (json['type'] as String?) ?? 'FILE',
-        url: (json['url'] as String?) ?? '',
-        fileName: (json['file_name'] as String?) ?? '',
-        mimeType: (json['mime_type'] as String?) ?? '',
+        type: JsonSafe.asString(json['type'], fallback: 'FILE'),
+        url: JsonSafe.asString(json['url']),
+        fileName: JsonSafe.asString(json['file_name']),
+        mimeType: JsonSafe.asString(json['mime_type']),
       );
 
   bool get isImage => type == 'IMAGE' || mimeType.startsWith('image/');
@@ -73,23 +75,26 @@ class Message {
   final String? localId;
 
   factory Message.fromJson(Map<String, dynamic> json) => Message(
-        id: json['id'] as int,
-        direction: (json['direction'] as String?) ?? 'INBOUND',
-        senderType: (json['sender_type'] as String?) ?? 'CUSTOMER',
-        senderName: (json['sender_name'] as String?) ?? '',
-        senderInitials: (json['sender_initials'] as String?) ?? '',
-        messageType: (json['message_type'] as String?) ?? 'TEXT',
-        text: (json['text'] as String?) ?? '',
-        attachments: ((json['attachments'] as List?) ?? const [])
-            .map((a) =>
-                MessageAttachment.fromJson(Map<String, dynamic>.from(a as Map)))
-            .toList(),
-        deliveryStatus: (json['delivery_status'] as String?) ?? 'SENT',
-        deliveryError: (json['delivery_error'] as String?) ?? '',
-        sentAt:
-            DateTime.tryParse((json['sent_at'] as String?) ?? '')?.toLocal() ??
-                DateTime.now(),
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    direction: JsonSafe.asString(json['direction'], fallback: 'INBOUND'),
+    senderType: JsonSafe.asString(json['sender_type'], fallback: 'CUSTOMER'),
+    senderName: JsonSafe.asString(json['sender_name']),
+    senderInitials: JsonSafe.asString(json['sender_initials']),
+    messageType: JsonSafe.asString(json['message_type'], fallback: 'TEXT'),
+    text: JsonSafe.asString(json['text']),
+    attachments: JsonSafe.parseList(
+      json['attachments'],
+      MessageAttachment.fromJson,
+    ),
+    deliveryStatus: JsonSafe.asString(
+      json['delivery_status'],
+      fallback: 'SENT',
+    ),
+    deliveryError: JsonSafe.asString(json['delivery_error']),
+    sentAt:
+        DateTime.tryParse(JsonSafe.asString(json['sent_at']))?.toLocal() ??
+        DateTime.now(),
+  );
 
   /// A message the agent has typed but the server has not accepted yet.
   factory Message.pending({
@@ -97,38 +102,37 @@ class Message {
     required String text,
     required String senderName,
     required String senderInitials,
-  }) =>
-      Message(
-        // Negative so it can never collide with a server id, and so ordering
-        // by id keeps pending messages at the end where they belong.
-        id: -DateTime.now().microsecondsSinceEpoch,
-        direction: 'OUTBOUND',
-        senderType: 'AGENT',
-        senderName: senderName,
-        senderInitials: senderInitials,
-        messageType: 'TEXT',
-        text: text,
-        deliveryStatus: 'PENDING',
-        sentAt: DateTime.now(),
-        sendState: SendState.sending,
-        localId: localId,
-      );
+  }) => Message(
+    // Negative so it can never collide with a server id, and so ordering
+    // by id keeps pending messages at the end where they belong.
+    id: -DateTime.now().microsecondsSinceEpoch,
+    direction: 'OUTBOUND',
+    senderType: 'AGENT',
+    senderName: senderName,
+    senderInitials: senderInitials,
+    messageType: 'TEXT',
+    text: text,
+    deliveryStatus: 'PENDING',
+    sentAt: DateTime.now(),
+    sendState: SendState.sending,
+    localId: localId,
+  );
 
   Message copyWith({SendState? sendState, String? deliveryError}) => Message(
-        id: id,
-        direction: direction,
-        senderType: senderType,
-        senderName: senderName,
-        senderInitials: senderInitials,
-        messageType: messageType,
-        text: text,
-        attachments: attachments,
-        deliveryStatus: deliveryStatus,
-        deliveryError: deliveryError ?? this.deliveryError,
-        sentAt: sentAt,
-        sendState: sendState ?? this.sendState,
-        localId: localId,
-      );
+    id: id,
+    direction: direction,
+    senderType: senderType,
+    senderName: senderName,
+    senderInitials: senderInitials,
+    messageType: messageType,
+    text: text,
+    attachments: attachments,
+    deliveryStatus: deliveryStatus,
+    deliveryError: deliveryError ?? this.deliveryError,
+    sentAt: sentAt,
+    sendState: sendState ?? this.sendState,
+    localId: localId,
+  );
 
   bool get isOutbound => direction == 'OUTBOUND';
   bool get isFromCustomer => senderType == 'CUSTOMER';
@@ -154,12 +158,12 @@ class InternalNote {
   final DateTime createdAt;
 
   factory InternalNote.fromJson(Map<String, dynamic> json) => InternalNote(
-        id: json['id'] as int,
-        body: (json['body'] as String?) ?? '',
-        authorName: (json['author_name'] as String?) ?? '',
-        authorInitials: (json['author_initials'] as String?) ?? '',
-        createdAt: DateTime.tryParse((json['created_at'] as String?) ?? '')
-                ?.toLocal() ??
-            DateTime.now(),
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    body: JsonSafe.asString(json['body']),
+    authorName: JsonSafe.asString(json['author_name']),
+    authorInitials: JsonSafe.asString(json['author_initials']),
+    createdAt:
+        DateTime.tryParse(JsonSafe.asString(json['created_at']))?.toLocal() ??
+        DateTime.now(),
+  );
 }

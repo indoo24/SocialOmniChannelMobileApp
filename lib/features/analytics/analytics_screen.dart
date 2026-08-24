@@ -17,6 +17,7 @@ import '../../core/theme/tokens.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../directory/directory_providers.dart';
 import '../performance/performance_card.dart';
 
@@ -30,7 +31,7 @@ class AnalyticsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return SectionScaffold(
-      title: 'Analytics',
+      title: context.l10n.navAnalytics,
       onRefresh: () async {
         ref
           ..invalidate(dashboardProvider)
@@ -49,12 +50,15 @@ class AnalyticsScreen extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, size: 18, color: theme.colorScheme.outline),
+                Icon(
+                  Icons.info_outline,
+                  size: 18,
+                  color: theme.colorScheme.outline,
+                ),
                 const SizedBox(width: Space.sm),
                 Expanded(
                   child: Text(
-                    'Computed live from the conversation database. Historical '
-                    'trends need a metrics rollup.',
+                    context.l10n.analyticsInfoBanner,
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
@@ -63,7 +67,7 @@ class AnalyticsScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: Space.xl),
-          const SectionHeading('Volume by channel'),
+          SectionHeading(context.l10n.volumeByChannelTitle),
           channels.when(
             loading: () => const Padding(
               padding: EdgeInsets.all(Space.xl),
@@ -74,18 +78,20 @@ class AnalyticsScreen extends ConsumerWidget {
               onRetry: () => ref.invalidate(channelVolumeProvider),
             ),
             data: (rows) => rows.isEmpty
-                ? const Card(
+                ? Card(
                     margin: EdgeInsets.zero,
                     child: Padding(
-                      padding: EdgeInsets.all(Space.xl),
-                      child: Center(child: Text('No conversations recorded yet.')),
+                      padding: const EdgeInsets.all(Space.xl),
+                      child: Center(
+                        child: Text(context.l10n.noConversationsRecorded),
+                      ),
                     ),
                   )
                 : _ChannelVolumeCard(rows: rows),
           ),
 
           const SizedBox(height: Space.xl),
-          const SectionHeading('Lead pipeline'),
+          SectionHeading(context.l10n.leadPipelineTitle),
           summary.when(
             loading: () => const Padding(
               padding: EdgeInsets.all(Space.xl),
@@ -98,8 +104,9 @@ class AnalyticsScreen extends ConsumerWidget {
             data: (data) => Column(
               children: [
                 GridView.count(
-                  crossAxisCount:
-                      MediaQuery.sizeOf(context).width >= 720 ? 4 : 2,
+                  crossAxisCount: MediaQuery.sizeOf(context).width >= 720
+                      ? 4
+                      : 2,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: Space.md,
@@ -107,24 +114,25 @@ class AnalyticsScreen extends ConsumerWidget {
                   childAspectRatio: 1.45,
                   children: [
                     MetricTile(
-                      label: 'Qualified',
+                      label: context.l10n.qualifiedMetric,
                       value: '${data.intelligence.qualifiedLeads}',
                       icon: Icons.verified_user_outlined,
                     ),
                     MetricTile(
-                      label: 'Hot leads',
+                      label: context.l10n.hotLeadsMetric,
                       value: '${data.intelligence.hotLeads}',
                       icon: Icons.local_fire_department_outlined,
                       tone: MetricTone.danger,
                     ),
                     MetricTile(
-                      label: 'Avg score',
-                      value: data.intelligence.averageLeadScore
-                          .toStringAsFixed(1),
+                      label: context.l10n.avgScoreMetric,
+                      value: data.intelligence.averageLeadScore.toStringAsFixed(
+                        1,
+                      ),
                       icon: Icons.speed_outlined,
                     ),
                     MetricTile(
-                      label: 'Awaiting review',
+                      label: context.l10n.awaitingReviewMetric,
                       value: '${data.intelligence.pendingReview}',
                       icon: Icons.pending_actions_outlined,
                       tone: MetricTone.warning,
@@ -132,7 +140,7 @@ class AnalyticsScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: Space.xl),
-                const SectionHeading('Purchase evidence'),
+                SectionHeading(context.l10n.purchaseEvidenceTitle),
                 _PurchaseEvidenceCard(intelligence: data.intelligence),
               ],
             ),
@@ -169,7 +177,7 @@ class _TeamPerformance extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeading(
-          'Employee performance',
+          context.l10n.employeePerformanceTitle,
           trailing: Wrap(
             spacing: Space.xs,
             children: [
@@ -177,8 +185,9 @@ class _TeamPerformance extends ConsumerWidget {
                 ChoiceChip(
                   label: Text('${option}d'),
                   selected: days == option,
-                  onSelected: (_) =>
-                      ref.read(performanceWindowProvider.notifier).update(option),
+                  onSelected: (_) => ref
+                      .read(performanceWindowProvider.notifier)
+                      .update(option),
                   visualDensity: VisualDensity.compact,
                 ),
             ],
@@ -194,21 +203,24 @@ class _TeamPerformance extends ConsumerWidget {
             onRetry: () => ref.invalidate(performanceProvider),
           ),
           data: (data) {
-            final rows = data.results
-                .where((r) => r.conversationsHandled > 0 || r.messagesSent > 0)
-                .toList()
-              ..sort(
-                (a, b) => b.conversationsHandled.compareTo(a.conversationsHandled),
-              );
+            final rows =
+                data.results
+                    .where(
+                      (r) => r.conversationsHandled > 0 || r.messagesSent > 0,
+                    )
+                    .toList()
+                  ..sort(
+                    (a, b) => b.conversationsHandled.compareTo(
+                      a.conversationsHandled,
+                    ),
+                  );
 
             if (rows.isEmpty) {
-              return const Card(
+              return Card(
                 margin: EdgeInsets.zero,
                 child: Padding(
-                  padding: EdgeInsets.all(Space.xl),
-                  child: Center(
-                    child: Text('Nobody handled a conversation in this window.'),
-                  ),
+                  padding: const EdgeInsets.all(Space.xl),
+                  child: Center(child: Text(context.l10n.nobodyHandledMessage)),
                 ),
               );
             }
@@ -237,7 +249,10 @@ class _ChannelVolumeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final maxTotal = rows.fold<int>(1, (max, r) => r.total > max ? r.total : max);
+    final maxTotal = rows.fold<int>(
+      1,
+      (max, r) => r.total > max ? r.total : max,
+    );
 
     return Card(
       margin: EdgeInsets.zero,
@@ -254,12 +269,18 @@ class _ChannelVolumeCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          ConversationBadges.providerLabel(rows[i].provider),
+                          ConversationBadges.providerLabel(
+                            context,
+                            rows[i].provider,
+                          ),
                           style: theme.textTheme.titleSmall,
                         ),
                       ),
                       Text(
-                        '${rows[i].total} total · ${rows[i].open} open',
+                        context.l10n.totalOpenSuffix(
+                          rows[i].total,
+                          rows[i].open,
+                        ),
                         style: theme.textTheme.labelSmall,
                       ),
                     ],
@@ -306,25 +327,25 @@ class _PurchaseEvidenceCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _Figure(
-              label: 'Unverified customer claims',
+              label: context.l10n.unverifiedClaimsLabel,
               value: '${intelligence.purchaseClaims}',
               color: ScenarioColors.warning,
-              note: 'Customers who said they ordered or paid. Scenario has no '
-                  'payment data and cannot verify these.',
+              note: context.l10n.unverifiedClaimsNote,
             ),
             const Divider(height: Space.xxl),
             _Figure(
-              label: 'Employee-confirmed',
+              label: context.l10n.employeeConfirmedLabel,
               value: '${intelligence.agentConfirmedPurchases}',
               color: ScenarioColors.success,
               note: intelligence.confirmedToday > 0
-                  ? 'A team member checked their own records. '
-                      '${intelligence.confirmedToday} today.'
-                  : 'A team member checked their own records and confirmed.',
+                  ? context.l10n.employeeConfirmedNoteWithCount(
+                      intelligence.confirmedToday,
+                    )
+                  : context.l10n.employeeConfirmedNote,
             ),
             const SizedBox(height: Space.sm),
             Text(
-              'Scoped to the conversations you can see.',
+              context.l10n.scopedToVisibleConversations,
               style: theme.textTheme.labelSmall,
             ),
           ],
@@ -355,14 +376,18 @@ class _Figure extends StatelessWidget {
       children: [
         Text(
           label.toUpperCase(),
-          style: theme.textTheme.labelSmall
-              ?.copyWith(letterSpacing: 0.5, fontWeight: FontWeight.w700),
+          style: theme.textTheme.labelSmall?.copyWith(
+            letterSpacing: 0.5,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: Space.xs),
         Text(
           value,
-          style: theme.textTheme.headlineMedium
-              ?.copyWith(fontWeight: FontWeight.w700, color: color),
+          style: theme.textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
         ),
         const SizedBox(height: Space.xs),
         Text(note, style: theme.textTheme.bodySmall),

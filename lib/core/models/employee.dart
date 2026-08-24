@@ -6,6 +6,8 @@
 /// that got this wrong would produce a clean 403, not an unauthorised write.
 library;
 
+import '../utils/json_safe.dart';
+
 class EmployeeBrief {
   const EmployeeBrief({
     required this.id,
@@ -22,28 +24,32 @@ class EmployeeBrief {
   final String availability;
 
   factory EmployeeBrief.fromJson(Map<String, dynamic> json) => EmployeeBrief(
-        id: json['id'] as int,
-        fullName: (json['full_name'] as String?) ?? '',
-        initials: (json['initials'] as String?) ?? '',
-        avatarUrl: (json['avatar_url'] as String?) ?? '',
-        availability: (json['availability'] as String?) ?? 'OFFLINE',
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    fullName: JsonSafe.asString(json['full_name']),
+    initials: JsonSafe.asString(json['initials']),
+    avatarUrl: JsonSafe.asString(json['avatar_url']),
+    availability: JsonSafe.asString(json['availability'], fallback: 'OFFLINE'),
+  );
 
   bool get isOnline => availability == 'ONLINE';
 }
 
 class Organization {
-  const Organization({required this.id, required this.name, this.timezone = 'UTC'});
+  const Organization({
+    required this.id,
+    required this.name,
+    this.timezone = 'UTC',
+  });
 
   final int id;
   final String name;
   final String timezone;
 
   factory Organization.fromJson(Map<String, dynamic> json) => Organization(
-        id: json['id'] as int,
-        name: (json['name'] as String?) ?? '',
-        timezone: (json['timezone'] as String?) ?? 'UTC',
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    name: JsonSafe.asString(json['name']),
+    timezone: JsonSafe.asString(json['timezone'], fallback: 'UTC'),
+  );
 }
 
 class Employee {
@@ -82,41 +88,57 @@ class Employee {
   final Organization? organization;
 
   factory Employee.fromJson(Map<String, dynamic> json) => Employee(
-        id: json['id'] as int,
-        email: (json['email'] as String?) ?? '',
-        fullName: (json['full_name'] as String?) ?? '',
-        initials: (json['initials'] as String?) ?? '',
-        role: (json['role'] as String?) ?? 'AGENT',
-        roleDisplay: (json['role_display'] as String?) ?? '',
-        availability: (json['availability'] as String?) ?? 'OFFLINE',
-        avatarUrl: (json['avatar_url'] as String?) ?? '',
-        title: (json['title'] as String?) ?? '',
-        permissions: ((json['permissions'] as List?) ?? const [])
-            .map((p) => p.toString())
-            .toSet(),
-        visibilityScope: (json['visibility_scope'] as String?) ?? 'ASSIGNED',
-        organization: json['organization'] is Map
-            ? Organization.fromJson(
-                Map<String, dynamic>.from(json['organization'] as Map))
-            : null,
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    email: JsonSafe.asString(json['email']),
+    fullName: JsonSafe.asString(json['full_name']),
+    initials: JsonSafe.asString(json['initials']),
+    role: JsonSafe.asString(json['role'], fallback: 'AGENT'),
+    roleDisplay: JsonSafe.asString(json['role_display']),
+    availability: JsonSafe.asString(json['availability'], fallback: 'OFFLINE'),
+    avatarUrl: JsonSafe.asString(json['avatar_url']),
+    title: JsonSafe.asString(json['title']),
+    // Permissions drive which controls the UI offers. A malformed list
+    // must therefore fail closed — an empty set hides everything — rather
+    // than throw, which would leave the employee unparseable and the
+    // session unusable.
+    permissions: JsonSafe.asObjectList(
+      json['permissions'],
+    ).map((p) => p.toString()).toSet(),
+    visibilityScope: JsonSafe.asString(
+      json['visibility_scope'],
+      fallback: 'ASSIGNED',
+    ),
+    organization: json['organization'] is Map
+        ? Organization.fromJson(JsonSafe.asMap(json['organization']))
+        : null,
+  );
 
   bool can(String permission) => permissions.contains(permission);
 
+  /// True for the ADMIN role specifically.
+  ///
+  /// Backs the four directory-management actions the backend documents as
+  /// ADMIN only (add/edit/deactivate employee, add team). Those already carry
+  /// a capability slug (`employee.manage`, `team.manage`) that `can()` can
+  /// check, but the spec is explicit that the UI must also gate on the role
+  /// itself rather than trust the capability mirror alone — see `Perm`'s doc
+  /// comment on why that mirror is presentation-only in the first place.
+  bool get isAdmin => role == 'ADMIN';
+
   Employee copyWith({String? availability}) => Employee(
-        id: id,
-        email: email,
-        fullName: fullName,
-        initials: initials,
-        role: role,
-        roleDisplay: roleDisplay,
-        availability: availability ?? this.availability,
-        avatarUrl: avatarUrl,
-        title: title,
-        permissions: permissions,
-        visibilityScope: visibilityScope,
-        organization: organization,
-      );
+    id: id,
+    email: email,
+    fullName: fullName,
+    initials: initials,
+    role: role,
+    roleDisplay: roleDisplay,
+    availability: availability ?? this.availability,
+    avatarUrl: avatarUrl,
+    title: title,
+    permissions: permissions,
+    visibilityScope: visibilityScope,
+    organization: organization,
+  );
 }
 
 /// Permission slugs, mirroring `apps/core/permissions.py`.
@@ -135,9 +157,16 @@ class Perm {
   static const conversationChangeCategory = 'conversation.change_category';
   static const conversationDeleteMessage = 'conversation.delete_message';
   static const conversationConfirmPurchase = 'conversation.confirm_purchase';
+  static const conversationRefreshIntelligence =
+      'conversation.refresh_intelligence';
+  static const intelligenceOverrideScore = 'intelligence.override_score';
+  static const conversionReport = 'conversion.report';
   static const customerView = 'customer.view';
+  static const customerManage = 'customer.manage';
   static const employeeView = 'employee.view';
+  static const employeeManage = 'employee.manage';
   static const teamView = 'team.view';
+  static const teamManage = 'team.manage';
   static const analyticsView = 'analytics.view';
   static const channelView = 'channel.view';
   static const channelManage = 'channel.manage';

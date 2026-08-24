@@ -10,7 +10,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/conversations/inbox_screen.dart' show realtimeStatusProvider;
+import '../../features/conversations/inbox_screen.dart'
+    show realtimeStatusProvider;
 import '../realtime/realtime_client.dart';
 import '../theme/tokens.dart';
 import 'app_drawer.dart';
@@ -111,7 +112,11 @@ class NoAccessScreen extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lock_outline, size: 40, color: theme.colorScheme.outline),
+              Icon(
+                Icons.lock_outline,
+                size: 40,
+                color: theme.colorScheme.outline,
+              ),
               const SizedBox(height: Space.lg),
               Text("You don't have access", style: theme.textTheme.titleMedium),
               const SizedBox(height: Space.sm),
@@ -145,10 +150,9 @@ class SectionHeading extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
           ?trailing,
@@ -181,10 +185,22 @@ class MetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final (foreground, surface) = switch (tone) {
-      MetricTone.neutral => (theme.colorScheme.onSurfaceVariant, theme.colorScheme.surfaceContainerHighest),
-      MetricTone.success => (ScenarioColors.success, ScenarioColors.successSurface),
-      MetricTone.warning => (ScenarioColors.warning, ScenarioColors.warningSurface),
-      MetricTone.danger => (ScenarioColors.danger, ScenarioColors.dangerSurface),
+      MetricTone.neutral => (
+        theme.colorScheme.onSurfaceVariant,
+        theme.colorScheme.surfaceContainerHighest,
+      ),
+      MetricTone.success => (
+        ScenarioColors.success,
+        ScenarioColors.successSurface,
+      ),
+      MetricTone.warning => (
+        ScenarioColors.warning,
+        ScenarioColors.warningSurface,
+      ),
+      MetricTone.danger => (
+        ScenarioColors.danger,
+        ScenarioColors.dangerSurface,
+      ),
     };
 
     return Card(
@@ -203,7 +219,7 @@ class MetricTile extends StatelessWidget {
                   Expanded(
                     child: Text(
                       label.toUpperCase(),
-                      maxLines:1,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelSmall?.copyWith(
                         letterSpacing: 0.5,
@@ -227,8 +243,9 @@ class MetricTile extends StatelessWidget {
               Center(
                 child: Text(
                   value,
-                  style: theme.textTheme.headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               if (hint != null) ...[

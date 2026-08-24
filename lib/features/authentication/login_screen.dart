@@ -49,7 +49,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      await ref.read(authControllerProvider.notifier).login(
+      await ref
+          .read(authControllerProvider.notifier)
+          .login(
             email: _emailController.text,
             password: _passwordController.text,
           );
@@ -95,6 +97,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autocorrect: false,
+                      // Lets Keychain / Google Password Manager fill these,
+                      // which is what makes a long unique password practical
+                      // on a phone. `enableSuggestions: false` on the password
+                      // field keeps it out of the keyboard's learned-word
+                      // dictionary, which is shared across apps.
+                      autofillHints: const [AutofillHints.username],
                       enabled: !_submitting,
                       decoration: const InputDecoration(
                         labelText: 'Email',
@@ -103,14 +111,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       validator: (value) =>
                           (value == null || !value.contains('@'))
-                              ? 'Enter your email address.'
-                              : null,
+                          ? 'Enter your email address.'
+                          : null,
                     ),
                     const SizedBox(height: Space.md),
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscure,
                       textInputAction: TextInputAction.done,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      autofillHints: const [AutofillHints.password],
                       enabled: !_submitting,
                       onFieldSubmitted: (_) => _submit(),
                       decoration: InputDecoration(
@@ -146,14 +157,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Sign in',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Inter',
+                          : const Text(
+                              'Sign in',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'Inter',
+                              ),
                             ),
-                          ),
                     ),
-                    if (environment.isDevelopment) ...[
+                    // Development builds only. `showsDeveloperAffordances`
+                    // rather than `isDevelopment`: the environment defaults to
+                    // development, so the latter printed the backend host on
+                    // the login screen of any release build made without
+                    // --dart-define.
+                    if (environment.showsDeveloperAffordances) ...[
                       const SizedBox(height: Space.lg),
                       Text(
                         environment.apiBaseUrl,
@@ -186,19 +203,15 @@ class _Brand extends StatelessWidget {
             color: ScenarioColors.primary,
             borderRadius: BorderRadius.circular(Radii.lg),
           ),
-          child: const Icon(
-            Icons.forum_rounded,
-            color: Colors.white,
-            size: 40,
-          ),
+          child: const Icon(Icons.forum_rounded, color: Colors.white, size: 40),
         ),
         const SizedBox(height: Space.md),
         Text(
           'Scenario',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-              ),
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+          ),
         ),
       ],
     );

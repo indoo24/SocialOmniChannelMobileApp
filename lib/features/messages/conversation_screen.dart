@@ -12,18 +12,23 @@ import 'package:go_router/go_router.dart';
 import '../../app/router.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/employee.dart';
+import '../../core/models/message.dart';
+import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../core/realtime/realtime_bridge.dart';
+import '../../core/realtime/realtime_logger.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
 import '../orders/customer_record_sheet.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
+import 'intelligence_panel.dart';
 import 'message_bubble.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
@@ -39,29 +44,47 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _composerController = TextEditingController();
   final _scrollController = ScrollController();
   late final ActiveConversation _activeNotifier;
+  late final InboxController _inboxNotifier;
+  late ProviderContainer _container;
   bool _sending = false;
 
   @override
   void initState() {
     super.initState();
     _activeNotifier = ref.read(activeConversationProvider.notifier);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _inboxNotifier = ref.read(inboxControllerProvider.notifier);
+    final activeNotifier = _activeNotifier;
+    final conversationId = widget.conversationId;
+    Future.microtask(() {
       if (mounted) {
-        _activeNotifier.opened(widget.conversationId);
+        activeNotifier.opened(conversationId);
+        ref
+            .read(conversationControllerProvider(conversationId).notifier)
+            .refreshOnOpen();
       }
     });
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _container = ProviderScope.containerOf(context);
+  }
+
+  @override
   void dispose() {
+    final activeNotifier = _activeNotifier;
+    final inboxNotifier = _inboxNotifier;
+    final container = _container;
+    final conversationId = widget.conversationId;
+
     Future.microtask(() {
-      _activeNotifier.closed(widget.conversationId);
-      ref
-          .read(inboxControllerProvider.notifier)
-          .markAsRead(widget.conversationId);
-      ref.invalidate(conversationCountsProvider);
-      ref.read(inboxControllerProvider.notifier).refreshQuietly();
+      inboxNotifier.markAsRead(conversationId);
+      container.invalidate(conversationCountsProvider);
+      inboxNotifier.refreshQuietly();
+      activeNotifier.closed(conversationId);
     });
+
     _composerController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -109,23 +132,34 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     );
     final canReply = ref.watch(canProvider(Perm.conversationReply));
 
-    // Listen to realtime events to refresh messages when open
-    ref.listen(realtimeEventProvider, (_, next) {
-      final event = next.value;
-      if (event != null) {
-        final id = event.conversationId;
-        if (id == widget.conversationId || id == null) {
-          Future.microtask(() {
-            ref
-                .read(
-                  conversationControllerProvider(
-                    widget.conversationId,
-                  ).notifier,
-                )
-                .refreshFromServer();
-          });
-        }
-      }
+    async.whenData((state) {
+      final convoIdStr = widget.conversationId.toString();
+      final lastMsg = state.messages.isNotEmpty ? state.messages.last : null;
+      final active = ref.read(activeConversationProvider);
+      final trace = RealtimeLogger.findTraceByMessageOrConvo(
+        lastMsg?.id.toString(),
+        convoIdStr,
+      );
+      final traceId = trace?.traceId ?? 'ui_$convoIdStr';
+
+      RealtimeLogger.markStep(
+        traceId,
+        'UI_STATE_RECEIVED',
+        conversationId: convoIdStr,
+        messageId: lastMsg?.id.toString(),
+      );
+      RealtimeLogger.log(
+        'UI',
+        'CONVERSATION_SCREEN_STATE_RECEIVED',
+        traceId: traceId,
+        conversationId: convoIdStr,
+        messageId: lastMsg?.id.toString(),
+        activeConversationId: active?.toString() ?? 'null',
+        data: {
+          'messageCount': state.messages.length,
+          'lastMessageId': lastMsg?.id ?? 'none',
+        },
+      );
     });
 
     // Automatically scroll down when a new message arrives.
@@ -140,12 +174,30 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       }
     });
 
+    // A realtime `conversation.access_changed` event resolved to "access
+    // lost" for this conversation — leave rather than keep showing a thread
+    // this employee can no longer see.
+    ref.listen<int?>(revokedConversationProvider, (previous, next) {
+      if (next != widget.conversationId) return;
+      final navigator = Navigator.of(context);
+      Future.microtask(() {
+        // ref use here throws "Using ref when a widget is about to or has
+        // been unmounted" if this screen was already popped by the time
+        // this microtask runs.
+        if (!mounted) return;
+        ref.read(revokedConversationProvider.notifier).clear();
+        if (navigator.canPop()) {
+          navigator.pop();
+        }
+      });
+    });
+
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
         title: async.maybeWhen(
           data: (state) => _Header(conversation: state.conversation),
-          orElse: () => const Text('Conversation'),
+          orElse: () => Text(context.l10n.conversationFallbackTitle),
         ),
         actions: [
           // Orders and captured details. Badged when the analyzer has read
@@ -158,14 +210,24 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             ),
             orElse: () => const SizedBox.shrink(),
           ),
+          // Lead score, funnel stage, purchase status and the rest of the
+          // analyzer's read. Badged when it needs a human's attention.
+          async.maybeWhen(
+            data: (state) => _IntelligenceButton(
+              conversationId: widget.conversationId,
+              needsHumanReview:
+                  state.conversation.intelligence?.needsHumanReview ?? false,
+            ),
+            orElse: () => const SizedBox.shrink(),
+          ),
           IconButton(
-            tooltip: 'Customer details',
+            tooltip: context.l10n.customerDetailsTooltip,
             icon: const Icon(Icons.person_outline),
             onPressed: () =>
                 context.push(Routes.customer(widget.conversationId)),
           ),
           IconButton(
-            tooltip: 'Actions',
+            tooltip: context.l10n.actionsTooltip,
             icon: const Icon(Icons.more_vert),
             onPressed: () => showConversationActionsSheet(
               context,
@@ -175,7 +237,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         ],
       ),
       body: async.when(
-        loading: () => const LoadingState(label: 'Loading conversation…'),
+        loading: () => LoadingState(label: context.l10n.loadingConversation),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(
@@ -186,9 +248,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           children: [
             Expanded(
               child: state.messages.isEmpty
-                  ? const EmptyState(
-                      title: 'No messages yet',
-                      message: 'This conversation has no history.',
+                  ? EmptyState(
+                      title: context.l10n.noMessagesYetTitle,
+                      message: context.l10n.noMessagesYetMessage,
                       icon: Icons.chat_bubble_outline,
                     )
                   : _MessageList(
@@ -234,7 +296,7 @@ class _RecordButton extends ConsumerWidget {
     return Stack(
       children: [
         IconButton(
-          tooltip: 'Orders and customer details',
+          tooltip: context.l10n.ordersTooltip,
           icon: const Icon(Icons.inventory_2_outlined),
           onPressed: () => showCustomerRecordSheet(
             context,
@@ -260,6 +322,50 @@ class _RecordButton extends ConsumerWidget {
                   color: Colors.white,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Opens the intelligence panel, dotted when the analyzer flagged this
+/// conversation for a human to look at.
+class _IntelligenceButton extends StatelessWidget {
+  const _IntelligenceButton({
+    required this.conversationId,
+    required this.needsHumanReview,
+  });
+
+  final int conversationId;
+  final bool needsHumanReview;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          tooltip: context.l10n.intelligenceTooltip,
+          icon: const Icon(Icons.insights_outlined),
+          onPressed: () =>
+              showIntelligencePanel(context, conversationId: conversationId),
+        ),
+        if (needsHumanReview)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(
+                color: ScenarioColors.warning,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.surface,
+                  width: 1.5,
                 ),
               ),
             ),
@@ -299,6 +405,7 @@ class _Header extends StatelessWidget {
               ),
               Text(
                 ConversationBadges.providerLabel(
+                  context,
                   conversation.provider as String,
                 ),
                 style: theme.textTheme.labelSmall,
@@ -325,6 +432,7 @@ class _MessageList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final messages = state.messages;
+    final canDelete = ref.watch(canProvider(Perm.conversationDeleteMessage));
 
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
@@ -386,6 +494,19 @@ class _MessageList extends ConsumerWidget {
                           )
                           .discardFailed(message.localId!)
                     : null,
+                onDelete:
+                    canDelete &&
+                        !message.isSystem &&
+                        !message.isPending &&
+                        !message.hasFailed &&
+                        message.id >= 0
+                    ? () => _confirmDeleteMessage(
+                        context,
+                        ref,
+                        conversationId,
+                        message,
+                      )
+                    : null,
               ),
             ],
           );
@@ -396,6 +517,83 @@ class _MessageList extends ConsumerWidget {
 
   static bool _sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
+}
+
+/// Confirms, then soft-deletes a message. ADMIN/SUPERVISOR only — the caller
+/// only ever wires this up when `Perm.conversationDeleteMessage` is held.
+///
+/// Removed optimistically on success rather than waiting on the realtime
+/// `message.deleted` round trip, matching how a failed send's `onDiscard`
+/// already behaves.
+Future<void> _confirmDeleteMessage(
+  BuildContext context,
+  WidgetRef ref,
+  int conversationId,
+  Message message,
+) async {
+  final reasonController = TextEditingController();
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(dialogContext.l10n.deleteMessageConfirmTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(dialogContext.l10n.deleteMessageConfirmBody),
+          const SizedBox(height: Space.md),
+          TextField(
+            controller: reasonController,
+            decoration: InputDecoration(
+              labelText: dialogContext.l10n.deleteMessageReasonLabel,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: Text(dialogContext.l10n.cancel),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(dialogContext).colorScheme.error,
+          ),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: Text(dialogContext.l10n.deleteMessageAction),
+        ),
+      ],
+    ),
+  );
+  final reason = reasonController.text.trim();
+  // Not disposed — see intelligence_panel.dart's _LeadScoreSectionState
+  // _editScore() for why: disposing here would race the AlertDialog's
+  // still-animating exit transition and can throw a use-after-dispose error.
+  if (confirmed != true) return;
+
+  try {
+    await ref
+        .read(conversationRepositoryProvider)
+        .deleteMessage(conversationId, message.id, reason: reason);
+    // ref use here throws "Using ref when a widget is about to or has been
+    // unmounted" if the screen was popped while deleteMessage() was in
+    // flight — checked before any of it runs.
+    if (!context.mounted) return;
+    ref
+        .read(conversationControllerProvider(conversationId).notifier)
+        .removeMessage(message.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(context.l10n.deleteMessageDeletedSnackbar)),
+    );
+  } on ApiException catch (error) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error.message),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+  }
 }
 
 class _DayDivider extends StatelessWidget {
@@ -418,7 +616,7 @@ class _DayDivider extends StatelessWidget {
             borderRadius: BorderRadius.circular(Radii.pill),
           ),
           child: Text(
-            formatDayHeading(date),
+            formatDayHeading(context, date),
             style: Theme.of(context).textTheme.labelSmall,
           ),
         ),
@@ -465,9 +663,9 @@ class _Composer extends StatelessWidget {
                 maxLines: 5,
                 textCapitalization: TextCapitalization.sentences,
                 keyboardType: TextInputType.multiline,
-                decoration: const InputDecoration(
-                  hintText: 'Write a reply…',
-                  contentPadding: EdgeInsets.symmetric(
+                decoration: InputDecoration(
+                  hintText: context.l10n.writeReplyHint,
+                  contentPadding: const EdgeInsets.symmetric(
                     horizontal: Space.md,
                     vertical: 10,
                   ),
@@ -524,7 +722,7 @@ class _ReadOnlyNotice extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: Space.sm),
-            Text('Read only', style: theme.textTheme.bodySmall),
+            Text(context.l10n.readOnlyLabel, style: theme.textTheme.bodySmall),
           ],
         ),
       ),

@@ -8,6 +8,8 @@
 /// has to tell them apart.
 library;
 
+import '../utils/json_safe.dart';
+
 import 'employee.dart';
 
 class Team {
@@ -32,23 +34,23 @@ class Team {
   final String description;
 
   factory Team.fromJson(Map<String, dynamic> json) {
-    List<String> names(String key) => ((json[key] as List?) ?? const [])
-        .map((m) => m is Map ? (m['full_name'] as String?) ?? '' : m.toString())
+    List<String> names(String key) => JsonSafe.asObjectList(json[key])
+        .map((m) => m is Map ? JsonSafe.asString(m['full_name']) : m.toString())
         .where((n) => n.isNotEmpty)
         .toList();
 
     final members = json['members'];
     return Team(
-      id: json['id'] as int,
-      name: (json['name'] as String?) ?? '',
-      color: (json['color'] as String?) ?? '',
-      language: (json['language'] as String?) ?? '',
-      isActive: (json['is_active'] as bool?) ?? true,
+      id: JsonSafe.asInt(json['id'], fallback: -1),
+      name: JsonSafe.asString(json['name']),
+      color: JsonSafe.asString(json['color']),
+      language: JsonSafe.asString(json['language']),
+      isActive: JsonSafe.asBool(json['is_active'], fallback: true),
       memberCount: members is List
           ? members.length
-          : (json['member_count'] as num?)?.toInt() ?? 0,
+          : JsonSafe.asInt(json['member_count']),
       leaderNames: names('leaders'),
-      description: (json['description'] as String?) ?? '',
+      description: JsonSafe.asString(json['description']),
     );
   }
 }
@@ -85,23 +87,26 @@ class Customer {
   final DateTime? lastSeenAt;
 
   factory Customer.fromJson(Map<String, dynamic> json) => Customer(
-        id: json['id'] as int,
-        displayName: (json['display_name'] as String?) ?? '',
-        lifecycleStage: (json['lifecycle_stage'] as String?) ?? 'UNKNOWN',
-        conversationCount: (json['conversation_count'] as num?)?.toInt() ?? 0,
-        avatarUrl: (json['avatar_url'] as String?) ?? '',
-        email: (json['email'] as String?) ?? '',
-        phone: (json['phone'] as String?) ?? '',
-        city: (json['city'] as String?) ?? '',
-        country: (json['country'] as String?) ?? '',
-        preferredLanguage: (json['preferred_language'] as String?) ?? '',
-        providers: ((json['identities'] as List?) ?? const [])
-            .map((i) => i is Map ? (i['provider'] as String?) ?? '' : '')
-            .where((p) => p.isNotEmpty)
-            .toSet()
-            .toList(),
-        lastSeenAt: DateTime.tryParse((json['last_seen_at'] as String?) ?? ''),
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    displayName: JsonSafe.asString(json['display_name']),
+    lifecycleStage: JsonSafe.asString(
+      json['lifecycle_stage'],
+      fallback: 'UNKNOWN',
+    ),
+    conversationCount: JsonSafe.asInt(json['conversation_count']),
+    avatarUrl: JsonSafe.asString(json['avatar_url']),
+    email: JsonSafe.asString(json['email']),
+    phone: JsonSafe.asString(json['phone']),
+    city: JsonSafe.asString(json['city']),
+    country: JsonSafe.asString(json['country']),
+    preferredLanguage: JsonSafe.asString(json['preferred_language']),
+    providers: JsonSafe.asObjectList(json['identities'])
+        .map((i) => i is Map ? JsonSafe.asString(i['provider']) : '')
+        .where((p) => p.isNotEmpty)
+        .toSet()
+        .toList(),
+    lastSeenAt: DateTime.tryParse(JsonSafe.asString(json['last_seen_at'])),
+  );
 
   String get subtitle {
     if (email.isNotEmpty) return email;
@@ -120,6 +125,9 @@ class ChannelConnection {
     required this.isActive,
     this.statusDetail = '',
     this.conversationCount = 0,
+    this.isMuted = false,
+    this.mutedAt,
+    this.mutedByName = '',
   });
 
   final int id;
@@ -130,18 +138,47 @@ class ChannelConnection {
   final String statusDetail;
   final int conversationCount;
 
+  /// Muted channels keep ingesting and analysing messages — they simply stop
+  /// appearing in the inbox, stop counting toward badges and stop being
+  /// routed. Distinct from disconnecting, which stops ingestion entirely.
+  final bool isMuted;
+  final DateTime? mutedAt;
+
+  /// Empty when the channel isn't muted, or Scenario acted rather than an
+  /// employee.
+  final String mutedByName;
+
   factory ChannelConnection.fromJson(Map<String, dynamic> json) =>
       ChannelConnection(
-        id: json['id'] as int,
-        provider: (json['provider'] as String?) ?? '',
-        displayName: (json['display_name'] as String?) ?? '',
-        status: (json['status'] as String?) ?? 'PENDING',
-        isActive: (json['is_active'] as bool?) ?? false,
-        statusDetail: (json['status_detail'] as String?) ?? '',
-        conversationCount: (json['conversation_count'] as num?)?.toInt() ?? 0,
+        id: JsonSafe.asInt(json['id'], fallback: -1),
+        provider: JsonSafe.asString(json['provider']),
+        displayName: JsonSafe.asString(json['display_name']),
+        status: JsonSafe.asString(json['status'], fallback: 'PENDING'),
+        isActive: JsonSafe.asBool(json['is_active']),
+        statusDetail: JsonSafe.asString(json['status_detail']),
+        conversationCount: JsonSafe.asInt(json['conversation_count']),
+        isMuted: JsonSafe.asBool(json['is_muted']),
+        mutedAt: DateTime.tryParse(JsonSafe.asString(json['muted_at'])),
+        mutedByName: JsonSafe.asString(json['muted_by_name']),
       );
 
   bool get isConnected => status == 'CONNECTED';
+}
+
+/// The result of `POST /channels/{id}/test/` — always a 200, `ok: false`
+/// included. Never treat a false [ok] as a client error; it's the adapter
+/// honestly reporting it could not verify the connection.
+class ChannelTestResult {
+  const ChannelTestResult({required this.ok, required this.detail});
+
+  final bool ok;
+  final String detail;
+
+  factory ChannelTestResult.fromJson(Map<String, dynamic> json) =>
+      ChannelTestResult(
+        ok: JsonSafe.asBool(json['ok']),
+        detail: JsonSafe.asString(json['detail']),
+      );
 }
 
 // --------------------------------------------------------------------------- //
@@ -167,7 +204,7 @@ class ConversationMetrics {
   final int mineOpen;
 
   factory ConversationMetrics.fromJson(Map<String, dynamic> json) {
-    int at(String key) => (json[key] as num?)?.toInt() ?? 0;
+    int at(String key) => JsonSafe.asInt(json[key]);
     return ConversationMetrics(
       open: at('open'),
       newCount: at('new'),
@@ -203,7 +240,7 @@ class IntelligenceMetrics {
   final double averageLeadScore;
 
   factory IntelligenceMetrics.fromJson(Map<String, dynamic> json) {
-    int at(String key) => (json[key] as num?)?.toInt() ?? 0;
+    int at(String key) => JsonSafe.asInt(json[key]);
     return IntelligenceMetrics(
       qualifiedLeads: at('qualified_leads'),
       hotLeads: at('hot_leads'),
@@ -211,8 +248,7 @@ class IntelligenceMetrics {
       agentConfirmedPurchases: at('agent_confirmed_purchases'),
       confirmedToday: at('confirmed_today'),
       pendingReview: at('pending_review'),
-      averageLeadScore:
-          (json['average_lead_score'] as num?)?.toDouble() ?? 0,
+      averageLeadScore: JsonSafe.asDouble(json['average_lead_score']),
     );
   }
 }
@@ -237,16 +273,14 @@ class WorkloadEntry {
   final String avatarUrl;
 
   factory WorkloadEntry.fromJson(Map<String, dynamic> json) => WorkloadEntry(
-        id: json['id'] as int,
-        fullName: (json['full_name'] as String?) ?? '',
-        initials: (json['initials'] as String?) ?? '',
-        availability: (json['availability'] as String?) ?? 'OFFLINE',
-        openConversations:
-            (json['open_conversations'] as num?)?.toInt() ?? 0,
-        unreadConversations:
-            (json['unread_conversations'] as num?)?.toInt() ?? 0,
-        avatarUrl: (json['avatar_url'] as String?) ?? '',
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    fullName: JsonSafe.asString(json['full_name']),
+    initials: JsonSafe.asString(json['initials']),
+    availability: JsonSafe.asString(json['availability'], fallback: 'OFFLINE'),
+    openConversations: JsonSafe.asInt(json['open_conversations']),
+    unreadConversations: JsonSafe.asInt(json['unread_conversations']),
+    avatarUrl: JsonSafe.asString(json['avatar_url']),
+  );
 }
 
 class TeamMetrics {
@@ -256,11 +290,9 @@ class TeamMetrics {
   final List<WorkloadEntry> workload;
 
   factory TeamMetrics.fromJson(Map<String, dynamic> json) => TeamMetrics(
-        onlineAgents: (json['online_agents'] as num?)?.toInt() ?? 0,
-        workload: ((json['workload'] as List?) ?? const [])
-            .map((w) => WorkloadEntry.fromJson(Map<String, dynamic>.from(w as Map)))
-            .toList(),
-      );
+    onlineAgents: JsonSafe.asInt(json['online_agents']),
+    workload: JsonSafe.parseList(json['workload'], WorkloadEntry.fromJson),
+  );
 }
 
 class DashboardSummary {
@@ -281,13 +313,13 @@ class DashboardSummary {
   factory DashboardSummary.fromJson(Map<String, dynamic> json) =>
       DashboardSummary(
         conversations: ConversationMetrics.fromJson(
-          Map<String, dynamic>.from((json['conversations'] as Map?) ?? const {}),
+          JsonSafe.asMap(json['conversations']),
         ),
         intelligence: IntelligenceMetrics.fromJson(
-          Map<String, dynamic>.from((json['intelligence'] as Map?) ?? const {}),
+          JsonSafe.asMap(json['intelligence']),
         ),
         team: json['team'] is Map
-            ? TeamMetrics.fromJson(Map<String, dynamic>.from(json['team'] as Map))
+            ? TeamMetrics.fromJson(JsonSafe.asMap(json['team']))
             : null,
       );
 }
@@ -306,11 +338,11 @@ class ChannelVolume {
   final int unread;
 
   factory ChannelVolume.fromJson(Map<String, dynamic> json) => ChannelVolume(
-        provider: (json['provider'] as String?) ?? 'MOCK',
-        total: (json['total'] as num?)?.toInt() ?? 0,
-        open: (json['open'] as num?)?.toInt() ?? 0,
-        unread: (json['unread'] as num?)?.toInt() ?? 0,
-      );
+    provider: JsonSafe.asString(json['provider'], fallback: 'MOCK'),
+    total: JsonSafe.asInt(json['total']),
+    open: JsonSafe.asInt(json['open']),
+    unread: JsonSafe.asInt(json['unread']),
+  );
 }
 
 /// A directory employee row. Richer than [EmployeeBrief], which only carries
@@ -326,8 +358,11 @@ class DirectoryEmployee {
     required this.availability,
     required this.isActive,
     required this.teamNames,
+    this.teamIds = const [],
     this.avatarUrl = '',
     this.title = '',
+    this.phone = '',
+    this.maxOpenChats,
   });
 
   final int id;
@@ -339,24 +374,42 @@ class DirectoryEmployee {
   final String availability;
   final bool isActive;
   final List<String> teamNames;
+
+  /// Same order as [teamNames] — used to prefill Edit Employee's team
+  /// picker, which needs ids the read model didn't otherwise carry.
+  final List<int> teamIds;
   final String avatarUrl;
   final String title;
+  final String phone;
+
+  /// Null when the backend omits it rather than 0, which is a real (if
+  /// unusual) capacity value.
+  final int? maxOpenChats;
 
   factory DirectoryEmployee.fromJson(Map<String, dynamic> json) =>
       DirectoryEmployee(
-        id: json['id'] as int,
-        fullName: (json['full_name'] as String?) ?? '',
-        initials: (json['initials'] as String?) ?? '',
-        email: (json['email'] as String?) ?? '',
-        role: (json['role'] as String?) ?? 'AGENT',
-        roleDisplay: (json['role_display'] as String?) ?? '',
-        availability: (json['availability'] as String?) ?? 'OFFLINE',
-        isActive: (json['is_active'] as bool?) ?? true,
-        teamNames: ((json['teams'] as List?) ?? const [])
-            .map((t) => t is Map ? (t['name'] as String?) ?? '' : '')
+        id: JsonSafe.asInt(json['id'], fallback: -1),
+        fullName: JsonSafe.asString(json['full_name']),
+        initials: JsonSafe.asString(json['initials']),
+        email: JsonSafe.asString(json['email']),
+        role: JsonSafe.asString(json['role'], fallback: 'AGENT'),
+        roleDisplay: JsonSafe.asString(json['role_display']),
+        availability: JsonSafe.asString(
+          json['availability'],
+          fallback: 'OFFLINE',
+        ),
+        isActive: JsonSafe.asBool(json['is_active'], fallback: true),
+        teamNames: JsonSafe.asObjectList(json['teams'])
+            .map((t) => t is Map ? JsonSafe.asString(t['name']) : '')
             .where((n) => n.isNotEmpty)
             .toList(),
-        avatarUrl: (json['avatar_url'] as String?) ?? '',
-        title: (json['title'] as String?) ?? '',
+        teamIds: JsonSafe.asObjectList(json['teams'])
+            .map((t) => t is Map ? JsonSafe.asIntOrNull(t['id']) : null)
+            .whereType<int>()
+            .toList(),
+        avatarUrl: JsonSafe.asString(json['avatar_url']),
+        title: JsonSafe.asString(json['title']),
+        phone: JsonSafe.asString(json['phone']),
+        maxOpenChats: JsonSafe.asIntOrNull(json['max_open_chats']),
       );
 }

@@ -10,6 +10,8 @@
 /// * [Order.isClaim] — recorded but unattested. Never revenue.
 library;
 
+import '../utils/json_safe.dart';
+
 class PlatformVolume {
   const PlatformVolume({
     required this.provider,
@@ -24,11 +26,11 @@ class PlatformVolume {
   final int conversations;
 
   factory PlatformVolume.fromJson(Map<String, dynamic> json) => PlatformVolume(
-        provider: (json['provider'] as String?) ?? '',
-        messages: (json['messages'] as num?)?.toInt() ?? 0,
-        customers: (json['customers'] as num?)?.toInt() ?? 0,
-        conversations: (json['conversations'] as num?)?.toInt() ?? 0,
-      );
+    provider: JsonSafe.asString(json['provider']),
+    messages: JsonSafe.asInt(json['messages']),
+    customers: JsonSafe.asInt(json['customers']),
+    conversations: JsonSafe.asInt(json['conversations']),
+  );
 }
 
 class HoursBreakdown {
@@ -55,13 +57,13 @@ class HoursBreakdown {
   final double? adherence;
 
   factory HoursBreakdown.fromJson(Map<String, dynamic> json) => HoursBreakdown(
-        scheduledSeconds: (json['scheduled_seconds'] as num?)?.toInt() ?? 0,
-        onlineSeconds: (json['online_seconds'] as num?)?.toInt() ?? 0,
-        awaySeconds: (json['away_seconds'] as num?)?.toInt() ?? 0,
-        breakSeconds: (json['break_seconds'] as num?)?.toInt() ?? 0,
-        hasSessionData: (json['has_session_data'] as bool?) ?? false,
-        adherence: (json['adherence'] as num?)?.toDouble(),
-      );
+    scheduledSeconds: JsonSafe.asInt(json['scheduled_seconds']),
+    onlineSeconds: JsonSafe.asInt(json['online_seconds']),
+    awaySeconds: JsonSafe.asInt(json['away_seconds']),
+    breakSeconds: JsonSafe.asInt(json['break_seconds']),
+    hasSessionData: JsonSafe.asBool(json['has_session_data']),
+    adherence: JsonSafe.asDoubleOrNull(json['adherence']),
+  );
 }
 
 class EmployeePerformance {
@@ -137,20 +139,25 @@ class EmployeePerformance {
   final String currency;
 
   factory EmployeePerformance.fromJson(Map<String, dynamic> json) {
-    int at(String key) => (json[key] as num?)?.toInt() ?? 0;
-    double? maybe(String key) => (json[key] as num?)?.toDouble();
+    int at(String key) => JsonSafe.asInt(json[key]);
+    double? maybe(String key) => JsonSafe.asDoubleOrNull(json[key]);
 
     return EmployeePerformance(
-      employeeId: json['employee_id'] as int,
-      fullName: (json['full_name'] as String?) ?? '',
-      initials: (json['initials'] as String?) ?? '',
-      role: (json['role'] as String?) ?? 'AGENT',
-      availability: (json['availability'] as String?) ?? 'OFFLINE',
-      avatarUrl: (json['avatar_url'] as String?) ?? '',
+      employeeId: JsonSafe.asInt(json['employee_id'], fallback: -1),
+      fullName: JsonSafe.asString(json['full_name']),
+      initials: JsonSafe.asString(json['initials']),
+      role: JsonSafe.asString(json['role'], fallback: 'AGENT'),
+      availability: JsonSafe.asString(
+        json['availability'],
+        fallback: 'OFFLINE',
+      ),
+      avatarUrl: JsonSafe.asString(json['avatar_url']),
       conversationsHandled: at('conversations_handled'),
       conversationsResolved: at('conversations_resolved'),
       averageResponseSeconds: maybe('average_response_seconds'),
-      medianResponseSeconds: (json['median_response_seconds'] as num?)?.toInt(),
+      medianResponseSeconds: JsonSafe.asIntOrNull(
+        json['median_response_seconds'],
+      ),
       firstResponseAverageSeconds: maybe('first_response_average_seconds'),
       responsesCounted: at('responses_counted'),
       leadScoreAtAssignment: maybe('lead_score_at_assignment'),
@@ -160,16 +167,15 @@ class EmployeePerformance {
       scoredConversations: at('scored_conversations'),
       messagesSent: at('messages_sent'),
       customersServed: at('customers_served'),
-      platforms: ((json['platforms'] as List?) ?? const [])
-          .map((p) => PlatformVolume.fromJson(Map<String, dynamic>.from(p as Map)))
-          .toList(),
-      hours: HoursBreakdown.fromJson(
-        Map<String, dynamic>.from((json['hours'] as Map?) ?? const {}),
-      ),
+      platforms: JsonSafe.parseList(json['platforms'], PlatformVolume.fromJson),
+      hours: HoursBreakdown.fromJson(JsonSafe.asMap(json['hours'])),
       ordersRecorded: at('orders_recorded'),
       ordersConfirmed: at('orders_confirmed'),
-      confirmedOrderValue: (json['confirmed_order_value'] as String?) ?? '0.00',
-      currency: (json['currency'] as String?) ?? '',
+      confirmedOrderValue: JsonSafe.asString(
+        json['confirmed_order_value'],
+        fallback: '0.00',
+      ),
+      currency: JsonSafe.asString(json['currency']),
     );
   }
 
@@ -188,12 +194,12 @@ class PerformanceReport {
   final int days;
   final List<EmployeePerformance> results;
 
-  factory PerformanceReport.fromJson(Map<String, dynamic> json) => PerformanceReport(
-        days: ((json['window'] as Map?)?['days'] as num?)?.toInt() ?? 14,
-        results: ((json['results'] as List?) ?? const [])
-            .map((r) => EmployeePerformance.fromJson(Map<String, dynamic>.from(r as Map)))
-            .toList(),
-      );
+  factory PerformanceReport.fromJson(
+    Map<String, dynamic> json,
+  ) => PerformanceReport(
+    days: JsonSafe.asInt(JsonSafe.asMap(json['window'])['days'], fallback: 14),
+    results: JsonSafe.parseList(json['results'], EmployeePerformance.fromJson),
+  );
 }
 
 // --------------------------------------------------------------------------- //
@@ -215,12 +221,12 @@ class OrderItem {
   final String lineTotal;
 
   factory OrderItem.fromJson(Map<String, dynamic> json) => OrderItem(
-        id: json['id'] as int,
-        productName: (json['product_name'] as String?) ?? '',
-        quantity: (json['quantity'] as num?)?.toInt() ?? 1,
-        unitPrice: (json['unit_price'] as String?) ?? '0.00',
-        lineTotal: (json['line_total'] as String?) ?? '0.00',
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    productName: JsonSafe.asString(json['product_name']),
+    quantity: JsonSafe.asInt(json['quantity'], fallback: 1),
+    unitPrice: JsonSafe.asString(json['unit_price'], fallback: '0.00'),
+    lineTotal: JsonSafe.asString(json['line_total'], fallback: '0.00'),
+  );
 }
 
 class Order {
@@ -265,23 +271,21 @@ class Order {
   final String note;
 
   factory Order.fromJson(Map<String, dynamic> json) => Order(
-        id: json['id'] as int,
-        customerId: (json['customer'] as num?)?.toInt() ?? 0,
-        conversationId: (json['conversation'] as num?)?.toInt(),
-        status: (json['status'] as String?) ?? 'RECORDED',
-        statusDisplay: (json['status_display'] as String?) ?? '',
-        source: (json['source'] as String?) ?? 'EMPLOYEE',
-        isClaim: (json['is_claim'] as bool?) ?? true,
-        totalAmount: (json['total_amount'] as String?) ?? '0.00',
-        currency: (json['currency'] as String?) ?? '',
-        items: ((json['items'] as List?) ?? const [])
-            .map((i) => OrderItem.fromJson(Map<String, dynamic>.from(i as Map)))
-            .toList(),
-        recordedByName: (json['recorded_by_name'] as String?) ?? '',
-        confirmedByName: (json['confirmed_by_name'] as String?) ?? '',
-        evidence: (json['evidence'] as String?) ?? '',
-        note: (json['note'] as String?) ?? '',
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    customerId: JsonSafe.asInt(json['customer']),
+    conversationId: JsonSafe.asIntOrNull(json['conversation']),
+    status: JsonSafe.asString(json['status'], fallback: 'RECORDED'),
+    statusDisplay: JsonSafe.asString(json['status_display']),
+    source: JsonSafe.asString(json['source'], fallback: 'EMPLOYEE'),
+    isClaim: JsonSafe.asBool(json['is_claim'], fallback: true),
+    totalAmount: JsonSafe.asString(json['total_amount'], fallback: '0.00'),
+    currency: JsonSafe.asString(json['currency']),
+    items: JsonSafe.parseList(json['items'], OrderItem.fromJson),
+    recordedByName: JsonSafe.asString(json['recorded_by_name']),
+    confirmedByName: JsonSafe.asString(json['confirmed_by_name']),
+    evidence: JsonSafe.asString(json['evidence']),
+    note: JsonSafe.asString(json['note']),
+  );
 
   bool get isSuggestion => status == 'SUGGESTED';
   bool get isConfirmed => status == 'CONFIRMED';
@@ -317,13 +321,13 @@ class CustomerFact {
   final String reviewedByName;
 
   factory CustomerFact.fromJson(Map<String, dynamic> json) => CustomerFact(
-        id: json['id'] as int,
-        key: (json['key'] as String?) ?? '',
-        value: (json['value'] as String?) ?? '',
-        confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
-        source: (json['source'] as String?) ?? 'ANALYZER',
-        status: (json['status'] as String?) ?? 'CONFIRMED',
-        needsReview: (json['needs_review'] as bool?) ?? false,
-        reviewedByName: (json['reviewed_by_name'] as String?) ?? '',
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    key: JsonSafe.asString(json['key']),
+    value: JsonSafe.asString(json['value']),
+    confidence: JsonSafe.asDouble(json['confidence']),
+    source: JsonSafe.asString(json['source'], fallback: 'ANALYZER'),
+    status: JsonSafe.asString(json['status'], fallback: 'CONFIRMED'),
+    needsReview: JsonSafe.asBool(json['needs_review']),
+    reviewedByName: JsonSafe.asString(json['reviewed_by_name']),
+  );
 }

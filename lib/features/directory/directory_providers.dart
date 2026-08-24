@@ -9,6 +9,7 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/conversation.dart';
+import '../../core/models/customer_detail.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
 import '../../core/providers.dart';
@@ -32,6 +33,10 @@ final channelsProvider = FutureProvider<List<ChannelConnection>>((ref) async {
   return page.results;
 });
 
+final categoriesProvider = FutureProvider<List<ConversationCategory>>((ref) {
+  return ref.watch(directoryRepositoryProvider).categories();
+});
+
 /// Search text for a directory screen.
 ///
 /// One controller class, two providers: the two directories are searched
@@ -45,18 +50,27 @@ class SearchQueryController extends Notifier<String> {
   void clear() => state = '';
 }
 
-final employeeSearchProvider =
-    NotifierProvider<SearchQueryController, String>(SearchQueryController.new);
+final employeeSearchProvider = NotifierProvider<SearchQueryController, String>(
+  SearchQueryController.new,
+);
 
-final customerSearchProvider =
-    NotifierProvider<SearchQueryController, String>(SearchQueryController.new);
+final customerSearchProvider = NotifierProvider<SearchQueryController, String>(
+  SearchQueryController.new,
+);
 
-final employeeDirectoryProvider =
-    FutureProvider<List<DirectoryEmployee>>((ref) async {
+final employeeDirectoryProvider = FutureProvider<List<DirectoryEmployee>>((
+  ref,
+) async {
   final page = await ref
       .watch(directoryRepositoryProvider)
       .employees(search: ref.watch(employeeSearchProvider));
   return page.results;
+});
+
+/// Currently-available agents — the whole set, not a client-side filter over
+/// whichever page of [employeeDirectoryProvider] happens to be loaded.
+final onlineEmployeesProvider = FutureProvider<List<DirectoryEmployee>>((ref) {
+  return ref.watch(directoryRepositoryProvider).onlineEmployees();
 });
 
 final customerDirectoryProvider = FutureProvider<List<Customer>>((ref) async {
@@ -66,12 +80,20 @@ final customerDirectoryProvider = FutureProvider<List<Customer>>((ref) async {
   return page.results;
 });
 
+final customerDetailProvider = FutureProvider.family<CustomerDetail, int>((
+  ref,
+  customerId,
+) {
+  return ref.watch(directoryRepositoryProvider).customerDetail(customerId);
+});
+
 final customerConversationsProvider =
     FutureProvider.family<List<Conversation>, int>((ref, id) async {
-  final page =
-      await ref.watch(directoryRepositoryProvider).customerConversations(id);
-  return page.results;
-});
+      final page = await ref
+          .watch(directoryRepositoryProvider)
+          .customerConversations(id);
+      return page.results;
+    });
 
 // --------------------------------------------------------------------------- //
 // Performance
@@ -87,8 +109,8 @@ class PerformanceWindowController extends Notifier<int> {
 
 final performanceWindowProvider =
     NotifierProvider<PerformanceWindowController, int>(
-  PerformanceWindowController.new,
-);
+      PerformanceWindowController.new,
+    );
 
 final performanceProvider = FutureProvider<PerformanceReport>((ref) {
   return ref
@@ -114,12 +136,18 @@ final myPerformanceProvider = Provider<EmployeePerformance?>((ref) {
 // --------------------------------------------------------------------------- //
 // Orders and captured details
 // --------------------------------------------------------------------------- //
-final conversationOrdersProvider =
-    FutureProvider.family<List<Order>, int>((ref, conversationId) {
-  return ref.watch(directoryRepositoryProvider).conversationOrders(conversationId);
+final conversationOrdersProvider = FutureProvider.family<List<Order>, int>((
+  ref,
+  conversationId,
+) {
+  return ref
+      .watch(directoryRepositoryProvider)
+      .conversationOrders(conversationId);
 });
 
-final customerFactsProvider =
-    FutureProvider.family<List<CustomerFact>, int>((ref, customerId) {
+final customerFactsProvider = FutureProvider.family<List<CustomerFact>, int>((
+  ref,
+  customerId,
+) {
   return ref.watch(directoryRepositoryProvider).customerFacts(customerId);
 });

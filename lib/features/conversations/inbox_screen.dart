@@ -22,6 +22,7 @@ import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
 import '../../core/utils/formatting.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import 'inbox_controller.dart';
 import 'inbox_filters_sheet.dart';
@@ -84,10 +85,12 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                       .update(filters.copyWith(search: value));
                 },
               )
-            : const Text('Inbox'),
+            : Text(context.l10n.inboxTitle),
         actions: [
           IconButton(
-            tooltip: _searching ? 'Close search' : 'Search',
+            tooltip: _searching
+                ? context.l10n.commonCloseSearch
+                : context.l10n.commonSearch,
             icon: Icon(_searching ? Icons.close : Icons.search),
             onPressed: () {
               setState(() => _searching = !_searching);
@@ -101,7 +104,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
           ),
           _FilterButton(active: !filters.isEmpty),
           IconButton(
-            tooltip: 'Settings',
+            tooltip: context.l10n.settingsTitle,
             icon: InitialsAvatar(
               initials: employee?.initials ?? '',
               imageUrl: employee?.avatarUrl ?? '',
@@ -141,17 +144,18 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                     height: MediaQuery.sizeOf(context).height * 0.6,
                     child: EmptyState(
                       title: filters.isEmpty
-                          ? 'No conversations yet'
-                          : 'Nothing matches those filters',
+                          ? context.l10n.noConversationsTitle
+                          : context.l10n.noFilterMatchesTitle,
                       message: filters.isEmpty
-                          ? 'New customer messages will appear here as they arrive.'
-                          : 'Try widening or clearing the filters.',
+                          ? context.l10n.noConversationsMessage
+                          : context.l10n.noFilterMatchesMessage,
                       action: filters.isEmpty
                           ? null
                           : OutlinedButton(
-                              onPressed: () =>
-                                  ref.read(inboxFiltersProvider.notifier).clear(),
-                              child: const Text('Clear filters'),
+                              onPressed: () => ref
+                                  .read(inboxFiltersProvider.notifier)
+                                  .clear(),
+                              child: Text(context.l10n.clearFiltersButton),
                             ),
                     ),
                   ),
@@ -209,10 +213,14 @@ class ConversationRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final (statusLabel, statusTone) =
-        ConversationBadges.status(conversation.status);
-    final (priorityLabel, priorityTone) =
-        ConversationBadges.priority(conversation.priority);
+    final (statusLabel, statusTone) = ConversationBadges.status(
+      context,
+      conversation.status,
+    );
+    final (priorityLabel, priorityTone) = ConversationBadges.priority(
+      context,
+      conversation.priority,
+    );
     final unread = conversation.hasUnread;
 
     return InkWell(
@@ -243,14 +251,15 @@ class ConversationRow extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight:
-                                unread ? FontWeight.w700 : FontWeight.w600,
+                            fontWeight: unread
+                                ? FontWeight.w700
+                                : FontWeight.w600,
                           ),
                         ),
                       ),
                       const SizedBox(width: Space.sm),
                       Text(
-                        formatRelativeTime(conversation.lastMessageAt),
+                        formatRelativeTime(context, conversation.lastMessageAt),
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: unread ? theme.colorScheme.primary : null,
                           fontWeight: unread ? FontWeight.w600 : null,
@@ -264,7 +273,7 @@ class ConversationRow extends StatelessWidget {
                       Expanded(
                         child: Text(
                           conversation.lastMessagePreview.isEmpty
-                              ? 'No messages yet'
+                              ? context.l10n.noMessagesYetPreview
                               : conversation.lastMessagePreview,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -294,7 +303,8 @@ class ConversationRow extends StatelessWidget {
                         dense: true,
                       ),
                       if (ConversationBadges.showsPriority(
-                          conversation.priority))
+                        conversation.priority,
+                      ))
                         StatusBadge(
                           label: priorityLabel,
                           tone: priorityTone,
@@ -307,14 +317,14 @@ class ConversationRow extends StatelessWidget {
                           dense: true,
                         ),
                       if (conversation.isUnassigned)
-                        const StatusBadge(
-                          label: 'Unassigned',
+                        StatusBadge(
+                          label: context.l10n.unassignedBadge,
                           tone: BadgeTone.warning,
                           dense: true,
                         )
                       else if (conversation.isOwnedBy(currentEmployeeId ?? -1))
-                        const StatusBadge(
-                          label: 'You',
+                        StatusBadge(
+                          label: context.l10n.youBadge,
                           tone: BadgeTone.info,
                           dense: true,
                         )
@@ -373,7 +383,7 @@ class _FilterButton extends ConsumerWidget {
     return Stack(
       children: [
         IconButton(
-          tooltip: 'Filters',
+          tooltip: context.l10n.filtersTooltip,
           icon: const Icon(Icons.tune),
           onPressed: () => showInboxFiltersSheet(context, ref),
         ),
@@ -408,8 +418,8 @@ class _SearchField extends StatelessWidget {
       autofocus: true,
       textInputAction: TextInputAction.search,
       onSubmitted: onSubmitted,
-      decoration: const InputDecoration(
-        hintText: 'Search conversations',
+      decoration: InputDecoration(
+        hintText: context.l10n.searchConversationsHint,
         border: InputBorder.none,
         enabledBorder: InputBorder.none,
         focusedBorder: InputBorder.none,

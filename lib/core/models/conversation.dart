@@ -1,3 +1,5 @@
+import '../utils/json_safe.dart';
+
 import 'employee.dart';
 
 class CustomerBrief {
@@ -16,12 +18,15 @@ class CustomerBrief {
   final String preferredLanguage;
 
   factory CustomerBrief.fromJson(Map<String, dynamic> json) => CustomerBrief(
-        id: json['id'] as int,
-        displayName: (json['display_name'] as String?) ?? 'Unknown Customer',
-        avatarUrl: (json['avatar_url'] as String?) ?? '',
-        lifecycleStage: (json['lifecycle_stage'] as String?) ?? '',
-        preferredLanguage: (json['preferred_language'] as String?) ?? '',
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    displayName: JsonSafe.asString(
+      json['display_name'],
+      fallback: 'Unknown Customer',
+    ),
+    avatarUrl: JsonSafe.asString(json['avatar_url']),
+    lifecycleStage: JsonSafe.asString(json['lifecycle_stage']),
+    preferredLanguage: JsonSafe.asString(json['preferred_language']),
+  );
 
   String get initials {
     final parts = displayName.trim().split(RegExp(r'\s+'))
@@ -39,10 +44,10 @@ class TeamBrief {
   final String color;
 
   factory TeamBrief.fromJson(Map<String, dynamic> json) => TeamBrief(
-        id: json['id'] as int,
-        name: (json['name'] as String?) ?? '',
-        color: (json['color'] as String?) ?? '',
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    name: JsonSafe.asString(json['name']),
+    color: JsonSafe.asString(json['color']),
+  );
 }
 
 class ConversationCategory {
@@ -60,10 +65,10 @@ class ConversationCategory {
 
   factory ConversationCategory.fromJson(Map<String, dynamic> json) =>
       ConversationCategory(
-        id: json['id'] as int,
-        label: (json['label'] as String?) ?? '',
-        slug: (json['slug'] as String?) ?? '',
-        color: (json['color'] as String?) ?? '',
+        id: JsonSafe.asInt(json['id'], fallback: -1),
+        label: JsonSafe.asString(json['label']),
+        slug: JsonSafe.asString(json['slug']),
+        color: JsonSafe.asString(json['color']),
       );
 }
 
@@ -82,10 +87,10 @@ class IntelligenceBrief {
 
   factory IntelligenceBrief.fromJson(Map<String, dynamic> json) =>
       IntelligenceBrief(
-        stage: (json['stage'] as String?) ?? '',
-        leadScore: (json['lead_score'] as int?) ?? 0,
-        purchaseStatus: (json['purchase_status'] as String?) ?? '',
-        needsHumanReview: (json['needs_human_review'] as bool?) ?? false,
+        stage: JsonSafe.asString(json['stage']),
+        leadScore: JsonSafe.asInt(json['lead_score']),
+        purchaseStatus: JsonSafe.asString(json['purchase_status']),
+        needsHumanReview: JsonSafe.asBool(json['needs_human_review']),
       );
 }
 
@@ -127,37 +132,31 @@ class Conversation {
   final String subject;
 
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
-        id: json['id'] as int,
-        customer: CustomerBrief.fromJson(
-          Map<String, dynamic>.from(json['customer'] as Map? ?? const {}),
-        ),
-        provider: (json['provider'] as String?) ?? 'MOCK',
-        channelName: (json['channel_name'] as String?) ?? '',
-        assignedTo: json['assigned_to'] is Map
-            ? EmployeeBrief.fromJson(
-                Map<String, dynamic>.from(json['assigned_to'] as Map))
-            : null,
-        assignedTeam: json['assigned_team'] is Map
-            ? TeamBrief.fromJson(
-                Map<String, dynamic>.from(json['assigned_team'] as Map))
-            : null,
-        status: (json['status'] as String?) ?? 'NEW',
-        priority: (json['priority'] as String?) ?? 'NORMAL',
-        category: json['category'] is Map
-            ? ConversationCategory.fromJson(
-                Map<String, dynamic>.from(json['category'] as Map))
-            : null,
-        unreadCount: (json['unread_count'] as int?) ?? 0,
-        messageCount: (json['message_count'] as int?) ?? 0,
-        lastMessagePreview: (json['last_message_preview'] as String?) ?? '',
-        lastMessageAt: _parseDate(json['last_message_at']),
-        startedAt: _parseDate(json['started_at']),
-        intelligence: json['intelligence'] is Map
-            ? IntelligenceBrief.fromJson(
-                Map<String, dynamic>.from(json['intelligence'] as Map))
-            : null,
-        subject: (json['subject'] as String?) ?? '',
-      );
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    customer: CustomerBrief.fromJson(JsonSafe.asMap(json['customer'])),
+    provider: JsonSafe.asString(json['provider'], fallback: 'MOCK'),
+    channelName: JsonSafe.asString(json['channel_name']),
+    assignedTo: json['assigned_to'] is Map
+        ? EmployeeBrief.fromJson(JsonSafe.asMap(json['assigned_to']))
+        : null,
+    assignedTeam: json['assigned_team'] is Map
+        ? TeamBrief.fromJson(JsonSafe.asMap(json['assigned_team']))
+        : null,
+    status: JsonSafe.asString(json['status'], fallback: 'NEW'),
+    priority: JsonSafe.asString(json['priority'], fallback: 'NORMAL'),
+    category: json['category'] is Map
+        ? ConversationCategory.fromJson(JsonSafe.asMap(json['category']))
+        : null,
+    unreadCount: JsonSafe.asInt(json['unread_count']),
+    messageCount: JsonSafe.asInt(json['message_count']),
+    lastMessagePreview: JsonSafe.asString(json['last_message_preview']),
+    lastMessageAt: _parseDate(json['last_message_at']),
+    startedAt: _parseDate(json['started_at']),
+    intelligence: json['intelligence'] is Map
+        ? IntelligenceBrief.fromJson(JsonSafe.asMap(json['intelligence']))
+        : null,
+    subject: JsonSafe.asString(json['subject']),
+  );
 
   bool get isUnassigned => assignedTo == null;
   bool get hasUnread => unreadCount > 0;
@@ -170,25 +169,24 @@ class Conversation {
     String? priority,
     EmployeeBrief? assignedTo,
     ConversationCategory? category,
-  }) =>
-      Conversation(
-        id: id,
-        customer: customer,
-        provider: provider,
-        status: status ?? this.status,
-        priority: priority ?? this.priority,
-        unreadCount: unreadCount ?? this.unreadCount,
-        messageCount: messageCount,
-        channelName: channelName,
-        assignedTo: assignedTo ?? this.assignedTo,
-        assignedTeam: assignedTeam,
-        category: category ?? this.category,
-        intelligence: intelligence,
-        lastMessagePreview: lastMessagePreview,
-        lastMessageAt: lastMessageAt,
-        startedAt: startedAt,
-        subject: subject,
-      );
+  }) => Conversation(
+    id: id,
+    customer: customer,
+    provider: provider,
+    status: status ?? this.status,
+    priority: priority ?? this.priority,
+    unreadCount: unreadCount ?? this.unreadCount,
+    messageCount: messageCount,
+    channelName: channelName,
+    assignedTo: assignedTo ?? this.assignedTo,
+    assignedTeam: assignedTeam,
+    category: category ?? this.category,
+    intelligence: intelligence,
+    lastMessagePreview: lastMessagePreview,
+    lastMessageAt: lastMessageAt,
+    startedAt: startedAt,
+    subject: subject,
+  );
 }
 
 DateTime? _parseDate(Object? value) {
@@ -215,13 +213,14 @@ class Paginated<T> {
   factory Paginated.fromJson(
     Map<String, dynamic> json,
     T Function(Map<String, dynamic>) parse,
-  ) =>
-      Paginated<T>(
-        results: ((json['results'] as List?) ?? const [])
-            .map((item) => parse(Map<String, dynamic>.from(item as Map)))
-            .toList(),
-        count: (json['count'] as int?) ?? 0,
-        next: json['next'] as String?,
-        previous: json['previous'] as String?,
-      );
+  ) => Paginated<T>(
+    // Per-element guard: this is the single funnel every paginated list in
+    // the app passes through — conversations, messages, customers,
+    // employees, teams — so one unparseable row here would otherwise cost
+    // the entire page. Dropping it costs one row.
+    results: JsonSafe.parseList(json['results'], parse),
+    count: JsonSafe.asInt(json['count']),
+    next: JsonSafe.asStringOrNull(json['next']),
+    previous: JsonSafe.asStringOrNull(json['previous']),
+  );
 }

@@ -1,8 +1,36 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Runtime-requested via firebase_messaging's requestPermission() call;
+         Android 13+ requires the manifest declaration too. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Every network call (REST API, WebSocket, FCM) needs this. The debug/
+         profile manifests inherit it from the Flutter template; declared
+         explicitly here rather than relying on it being merged in from a
+         dependency's own manifest (e.g. firebase-messaging). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="scenario_mobile"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules">
+        <!--
+          allowBackup="false" because the app's private storage contains a live
+          credential, not just preferences.
+
+          The session cookie is persisted by PersistCookieJar as ordinary files
+          under the app's documents directory. With backup enabled — the
+          platform default — those files are copied into the user's Google
+          Drive backup and into the device-to-device transfer that runs when
+          they set up a new phone. That carries an authenticated Scenario
+          session off the device it was issued to, where it can be restored
+          onto another one; on API levels that still honour `adb backup`, it is
+          extractable over USB without root.
+
+          The two rules files above additionally exclude the cookie directory
+          and the secure-storage preferences, so the exclusions survive anyone
+          re-enabling backup later for a legitimate reason.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

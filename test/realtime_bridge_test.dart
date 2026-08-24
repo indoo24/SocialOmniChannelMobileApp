@@ -6,13 +6,9 @@
 /// without requiring a widget tree or real WebSocket connection.
 library;
 
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scenario_mobile/core/config/environment.dart';
 import 'package:scenario_mobile/core/models/conversation.dart';
 import 'package:scenario_mobile/core/models/message.dart';
 import 'package:scenario_mobile/core/providers.dart';
@@ -173,6 +169,7 @@ void main() {
         RealtimeEvents.conversationStatusChanged,
         'conversation.status_changed',
       );
+      expect(RealtimeEvents.accessChanged, 'conversation.access_changed');
       expect(RealtimeEvents.noteCreated, 'note.created');
       expect(RealtimeEvents.intelligenceUpdated, 'intelligence.updated');
       expect(RealtimeEvents.presenceChanged, 'presence.changed');
@@ -255,5 +252,56 @@ void main() {
       expect(mergedMap.length, 3);
       expect(mergedMap.containsKey(3), isTrue);
     });
+
+    test(
+      'access_changed event correctly extracts conversation_id from payload',
+      () {
+        final event = RealtimeEvent(RealtimeEvents.accessChanged, {
+          'conversation_id': 77,
+        });
+        expect(event.conversationId, 77);
+        expect(event.event, 'conversation.access_changed');
+      },
+    );
+
+    // Exercises the same replacement `ConversationController.updateConversation`
+    // performs (`current.copyWith(conversation: ...)`), at the state-shape
+    // level — the same boundary `ConversationState merge preserves pending
+    // messages` above already tests other mutations at, since driving the
+    // real AsyncNotifier requires stubbing the full detail/messages fetch
+    // cascade its build() triggers.
+    test(
+      'ConversationState.copyWith replaces the conversation and keeps messages',
+      () {
+        final messages = [_makeMessage(id: 1, text: 'Hello')];
+        final state = ConversationState(
+          conversation: _makeConversation(id: 1, unreadCount: 3),
+          messages: messages,
+        );
+
+        final freshlyFetched = _makeConversation(id: 1, unreadCount: 0);
+        final updated = state.copyWith(conversation: freshlyFetched);
+
+        expect(updated.conversation.unreadCount, 0);
+        expect(updated.messages, messages);
+      },
+    );
+
+    test(
+      'RevokedConversation is a one-shot signal: revoke sets it, clear resets it',
+      () {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+
+        expect(container.read(revokedConversationProvider), isNull);
+
+        final notifier = container.read(revokedConversationProvider.notifier);
+        notifier.revoke(55);
+        expect(container.read(revokedConversationProvider), 55);
+
+        notifier.clear();
+        expect(container.read(revokedConversationProvider), isNull);
+      },
+    );
   });
 }

@@ -10,14 +10,18 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/models/message.dart';
+import '../../core/realtime/realtime_logger.dart';
 import '../../core/theme/tokens.dart';
+import '../../core/utils/safe_url.dart';
 import '../../core/utils/formatting.dart';
+import '../../l10n/l10n_extensions.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
     required this.message,
     this.onRetry,
     this.onDiscard,
+    this.onDelete,
     super.key,
   });
 
@@ -25,8 +29,30 @@ class MessageBubble extends StatelessWidget {
   final VoidCallback? onRetry;
   final VoidCallback? onDiscard;
 
+  /// Long-press to delete. Null hides the affordance entirely — the caller
+  /// only supplies this for a real, server-confirmed message when the
+  /// signed-in employee holds `conversation.delete_message` (ADMIN/SUPERVISOR).
+  final VoidCallback? onDelete;
+
   @override
   Widget build(BuildContext context) {
+    final msgIdStr = message.id.toString();
+    final trace = RealtimeLogger.findTraceByMessageOrConvo(msgIdStr, null);
+    if (trace != null) {
+      RealtimeLogger.markStep(
+        trace.traceId,
+        'WIDGET_BUILT',
+        messageId: msgIdStr,
+      );
+      RealtimeLogger.log(
+        'UI',
+        'MESSAGE_WIDGET_BUILT',
+        traceId: trace.traceId,
+        messageId: msgIdStr,
+      );
+      RealtimeLogger.finishTrace(trace.traceId);
+    }
+
     if (message.isSystem) return _SystemLine(message: message);
 
     final theme = Theme.of(context);
@@ -36,14 +62,14 @@ class MessageBubble extends StatelessWidget {
     final background = failed
         ? theme.colorScheme.error.withValues(alpha: 0.10)
         : isMine
-            ? theme.colorScheme.primary
-            : theme.colorScheme.surface;
+        ? theme.colorScheme.primary
+        : theme.colorScheme.surface;
 
     final foreground = failed
         ? theme.colorScheme.onSurface
         : isMine
-            ? Colors.white
-            : theme.colorScheme.onSurface;
+        ? Colors.white
+        : theme.colorScheme.onSurface;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -51,8 +77,9 @@ class MessageBubble extends StatelessWidget {
         vertical: Space.xs,
       ),
       child: Row(
-        mainAxisAlignment:
-            isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMine
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         children: [
           Flexible(
             child: ConstrainedBox(
@@ -60,44 +87,53 @@ class MessageBubble extends StatelessWidget {
                 maxWidth: MediaQuery.sizeOf(context).width * 0.78,
               ),
               child: Column(
-                crossAxisAlignment:
-                    isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                crossAxisAlignment: isMine
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Space.md,
-                      vertical: Space.sm,
-                    ),
-                    decoration: BoxDecoration(
-                      color: background,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(Radii.lg),
-                        topRight: const Radius.circular(Radii.lg),
-                        bottomLeft: Radius.circular(isMine ? Radii.lg : Radii.sm),
-                        bottomRight:
-                            Radius.circular(isMine ? Radii.sm : Radii.lg),
+                  GestureDetector(
+                    onLongPress: onDelete,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Space.md,
+                        vertical: Space.sm,
                       ),
-                      border: isMine && !failed
-                          ? null
-                          : Border.all(
-                              color: failed
-                                  ? theme.colorScheme.error
-                                      .withValues(alpha: 0.35)
-                                  : theme.colorScheme.outline,
-                            ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (message.attachments.isNotEmpty)
-                          _Attachments(message: message),
-                        if (message.text.isNotEmpty)
-                          Text(
-                            message.text,
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(color: foreground),
+                      decoration: BoxDecoration(
+                        color: background,
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(Radii.lg),
+                          topRight: const Radius.circular(Radii.lg),
+                          bottomLeft: Radius.circular(
+                            isMine ? Radii.lg : Radii.sm,
                           ),
-                      ],
+                          bottomRight: Radius.circular(
+                            isMine ? Radii.sm : Radii.lg,
+                          ),
+                        ),
+                        border: isMine && !failed
+                            ? null
+                            : Border.all(
+                                color: failed
+                                    ? theme.colorScheme.error.withValues(
+                                        alpha: 0.35,
+                                      )
+                                    : theme.colorScheme.outline,
+                              ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (message.attachments.isNotEmpty)
+                            _Attachments(message: message),
+                          if (message.text.isNotEmpty)
+                            Text(
+                              message.text,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: foreground,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -129,8 +165,9 @@ class _MetaRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final labels = <String>[
-      if (message.isOutbound && message.senderName.isNotEmpty) message.senderName,
-      formatTime(message.sentAt),
+      if (message.isOutbound && message.senderName.isNotEmpty)
+        message.senderName,
+      formatTime(context, message.sentAt),
     ];
 
     return Row(
@@ -167,7 +204,11 @@ class _DeliveryIcon extends StatelessWidget {
       );
     }
     if (message.hasFailed || message.isDeliveryFailure) {
-      return Icon(Icons.error_outline, size: 12, color: theme.colorScheme.error);
+      return Icon(
+        Icons.error_outline,
+        size: 12,
+        color: theme.colorScheme.error,
+      );
     }
 
     final (icon, color) = switch (message.deliveryStatus) {
@@ -181,11 +222,7 @@ class _DeliveryIcon extends StatelessWidget {
 }
 
 class _FailureActions extends StatelessWidget {
-  const _FailureActions({
-    required this.message,
-    this.onRetry,
-    this.onDiscard,
-  });
+  const _FailureActions({required this.message, this.onRetry, this.onDiscard});
 
   final Message message;
   final VoidCallback? onRetry;
@@ -196,7 +233,7 @@ class _FailureActions extends StatelessWidget {
     final theme = Theme.of(context);
     final reason = message.deliveryError.isNotEmpty
         ? message.deliveryError
-        : 'Not delivered.';
+        : context.l10n.notDeliveredFallback;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -206,8 +243,9 @@ class _FailureActions extends StatelessWidget {
           child: Text(
             reason,
             textAlign: TextAlign.right,
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: theme.colorScheme.error),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.error,
+            ),
           ),
         ),
         if (onRetry != null || onDiscard != null)
@@ -222,7 +260,10 @@ class _FailureActions extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: Space.sm),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Discard', style: TextStyle(fontSize: 12)),
+                  child: Text(
+                    context.l10n.discardAction,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                 ),
               if (onRetry != null)
                 TextButton(
@@ -232,7 +273,10 @@ class _FailureActions extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: Space.sm),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Retry', style: TextStyle(fontSize: 12)),
+                  child: Text(
+                    context.l10n.retryMessageAction,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                 ),
             ],
           ),
@@ -252,20 +296,29 @@ class _Attachments extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (final attachment in message.attachments)
-          Padding(
-            padding: const EdgeInsets.only(bottom: Space.sm),
-            child: attachment.isImage && attachment.url.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(Radii.md),
-                    child: CachedNetworkImage(
-                      imageUrl: attachment.url,
-                      width: 220,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, _, _) =>
-                          _FileChip(attachment: attachment),
-                    ),
-                  )
-                : _FileChip(attachment: attachment),
+          Builder(
+            builder: (context) {
+              // Attachment URLs reach the app from inbound channel messages,
+              // so their content is ultimately customer-controlled. Anything
+              // that is not an https URL degrades to the file chip, which
+              // names the attachment without fetching it.
+              final safeUrl = SafeUrl.forImage(attachment.url);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: Space.sm),
+                child: attachment.isImage && safeUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(Radii.md),
+                        child: CachedNetworkImage(
+                          imageUrl: safeUrl,
+                          width: 220,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) =>
+                              _FileChip(attachment: attachment),
+                        ),
+                      )
+                    : _FileChip(attachment: attachment),
+              );
+            },
           ),
       ],
     );
@@ -309,12 +362,12 @@ class _FileChip extends StatelessWidget {
   }
 
   static IconData _iconFor(String type) => switch (type) {
-        'IMAGE' => Icons.image_outlined,
-        'VIDEO' => Icons.videocam_outlined,
-        'AUDIO' => Icons.mic_none,
-        'LOCATION' => Icons.location_on_outlined,
-        _ => Icons.attach_file,
-      };
+    'IMAGE' => Icons.image_outlined,
+    'VIDEO' => Icons.videocam_outlined,
+    'AUDIO' => Icons.mic_none,
+    'LOCATION' => Icons.location_on_outlined,
+    _ => Icons.attach_file,
+  };
 }
 
 class _SystemLine extends StatelessWidget {

@@ -16,6 +16,7 @@ import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/l10n_extensions.dart';
 import 'directory_providers.dart';
 import 'directory_search_field.dart';
 
@@ -34,17 +35,19 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
     final customers = ref.watch(customerDirectoryProvider);
 
     return SectionScaffold(
-      title: 'Customers',
+      title: context.l10n.navCustomers,
       titleWidget: _searching
           ? DirectorySearchField(
-              hint: 'Search name, email, phone or handle',
+              hint: context.l10n.searchCustomersHint,
               onSubmitted: (value) =>
                   ref.read(customerSearchProvider.notifier).update(value),
             )
           : null,
       actions: [
         IconButton(
-          tooltip: _searching ? 'Close search' : 'Search',
+          tooltip: _searching
+              ? context.l10n.commonCloseSearch
+              : context.l10n.commonSearch,
           icon: Icon(_searching ? Icons.close : Icons.search),
           onPressed: () {
             setState(() => _searching = !_searching);
@@ -72,10 +75,10 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
               children: [
                 SizedBox(
                   height: MediaQuery.sizeOf(context).height * 0.6,
-                  child: const EmptyState(
+                  child: EmptyState(
                     icon: Icons.people_outline,
-                    title: 'No customers',
-                    message: 'Customers appear the first time they message you.',
+                    title: context.l10n.noCustomersTitle,
+                    message: context.l10n.noCustomersMessage,
                   ),
                 ),
               ],
@@ -86,7 +89,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             itemCount: rows.length,
             separatorBuilder: (_, _) => const Divider(height: 1, indent: 68),
-            itemBuilder: (context, index) => _CustomerRow(customer: rows[index]),
+            itemBuilder: (context, index) =>
+                _CustomerRow(customer: rows[index]),
           );
         },
       ),
@@ -132,14 +136,13 @@ class _CustomerRow extends StatelessWidget {
                 dense: true,
               ),
               StatusBadge(
-                label: '${customer.conversationCount} chat'
-                    '${customer.conversationCount == 1 ? '' : 's'}',
+                label: context.l10n.chatCountBadge(customer.conversationCount),
                 dense: true,
                 icon: Icons.forum_outlined,
               ),
               for (final provider in customer.providers)
                 StatusBadge(
-                  label: ConversationBadges.providerLabel(provider),
+                  label: ConversationBadges.providerLabel(context, provider),
                   dense: true,
                 ),
             ],
@@ -150,7 +153,7 @@ class _CustomerRow extends StatelessWidget {
       trailing: customer.lastSeenAt == null
           ? null
           : Text(
-              formatRelativeTime(customer.lastSeenAt),
+              formatRelativeTime(context, customer.lastSeenAt),
               style: theme.textTheme.labelSmall,
             ),
       onTap: () => context.push(Routes.customerProfile(customer.id)),

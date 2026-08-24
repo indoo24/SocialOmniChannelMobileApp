@@ -29,6 +29,7 @@ import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
 
@@ -73,14 +74,18 @@ class _CustomerRecordSheet extends ConsumerWidget {
     final orders = ref.watch(conversationOrdersProvider(conversationId));
     final facts = ref.watch(customerFactsProvider(customerId));
 
-    final suggestedFacts =
-        (facts.value ?? []).where((f) => f.needsReview).toList();
-    final recordedFacts =
-        (facts.value ?? []).where((f) => !f.needsReview).toList();
-    final suggestedOrders =
-        (orders.value ?? []).where((o) => o.isSuggestion).toList();
-    final realOrders =
-        (orders.value ?? []).where((o) => !o.isSuggestion).toList();
+    final suggestedFacts = (facts.value ?? [])
+        .where((f) => f.needsReview)
+        .toList();
+    final recordedFacts = (facts.value ?? [])
+        .where((f) => !f.needsReview)
+        .toList();
+    final suggestedOrders = (orders.value ?? [])
+        .where((o) => o.isSuggestion)
+        .toList();
+    final realOrders = (orders.value ?? [])
+        .where((o) => !o.isSuggestion)
+        .toList();
 
     return ListView(
       controller: scrollController,
@@ -91,13 +96,15 @@ class _CustomerRecordSheet extends ConsumerWidget {
             children: [
               Icon(Icons.auto_awesome, size: 16, color: ScenarioColors.warning),
               const SizedBox(width: Space.xs),
-              Text('Suggested from this chat', style: theme.textTheme.titleSmall),
+              Text(
+                context.l10n.suggestedFromChatTitle,
+                style: theme.textTheme.titleSmall,
+              ),
             ],
           ),
           const SizedBox(height: Space.xs),
           Text(
-            'Read out of the conversation automatically. Nothing here is saved '
-            'to the customer until you accept it.',
+            context.l10n.suggestedFromChatDescription,
             style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: Space.sm),
@@ -120,7 +127,10 @@ class _CustomerRecordSheet extends ConsumerWidget {
         Row(
           children: [
             Expanded(
-              child: Text('Customer details', style: theme.textTheme.titleSmall),
+              child: Text(
+                context.l10n.customerDetailsTitle,
+                style: theme.textTheme.titleSmall,
+              ),
             ),
             if (canManage)
               TextButton.icon(
@@ -131,16 +141,18 @@ class _CustomerRecordSheet extends ConsumerWidget {
                   conversationId: conversationId,
                 ),
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add'),
+                label: Text(context.l10n.commonAdd),
               ),
           ],
         ),
         if (facts.isLoading)
-          const Padding(padding: EdgeInsets.all(Space.lg), child: LoadingState())
+          const Padding(
+            padding: EdgeInsets.all(Space.lg),
+            child: LoadingState(),
+          )
         else if (recordedFacts.isEmpty)
           Text(
-            'Nothing recorded yet. Anything the customer shares — an address, a '
-            'phone number — can be saved here.',
+            context.l10n.nothingRecordedMessage,
             style: theme.textTheme.bodySmall,
           )
         else
@@ -149,7 +161,12 @@ class _CustomerRecordSheet extends ConsumerWidget {
         const SizedBox(height: Space.lg),
         Row(
           children: [
-            Expanded(child: Text('Orders', style: theme.textTheme.titleSmall)),
+            Expanded(
+              child: Text(
+                context.l10n.ordersTitle,
+                style: theme.textTheme.titleSmall,
+              ),
+            ),
             if (canManage)
               TextButton.icon(
                 onPressed: () => _showRecordOrderDialog(
@@ -159,15 +176,18 @@ class _CustomerRecordSheet extends ConsumerWidget {
                   conversationId: conversationId,
                 ),
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('Order'),
+                label: Text(context.l10n.orderButton),
               ),
           ],
         ),
         if (orders.isLoading)
-          const Padding(padding: EdgeInsets.all(Space.lg), child: LoadingState())
+          const Padding(
+            padding: EdgeInsets.all(Space.lg),
+            child: LoadingState(),
+          )
         else if (realOrders.isEmpty)
           Text(
-            'No orders recorded from this conversation.',
+            context.l10n.noOrdersRecordedMessage,
             style: theme.textTheme.bodySmall,
           )
         else
@@ -223,8 +243,12 @@ class _RecordedDetail extends StatelessWidget {
           ),
           const SizedBox(width: Space.sm),
           StatusBadge(
-            label: fact.source == 'EMPLOYEE' ? 'Employee' : 'Auto',
-            tone: fact.source == 'EMPLOYEE' ? BadgeTone.success : BadgeTone.neutral,
+            label: fact.source == 'EMPLOYEE'
+                ? context.l10n.employeeSourceBadge
+                : context.l10n.autoSourceBadge,
+            tone: fact.source == 'EMPLOYEE'
+                ? BadgeTone.success
+                : BadgeTone.neutral,
             dense: true,
           ),
         ],
@@ -249,8 +273,9 @@ class _SuggestedDetail extends ConsumerStatefulWidget {
 }
 
 class _SuggestedDetailState extends ConsumerState<_SuggestedDetail> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.fact.value);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.fact.value,
+  );
   bool _editing = false;
   bool _busy = false;
 
@@ -263,7 +288,9 @@ class _SuggestedDetailState extends ConsumerState<_SuggestedDetail> {
   Future<void> _decide(bool confirmed) async {
     setState(() => _busy = true);
     try {
-      await ref.read(directoryRepositoryProvider).reviewFact(
+      await ref
+          .read(directoryRepositoryProvider)
+          .reviewFact(
             customerId: widget.customerId,
             factId: widget.fact.id,
             confirmed: confirmed,
@@ -273,20 +300,27 @@ class _SuggestedDetailState extends ConsumerState<_SuggestedDetail> {
                 ? _controller.text
                 : null,
           );
-      ref.invalidate(customerFactsProvider(widget.customerId));
+      // Guarded together: ref.invalidate() on this State's own ref throws
+      // "Using ref when a widget is about to or has been unmounted" if the
+      // sheet closed while the request was in flight — the same check this
+      // already needed for ScaffoldMessenger just covers both.
       if (mounted) {
+        ref.invalidate(customerFactsProvider(widget.customerId));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              confirmed ? 'Saved to the customer' : 'Suggestion dismissed',
+              confirmed
+                  ? context.l10n.savedToCustomerMessage
+                  : context.l10n.suggestionDismissedMessage,
             ),
           ),
         );
       }
     } on ApiException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error.message)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -303,7 +337,9 @@ class _SuggestedDetailState extends ConsumerState<_SuggestedDetail> {
       decoration: BoxDecoration(
         color: ScenarioColors.warningSurface,
         borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(color: ScenarioColors.warning.withValues(alpha: 0.35)),
+        border: Border.all(
+          color: ScenarioColors.warning.withValues(alpha: 0.35),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,8 +350,9 @@ class _SuggestedDetailState extends ConsumerState<_SuggestedDetail> {
               children: [
                 Text(
                   humanizeEnum(widget.fact.key),
-                  style: theme.textTheme.labelMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 if (_editing)
@@ -330,12 +367,20 @@ class _SuggestedDetailState extends ConsumerState<_SuggestedDetail> {
                     onTap: widget.canManage
                         ? () => setState(() => _editing = true)
                         : null,
-                    child: Text(_controller.text, style: theme.textTheme.bodySmall),
+                    child: Text(
+                      _controller.text,
+                      style: theme.textTheme.bodySmall,
+                    ),
                   ),
                 const SizedBox(height: 2),
                 Text(
-                  '${(widget.fact.confidence * 100).round()}% confidence'
-                  '${widget.canManage && !_editing ? ' · tap to correct' : ''}',
+                  widget.canManage && !_editing
+                      ? context.l10n.confidenceWithCorrectHintLabel(
+                          (widget.fact.confidence * 100).round(),
+                        )
+                      : context.l10n.confidenceLabel(
+                          (widget.fact.confidence * 100).round(),
+                        ),
                   style: theme.textTheme.labelSmall,
                 ),
               ],
@@ -343,13 +388,13 @@ class _SuggestedDetailState extends ConsumerState<_SuggestedDetail> {
           ),
           if (widget.canManage) ...[
             IconButton(
-              tooltip: 'Save to the customer',
+              tooltip: context.l10n.saveToCustomerTooltip,
               onPressed: _busy ? null : () => _decide(true),
               icon: Icon(Icons.check, size: 20, color: ScenarioColors.success),
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
-              tooltip: "Dismiss — it won't be suggested again",
+              tooltip: context.l10n.dismissSuggestionTooltip,
               onPressed: _busy ? null : () => _decide(false),
               icon: const Icon(Icons.close, size: 20),
               visualDensity: VisualDensity.compact,
@@ -388,16 +433,21 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     setState(() => _busy = true);
     try {
       await action();
-      ref.invalidate(conversationOrdersProvider(widget.conversationId));
-      ref.invalidate(performanceProvider);
+      // Guarded together — see the matching comment in
+      // _SuggestedDetailState._decide(): ref.invalidate() throws if this
+      // sheet closed while the request was in flight.
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(message)));
+        ref.invalidate(conversationOrdersProvider(widget.conversationId));
+        ref.invalidate(performanceProvider);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     } on ApiException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error.message)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -474,8 +524,9 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
               ),
               child: Text(
                 '“${order.evidence}”',
-                style: theme.textTheme.labelSmall
-                    ?.copyWith(fontStyle: FontStyle.italic),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ),
           ],
@@ -483,10 +534,14 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
           const SizedBox(height: Space.xs),
           Text(
             order.isClaim
-                ? 'Not counted as a sale until someone confirms it.'
+                ? context.l10n.notCountedAsSaleMessage
                 : order.isConfirmed
-                    ? 'Confirmed by ${order.confirmedByName.isEmpty ? 'an employee' : order.confirmedByName}'
-                    : '',
+                ? context.l10n.confirmedByMessage(
+                    order.confirmedByName.isEmpty
+                        ? context.l10n.confirmedByUnknownEmployee
+                        : order.confirmedByName,
+                  )
+                : '',
             style: theme.textTheme.labelSmall,
           ),
 
@@ -499,26 +554,26 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                     onPressed: _busy
                         ? null
                         : () => _run(
-                              () => ref
-                                  .read(directoryRepositoryProvider)
-                                  .confirmOrder(order.id),
-                              'Order confirmed',
-                            ),
+                            () => ref
+                                .read(directoryRepositoryProvider)
+                                .confirmOrder(order.id),
+                            context.l10n.orderConfirmedMessage,
+                          ),
                     icon: const Icon(Icons.check, size: 16),
-                    label: const Text('Confirm'),
+                    label: Text(context.l10n.confirmAction),
                   ),
                 ),
                 const SizedBox(width: Space.sm),
                 IconButton(
-                  tooltip: 'Cancel this order',
+                  tooltip: context.l10n.cancelOrderTooltip,
                   onPressed: _busy
                       ? null
                       : () => _run(
-                            () => ref
-                                .read(directoryRepositoryProvider)
-                                .cancelOrder(order.id),
-                            'Order cancelled',
-                          ),
+                          () => ref
+                              .read(directoryRepositoryProvider)
+                              .cancelOrder(order.id),
+                          context.l10n.orderCancelledMessage,
+                        ),
                   icon: Icon(
                     Icons.delete_outline,
                     size: 20,
@@ -549,24 +604,24 @@ Future<void> _showAddDetailDialog(
   final saved = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Record a customer detail'),
+      title: Text(context.l10n.recordDetailDialogTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: keyController,
             autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Detail',
-              hintText: 'address',
+            decoration: InputDecoration(
+              labelText: context.l10n.detailFieldLabel,
+              hintText: context.l10n.detailFieldHint,
             ),
           ),
           const SizedBox(height: Space.md),
           TextField(
             controller: valueController,
-            decoration: const InputDecoration(
-              labelText: 'Value',
-              hintText: '12 Nile St, Giza',
+            decoration: InputDecoration(
+              labelText: context.l10n.valueFieldLabel,
+              hintText: context.l10n.valueFieldHint,
             ),
           ),
         ],
@@ -574,40 +629,47 @@ Future<void> _showAddDetailDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Save'),
+          child: Text(context.l10n.commonSave),
         ),
       ],
     ),
   );
 
-  if (saved != true) {
-    keyController.dispose();
-    valueController.dispose();
-    return;
-  }
+  // Neither controller is disposed here — see intelligence_panel.dart's
+  // _LeadScoreSectionState._editScore() for why: showDialog's Future
+  // resolves the instant Navigator.pop() runs in Save/Cancel's onPressed,
+  // before the AlertDialog's own exit transition has finished animating
+  // these still-mounted TextFields off screen. Disposing here races that
+  // still-mounted subtree and can corrupt the element tree.
+  if (saved != true) return;
 
   final key = keyController.text.trim();
   final value = valueController.text.trim();
-  keyController.dispose();
-  valueController.dispose();
   if (key.isEmpty || value.isEmpty) return;
 
   try {
-    await ref.read(directoryRepositoryProvider).recordFact(
+    await ref
+        .read(directoryRepositoryProvider)
+        .recordFact(
           customerId: customerId,
           key: key,
           value: value,
           conversationId: conversationId,
         );
-    ref.invalidate(customerFactsProvider(customerId));
+    // ref.invalidate() throws "Using ref when a widget is about to or has
+    // been unmounted" if the sheet closed while recordFact() was in
+    // flight — context.mounted is the same guard already needed below for
+    // the error snackbar, just covering this call too.
+    if (context.mounted) ref.invalidate(customerFactsProvider(customerId));
   } on ApiException catch (error) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     }
   }
 }
@@ -622,35 +684,39 @@ Future<void> _showRecordOrderDialog(
 
   final confirmed = await showDialog<bool>(
     context: context,
-    builder: (context) => _OrderComposer(onChanged: (rows) {
-      items
-        ..clear()
-        ..addAll(rows);
-    }),
+    builder: (context) => _OrderComposer(
+      onChanged: (rows) {
+        items
+          ..clear()
+          ..addAll(rows);
+      },
+    ),
   );
 
   if (confirmed != true || items.isEmpty) return;
 
   try {
-    await ref.read(directoryRepositoryProvider).recordOrder(
+    await ref
+        .read(directoryRepositoryProvider)
+        .recordOrder(
           customerId: customerId,
           conversationId: conversationId,
           items: items,
         );
-    ref.invalidate(conversationOrdersProvider(conversationId));
+    // Guarded together — see the matching comment in
+    // _showAddDetailDialog(): ref.invalidate() throws if the sheet closed
+    // while recordOrder() was in flight.
     if (context.mounted) {
+      ref.invalidate(conversationOrdersProvider(conversationId));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Order recorded. Confirm it once you've checked your own records.",
-          ),
-        ),
+        SnackBar(content: Text(context.l10n.orderRecordedMessage)),
       );
     }
   } on ApiException catch (error) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     }
   }
 }
@@ -687,7 +753,7 @@ class _OrderComposerState extends State<_OrderComposer> {
     final theme = Theme.of(context);
 
     return AlertDialog(
-      title: const Text('Record an order'),
+      title: Text(context.l10n.recordOrderDialogTitle),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
@@ -696,8 +762,7 @@ class _OrderComposerState extends State<_OrderComposer> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'What the customer asked for. Scenario has no payment data, so '
-                'this is a record of the conversation, not a receipt.',
+                context.l10n.orderComposerDescription,
                 style: theme.textTheme.bodySmall,
               ),
               const SizedBox(height: Space.md),
@@ -710,8 +775,8 @@ class _OrderComposerState extends State<_OrderComposer> {
                         flex: 3,
                         child: TextField(
                           controller: _rows[i].name,
-                          decoration: const InputDecoration(
-                            labelText: 'Product',
+                          decoration: InputDecoration(
+                            labelText: context.l10n.productFieldLabel,
                             isDense: true,
                           ),
                           onChanged: (_) => setState(() {}),
@@ -722,8 +787,8 @@ class _OrderComposerState extends State<_OrderComposer> {
                         child: TextField(
                           controller: _rows[i].quantity,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Qty',
+                          decoration: InputDecoration(
+                            labelText: context.l10n.qtyFieldLabel,
                             isDense: true,
                           ),
                           onChanged: (_) => setState(() {}),
@@ -734,10 +799,11 @@ class _OrderComposerState extends State<_OrderComposer> {
                         flex: 2,
                         child: TextField(
                           controller: _rows[i].price,
-                          keyboardType:
-                              const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(
-                            labelText: 'Price',
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: context.l10n.priceFieldLabel,
                             isDense: true,
                           ),
                           onChanged: (_) => setState(() {}),
@@ -757,13 +823,16 @@ class _OrderComposerState extends State<_OrderComposer> {
               TextButton.icon(
                 onPressed: () => setState(() => _rows.add(_ItemRow())),
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add line'),
+                label: Text(context.l10n.addLineButton),
               ),
               const Divider(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Total', style: theme.textTheme.titleSmall),
+                  Text(
+                    context.l10n.totalLabel,
+                    style: theme.textTheme.titleSmall,
+                  ),
                   Text(
                     _total.toStringAsFixed(2),
                     style: theme.textTheme.titleSmall,
@@ -777,7 +846,7 @@ class _OrderComposerState extends State<_OrderComposer> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () {
@@ -789,7 +858,7 @@ class _OrderComposerState extends State<_OrderComposer> {
             widget.onChanged(payload);
             Navigator.of(context).pop(true);
           },
-          child: const Text('Record order'),
+          child: Text(context.l10n.recordOrderButton),
         ),
       ],
     );
@@ -805,10 +874,10 @@ class _ItemRow {
       (double.tryParse(price.text) ?? 0) * (int.tryParse(quantity.text) ?? 0);
 
   Map<String, dynamic> toJson() => {
-        'product_name': name.text.trim(),
-        'quantity': int.tryParse(quantity.text) ?? 1,
-        'unit_price': price.text.trim().isEmpty ? '0.00' : price.text.trim(),
-      };
+    'product_name': name.text.trim(),
+    'quantity': int.tryParse(quantity.text) ?? 1,
+    'unit_price': price.text.trim().isEmpty ? '0.00' : price.text.trim(),
+  };
 
   void dispose() {
     name.dispose();

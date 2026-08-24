@@ -1,0 +1,581 @@
+{
+  "@@locale": "en",
+
+  "settingsTitle": "Settings",
+  "@settingsTitle": {"description": "Settings screen app bar title"},
+
+  "newActivityBannerTitle": "New activity",
+  "@newActivityBannerTitle": {
+    "description": "Fallback title for the foreground push banner, used only if the server payload carries no notification.title"
+  },
+
+  "tabChannels": "Channels",
+  "tabProfile": "Profile",
+  "tabSecurity": "Security",
+
+  "signOutDialogTitle": "Sign out?",
+  "signOutDialogMessage": "You will stop receiving new conversations on this device.",
+  "cancel": "Cancel",
+  "signOut": "Sign out",
+
+  "availabilitySectionTitle": "AVAILABILITY",
+  "availabilityHint": "Only ONLINE receives automatically assigned conversations.",
+  "availabilityOnline": "Online",
+  "availabilityAway": "Away",
+  "availabilityOnBreak": "On break",
+  "availabilityOffline": "Offline",
+
+  "organizationLabel": "Organization",
+  "visibilityLabel": "Visibility: {scope}",
+  "@visibilityLabel": {
+    "description": "Employee's visibility scope shown under their role",
+    "placeholders": {
+      "scope": {"type": "String"}
+    }
+  },
+
+  "preferencesSectionTitle": "PREFERENCES",
+  "themeLabel": "Theme",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "languageLabel": "Language",
+
+  "changePasswordTitle": "Change password",
+  "currentPasswordLabel": "Current password",
+  "newPasswordLabel": "New password",
+  "newPasswordHint": "At least 10 characters",
+  "passwordChangedMessage": "Password changed",
+  "updatePasswordButton": "Update password",
+  "sessionInfoTitle": "How your session works",
+  "sessionInfoBody": "This app signs in with an httpOnly session cookie, the same credential the web client uses. Platform tokens for Meta and WhatsApp stay encrypted on the server and are never sent to this device.",
+
+  "noChannelsTitle": "No channels connected",
+  "noChannelsMessage": "Connect Instagram, Messenger or WhatsApp from the web app to start receiving conversations.",
+  "channelStatusConnected": "Connected",
+  "channelStatusDegraded": "Degraded",
+  "channelStatusError": "Error",
+  "channelStatusDisconnected": "Disconnected",
+  "channelStatusPending": "Pending setup",
+  "channelConversationCount": "{count, plural, one{1 conversation} other{{count} conversations}}",
+  "@channelConversationCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "muteChannelAction": "Mute",
+  "unmuteChannelAction": "Unmute",
+  "testChannelAction": "Test",
+  "channelMutedLabel": "Muted",
+  "channelMutedByLabel": "Muted by {name}",
+  "@channelMutedByLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "noConnectionTitle": "No connection",
+  "genericErrorTitle": "Something went wrong",
+  "genericErrorFallbackMessage": "Please try again.",
+  "retryButton": "Try again",
+
+  "commonSave": "Save",
+  "commonAdd": "Add",
+  "commonSearch": "Search",
+  "commonCloseSearch": "Close search",
+
+  "timeNow": "now",
+  "dayToday": "Today",
+  "dayYesterday": "Yesterday",
+
+  "navDashboard": "Dashboard",
+  "navInbox": "Inbox",
+  "navCustomers": "Customers",
+  "navEmployees": "Employees",
+  "navTeams": "Teams",
+  "navAnalytics": "Analytics",
+  "navSettings": "Settings",
+  "noAccessTitle": "You don't have access",
+  "noAccessMessage": "Your role does not include {section}. Ask an administrator if you need it.",
+  "@noAccessMessage": {
+    "placeholders": {
+      "section": {"type": "String"}
+    }
+  },
+  "reconnecting": "Reconnecting…",
+
+  "notFoundTitle": "Not found",
+  "notFoundMessage": "That screen does not exist.",
+  "backToInbox": "Back to inbox",
+
+  "signInTitle": "Sign in",
+  "signInSubtitle": "Use your Scenario employee account.",
+  "emailLabel": "Email",
+  "emailHint": "you@company.com",
+  "emailValidationError": "Enter your email address.",
+  "passwordLabel": "Password",
+  "passwordValidationError": "Enter your password.",
+  "signInButton": "Sign in",
+
+  "inboxTitle": "Inbox",
+  "searchConversationsHint": "Search conversations",
+  "filtersTooltip": "Filters",
+  "noConversationsTitle": "No conversations yet",
+  "noConversationsMessage": "New customer messages will appear here as they arrive.",
+  "noFilterMatchesTitle": "Nothing matches those filters",
+  "noFilterMatchesMessage": "Try widening or clearing the filters.",
+  "clearFiltersButton": "Clear filters",
+  "noMessagesYetPreview": "No messages yet",
+  "unassignedBadge": "Unassigned",
+  "youBadge": "You",
+
+  "filtersTitle": "Filters",
+  "clearAll": "Clear all",
+  "assignmentSection": "Assignment",
+  "assignedToMeFilter": "Assigned to me",
+  "unassignedFilter": "Unassigned",
+  "statusSection": "Status",
+  "prioritySection": "Priority",
+  "categorySection": "Category",
+  "channelSection": "Channel",
+  "showResultsButton": "Show results",
+
+  "statusNew": "New",
+  "statusOpen": "Open",
+  "statusWaitingCustomer": "Waiting on customer",
+  "statusWaitingInternal": "Waiting internally",
+  "statusResolved": "Resolved",
+  "statusClosed": "Closed",
+  "priorityUrgent": "Urgent",
+  "priorityHigh": "High",
+  "priorityNormal": "Normal",
+  "priorityLow": "Low",
+  "providerWhatsapp": "WhatsApp",
+  "providerFacebook": "Messenger",
+  "providerInstagram": "Instagram",
+  "providerTiktok": "TikTok",
+  "providerSandbox": "Sandbox",
+
+  "actionsTitle": "Actions",
+  "assignToMe": "Assign to me",
+  "assignedToYouMessage": "Assigned to you",
+  "unassignAction": "Unassign",
+  "unassignedMessage": "Unassigned",
+  "statusUpdatedMessage": "Status updated",
+  "priorityUpdatedMessage": "Priority updated",
+  "categoryUpdatedMessage": "Category updated",
+  "categoryNoneOption": "Uncategorized",
+  "noPermissionToChange": "You do not have permission to change this conversation.",
+  "conversationHistoryAction": "View history",
+  "conversationHistoryTitle": "History",
+  "conversationHistoryEmpty": "No activity recorded yet.",
+  "conversionsAction": "Conversions",
+  "conversionsEmpty": "Nothing reported to Meta yet.",
+  "reportConversionAction": "Report now",
+  "conversionsTruncatedNote": "Showing the most recent {shown} of {total}.",
+  "@conversionsTruncatedNote": {
+    "placeholders": {
+      "shown": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "internalNotesAction": "Internal notes",
+  "internalNotesTitle": "Internal notes",
+  "internalNotesEmpty": "No internal notes yet.",
+  "internalNoteInputHint": "Add a note for your team…",
+  "addNoteAction": "Add note",
+
+  "conversationFallbackTitle": "Conversation",
+  "customerDetailsTooltip": "Customer details",
+  "actionsTooltip": "Actions",
+  "ordersTooltip": "Orders and customer details",
+  "intelligenceTooltip": "Conversation intelligence",
+  "loadingConversation": "Loading conversation…",
+  "noMessagesYetTitle": "No messages yet",
+  "noMessagesYetMessage": "This conversation has no history.",
+  "writeReplyHint": "Write a reply…",
+  "readOnlyLabel": "Read only",
+
+  "notDeliveredFallback": "Not delivered.",
+  "discardAction": "Discard",
+  "retryMessageAction": "Retry",
+  "deleteMessageAction": "Delete message",
+  "deleteMessageConfirmTitle": "Delete this message?",
+  "deleteMessageConfirmBody": "This removes it from the timeline for everyone. It does not unsend it on the platform — the customer still has it.",
+  "deleteMessageReasonLabel": "Reason (optional)",
+  "deleteMessageDeletedSnackbar": "Message deleted",
+
+  "customerTitle": "Customer",
+  "conversationSectionTitle": "Conversation",
+  "categoryFieldLabel": "Category",
+  "assignedToFieldLabel": "Assigned to",
+  "teamFieldLabel": "Team",
+  "channelFieldLabel": "Channel",
+  "messagesFieldLabel": "Messages",
+  "startedFieldLabel": "Started",
+  "lastMessageFieldLabel": "Last message",
+  "customerSectionTitle": "Customer",
+  "lifecycleFieldLabel": "Lifecycle",
+  "intelligenceSectionTitle": "Intelligence",
+  "stageFieldLabel": "Stage",
+  "leadScoreFieldLabel": "Lead score",
+  "purchaseFieldLabel": "Purchase",
+  "reviewFieldLabel": "Review",
+  "needsHumanReviewValue": "Needs human review",
+
+  "dashboardGreeting": "Good to see you, {name}",
+  "@dashboardGreeting": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "conversationsSectionTitle": "Conversations",
+  "openMetric": "Open",
+  "waitingMetric": "Waiting",
+  "resolvedTodayMetric": "Resolved today",
+  "customerIntelligenceSectionTitle": "Customer intelligence",
+  "qualifiedLeadsMetric": "Qualified leads",
+  "hotLeadsMetric": "Hot leads",
+  "purchaseClaimsMetric": "Purchase claims",
+  "purchaseClaimsHint": "Said they ordered. Not verified.",
+  "confirmedMetric": "Confirmed",
+  "confirmedHint": "Checked by an employee.",
+  "reviewNeededMessage": "{count, plural, one{1 conversation needs review} other{{count} conversations need review}}",
+  "@reviewNeededMessage": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "reviewNeededDescription": "A customer claimed a purchase. Scenario cannot verify payments — check your records and confirm.",
+  "checkInboxButton": "Check Inbox",
+  "myLast14DaysTitle": "Your last 14 days",
+  "teamWorkloadTitle": "Team workload",
+  "onlineAgentsSuffix": "{count} online",
+  "@onlineAgentsSuffix": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "nothingAssignedMessage": "Nothing assigned right now.",
+  "openUnreadSummary": "{open} open · {unread} unread",
+  "@openUnreadSummary": {
+    "placeholders": {
+      "open": {"type": "int"},
+      "unread": {"type": "int"}
+    }
+  },
+  "openSummary": "{open} open",
+  "@openSummary": {
+    "placeholders": {
+      "open": {"type": "int"}
+    }
+  },
+
+  "analyticsInfoBanner": "Computed live from the conversation database. Historical trends need a metrics rollup.",
+  "volumeByChannelTitle": "Volume by channel",
+  "noConversationsRecorded": "No conversations recorded yet.",
+  "leadPipelineTitle": "Lead pipeline",
+  "qualifiedMetric": "Qualified",
+  "avgScoreMetric": "Avg score",
+  "awaitingReviewMetric": "Awaiting review",
+  "purchaseEvidenceTitle": "Purchase evidence",
+  "unverifiedClaimsLabel": "Unverified customer claims",
+  "unverifiedClaimsNote": "Customers who said they ordered or paid. Scenario has no payment data and cannot verify these.",
+  "employeeConfirmedLabel": "Employee-confirmed",
+  "employeeConfirmedNoteWithCount": "A team member checked their own records. {count} today.",
+  "@employeeConfirmedNoteWithCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "employeeConfirmedNote": "A team member checked their own records and confirmed.",
+  "scopedToVisibleConversations": "Scoped to the conversations you can see.",
+  "employeePerformanceTitle": "Employee performance",
+  "nobodyHandledMessage": "Nobody handled a conversation in this window.",
+  "totalOpenSuffix": "{total} total · {open} open",
+  "@totalOpenSuffix": {
+    "placeholders": {
+      "total": {"type": "int"},
+      "open": {"type": "int"}
+    }
+  },
+
+  "emailFieldLabel": "Email",
+  "phoneFieldLabel": "Phone",
+  "locationFieldLabel": "Location",
+  "lastSeenFieldLabel": "Last seen",
+  "confirmedPurchasesFieldLabel": "Confirmed purchases",
+  "customerNotesFieldLabel": "Notes",
+  "recordedDetailsSectionTitle": "Recorded details",
+  "conversationsCapsSectionTitle": "CONVERSATIONS",
+  "noVisibleConversations": "No conversations you can see.",
+  "searchCustomersHint": "Search name, email, phone or handle",
+  "noCustomersTitle": "No customers",
+  "noCustomersMessage": "Customers appear the first time they message you.",
+  "chatCountBadge": "{count, plural, one{1 chat} other{{count} chats}}",
+  "@chatCountBadge": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "searchEmployeesHint": "Search by name or email",
+  "onlineNowFilter": "Online now",
+  "totalCountSuffix": "{total} total",
+  "@totalCountSuffix": {
+    "placeholders": {
+      "total": {"type": "int"}
+    }
+  },
+  "nobodyOnlineTitle": "Nobody is online",
+  "turnOffFilterMessage": "Turn off the filter to see everyone.",
+  "noEmployeesFoundTitle": "No employees found",
+  "tryDifferentSearchMessage": "Try a different search term.",
+  "inactiveBadge": "Inactive",
+
+  "noTeamsTitle": "No teams yet",
+  "noTeamsMessage": "Teams group agents so conversations can be routed and monitored together.",
+  "memberCountBadge": "{count, plural, one{1 member} other{{count} members}}",
+  "@memberCountBadge": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "ledByLabel": "Led by {names}",
+  "@ledByLabel": {
+    "placeholders": {
+      "names": {"type": "String"}
+    }
+  },
+
+  "suggestedFromChatTitle": "Suggested from this chat",
+  "suggestedFromChatDescription": "Read out of the conversation automatically. Nothing here is saved to the customer until you accept it.",
+  "customerDetailsTitle": "Customer details",
+  "nothingRecordedMessage": "Nothing recorded yet. Anything the customer shares — an address, a phone number — can be saved here.",
+  "ordersTitle": "Orders",
+  "orderButton": "Order",
+  "noOrdersRecordedMessage": "No orders recorded from this conversation.",
+  "employeeSourceBadge": "Employee",
+  "autoSourceBadge": "Auto",
+  "saveToCustomerTooltip": "Save to the customer",
+  "dismissSuggestionTooltip": "Dismiss — it won't be suggested again",
+  "confidenceLabel": "{percent}% confidence",
+  "@confidenceLabel": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "tapToCorrectHint": "tap to correct",
+  "confidenceWithCorrectHintLabel": "{percent}% confidence · tap to correct",
+  "@confidenceWithCorrectHintLabel": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "savedToCustomerMessage": "Saved to the customer",
+  "suggestionDismissedMessage": "Suggestion dismissed",
+  "recordDetailDialogTitle": "Record a customer detail",
+  "detailFieldLabel": "Detail",
+  "detailFieldHint": "address",
+  "valueFieldLabel": "Value",
+  "valueFieldHint": "12 Nile St, Giza",
+  "confirmAction": "Confirm",
+  "orderConfirmedMessage": "Order confirmed",
+  "cancelOrderTooltip": "Cancel this order",
+  "orderCancelledMessage": "Order cancelled",
+  "notCountedAsSaleMessage": "Not counted as a sale until someone confirms it.",
+  "confirmedByMessage": "Confirmed by {name}",
+  "@confirmedByMessage": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "confirmedByUnknownEmployee": "an employee",
+  "recordOrderDialogTitle": "Record an order",
+  "orderComposerDescription": "What the customer asked for. Scenario has no payment data, so this is a record of the conversation, not a receipt.",
+  "productFieldLabel": "Product",
+  "qtyFieldLabel": "Qty",
+  "priceFieldLabel": "Price",
+  "addLineButton": "Add line",
+  "totalLabel": "Total",
+  "recordOrderButton": "Record order",
+  "orderRecordedMessage": "Order recorded. Confirm it once you've checked your own records.",
+
+  "avgResponseLabel": "Avg response",
+  "repliesCountedHint": "{count, plural, one{1 reply} other{{count} replies}} · median {median}",
+  "@repliesCountedHint": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "median": {"type": "String"}
+    }
+  },
+  "noRepliesYetHint": "No replies yet",
+  "noBaselineRecorded": "No baseline recorded",
+  "customersLabel": "Customers",
+  "messagesSentHint": "{count, plural, one{1 message} other{{count} messages}} sent",
+  "@messagesSentHint": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "confirmedOrdersLabel": "Confirmed orders",
+  "confirmedOrderValueHint": "{amount} {currency}",
+  "@confirmedOrderValueHint": {
+    "placeholders": {
+      "amount": {"type": "String"},
+      "currency": {"type": "String"}
+    }
+  },
+  "recordedNoneConfirmedHint": "{count} recorded, none confirmed",
+  "@recordedNoneConfirmedHint": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "byPlatformSectionTitle": "BY PLATFORM",
+  "handledFootnote": "{count} handled",
+  "@handledFootnote": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "resolvedFootnote": "{count} resolved",
+  "@resolvedFootnote": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "firstReplyFootnote": "First reply {duration}",
+  "@firstReplyFootnote": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "hoursSectionTitle": "HOURS",
+  "hoursNotRecorded": "Not recorded for this period.",
+  "adherenceBadge": "{percent}% adherence",
+  "@adherenceBadge": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "onlineHoursLabel": "Online",
+  "scheduledHoursLabel": "Scheduled",
+  "noShiftsSetMessage": "No shifts set",
+  "msgCustomersHint": "{messages} msg · {count, plural, one{1 customer} other{{count} customers}}",
+  "@msgCustomersHint": {
+    "placeholders": {
+      "messages": {"type": "int"},
+      "count": {"type": "int"}
+    }
+  },
+
+  "misconfiguredTitle": "No API host configured",
+  "misconfiguredMessage": "Build with --dart-define=SCENARIO_API_HOST=host:port",
+
+  "editAction": "Edit",
+  "deactivateAction": "Deactivate",
+
+  "editCustomerTitle": "Edit customer",
+  "customerUpdatedSnackbar": "Customer updated",
+  "displayNameFieldLabel": "Display name",
+  "cityFieldLabel": "City",
+  "countryFieldLabel": "Country",
+  "tagsFieldLabel": "Tags",
+
+  "addEmployeeTitle": "Add employee",
+  "editEmployeeTitle": "Edit employee",
+  "employeeAddedSnackbar": "Employee added",
+  "employeeUpdatedSnackbar": "Employee updated",
+  "employeeFormRequiredFieldsError": "Enter an email, first name and last name.",
+  "employeeFormPasswordRequiredError": "Enter a password for the new employee.",
+  "firstNameFieldLabel": "First name",
+  "lastNameFieldLabel": "Last name",
+  "roleFieldLabel": "Role",
+  "employeeTitleFieldLabel": "Title",
+  "avatarUrlFieldLabel": "Avatar URL",
+  "maxOpenChatsFieldLabel": "Max open chats",
+  "newPasswordOptionalFieldLabel": "New password (leave blank to keep current)",
+  "activeFieldLabel": "Active",
+  "teamsFieldLabel": "Teams",
+  "teamsLoadFailedMessage": "Couldn't load teams.",
+  "roleAdmin": "Admin",
+  "roleSupervisor": "Supervisor",
+  "roleTeamLeader": "Team leader",
+  "roleQa": "QA",
+  "roleAgent": "Agent",
+
+  "deactivateEmployeeConfirmTitle": "Deactivate employee?",
+  "deactivateEmployeeConfirmBody": "{name} will no longer be able to sign in or receive conversations. Their history and past conversations are kept.",
+  "@deactivateEmployeeConfirmBody": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "employeeDeactivatedSnackbar": "{name} deactivated",
+  "@employeeDeactivatedSnackbar": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "addTeamTitle": "Add team",
+  "teamAddedSnackbar": "Team added",
+  "addTeamNameRequiredError": "Enter a team name.",
+  "teamNameFieldLabel": "Team name",
+  "descriptionFieldLabel": "Description",
+  "colorFieldLabel": "Color",
+  "leadersFieldLabel": "Leaders",
+  "membersFieldLabel": "Members",
+  "employeesLoadFailedMessage": "Couldn't load employees.",
+
+  "rerunAnalysisTooltip": "Re-run analysis",
+  "loadingIntelligenceLabel": "Loading intelligence…",
+  "notAnalyzedYetTitle": "Not analyzed yet",
+  "notAnalyzedYetMessage": "This conversation has no intelligence read yet. It appears once the analyzer runs, automatically or on demand.",
+  "runAnalysisButton": "Run analysis",
+  "reviewBannerDefaultReason": "This conversation needs a human look.",
+  "intelligenceSummaryLabel": "Summary",
+  "suggestedNextStepLabel": "Suggested next step",
+  "interestedInLabel": "Interested in",
+  "buyingSignalsLabel": "Buying signals",
+  "objectionsLabel": "Objections",
+  "lastAnalyzedLabel": "Last analyzed {when}",
+  "@lastAnalyzedLabel": {
+    "placeholders": {
+      "when": {"type": "String"}
+    }
+  },
+  "resetToAiButton": "Reset to AI",
+  "setScoreByHandTooltip": "Set score by hand",
+  "handedBackToAnalyzerMessage": "Handed back to the analyzer",
+  "leadScoreUpdatedMessage": "Lead score updated",
+  "setLeadScoreDialogTitle": "Set the lead score",
+  "leadScoreRangeFieldLabel": "Score (0–100)",
+  "leadScoreFieldHelper": "This overrides the analyzer's number.",
+  "setByEmployeeLabel": "Set by {name}",
+  "@setByEmployeeLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "aiGeneratedLabel": "AI-generated",
+  "analyzerOwnReadLabel": "Analyzer's own read: {score}",
+  "@analyzerOwnReadLabel": {
+    "placeholders": {
+      "score": {"type": "int"}
+    }
+  },
+  "unconfirmedPurchaseClaimLabel": "Unconfirmed purchase claim",
+  "confirmPurchaseDialogTitle": "Confirm this purchase?",
+  "rejectPurchaseDialogTitle": "Reject this claim?",
+  "noteOptionalLabel": "Note (optional)",
+  "notYetButton": "Not yet",
+  "purchaseConfirmedMessage": "Purchase confirmed",
+  "purchaseNotConfirmedMessage": "Recorded as not confirmed",
+  "purchaseHistoryTitle": "Purchase confirmation history",
+  "purchaseHistoryLoadError": "Could not load the history.",
+  "purchaseHistoryEmpty": "No rulings recorded yet.",
+  "notConfirmedBadge": "Not confirmed",
+  "anEmployeeLabel": "An employee"
+}

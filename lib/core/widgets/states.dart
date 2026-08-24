@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n_extensions.dart';
 import '../api/api_exception.dart';
 import '../theme/tokens.dart';
 
@@ -92,7 +93,8 @@ class ErrorStateView extends StatelessWidget {
     final theme = Theme.of(context);
     final api = error is ApiException ? error as ApiException : null;
     final isNetwork = api is NetworkException;
-    final canRetry = onRetry != null && (isNetwork || api == null || api.statusCode >= 500);
+    final canRetry =
+        onRetry != null && (isNetwork || api == null || api.statusCode >= 500);
 
     return Center(
       child: Padding(
@@ -107,12 +109,17 @@ class ErrorStateView extends StatelessWidget {
             ),
             const SizedBox(height: Space.lg),
             Text(
-              isNetwork ? 'No connection' : 'Something went wrong',
+              isNetwork
+                  ? context.l10n.noConnectionTitle
+                  : context.l10n.genericErrorTitle,
               style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: Space.sm),
             Text(
-              api?.message ?? 'Please try again.',
+              // The backend's own message (api?.message) is server-generated
+              // English and not localizable client-side; only the fallback
+              // shown when there is no server message is translated.
+              api?.message ?? context.l10n.genericErrorFallbackMessage,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall,
             ),
@@ -121,7 +128,7 @@ class ErrorStateView extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Try again'),
+                label: Text(context.l10n.retryButton),
               ),
             ],
           ],
@@ -180,13 +187,13 @@ class ConversationSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final base = Theme.of(context).colorScheme.surfaceContainerHighest;
     Widget bar(double width, double height) => Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            color: base,
-            borderRadius: BorderRadius.circular(Radii.sm),
-          ),
-        );
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: base,
+        borderRadius: BorderRadius.circular(Radii.sm),
+      ),
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(

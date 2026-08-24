@@ -1,19 +1,23 @@
 /// Teams — how conversations are grouped for routing.
 ///
-/// Read-only, for the same reason as Employees: creating and editing a team is
-/// gated behind `team.manage` (ADMIN only) on the web, and an org-configuration
-/// form is not work anyone does from a phone. What matters here is seeing which
-/// team owns what, which every role can already read.
+/// Reading is open to every role with `team.view`. Add Team is gated on
+/// `isAdminProvider && Perm.teamManage` together, same belt-and-suspenders
+/// reasoning as `employees_screen.dart` — edit/delete are out of scope, per
+/// the spec's "do not implement team edit/delete unless requested."
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/directory.dart';
+import '../../core/models/employee.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/l10n_extensions.dart';
+import '../authentication/auth_controller.dart';
+import 'add_team_sheet.dart';
 import 'directory_providers.dart';
 
 class TeamsScreen extends ConsumerWidget {
@@ -22,9 +26,18 @@ class TeamsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teams = ref.watch(teamsProvider);
+    final canManage =
+        ref.watch(isAdminProvider) && ref.watch(canProvider(Perm.teamManage));
 
     return SectionScaffold(
-      title: 'Teams',
+      title: context.l10n.navTeams,
+      floatingActionButton: canManage
+          ? FloatingActionButton(
+              tooltip: context.l10n.addTeamTitle,
+              onPressed: () => showAddTeamSheet(context),
+              child: const Icon(Icons.add),
+            )
+          : null,
       onRefresh: () async {
         ref.invalidate(teamsProvider);
         await ref.read(teamsProvider.future);
@@ -41,12 +54,10 @@ class TeamsScreen extends ConsumerWidget {
               children: [
                 SizedBox(
                   height: MediaQuery.sizeOf(context).height * 0.6,
-                  child: const EmptyState(
+                  child: EmptyState(
                     icon: Icons.groups_outlined,
-                    title: 'No teams yet',
-                    message:
-                        'Teams group agents so conversations can be routed and '
-                        'monitored together.',
+                    title: context.l10n.noTeamsTitle,
+                    message: context.l10n.noTeamsMessage,
                   ),
                 ),
               ],
@@ -101,7 +112,7 @@ class _TeamCard extends StatelessWidget {
                   ),
                 ),
                 if (!team.isActive)
-                  const StatusBadge(label: 'Inactive', dense: true),
+                  StatusBadge(label: context.l10n.inactiveBadge, dense: true),
               ],
             ),
             if (team.description.isNotEmpty) ...[
@@ -114,8 +125,7 @@ class _TeamCard extends StatelessWidget {
               runSpacing: Space.xs,
               children: [
                 StatusBadge(
-                  label: '${team.memberCount} member'
-                      '${team.memberCount == 1 ? '' : 's'}',
+                  label: context.l10n.memberCountBadge(team.memberCount),
                   dense: true,
                   icon: Icons.person_outline,
                 ),
@@ -130,7 +140,7 @@ class _TeamCard extends StatelessWidget {
             if (team.leaderNames.isNotEmpty) ...[
               const SizedBox(height: Space.md),
               Text(
-                'Led by ${team.leaderNames.join(', ')}',
+                context.l10n.ledByLabel(team.leaderNames.join(', ')),
                 style: theme.textTheme.bodySmall,
               ),
             ],
