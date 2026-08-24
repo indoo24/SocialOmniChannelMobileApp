@@ -8,7 +8,7 @@
          dependency's own manifest (e.g. firebase-messaging). -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="scenario_mobile"
+        android:label="scenario omnichannel"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
