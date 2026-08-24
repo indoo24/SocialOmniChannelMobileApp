@@ -76,6 +76,14 @@ class ScenarioApp extends ConsumerStatefulWidget {
 }
 
 class _ScenarioAppState extends ConsumerState<ScenarioApp> {
+  /// Floor on how long the splash stays up, regardless of how fast session
+  /// restoration resolves. Without this, a warm cache or a fast network
+  /// answers `/auth/me/` well before the entrance animation
+  /// (`SplashMotion.totalDuration`) finishes, and the brand moment gets cut
+  /// off mid-animation.
+  static const _minSplashDuration = Duration(seconds: 4);
+  bool _minSplashElapsed = false;
+
   @override
   void initState() {
     super.initState();
@@ -92,6 +100,9 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
       ref.read(themeModeProvider.notifier).restore();
       ref.read(localeProvider.notifier).restore();
     });
+    Future.delayed(_minSplashDuration, () {
+      if (mounted) setState(() => _minSplashElapsed = true);
+    });
   }
 
   @override
@@ -106,9 +117,11 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
 
-    // Hold a splash while the session is being checked. Building the router
-    // during restore would let its redirect run against an unknown state.
-    if (auth.isRestoring) {
+    // Hold a splash while the session is being checked, and for at least
+    // _minSplashDuration regardless — building the router during restore
+    // would let its redirect run against an unknown state, and cutting the
+    // splash short whenever restore is fast would cut off its animation.
+    if (auth.isRestoring || !_minSplashElapsed) {
       return MaterialApp(
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
