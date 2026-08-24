@@ -64,26 +64,12 @@ class PushService {
     _initialized = true;
     _log('ensureInitialized() start');
     try {
-
       await Firebase.initializeApp();
-
-print('PUSH DEBUG: Firebase initialized successfully');
-
-FirebaseMessaging.onBackgroundMessage(
-  firebaseMessagingBackgroundHandler,
-);
-
-_available = true;
-
-print('PUSH DEBUG: Firebase available = $_available');
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       _available = true;
       _log('ensureInitialized() succeeded — Firebase available.');
     } catch (error, stack) {
       _available = false;
-      print('PUSH DEBUG: Firebase initialization FAILED');
-  print('PUSH DEBUG: ERROR = $error');
-  print('PUSH DEBUG: STACK = $stack');
       _log(
         'ensureInitialized() failed — Firebase unavailable, push disabled. '
         'error: $error',
@@ -113,10 +99,6 @@ print('PUSH DEBUG: Firebase available = $_available');
     if (!_available) return null;
     try {
       final token = await _messaging.getToken();
-      print(
-  'PUSH DEBUG: FCM token = '
-  '${token == null ? 'NULL' : '${token.substring(0, token.length > 10 ? 10 : token.length)}...'}',
-);
       _log('getToken() -> ${_redact(token)}');
       return token;
     } catch (error) {
