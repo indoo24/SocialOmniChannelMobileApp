@@ -56,8 +56,10 @@ String humanizeEnum(String value) {
   return words
       .asMap()
       .entries
-      .map((e) => e.key == 0
-          ? '${e.value[0].toUpperCase()}${e.value.substring(1)}'
-          : e.value)
+      .map(
+        (e) => e.key == 0
+            ? '${e.value[0].toUpperCase()}${e.value.substring(1)}'
+            : e.value,
+      )
       .join(' ');
 }

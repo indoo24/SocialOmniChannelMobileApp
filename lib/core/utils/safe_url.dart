@@ -52,7 +52,9 @@ class SafeUrl {
     // transport — a local dev backend serving media over http. A release
     // build can never satisfy this: Environment.useTls is forced true there.
     final env = environment ?? Environment.current;
-    if (uri.scheme == 'http' && !env.useTls && uri.host == env.host.split(':').first) {
+    if (uri.scheme == 'http' &&
+        !env.useTls &&
+        uri.host == env.host.split(':').first) {
       return trimmed;
     }
 

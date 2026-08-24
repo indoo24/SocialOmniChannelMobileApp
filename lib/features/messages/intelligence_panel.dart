@@ -16,6 +16,7 @@ import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import 'intelligence_providers.dart';
 
@@ -106,11 +107,14 @@ class _IntelligencePanelState extends ConsumerState<_IntelligencePanel> {
         Row(
           children: [
             Expanded(
-              child: Text('Intelligence', style: theme.textTheme.titleLarge),
+              child: Text(
+                context.l10n.intelligenceSectionTitle,
+                style: theme.textTheme.titleLarge,
+              ),
             ),
             if (canRefresh)
               IconButton(
-                tooltip: 'Re-run analysis',
+                tooltip: context.l10n.rerunAnalysisTooltip,
                 onPressed: _analyzing ? null : _runAnalyzer,
                 icon: _analyzing
                     ? const SizedBox(
@@ -124,9 +128,9 @@ class _IntelligencePanelState extends ConsumerState<_IntelligencePanel> {
         ),
         const SizedBox(height: Space.sm),
         async.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.all(Space.xl),
-            child: LoadingState(label: 'Loading intelligence…'),
+          loading: () => Padding(
+            padding: const EdgeInsets.all(Space.xl),
+            child: LoadingState(label: context.l10n.loadingIntelligenceLabel),
           ),
           error: (error, _) => Padding(
             padding: const EdgeInsets.symmetric(vertical: Space.lg),
@@ -168,15 +172,13 @@ class _NotAnalyzedYet extends StatelessWidget {
   Widget build(BuildContext context) {
     return EmptyState(
       icon: Icons.psychology_outlined,
-      title: 'Not analyzed yet',
-      message:
-          'This conversation has no intelligence read yet. It appears '
-          'once the analyzer runs, automatically or on demand.',
+      title: context.l10n.notAnalyzedYetTitle,
+      message: context.l10n.notAnalyzedYetMessage,
       action: canRefresh
           ? FilledButton.icon(
               onPressed: busy ? null : onRun,
               icon: const Icon(Icons.auto_awesome, size: 16),
-              label: const Text('Run analysis'),
+              label: Text(context.l10n.runAnalysisButton),
             )
           : null,
     );
@@ -242,35 +244,47 @@ class _IntelligenceContent extends ConsumerWidget {
 
         if (intel.summary.isNotEmpty) ...[
           const SizedBox(height: Space.lg),
-          Text('Summary', style: theme.textTheme.titleSmall),
+          Text(
+            context.l10n.intelligenceSummaryLabel,
+            style: theme.textTheme.titleSmall,
+          ),
           const SizedBox(height: Space.xs),
           Text(intel.summary, style: theme.textTheme.bodyMedium),
         ],
 
         if (intel.nextBestAction.isNotEmpty) ...[
           const SizedBox(height: Space.lg),
-          Text('Suggested next step', style: theme.textTheme.titleSmall),
+          Text(
+            context.l10n.suggestedNextStepLabel,
+            style: theme.textTheme.titleSmall,
+          ),
           const SizedBox(height: Space.xs),
           Text(intel.nextBestAction, style: theme.textTheme.bodyMedium),
         ],
 
         if (intel.interestedProducts.isNotEmpty) ...[
           const SizedBox(height: Space.lg),
-          Text('Interested in', style: theme.textTheme.titleSmall),
+          Text(
+            context.l10n.interestedInLabel,
+            style: theme.textTheme.titleSmall,
+          ),
           const SizedBox(height: Space.xs),
           _ChipList(values: intel.interestedProducts),
         ],
 
         if (intel.buyingSignals.isNotEmpty) ...[
           const SizedBox(height: Space.lg),
-          Text('Buying signals', style: theme.textTheme.titleSmall),
+          Text(
+            context.l10n.buyingSignalsLabel,
+            style: theme.textTheme.titleSmall,
+          ),
           const SizedBox(height: Space.xs),
           _ChipList(values: intel.buyingSignals),
         ],
 
         if (intel.objections.isNotEmpty) ...[
           const SizedBox(height: Space.lg),
-          Text('Objections', style: theme.textTheme.titleSmall),
+          Text(context.l10n.objectionsLabel, style: theme.textTheme.titleSmall),
           const SizedBox(height: Space.xs),
           _ChipList(values: intel.objections),
         ],
@@ -281,7 +295,9 @@ class _IntelligenceContent extends ConsumerWidget {
         if (intel.analyzedAt != null) ...[
           const SizedBox(height: Space.lg),
           Text(
-            'Last analyzed ${formatDateTime(context, intel.analyzedAt)}',
+            context.l10n.lastAnalyzedLabel(
+              formatDateTime(context, intel.analyzedAt),
+            ),
             style: theme.textTheme.labelSmall,
           ),
         ],
@@ -315,7 +331,7 @@ class _ReviewBanner extends StatelessWidget {
           const SizedBox(width: Space.sm),
           Expanded(
             child: Text(
-              reason.isEmpty ? 'This conversation needs a human look.' : reason,
+              reason.isEmpty ? context.l10n.reviewBannerDefaultReason : reason,
               style: theme.textTheme.bodySmall,
             ),
           ),
@@ -372,8 +388,11 @@ class _LeadScoreSectionState extends ConsumerState<_LeadScoreSection> {
           .read(conversationRepositoryProvider)
           .setLeadScore(widget.conversationId, score);
       widget.onChanged();
+      if (!mounted) return;
       widget.onMessage(
-        score == null ? 'Handed back to the analyzer' : 'Lead score updated',
+        score == null
+            ? context.l10n.handedBackToAnalyzerMessage
+            : context.l10n.leadScoreUpdatedMessage,
       );
     } on ApiException catch (error) {
       widget.onMessage(error.message, isError: true);
@@ -388,20 +407,20 @@ class _LeadScoreSectionState extends ConsumerState<_LeadScoreSection> {
     final entered = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Set the lead score'),
+        title: Text(context.l10n.setLeadScoreDialogTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Score (0–100)',
-            helperText: "This overrides the analyzer's number.",
+          decoration: InputDecoration(
+            labelText: context.l10n.leadScoreRangeFieldLabel,
+            helperText: context.l10n.leadScoreFieldHelper,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -409,7 +428,7 @@ class _LeadScoreSectionState extends ConsumerState<_LeadScoreSection> {
               if (value == null || value < 0 || value > 100) return;
               Navigator.of(context).pop(value);
             },
-            child: const Text('Save'),
+            child: Text(context.l10n.commonSave),
           ),
         ],
       ),
@@ -445,7 +464,10 @@ class _LeadScoreSectionState extends ConsumerState<_LeadScoreSection> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Lead score', style: theme.textTheme.labelMedium),
+                  Text(
+                    context.l10n.leadScoreFieldLabel,
+                    style: theme.textTheme.labelMedium,
+                  ),
                   Text(
                     '${intel.leadScore}',
                     style: theme.textTheme.headlineMedium?.copyWith(
@@ -465,10 +487,10 @@ class _LeadScoreSectionState extends ConsumerState<_LeadScoreSection> {
                 if (intel.isLeadScoreOverridden)
                   TextButton(
                     onPressed: () => _setScore(null),
-                    child: const Text('Reset to AI'),
+                    child: Text(context.l10n.resetToAiButton),
                   ),
                 IconButton(
-                  tooltip: 'Set score by hand',
+                  tooltip: context.l10n.setScoreByHandTooltip,
                   onPressed: _editScore,
                   icon: const Icon(Icons.edit_outlined, size: 18),
                   visualDensity: VisualDensity.compact,
@@ -479,8 +501,12 @@ class _LeadScoreSectionState extends ConsumerState<_LeadScoreSection> {
           const SizedBox(height: Space.xs),
           StatusBadge(
             label: intel.isLeadScoreOverridden
-                ? 'Set by ${intel.leadScoreOverriddenByName.isEmpty ? 'an employee' : intel.leadScoreOverriddenByName}'
-                : 'AI-generated',
+                ? context.l10n.setByEmployeeLabel(
+                    intel.leadScoreOverriddenByName.isEmpty
+                        ? context.l10n.confirmedByUnknownEmployee
+                        : intel.leadScoreOverriddenByName,
+                  )
+                : context.l10n.aiGeneratedLabel,
             tone: intel.isLeadScoreOverridden
                 ? BadgeTone.info
                 : BadgeTone.neutral,
@@ -489,7 +515,7 @@ class _LeadScoreSectionState extends ConsumerState<_LeadScoreSection> {
           if (intel.isLeadScoreOverridden) ...[
             const SizedBox(height: Space.xs),
             Text(
-              "Analyzer's own read: ${intel.leadScoreAuto}",
+              context.l10n.analyzerOwnReadLabel(intel.leadScoreAuto),
               style: theme.textTheme.labelSmall,
             ),
           ],
@@ -557,20 +583,28 @@ class _PurchaseClaimSectionState extends ConsumerState<_PurchaseClaimSection> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          confirmed ? 'Confirm this purchase?' : 'Reject this claim?',
+          confirmed
+              ? context.l10n.confirmPurchaseDialogTitle
+              : context.l10n.rejectPurchaseDialogTitle,
         ),
         content: TextField(
           controller: noteController,
-          decoration: const InputDecoration(labelText: 'Note (optional)'),
+          decoration: InputDecoration(
+            labelText: context.l10n.noteOptionalLabel,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text(confirmed ? 'Confirm' : 'Not yet'),
+            child: Text(
+              confirmed
+                  ? context.l10n.confirmAction
+                  : context.l10n.notYetButton,
+            ),
           ),
         ],
       ),
@@ -591,13 +625,15 @@ class _PurchaseClaimSectionState extends ConsumerState<_PurchaseClaimSection> {
             note: note,
           );
       widget.onChanged();
-      // ref.invalidate() on this State's own ref throws if this sheet
-      // closed while confirmPurchase() was in flight.
-      if (mounted) {
-        ref.invalidate(purchaseConfirmationsProvider(widget.conversationId));
-      }
+      // ref.invalidate() on this State's own ref, and context.l10n below,
+      // both throw if this sheet closed while confirmPurchase() was in
+      // flight.
+      if (!mounted) return;
+      ref.invalidate(purchaseConfirmationsProvider(widget.conversationId));
       widget.onMessage(
-        confirmed ? 'Purchase confirmed' : 'Recorded as not confirmed',
+        confirmed
+            ? context.l10n.purchaseConfirmedMessage
+            : context.l10n.purchaseNotConfirmedMessage,
       );
     } on ApiException catch (error) {
       widget.onMessage(error.message, isError: true);
@@ -633,7 +669,7 @@ class _PurchaseClaimSectionState extends ConsumerState<_PurchaseClaimSection> {
               ),
               const SizedBox(width: Space.xs),
               Text(
-                'Unconfirmed purchase claim',
+                context.l10n.unconfirmedPurchaseClaimLabel,
                 style: theme.textTheme.titleSmall,
               ),
             ],
@@ -663,14 +699,14 @@ class _PurchaseClaimSectionState extends ConsumerState<_PurchaseClaimSection> {
                   child: FilledButton.icon(
                     onPressed: _busy ? null : () => _decide(true),
                     icon: const Icon(Icons.check, size: 16),
-                    label: const Text('Confirm'),
+                    label: Text(context.l10n.confirmAction),
                   ),
                 ),
                 const SizedBox(width: Space.sm),
                 Expanded(
                   child: OutlinedButton(
                     onPressed: _busy ? null : () => _decide(false),
-                    child: const Text('Not yet'),
+                    child: Text(context.l10n.notYetButton),
                   ),
                 ),
               ],
@@ -697,7 +733,7 @@ class _PurchaseHistorySection extends ConsumerWidget {
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
       title: Text(
-        'Purchase confirmation history',
+        context.l10n.purchaseHistoryTitle,
         style: theme.textTheme.titleSmall,
       ),
       childrenPadding: const EdgeInsets.only(bottom: Space.sm),
@@ -720,7 +756,7 @@ class _PurchaseHistorySection extends ConsumerWidget {
               error: (error, _) => Padding(
                 padding: const EdgeInsets.all(Space.md),
                 child: Text(
-                  'Could not load the history.',
+                  context.l10n.purchaseHistoryLoadError,
                   style: theme.textTheme.bodySmall,
                 ),
               ),
@@ -728,7 +764,7 @@ class _PurchaseHistorySection extends ConsumerWidget {
                   ? Padding(
                       padding: const EdgeInsets.symmetric(vertical: Space.sm),
                       child: Text(
-                        'No rulings recorded yet.',
+                        context.l10n.purchaseHistoryEmpty,
                         style: theme.textTheme.bodySmall,
                       ),
                     )
@@ -770,7 +806,9 @@ class _PurchaseHistoryRow extends StatelessWidget {
           Row(
             children: [
               StatusBadge(
-                label: confirmation.isConfirmed ? 'Confirmed' : 'Not confirmed',
+                label: confirmation.isConfirmed
+                    ? context.l10n.confirmedMetric
+                    : context.l10n.notConfirmedBadge,
                 tone: confirmation.isConfirmed
                     ? BadgeTone.success
                     : BadgeTone.neutral,
@@ -780,7 +818,7 @@ class _PurchaseHistoryRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   confirmation.employeeName.isEmpty
-                      ? 'An employee'
+                      ? context.l10n.anEmployeeLabel
                       : confirmation.employeeName,
                   style: theme.textTheme.bodySmall,
                   overflow: TextOverflow.ellipsis,

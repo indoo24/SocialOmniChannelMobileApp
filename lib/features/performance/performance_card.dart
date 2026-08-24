@@ -89,7 +89,10 @@ class PerformanceCard extends StatelessWidget {
                         ),
                         Row(
                           children: [
-                            PresenceDot(availability: row.availability, size: 7),
+                            PresenceDot(
+                              availability: row.availability,
+                              size: 7,
+                            ),
                             const SizedBox(width: Space.xs),
                             Text(
                               row.role.replaceAll('_', ' ').toLowerCase(),
@@ -113,8 +116,8 @@ class PerformanceCard extends StatelessWidget {
                     value: formatDuration(row.averageResponseSeconds),
                     hint: row.responsesCounted > 0
                         ? '${row.responsesCounted} '
-                            '${row.responsesCounted == 1 ? 'reply' : 'replies'} · '
-                            'median ${formatDuration(row.medianResponseSeconds)}'
+                              '${row.responsesCounted == 1 ? 'reply' : 'replies'} · '
+                              'median ${formatDuration(row.medianResponseSeconds)}'
                         : 'No replies yet',
                   ),
                 ),
@@ -127,14 +130,14 @@ class PerformanceCard extends StatelessWidget {
                     hint: lift == null
                         ? 'No baseline recorded'
                         : '${row.leadScoreAtAssignment?.toStringAsFixed(0)} → '
-                            '${row.leadScoreNow?.toStringAsFixed(0)}',
+                              '${row.leadScoreNow?.toStringAsFixed(0)}',
                     tone: lift == null
                         ? null
                         : lift > 0
-                            ? ScenarioColors.success
-                            : lift < 0
-                                ? ScenarioColors.danger
-                                : null,
+                        ? ScenarioColors.success
+                        : lift < 0
+                        ? ScenarioColors.danger
+                        : null,
                   ),
                 ),
               ],
@@ -146,7 +149,8 @@ class PerformanceCard extends StatelessWidget {
                   child: _Figure(
                     label: 'Customers',
                     value: '${row.customersServed}',
-                    hint: '${row.messagesSent} '
+                    hint:
+                        '${row.messagesSent} '
                         '${row.messagesSent == 1 ? 'message' : 'messages'} sent',
                   ),
                 ),
@@ -166,8 +170,10 @@ class PerformanceCard extends StatelessWidget {
               const SizedBox(height: Space.lg),
               Text(
                 'BY PLATFORM',
-                style: theme.textTheme.labelSmall
-                    ?.copyWith(letterSpacing: 0.5, fontWeight: FontWeight.w700),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: Space.sm),
               for (final platform in row.platforms)
@@ -194,7 +200,8 @@ class PerformanceCard extends StatelessWidget {
                 ),
                 _Footnote(
                   icon: Icons.timer_outlined,
-                  label: 'First reply '
+                  label:
+                      'First reply '
                       '${formatDuration(row.firstResponseAverageSeconds)}',
                 ),
               ],
@@ -206,9 +213,9 @@ class PerformanceCard extends StatelessWidget {
   }
 
   int get _maxMessages => row.platforms.fold<int>(
-        1,
-        (max, p) => p.messages > max ? p.messages : max,
-      );
+    1,
+    (max, p) => p.messages > max ? p.messages : max,
+  );
 }
 
 class _Figure extends StatelessWidget {
@@ -232,14 +239,18 @@ class _Figure extends StatelessWidget {
       children: [
         Text(
           label.toUpperCase(),
-          style: theme.textTheme.labelSmall
-              ?.copyWith(letterSpacing: 0.5, fontWeight: FontWeight.w700),
+          style: theme.textTheme.labelSmall?.copyWith(
+            letterSpacing: 0.5,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: theme.textTheme.titleLarge
-              ?.copyWith(fontWeight: FontWeight.w700, color: tone),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: tone,
+          ),
         ),
         if (hint != null)
           Text(
@@ -324,11 +335,16 @@ class HoursPanel extends StatelessWidget {
           children: [
             Text(
               'HOURS',
-              style: theme.textTheme.labelSmall
-                  ?.copyWith(letterSpacing: 0.5, fontWeight: FontWeight.w700),
+              style: theme.textTheme.labelSmall?.copyWith(
+                letterSpacing: 0.5,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: Space.xs),
-            Text('Not recorded for this period.', style: theme.textTheme.bodySmall),
+            Text(
+              'Not recorded for this period.',
+              style: theme.textTheme.bodySmall,
+            ),
           ],
         ),
       );
@@ -351,8 +367,10 @@ class HoursPanel extends StatelessWidget {
               Expanded(
                 child: Text(
                   'HOURS',
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(letterSpacing: 0.5, fontWeight: FontWeight.w700),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    letterSpacing: 0.5,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               if (adherence != null)
@@ -361,16 +379,23 @@ class HoursPanel extends StatelessWidget {
                   tone: adherence >= 0.9
                       ? BadgeTone.success
                       : adherence >= 0.7
-                          ? BadgeTone.warning
-                          : BadgeTone.danger,
+                      ? BadgeTone.warning
+                      : BadgeTone.danger,
                   dense: true,
                 ),
             ],
           ),
           const SizedBox(height: Space.sm),
-          _HoursRow(label: 'Online', value: formatHours(hours.onlineSeconds), bold: true),
+          _HoursRow(
+            label: 'Online',
+            value: formatHours(hours.onlineSeconds),
+            bold: true,
+          ),
           if (hours.breakSeconds > 0)
-            _HoursRow(label: 'On break', value: formatHours(hours.breakSeconds)),
+            _HoursRow(
+              label: 'On break',
+              value: formatHours(hours.breakSeconds),
+            ),
           if (hours.awaySeconds > 0)
             _HoursRow(label: 'Away', value: formatHours(hours.awaySeconds)),
           const Divider(height: Space.lg),
@@ -387,7 +412,11 @@ class HoursPanel extends StatelessWidget {
 }
 
 class _HoursRow extends StatelessWidget {
-  const _HoursRow({required this.label, required this.value, this.bold = false});
+  const _HoursRow({
+    required this.label,
+    required this.value,
+    this.bold = false,
+  });
 
   final String label;
   final String value;

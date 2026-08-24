@@ -2,6 +2,11 @@
     <!-- Runtime-requested via firebase_messaging's requestPermission() call;
          Android 13+ requires the manifest declaration too. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Every network call (REST API, WebSocket, FCM) needs this. The debug/
+         profile manifests inherit it from the Flutter template; declared
+         explicitly here rather than relying on it being merged in from a
+         dependency's own manifest (e.g. firebase-messaging). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="scenario_mobile"
         android:name="${applicationName}"

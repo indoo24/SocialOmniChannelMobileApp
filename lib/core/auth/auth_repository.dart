@@ -14,7 +14,7 @@ import '../storage/secure_store.dart';
 
 class AuthRepository {
   AuthRepository({required ApiClient api, required SecureStore store})
-      : this._(api, store);
+    : this._(api, store);
 
   AuthRepository._(this._api, this._store);
 
@@ -101,8 +101,10 @@ class AuthRepository {
       await _api.post<dynamic>('/auth/logout/');
       _log('logout() — server session ended');
     } on ApiException catch (error) {
-      _log('logout() — server call failed, clearing local session anyway: '
-          '${error.message}');
+      _log(
+        'logout() — server call failed, clearing local session anyway: '
+        '${error.message}',
+      );
       // Logging out locally must succeed even when the server is unreachable —
       // otherwise a support agent cannot hand their phone over.
     } finally {
@@ -126,14 +128,10 @@ class AuthRepository {
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
-  }) =>
-      _api.post<dynamic>(
-        '/auth/password/',
-        body: {
-          'current_password': currentPassword,
-          'new_password': newPassword,
-        },
-      );
+  }) => _api.post<dynamic>(
+    '/auth/password/',
+    body: {'current_password': currentPassword, 'new_password': newPassword},
+  );
 
   /// Update the fields an employee may change about themselves.
   ///

@@ -51,6 +51,10 @@ class _PushBridgeState extends ConsumerState<PushBridge>
   int? _bannerConversationId;
   Timer? _bannerTimer;
 
+  StreamSubscription<String>? _tokenRefreshSub;
+  StreamSubscription<RemoteMessage>? _foregroundMessageSub;
+  StreamSubscription<RemoteMessage>? _messageOpenedAppSub;
+
   static void _log(String message) => AppLog.debug('PushBridge', message);
 
   @override
@@ -71,6 +75,9 @@ class _PushBridgeState extends ConsumerState<PushBridge>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _bannerTimer?.cancel();
+    _tokenRefreshSub?.cancel();
+    _foregroundMessageSub?.cancel();
+    _messageOpenedAppSub?.cancel();
     super.dispose();
   }
 
@@ -136,7 +143,7 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     if (!_streamsAttached) {
       _streamsAttached = true;
       _log('_setUpForSignedInAgent() — attaching message streams.');
-      PushService.instance.onTokenRefresh.listen((newToken) {
+      _tokenRefreshSub = PushService.instance.onTokenRefresh.listen((newToken) {
         _log('onTokenRefresh fired — re-registering device.');
         if (ref.read(authControllerProvider).isAuthenticated) {
           _registerDevice(token: newToken);
@@ -144,8 +151,12 @@ class _PushBridgeState extends ConsumerState<PushBridge>
           _log('onTokenRefresh — not authenticated, skipping register.');
         }
       });
-      PushService.instance.onForegroundMessage.listen(_handleForegroundPush);
-      PushService.instance.onMessageOpenedApp.listen(_handleNotificationTap);
+      _foregroundMessageSub = PushService.instance.onForegroundMessage.listen(
+        _handleForegroundPush,
+      );
+      _messageOpenedAppSub = PushService.instance.onMessageOpenedApp.listen(
+        _handleNotificationTap,
+      );
     }
 
     // Only meaningful once: a non-null result means this launch was a cold

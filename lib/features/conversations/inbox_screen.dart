@@ -152,8 +152,9 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                       action: filters.isEmpty
                           ? null
                           : OutlinedButton(
-                              onPressed: () =>
-                                  ref.read(inboxFiltersProvider.notifier).clear(),
+                              onPressed: () => ref
+                                  .read(inboxFiltersProvider.notifier)
+                                  .clear(),
                               child: Text(context.l10n.clearFiltersButton),
                             ),
                     ),
@@ -212,10 +213,14 @@ class ConversationRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final (statusLabel, statusTone) =
-        ConversationBadges.status(context, conversation.status);
-    final (priorityLabel, priorityTone) =
-        ConversationBadges.priority(context, conversation.priority);
+    final (statusLabel, statusTone) = ConversationBadges.status(
+      context,
+      conversation.status,
+    );
+    final (priorityLabel, priorityTone) = ConversationBadges.priority(
+      context,
+      conversation.priority,
+    );
     final unread = conversation.hasUnread;
 
     return InkWell(
@@ -246,8 +251,9 @@ class ConversationRow extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight:
-                                unread ? FontWeight.w700 : FontWeight.w600,
+                            fontWeight: unread
+                                ? FontWeight.w700
+                                : FontWeight.w600,
                           ),
                         ),
                       ),
@@ -297,7 +303,8 @@ class ConversationRow extends StatelessWidget {
                         dense: true,
                       ),
                       if (ConversationBadges.showsPriority(
-                          conversation.priority))
+                        conversation.priority,
+                      ))
                         StatusBadge(
                           label: priorityLabel,
                           tone: priorityTone,

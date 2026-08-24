@@ -834,6 +834,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get tapToCorrectHint => 'اضغط للتصحيح';
 
   @override
+  String confidenceWithCorrectHintLabel(int percent) {
+    return 'ثقة $percent٪ · اضغط للتصحيح';
+  }
+
+  @override
   String get savedToCustomerMessage => 'تم الحفظ في ملف العميل';
 
   @override
@@ -1151,4 +1156,114 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get employeesLoadFailedMessage => 'تعذّر تحميل الموظفين.';
+
+  @override
+  String get rerunAnalysisTooltip => 'إعادة تشغيل التحليل';
+
+  @override
+  String get loadingIntelligenceLabel => 'جارٍ تحميل التحليل الذكي…';
+
+  @override
+  String get notAnalyzedYetTitle => 'لم يتم تحليلها بعد';
+
+  @override
+  String get notAnalyzedYetMessage =>
+      'لا تحتوي هذه المحادثة على تحليل ذكي بعد. يظهر بمجرد تشغيل المحلل، تلقائيًا أو عند الطلب.';
+
+  @override
+  String get runAnalysisButton => 'تشغيل التحليل';
+
+  @override
+  String get reviewBannerDefaultReason =>
+      'تحتاج هذه المحادثة إلى مراجعة بشرية.';
+
+  @override
+  String get intelligenceSummaryLabel => 'الملخص';
+
+  @override
+  String get suggestedNextStepLabel => 'الخطوة التالية المقترحة';
+
+  @override
+  String get interestedInLabel => 'مهتم بـ';
+
+  @override
+  String get buyingSignalsLabel => 'إشارات الشراء';
+
+  @override
+  String get objectionsLabel => 'الاعتراضات';
+
+  @override
+  String lastAnalyzedLabel(String when) {
+    return 'آخر تحليل $when';
+  }
+
+  @override
+  String get resetToAiButton => 'إعادة الضبط للذكاء الاصطناعي';
+
+  @override
+  String get setScoreByHandTooltip => 'تحديد الدرجة يدويًا';
+
+  @override
+  String get handedBackToAnalyzerMessage => 'أُعيدت إلى المحلل';
+
+  @override
+  String get leadScoreUpdatedMessage => 'تم تحديث درجة العميل المحتمل';
+
+  @override
+  String get setLeadScoreDialogTitle => 'تحديد درجة العميل المحتمل';
+
+  @override
+  String get leadScoreRangeFieldLabel => 'الدرجة (0–100)';
+
+  @override
+  String get leadScoreFieldHelper => 'هذا يتجاوز رقم المحلل.';
+
+  @override
+  String setByEmployeeLabel(String name) {
+    return 'حُددت بواسطة $name';
+  }
+
+  @override
+  String get aiGeneratedLabel => 'بواسطة الذكاء الاصطناعي';
+
+  @override
+  String analyzerOwnReadLabel(int score) {
+    return 'قراءة المحلل الأصلية: $score';
+  }
+
+  @override
+  String get unconfirmedPurchaseClaimLabel => 'ادعاء شراء غير مؤكد';
+
+  @override
+  String get confirmPurchaseDialogTitle => 'تأكيد عملية الشراء هذه؟';
+
+  @override
+  String get rejectPurchaseDialogTitle => 'رفض هذا الادعاء؟';
+
+  @override
+  String get noteOptionalLabel => 'ملاحظة (اختياري)';
+
+  @override
+  String get notYetButton => 'ليس بعد';
+
+  @override
+  String get purchaseConfirmedMessage => 'تم تأكيد الشراء';
+
+  @override
+  String get purchaseNotConfirmedMessage => 'تم التسجيل كغير مؤكد';
+
+  @override
+  String get purchaseHistoryTitle => 'سجل تأكيد المشتريات';
+
+  @override
+  String get purchaseHistoryLoadError => 'تعذّر تحميل السجل.';
+
+  @override
+  String get purchaseHistoryEmpty => 'لا توجد قرارات مسجلة بعد.';
+
+  @override
+  String get notConfirmedBadge => 'غير مؤكد';
+
+  @override
+  String get anEmployeeLabel => 'أحد الموظفين';
 }

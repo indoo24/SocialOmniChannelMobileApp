@@ -100,7 +100,9 @@ class ApiClient {
     final cookies = await _cookieJar.loadForRequest(
       Uri.parse(Environment.current.apiBaseUrl),
     );
-    return cookies.any((c) => c.name == _sessionCookieName && c.value.isNotEmpty);
+    return cookies.any(
+      (c) => c.name == _sessionCookieName && c.value.isNotEmpty,
+    );
   }
 
   Future<void> clearCookies() => _cookieJar.deleteAll();

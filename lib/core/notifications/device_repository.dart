@@ -66,7 +66,9 @@ class DeviceRepository {
             'push_token': pushToken,
         },
       );
-      _log('heartbeat() succeeded — device: ${AppLog.redact(deviceIdentifier)}');
+      _log(
+        'heartbeat() succeeded — device: ${AppLog.redact(deviceIdentifier)}',
+      );
     } on ApiException catch (error) {
       _log(
         'heartbeat() failed — device: ${AppLog.redact(deviceIdentifier)}, '
@@ -86,7 +88,9 @@ class DeviceRepository {
         '/devices/unregister/',
         body: {'device_identifier': deviceIdentifier},
       );
-      _log('unregister() succeeded — device: ${AppLog.redact(deviceIdentifier)}');
+      _log(
+        'unregister() succeeded — device: ${AppLog.redact(deviceIdentifier)}',
+      );
     } on ApiException catch (error) {
       _log(
         'unregister() failed — device: ${AppLog.redact(deviceIdentifier)}, '

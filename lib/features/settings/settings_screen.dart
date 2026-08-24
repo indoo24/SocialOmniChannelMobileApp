@@ -356,13 +356,12 @@ class _SecurityTabState extends ConsumerState<_SecurityTab> {
             currentPassword: _current.text,
             newPassword: _next.text,
           );
+      if (!mounted) return;
       _current.clear();
       _next.clear();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.passwordChangedMessage)),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.passwordChangedMessage)),
+      );
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } finally {

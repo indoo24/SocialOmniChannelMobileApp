@@ -41,7 +41,9 @@ void main() {
     tearDown(() => container.dispose());
 
     test('drops cached realtime message bodies', () {
-      container.read(realtimeMessageCacheProvider.notifier).cacheMessage(
+      container
+          .read(realtimeMessageCacheProvider.notifier)
+          .cacheMessage(
             42,
             Message.fromJson({
               'id': 7,
@@ -71,9 +73,9 @@ void main() {
     });
 
     test('clears inbox filters, which are themselves search terms', () {
-      container.read(inboxFiltersProvider.notifier).update(
-            const ConversationFilters(search: '+44 7700 900123'),
-          );
+      container
+          .read(inboxFiltersProvider.notifier)
+          .update(const ConversationFilters(search: '+44 7700 900123'));
       expect(container.read(inboxFiltersProvider).search, isNotEmpty);
 
       clearSessionScopedState(container.read(_refProvider));
@@ -147,79 +149,85 @@ void main() {
   });
 
   group('RealtimeClient subscriptions are session-scoped', () {
-    test('disconnect clears them, so the next session cannot resubscribe',
-        () async {
-      final sent = <String>[];
-      final client = RealtimeClient(
-        cookieJar: CookieJar(),
-        connect: (uri, {protocols, headers}) => _RecordingChannel(sent),
-      );
-      addTearDown(client.dispose);
-
-      // Agent A signs in and opens a conversation.
-      await client.connect();
-      client.subscribe(4242);
-      expect(
-        sent.where((m) => m.contains('4242')),
-        isNotEmpty,
-        reason: 'sanity: the subscribe went out while agent A was signed in',
-      );
-
-      // Agent A signs out.
-      await client.disconnect();
-      sent.clear();
-
-      // Agent B signs in; the socket comes back up and resubscribes whatever
-      // it still believes is open.
-      await client.connect();
-
-      expect(
-        sent.where((m) => m.contains('4242')),
-        isEmpty,
-        reason: "the previous session's conversation must not be resubscribed",
-      );
-    });
-
-    test('a run of failed connects is abandoned rather than retried forever',
-        () {
-      // The socket authenticates with the session cookie, so a handshake the
-      // server refuses is usually a session it has ended. Retrying that on an
-      // uncapped 30s backoff replays a dead credential for as long as the app
-      // stays foregrounded, and holds the radio awake to do it.
-      //
-      // fakeAsync so the real backoff timers are exercised — the cap has to
-      // hold against the actual retry loop, not against a hand-driven one.
-      fakeAsync((async) {
-        var attempts = 0;
+    test(
+      'disconnect clears them, so the next session cannot resubscribe',
+      () async {
+        final sent = <String>[];
         final client = RealtimeClient(
           cookieJar: CookieJar(),
-          connect: (uri, {protocols, headers}) {
-            attempts += 1;
-            return _RejectingChannel();
-          },
+          connect: (uri, {protocols, headers}) => _RecordingChannel(sent),
+        );
+        addTearDown(client.dispose);
+
+        // Agent A signs in and opens a conversation.
+        await client.connect();
+        client.subscribe(4242);
+        expect(
+          sent.where((m) => m.contains('4242')),
+          isNotEmpty,
+          reason: 'sanity: the subscribe went out while agent A was signed in',
         );
 
-        client.connect();
-        async.elapse(const Duration(minutes: 10));
+        // Agent A signs out.
+        await client.disconnect();
+        sent.clear();
+
+        // Agent B signs in; the socket comes back up and resubscribes whatever
+        // it still believes is open.
+        await client.connect();
 
         expect(
-          client.hasGivenUp,
-          isTrue,
-          reason: 'a rejected session must stop replaying its dead credential',
+          sent.where((m) => m.contains('4242')),
+          isEmpty,
+          reason:
+              "the previous session's conversation must not be resubscribed",
         );
-        expect(
-          attempts,
-          lessThanOrEqualTo(RealtimeClient.maxConsecutiveFailures + 1),
-          reason: 'retries must be bounded by maxConsecutiveFailures',
-        );
+      },
+    );
 
-        // Ten more minutes must add nothing: it has genuinely stopped, not
-        // merely slowed to the backoff ceiling.
-        final settled = attempts;
-        async.elapse(const Duration(minutes: 10));
-        expect(attempts, settled);
-      });
-    });
+    test(
+      'a run of failed connects is abandoned rather than retried forever',
+      () {
+        // The socket authenticates with the session cookie, so a handshake the
+        // server refuses is usually a session it has ended. Retrying that on an
+        // uncapped 30s backoff replays a dead credential for as long as the app
+        // stays foregrounded, and holds the radio awake to do it.
+        //
+        // fakeAsync so the real backoff timers are exercised — the cap has to
+        // hold against the actual retry loop, not against a hand-driven one.
+        fakeAsync((async) {
+          var attempts = 0;
+          final client = RealtimeClient(
+            cookieJar: CookieJar(),
+            connect: (uri, {protocols, headers}) {
+              attempts += 1;
+              return _RejectingChannel();
+            },
+          );
+
+          client.connect();
+          async.elapse(const Duration(minutes: 10));
+
+          expect(
+            client.hasGivenUp,
+            isTrue,
+            reason:
+                'a rejected session must stop replaying its dead credential',
+          );
+          expect(
+            attempts,
+            lessThanOrEqualTo(RealtimeClient.maxConsecutiveFailures + 1),
+            reason: 'retries must be bounded by maxConsecutiveFailures',
+          );
+
+          // Ten more minutes must add nothing: it has genuinely stopped, not
+          // merely slowed to the backoff ceiling.
+          final settled = attempts;
+          async.elapse(const Duration(minutes: 10));
+          expect(attempts, settled);
+        });
+      },
+    );
 
     test('a deliberate reconnect is allowed after giving up', () {
       // Giving up must not be permanent: a foreground resume or a fresh

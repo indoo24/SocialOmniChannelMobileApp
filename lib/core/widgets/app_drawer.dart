@@ -74,7 +74,8 @@ class AppDrawer extends ConsumerWidget {
   /// section, which is what the web client's NavLink does with `end`.
   static bool _isSelected(String currentPath, String sectionPath) {
     if (sectionPath == '/dashboard') return currentPath == '/dashboard';
-    return currentPath == sectionPath || currentPath.startsWith('$sectionPath/');
+    return currentPath == sectionPath ||
+        currentPath.startsWith('$sectionPath/');
   }
 }
 
@@ -86,7 +87,12 @@ class _BrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(Space.xl, Space.xl, Space.lg, Space.lg),
+      padding: const EdgeInsets.fromLTRB(
+        Space.xl,
+        Space.xl,
+        Space.lg,
+        Space.lg,
+      ),
       child: Row(
         children: [
           Container(
@@ -124,7 +130,9 @@ class _BrandHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: ScenarioColors.sidebarForeground.withValues(alpha: 0.65),
+                    color: ScenarioColors.sidebarForeground.withValues(
+                      alpha: 0.65,
+                    ),
                     fontSize: 12,
                   ),
                 ),
@@ -272,8 +280,9 @@ class _AccountFooter extends ConsumerWidget {
                             ? employee.role
                             : employee.roleDisplay,
                         style: TextStyle(
-                          color: ScenarioColors.sidebarForeground
-                              .withValues(alpha: 0.65),
+                          color: ScenarioColors.sidebarForeground.withValues(
+                            alpha: 0.65,
+                          ),
                           fontSize: 11,
                         ),
                       ),

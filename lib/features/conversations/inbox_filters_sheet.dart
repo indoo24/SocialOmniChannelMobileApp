@@ -50,7 +50,10 @@ class _FiltersSheet extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Text(context.l10n.filtersTitle, style: theme.textTheme.titleLarge),
+                Text(
+                  context.l10n.filtersTitle,
+                  style: theme.textTheme.titleLarge,
+                ),
                 const Spacer(),
                 if (!filters.isEmpty)
                   TextButton(
@@ -151,15 +154,15 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: Space.sm),
-        child: Text(
-          text.toUpperCase(),
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                letterSpacing: 0.6,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: Space.sm),
+    child: Text(
+      text.toUpperCase(),
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        letterSpacing: 0.6,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
 }
 
 class _ChoiceRow extends StatelessWidget {
@@ -189,8 +192,7 @@ class _ChoiceRow extends StatelessWidget {
           ChoiceChip(
             label: Text(labelOf(context, option)),
             selected: selected == option,
-            onSelected: (isSelected) =>
-                onSelected(isSelected ? option : null),
+            onSelected: (isSelected) => onSelected(isSelected ? option : null),
           ),
       ],
     );
@@ -201,7 +203,6 @@ class _ChoiceRow extends StatelessWidget {
 ConversationFilters filtersWithStatus(
   ConversationFilters base,
   String? status,
-) =>
-    status == null
-        ? base.copyWith(clearStatus: true)
-        : base.copyWith(status: status);
+) => status == null
+    ? base.copyWith(clearStatus: true)
+    : base.copyWith(status: status);

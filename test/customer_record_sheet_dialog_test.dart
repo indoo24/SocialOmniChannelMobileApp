@@ -259,65 +259,67 @@ void main() {
     },
   );
 
-  testWidgets(
-    'closing the whole sheet immediately after Save, before the POST '
-    'resolves, does not throw when the provider refresh lands afterward',
-    (tester) async {
-      // Scenario G from the crash report: a mutation succeeds, but the
-      // sheet (not just the dialog) is already gone by the time
-      // ref.invalidate(customerFactsProvider(...)) fires and tries to
-      // refetch for a widget tree that no longer has a listener.
-      final postCompleter = Completer<ResponseBody>();
-      final client = _clientFor(
-        extra: (options) {
-          if (options.path.contains('/facts/') && options.method == 'POST') {
-            return postCompleter.future;
-          }
-          return null;
-        },
-      );
+  testWidgets('closing the whole sheet immediately after Save, before the POST '
+      'resolves, does not throw when the provider refresh lands afterward', (
+    tester,
+  ) async {
+    // Scenario G from the crash report: a mutation succeeds, but the
+    // sheet (not just the dialog) is already gone by the time
+    // ref.invalidate(customerFactsProvider(...)) fires and tries to
+    // refetch for a widget tree that no longer has a listener.
+    final postCompleter = Completer<ResponseBody>();
+    final client = _clientFor(
+      extra: (options) {
+        if (options.path.contains('/facts/') && options.method == 'POST') {
+          return postCompleter.future;
+        }
+        return null;
+      },
+    );
 
-      await tester.pumpWidget(
-        _harness(apiClient: client, child: Builder(builder: _openButton)),
-      );
-      await tester.tap(find.text('open record'));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      _harness(
+        apiClient: client,
+        child: Builder(builder: _openButton),
+      ),
+    );
+    await tester.tap(find.text('open record'));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(TextButton, 'Add'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Add'));
+    await tester.pumpAndSettle();
 
-      final fields = find.byType(TextField);
-      await tester.enterText(fields.first, 'address');
-      await tester.enterText(fields.last, '12 Nile St');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.first, 'address');
+    await tester.enterText(fields.last, '12 Nile St');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
 
-      // Let the dialog's own exit transition and the pop settle — the POST
-      // is still pending (postCompleter hasn't completed).
-      await _pumpAcrossExitTransition(tester);
+    // Let the dialog's own exit transition and the pop settle — the POST
+    // is still pending (postCompleter hasn't completed).
+    await _pumpAcrossExitTransition(tester);
 
-      // Now close the *outer* Customer Record sheet too, before the POST
-      // has resolved — this is the "immediately close the sheet" half of
-      // the race.
-      Navigator.of(tester.element(find.text('open record'))).pop();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+    // Now close the *outer* Customer Record sheet too, before the POST
+    // has resolved — this is the "immediately close the sheet" half of
+    // the race.
+    Navigator.of(tester.element(find.text('open record'))).pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
-      // The POST resolves now, after the sheet (and everything watching
-      // customerFactsProvider) is gone. ref.invalidate() still fires.
-      postCompleter.complete(
-        _json(
-          '{"id": 1, "key": "address", "value": "12 Nile St", '
-          '"confidence": 1.0, "source": "EMPLOYEE", "status": '
-          '"CONFIRMED", "needs_review": false}',
-          201,
-        ),
-      );
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.pump(const Duration(milliseconds: 50));
+    // The POST resolves now, after the sheet (and everything watching
+    // customerFactsProvider) is gone. ref.invalidate() still fires.
+    postCompleter.complete(
+      _json(
+        '{"id": 1, "key": "address", "value": "12 Nile St", '
+        '"confidence": 1.0, "source": "EMPLOYEE", "status": '
+        '"CONFIRMED", "needs_review": false}',
+        201,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
 
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'opening the sheet for a different conversation/customer after closing '
