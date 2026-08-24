@@ -63,33 +63,33 @@ class StatusBadge extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return switch (tone) {
       BadgeTone.success => (
-          ScenarioColors.success,
-          isDark
-              ? ScenarioColors.success.withValues(alpha: 0.18)
-              : ScenarioColors.successSurface,
-        ),
+        ScenarioColors.success,
+        isDark
+            ? ScenarioColors.success.withValues(alpha: 0.18)
+            : ScenarioColors.successSurface,
+      ),
       BadgeTone.warning => (
-          ScenarioColors.warning,
-          isDark
-              ? ScenarioColors.warning.withValues(alpha: 0.18)
-              : ScenarioColors.warningSurface,
-        ),
+        ScenarioColors.warning,
+        isDark
+            ? ScenarioColors.warning.withValues(alpha: 0.18)
+            : ScenarioColors.warningSurface,
+      ),
       BadgeTone.danger => (
-          ScenarioColors.danger,
-          isDark
-              ? ScenarioColors.danger.withValues(alpha: 0.18)
-              : ScenarioColors.dangerSurface,
-        ),
+        ScenarioColors.danger,
+        isDark
+            ? ScenarioColors.danger.withValues(alpha: 0.18)
+            : ScenarioColors.dangerSurface,
+      ),
       BadgeTone.info => (
-          ScenarioColors.info,
-          isDark
-              ? ScenarioColors.info.withValues(alpha: 0.18)
-              : ScenarioColors.infoSurface,
-        ),
+        ScenarioColors.info,
+        isDark
+            ? ScenarioColors.info.withValues(alpha: 0.18)
+            : ScenarioColors.infoSurface,
+      ),
       BadgeTone.neutral => (
-          Theme.of(context).colorScheme.onSurfaceVariant,
-          Theme.of(context).colorScheme.surfaceContainerHighest,
-        ),
+        Theme.of(context).colorScheme.onSurfaceVariant,
+        Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
     };
   }
 }
@@ -107,13 +107,13 @@ class ConversationBadges {
         'NEW' => (context.l10n.statusNew, BadgeTone.info),
         'OPEN' => (context.l10n.statusOpen, BadgeTone.success),
         'WAITING_CUSTOMER' => (
-            context.l10n.statusWaitingCustomer,
-            BadgeTone.warning,
-          ),
+          context.l10n.statusWaitingCustomer,
+          BadgeTone.warning,
+        ),
         'WAITING_INTERNAL' => (
-            context.l10n.statusWaitingInternal,
-            BadgeTone.warning,
-          ),
+          context.l10n.statusWaitingInternal,
+          BadgeTone.warning,
+        ),
         'RESOLVED' => (context.l10n.statusResolved, BadgeTone.neutral),
         'CLOSED' => (context.l10n.statusClosed, BadgeTone.neutral),
         _ => (value, BadgeTone.neutral),
@@ -130,15 +130,16 @@ class ConversationBadges {
 
   /// Priority is only worth pixels when it is not the default. The web inbox
   /// makes the same call — a row of "Normal" badges is noise.
-  static bool showsPriority(String value) => value == 'URGENT' || value == 'HIGH';
+  static bool showsPriority(String value) =>
+      value == 'URGENT' || value == 'HIGH';
 
   static IconData providerIcon(String provider) => switch (provider) {
-        'WHATSAPP' => Icons.chat_bubble,
-        'FACEBOOK' => Icons.facebook,
-        'INSTAGRAM' => Icons.camera_alt_outlined,
-        'TIKTOK' => Icons.music_note,
-        _ => Icons.science_outlined,
-      };
+    'WHATSAPP' => Icons.chat_bubble,
+    'FACEBOOK' => Icons.facebook,
+    'INSTAGRAM' => Icons.camera_alt_outlined,
+    'TIKTOK' => Icons.music_note,
+    _ => Icons.science_outlined,
+  };
 
   static String providerLabel(BuildContext context, String provider) =>
       switch (provider) {
@@ -151,10 +152,10 @@ class ConversationBadges {
       };
 
   static Color providerColor(String provider) => switch (provider) {
-        'WHATSAPP' => const Color(0xFF25D366),
-        'FACEBOOK' => const Color(0xFF0866FF),
-        'INSTAGRAM' => const Color(0xFFE1306C),
-        'TIKTOK' => const Color(0xFF010101),
-        _ => const Color(0xFF0F766E),
-      };
+    'WHATSAPP' => const Color(0xFF25D366),
+    'FACEBOOK' => const Color(0xFF0866FF),
+    'INSTAGRAM' => const Color(0xFFE1306C),
+    'TIKTOK' => const Color(0xFF010101),
+    _ => const Color(0xFF0F766E),
+  };
 }

@@ -68,7 +68,10 @@ class _Details extends StatelessWidget {
               Text(customer.displayName, style: theme.textTheme.titleLarge),
               const SizedBox(height: Space.xs),
               Text(
-                ConversationBadges.providerLabel(context, conversation.provider),
+                ConversationBadges.providerLabel(
+                  context,
+                  conversation.provider,
+                ),
                 style: theme.textTheme.bodySmall,
               ),
             ],
@@ -79,15 +82,36 @@ class _Details extends StatelessWidget {
         _Section(
           title: context.l10n.conversationSectionTitle,
           rows: [
-            (context.l10n.statusSection, ConversationBadges.status(context, conversation.status).$1),
-            (context.l10n.prioritySection, ConversationBadges.priority(context, conversation.priority).$1),
-            (context.l10n.categoryFieldLabel, conversation.category?.label ?? '—'),
-            (context.l10n.assignedToFieldLabel, conversation.assignedTo?.fullName ?? context.l10n.unassignedBadge),
-            (context.l10n.teamFieldLabel, conversation.assignedTeam?.name ?? '—'),
+            (
+              context.l10n.statusSection,
+              ConversationBadges.status(context, conversation.status).$1,
+            ),
+            (
+              context.l10n.prioritySection,
+              ConversationBadges.priority(context, conversation.priority).$1,
+            ),
+            (
+              context.l10n.categoryFieldLabel,
+              conversation.category?.label ?? '—',
+            ),
+            (
+              context.l10n.assignedToFieldLabel,
+              conversation.assignedTo?.fullName ?? context.l10n.unassignedBadge,
+            ),
+            (
+              context.l10n.teamFieldLabel,
+              conversation.assignedTeam?.name ?? '—',
+            ),
             (context.l10n.channelFieldLabel, conversation.channelName),
             (context.l10n.messagesFieldLabel, '${conversation.messageCount}'),
-            (context.l10n.startedFieldLabel, formatDateTime(context, conversation.startedAt)),
-            (context.l10n.lastMessageFieldLabel, formatDateTime(context, conversation.lastMessageAt)),
+            (
+              context.l10n.startedFieldLabel,
+              formatDateTime(context, conversation.startedAt),
+            ),
+            (
+              context.l10n.lastMessageFieldLabel,
+              formatDateTime(context, conversation.lastMessageAt),
+            ),
           ],
         ),
 
@@ -97,7 +121,10 @@ class _Details extends StatelessWidget {
             title: context.l10n.customerSectionTitle,
             rows: [
               if (customer.lifecycleStage.isNotEmpty)
-                (context.l10n.lifecycleFieldLabel, humanizeEnum(customer.lifecycleStage)),
+                (
+                  context.l10n.lifecycleFieldLabel,
+                  humanizeEnum(customer.lifecycleStage),
+                ),
               if (customer.preferredLanguage.isNotEmpty)
                 (context.l10n.languageLabel, customer.preferredLanguage),
             ],
@@ -109,9 +136,15 @@ class _Details extends StatelessWidget {
             rows: [
               (context.l10n.stageFieldLabel, humanizeEnum(intelligence.stage)),
               (context.l10n.leadScoreFieldLabel, '${intelligence.leadScore}'),
-              (context.l10n.purchaseFieldLabel, humanizeEnum(intelligence.purchaseStatus)),
+              (
+                context.l10n.purchaseFieldLabel,
+                humanizeEnum(intelligence.purchaseStatus),
+              ),
               if (intelligence.needsHumanReview)
-                (context.l10n.reviewFieldLabel, context.l10n.needsHumanReviewValue),
+                (
+                  context.l10n.reviewFieldLabel,
+                  context.l10n.needsHumanReviewValue,
+                ),
             ],
           ),
       ],
@@ -135,8 +168,10 @@ class _Section extends StatelessWidget {
         children: [
           Text(
             title.toUpperCase(),
-            style: theme.textTheme.labelSmall
-                ?.copyWith(letterSpacing: 0.6, fontWeight: FontWeight.w700),
+            style: theme.textTheme.labelSmall?.copyWith(
+              letterSpacing: 0.6,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: Space.sm),
           Card(

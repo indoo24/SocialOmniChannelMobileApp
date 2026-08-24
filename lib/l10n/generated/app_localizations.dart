@@ -1568,6 +1568,12 @@ abstract class AppLocalizations {
   /// **'tap to correct'**
   String get tapToCorrectHint;
 
+  /// No description provided for @confidenceWithCorrectHintLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% confidence · tap to correct'**
+  String confidenceWithCorrectHintLabel(int percent);
+
   /// No description provided for @savedToCustomerMessage.
   ///
   /// In en, this message translates to:
@@ -2083,6 +2089,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load employees.'**
   String get employeesLoadFailedMessage;
+
+  /// No description provided for @rerunAnalysisTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-run analysis'**
+  String get rerunAnalysisTooltip;
+
+  /// No description provided for @loadingIntelligenceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading intelligence…'**
+  String get loadingIntelligenceLabel;
+
+  /// No description provided for @notAnalyzedYetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Not analyzed yet'**
+  String get notAnalyzedYetTitle;
+
+  /// No description provided for @notAnalyzedYetMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation has no intelligence read yet. It appears once the analyzer runs, automatically or on demand.'**
+  String get notAnalyzedYetMessage;
+
+  /// No description provided for @runAnalysisButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Run analysis'**
+  String get runAnalysisButton;
+
+  /// No description provided for @reviewBannerDefaultReason.
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation needs a human look.'**
+  String get reviewBannerDefaultReason;
+
+  /// No description provided for @intelligenceSummaryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get intelligenceSummaryLabel;
+
+  /// No description provided for @suggestedNextStepLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested next step'**
+  String get suggestedNextStepLabel;
+
+  /// No description provided for @interestedInLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Interested in'**
+  String get interestedInLabel;
+
+  /// No description provided for @buyingSignalsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Buying signals'**
+  String get buyingSignalsLabel;
+
+  /// No description provided for @objectionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Objections'**
+  String get objectionsLabel;
+
+  /// No description provided for @lastAnalyzedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last analyzed {when}'**
+  String lastAnalyzedLabel(String when);
+
+  /// No description provided for @resetToAiButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to AI'**
+  String get resetToAiButton;
+
+  /// No description provided for @setScoreByHandTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Set score by hand'**
+  String get setScoreByHandTooltip;
+
+  /// No description provided for @handedBackToAnalyzerMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Handed back to the analyzer'**
+  String get handedBackToAnalyzerMessage;
+
+  /// No description provided for @leadScoreUpdatedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Lead score updated'**
+  String get leadScoreUpdatedMessage;
+
+  /// No description provided for @setLeadScoreDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the lead score'**
+  String get setLeadScoreDialogTitle;
+
+  /// No description provided for @leadScoreRangeFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Score (0–100)'**
+  String get leadScoreRangeFieldLabel;
+
+  /// No description provided for @leadScoreFieldHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'This overrides the analyzer\'s number.'**
+  String get leadScoreFieldHelper;
+
+  /// No description provided for @setByEmployeeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Set by {name}'**
+  String setByEmployeeLabel(String name);
+
+  /// No description provided for @aiGeneratedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'AI-generated'**
+  String get aiGeneratedLabel;
+
+  /// No description provided for @analyzerOwnReadLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzer\'s own read: {score}'**
+  String analyzerOwnReadLabel(int score);
+
+  /// No description provided for @unconfirmedPurchaseClaimLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Unconfirmed purchase claim'**
+  String get unconfirmedPurchaseClaimLabel;
+
+  /// No description provided for @confirmPurchaseDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm this purchase?'**
+  String get confirmPurchaseDialogTitle;
+
+  /// No description provided for @rejectPurchaseDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject this claim?'**
+  String get rejectPurchaseDialogTitle;
+
+  /// No description provided for @noteOptionalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get noteOptionalLabel;
+
+  /// No description provided for @notYetButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yet'**
+  String get notYetButton;
+
+  /// No description provided for @purchaseConfirmedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase confirmed'**
+  String get purchaseConfirmedMessage;
+
+  /// No description provided for @purchaseNotConfirmedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded as not confirmed'**
+  String get purchaseNotConfirmedMessage;
+
+  /// No description provided for @purchaseHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase confirmation history'**
+  String get purchaseHistoryTitle;
+
+  /// No description provided for @purchaseHistoryLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the history.'**
+  String get purchaseHistoryLoadError;
+
+  /// No description provided for @purchaseHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No rulings recorded yet.'**
+  String get purchaseHistoryEmpty;
+
+  /// No description provided for @notConfirmedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Not confirmed'**
+  String get notConfirmedBadge;
+
+  /// No description provided for @anEmployeeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'An employee'**
+  String get anEmployeeLabel;
 }
 
 class _AppLocalizationsDelegate

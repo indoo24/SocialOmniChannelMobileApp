@@ -53,7 +53,8 @@ const _qa = {
   'analytics.view',
 };
 
-Employee _employee(Set<String> permissions, {String role = 'AGENT'}) => Employee(
+Employee _employee(Set<String> permissions, {String role = 'AGENT'}) =>
+    Employee(
       id: 1,
       email: 'someone@acme.test',
       fullName: 'Sam Person',
@@ -85,10 +86,14 @@ List<String> _labelsFor(Set<String> permissions) {
 void main() {
   group('drawer sections', () {
     test('an agent gets everything except Analytics', () {
-      expect(
-        _labelsFor(_agent),
-        ['Dashboard', 'Inbox', 'Customers', 'Employees', 'Teams', 'Settings'],
-      );
+      expect(_labelsFor(_agent), [
+        'Dashboard',
+        'Inbox',
+        'Customers',
+        'Employees',
+        'Teams',
+        'Settings',
+      ]);
     });
 
     test('a team leader gains Analytics', () {
@@ -96,18 +101,15 @@ void main() {
     });
 
     test('a supervisor sees every section', () {
-      expect(
-        _labelsFor(_supervisor),
-        [
-          'Dashboard',
-          'Inbox',
-          'Customers',
-          'Employees',
-          'Teams',
-          'Analytics',
-          'Settings',
-        ],
-      );
+      expect(_labelsFor(_supervisor), [
+        'Dashboard',
+        'Inbox',
+        'Customers',
+        'Employees',
+        'Teams',
+        'Analytics',
+        'Settings',
+      ]);
     });
 
     test('QA reviews history, so it keeps Analytics and the directories', () {

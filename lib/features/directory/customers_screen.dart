@@ -89,7 +89,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             itemCount: rows.length,
             separatorBuilder: (_, _) => const Divider(height: 1, indent: 68),
-            itemBuilder: (context, index) => _CustomerRow(customer: rows[index]),
+            itemBuilder: (context, index) =>
+                _CustomerRow(customer: rows[index]),
           );
         },
       ),

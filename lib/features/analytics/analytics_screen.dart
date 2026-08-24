@@ -50,7 +50,11 @@ class AnalyticsScreen extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, size: 18, color: theme.colorScheme.outline),
+                Icon(
+                  Icons.info_outline,
+                  size: 18,
+                  color: theme.colorScheme.outline,
+                ),
                 const SizedBox(width: Space.sm),
                 Expanded(
                   child: Text(
@@ -78,7 +82,9 @@ class AnalyticsScreen extends ConsumerWidget {
                     margin: EdgeInsets.zero,
                     child: Padding(
                       padding: const EdgeInsets.all(Space.xl),
-                      child: Center(child: Text(context.l10n.noConversationsRecorded)),
+                      child: Center(
+                        child: Text(context.l10n.noConversationsRecorded),
+                      ),
                     ),
                   )
                 : _ChannelVolumeCard(rows: rows),
@@ -98,8 +104,9 @@ class AnalyticsScreen extends ConsumerWidget {
             data: (data) => Column(
               children: [
                 GridView.count(
-                  crossAxisCount:
-                      MediaQuery.sizeOf(context).width >= 720 ? 4 : 2,
+                  crossAxisCount: MediaQuery.sizeOf(context).width >= 720
+                      ? 4
+                      : 2,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: Space.md,
@@ -119,8 +126,9 @@ class AnalyticsScreen extends ConsumerWidget {
                     ),
                     MetricTile(
                       label: context.l10n.avgScoreMetric,
-                      value: data.intelligence.averageLeadScore
-                          .toStringAsFixed(1),
+                      value: data.intelligence.averageLeadScore.toStringAsFixed(
+                        1,
+                      ),
                       icon: Icons.speed_outlined,
                     ),
                     MetricTile(
@@ -177,8 +185,9 @@ class _TeamPerformance extends ConsumerWidget {
                 ChoiceChip(
                   label: Text('${option}d'),
                   selected: days == option,
-                  onSelected: (_) =>
-                      ref.read(performanceWindowProvider.notifier).update(option),
+                  onSelected: (_) => ref
+                      .read(performanceWindowProvider.notifier)
+                      .update(option),
                   visualDensity: VisualDensity.compact,
                 ),
             ],
@@ -194,21 +203,24 @@ class _TeamPerformance extends ConsumerWidget {
             onRetry: () => ref.invalidate(performanceProvider),
           ),
           data: (data) {
-            final rows = data.results
-                .where((r) => r.conversationsHandled > 0 || r.messagesSent > 0)
-                .toList()
-              ..sort(
-                (a, b) => b.conversationsHandled.compareTo(a.conversationsHandled),
-              );
+            final rows =
+                data.results
+                    .where(
+                      (r) => r.conversationsHandled > 0 || r.messagesSent > 0,
+                    )
+                    .toList()
+                  ..sort(
+                    (a, b) => b.conversationsHandled.compareTo(
+                      a.conversationsHandled,
+                    ),
+                  );
 
             if (rows.isEmpty) {
               return Card(
                 margin: EdgeInsets.zero,
                 child: Padding(
                   padding: const EdgeInsets.all(Space.xl),
-                  child: Center(
-                    child: Text(context.l10n.nobodyHandledMessage),
-                  ),
+                  child: Center(child: Text(context.l10n.nobodyHandledMessage)),
                 ),
               );
             }
@@ -237,7 +249,10 @@ class _ChannelVolumeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final maxTotal = rows.fold<int>(1, (max, r) => r.total > max ? r.total : max);
+    final maxTotal = rows.fold<int>(
+      1,
+      (max, r) => r.total > max ? r.total : max,
+    );
 
     return Card(
       margin: EdgeInsets.zero,
@@ -254,12 +269,18 @@ class _ChannelVolumeCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          ConversationBadges.providerLabel(context, rows[i].provider),
+                          ConversationBadges.providerLabel(
+                            context,
+                            rows[i].provider,
+                          ),
                           style: theme.textTheme.titleSmall,
                         ),
                       ),
                       Text(
-                        context.l10n.totalOpenSuffix(rows[i].total, rows[i].open),
+                        context.l10n.totalOpenSuffix(
+                          rows[i].total,
+                          rows[i].open,
+                        ),
                         style: theme.textTheme.labelSmall,
                       ),
                     ],
@@ -317,7 +338,9 @@ class _PurchaseEvidenceCard extends StatelessWidget {
               value: '${intelligence.agentConfirmedPurchases}',
               color: ScenarioColors.success,
               note: intelligence.confirmedToday > 0
-                  ? context.l10n.employeeConfirmedNoteWithCount(intelligence.confirmedToday)
+                  ? context.l10n.employeeConfirmedNoteWithCount(
+                      intelligence.confirmedToday,
+                    )
                   : context.l10n.employeeConfirmedNote,
             ),
             const SizedBox(height: Space.sm),
@@ -353,14 +376,18 @@ class _Figure extends StatelessWidget {
       children: [
         Text(
           label.toUpperCase(),
-          style: theme.textTheme.labelSmall
-              ?.copyWith(letterSpacing: 0.5, fontWeight: FontWeight.w700),
+          style: theme.textTheme.labelSmall?.copyWith(
+            letterSpacing: 0.5,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: Space.xs),
         Text(
           value,
-          style: theme.textTheme.headlineMedium
-              ?.copyWith(fontWeight: FontWeight.w700, color: color),
+          style: theme.textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
         ),
         const SizedBox(height: Space.xs),
         Text(note, style: theme.textTheme.bodySmall),

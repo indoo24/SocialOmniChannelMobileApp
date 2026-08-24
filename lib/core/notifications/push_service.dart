@@ -65,9 +65,7 @@ class PushService {
     _log('ensureInitialized() start');
     try {
       await Firebase.initializeApp();
-      FirebaseMessaging.onBackgroundMessage(
-        firebaseMessagingBackgroundHandler,
-      );
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       _available = true;
       _log('ensureInitialized() succeeded — Firebase available.');
     } catch (error, stack) {

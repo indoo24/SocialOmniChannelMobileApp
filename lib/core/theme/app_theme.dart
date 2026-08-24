@@ -14,30 +14,30 @@ class AppTheme {
   const AppTheme._();
 
   static ThemeData get light => _build(
-        brightness: Brightness.light,
-        background: ScenarioColors.background,
-        surface: ScenarioColors.card,
-        onSurface: ScenarioColors.foreground,
-        primary: ScenarioColors.primary,
-        onPrimary: ScenarioColors.primaryForeground,
-        muted: ScenarioColors.muted,
-        mutedForeground: ScenarioColors.mutedForeground,
-        border: ScenarioColors.border,
-        destructive: ScenarioColors.destructive,
-      );
+    brightness: Brightness.light,
+    background: ScenarioColors.background,
+    surface: ScenarioColors.card,
+    onSurface: ScenarioColors.foreground,
+    primary: ScenarioColors.primary,
+    onPrimary: ScenarioColors.primaryForeground,
+    muted: ScenarioColors.muted,
+    mutedForeground: ScenarioColors.mutedForeground,
+    border: ScenarioColors.border,
+    destructive: ScenarioColors.destructive,
+  );
 
   static ThemeData get dark => _build(
-        brightness: Brightness.dark,
-        background: ScenarioColors.darkBackground,
-        surface: ScenarioColors.darkCard,
-        onSurface: ScenarioColors.darkForeground,
-        primary: ScenarioColors.darkPrimary,
-        onPrimary: ScenarioColors.darkPrimaryForeground,
-        muted: ScenarioColors.darkMuted,
-        mutedForeground: ScenarioColors.darkMutedForeground,
-        border: ScenarioColors.darkBorder,
-        destructive: ScenarioColors.darkDestructive,
-      );
+    brightness: Brightness.dark,
+    background: ScenarioColors.darkBackground,
+    surface: ScenarioColors.darkCard,
+    onSurface: ScenarioColors.darkForeground,
+    primary: ScenarioColors.darkPrimary,
+    onPrimary: ScenarioColors.darkPrimaryForeground,
+    muted: ScenarioColors.darkMuted,
+    mutedForeground: ScenarioColors.darkMutedForeground,
+    border: ScenarioColors.darkBorder,
+    destructive: ScenarioColors.darkDestructive,
+  );
 
   static ThemeData _build({
     required Brightness brightness,
@@ -175,24 +175,24 @@ class AppTheme {
   }
 
   static TextTheme _textTheme(Color foreground, Color muted) => TextTheme(
-        titleLarge: TextStyle(
-          color: foreground,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -0.3,
-        ),
-        titleMedium: TextStyle(
-          color: foreground,
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-        ),
-        bodyLarge: TextStyle(color: foreground, fontSize: 15, height: 1.4),
-        bodyMedium: TextStyle(color: foreground, fontSize: 14, height: 1.4),
-        bodySmall: TextStyle(color: muted, fontSize: 12, height: 1.35),
-        labelSmall: TextStyle(
-          color: muted,
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-        ),
-      );
+    titleLarge: TextStyle(
+      color: foreground,
+      fontSize: 20,
+      fontWeight: FontWeight.w600,
+      letterSpacing: -0.3,
+    ),
+    titleMedium: TextStyle(
+      color: foreground,
+      fontSize: 15,
+      fontWeight: FontWeight.w600,
+    ),
+    bodyLarge: TextStyle(color: foreground, fontSize: 15, height: 1.4),
+    bodyMedium: TextStyle(color: foreground, fontSize: 14, height: 1.4),
+    bodySmall: TextStyle(color: muted, fontSize: 12, height: 1.35),
+    labelSmall: TextStyle(
+      color: muted,
+      fontSize: 11,
+      fontWeight: FontWeight.w500,
+    ),
+  );
 }

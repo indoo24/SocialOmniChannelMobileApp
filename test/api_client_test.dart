@@ -23,8 +23,11 @@ class _StubAdapter implements HttpClientAdapter {
   final List<RequestOptions> received = [];
 
   @override
-  Future<ResponseBody> fetch(RequestOptions options, Stream<Uint8List>? _,
-      Future<void>? _) async {
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? _,
+    Future<void>? _,
+  ) async {
     received.add(options);
     return handler(options);
   }
@@ -41,12 +44,12 @@ ApiClient buildClient(_StubAdapter adapter, {CookieJar? jar}) {
 }
 
 ResponseBody json(String body, int status) => ResponseBody.fromString(
-      body,
-      status,
-      headers: {
-        Headers.contentTypeHeader: [Headers.jsonContentType],
-      },
-    );
+  body,
+  status,
+  headers: {
+    Headers.contentTypeHeader: [Headers.jsonContentType],
+  },
+);
 
 void main() {
   group('session expiry', _sessionExpiryTests);
@@ -60,18 +63,22 @@ void main() {
   });
 
   test('the backend error envelope becomes an ApiException', () async {
-    final client = buildClient(_StubAdapter(
-      (_) => json(
-        '{"error": {"code": "invalid", "message": "That is not valid.", "details": {}}}',
-        400,
+    final client = buildClient(
+      _StubAdapter(
+        (_) => json(
+          '{"error": {"code": "invalid", "message": "That is not valid.", "details": {}}}',
+          400,
+        ),
       ),
-    ));
+    );
 
     expect(
       () => client.post<dynamic>('/conversations/1/reply/'),
-      throwsA(isA<ApiException>()
-          .having((e) => e.message, 'message', 'That is not valid.')
-          .having((e) => e.code, 'code', 'invalid')),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.message, 'message', 'That is not valid.')
+            .having((e) => e.code, 'code', 'invalid'),
+      ),
     );
   });
 
@@ -85,12 +92,14 @@ void main() {
   });
 
   test('403 is marked forbidden and is not retryable', () async {
-    final client = buildClient(_StubAdapter(
-      (_) => json(
-        '{"error": {"code": "forbidden", "message": "Not allowed.", "details": {}}}',
-        403,
+    final client = buildClient(
+      _StubAdapter(
+        (_) => json(
+          '{"error": {"code": "forbidden", "message": "Not allowed.", "details": {}}}',
+          403,
+        ),
       ),
-    ));
+    );
 
     try {
       await client.post<dynamic>('/conversations/1/assign/');
@@ -102,12 +111,14 @@ void main() {
   });
 
   test('a connection failure becomes a retryable NetworkException', () async {
-    final client = buildClient(_StubAdapter((options) {
-      throw DioException.connectionError(
-        requestOptions: options,
-        reason: 'boom',
-      );
-    }));
+    final client = buildClient(
+      _StubAdapter((options) {
+        throw DioException.connectionError(
+          requestOptions: options,
+          reason: 'boom',
+        );
+      }),
+    );
 
     try {
       await client.get<dynamic>('/conversations/');
@@ -132,10 +143,9 @@ void main() {
 
   test('safe methods do not send a CSRF header', () async {
     final jar = CookieJar();
-    await jar.saveFromResponse(
-      Uri.parse(Environment.current.apiBaseUrl),
-      [Cookie('scenario_csrftoken', 'tok-123')],
-    );
+    await jar.saveFromResponse(Uri.parse(Environment.current.apiBaseUrl), [
+      Cookie('scenario_csrftoken', 'tok-123'),
+    ]);
 
     final adapter = _StubAdapter((_) => json('{}', 200));
     final client = buildClient(adapter, jar: jar);
@@ -151,10 +161,9 @@ void main() {
 
     expect(await client.hasSessionCookie(), isFalse);
 
-    await jar.saveFromResponse(
-      Uri.parse(Environment.current.apiBaseUrl),
-      [Cookie('scenario_session', 'abc')],
-    );
+    await jar.saveFromResponse(Uri.parse(Environment.current.apiBaseUrl), [
+      Cookie('scenario_session', 'abc'),
+    ]);
 
     expect(await client.hasSessionCookie(), isTrue);
   });
@@ -184,30 +193,32 @@ void _sessionExpiryTests() {
     expect(notifications, 1);
   });
 
-  test('the hook fires wherever the 401 arose, not only on /auth/me/',
-      () async {
-    final paths = <String>[];
+  test(
+    'the hook fires wherever the 401 arose, not only on /auth/me/',
+    () async {
+      final paths = <String>[];
 
-    for (final path in const [
-      '/conversations/',
-      '/conversations/42/messages/',
-      '/customers/',
-      '/devices/heartbeat/',
-    ]) {
-      final client = ApiClient.create(
-        cookieJar: CookieJar(),
-        onSessionExpired: () => paths.add(path),
-      );
-      client.raw.httpClientAdapter = _StubAdapter((_) => json('{}', 401));
+      for (final path in const [
+        '/conversations/',
+        '/conversations/42/messages/',
+        '/customers/',
+        '/devices/heartbeat/',
+      ]) {
+        final client = ApiClient.create(
+          cookieJar: CookieJar(),
+          onSessionExpired: () => paths.add(path),
+        );
+        client.raw.httpClientAdapter = _StubAdapter((_) => json('{}', 401));
 
-      await expectLater(
-        client.get<Map<String, dynamic>>(path),
-        throwsA(isA<SessionExpiredException>()),
-      );
-    }
+        await expectLater(
+          client.get<Map<String, dynamic>>(path),
+          throwsA(isA<SessionExpiredException>()),
+        );
+      }
 
-    expect(paths, hasLength(4));
-  });
+      expect(paths, hasLength(4));
+    },
+  );
 
   test('non-401 failures leave the session alone', () async {
     var notifications = 0;

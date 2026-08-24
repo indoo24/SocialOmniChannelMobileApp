@@ -43,6 +43,25 @@ class JsonSafe {
     return fallback;
   }
 
+  /// A double from a num or a numeric string — DRF's `DecimalField`
+  /// serializes as a JSON string ("4.50") by default, not a number, so a
+  /// plain `as num?` cast silently drops it to [fallback] instead of parsing
+  /// it.
+  static double asDouble(Object? value, {double fallback = 0}) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim()) ?? fallback;
+    return fallback;
+  }
+
+  /// A nullable double, for genuinely optional measurements — unlike
+  /// [asDouble], an absent or unparseable value stays `null` rather than
+  /// collapsing to a fallback that could be misread as a real zero.
+  static double? asDoubleOrNull(Object? value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim());
+    return null;
+  }
+
   /// A nullable integer, for genuinely optional identifiers.
   static int? asIntOrNull(Object? value) {
     if (value is int) return value;
@@ -110,9 +129,34 @@ class JsonSafe {
     return fallback;
   }
 
+  /// A nullable string, for genuinely optional fields. Unlike [asString],
+  /// absence stays `null` rather than collapsing to a fallback — used for
+  /// fields like pagination links where "not a string" and "absent" both
+  /// mean the same thing, but a caller still needs to tell "no value" apart
+  /// from "empty value".
+  static String? asStringOrNull(Object? value) {
+    if (value is String) return value;
+    if (value is num || value is bool) return value.toString();
+    return null;
+  }
+
   /// Strings from a list, dropping non-strings.
   static List<String> asStringList(Object? value) {
     if (value is! List) return const [];
     return value.whereType<String>().toList(growable: false);
+  }
+
+  /// A bool from a bool, or the strings/numbers a lenient serializer might
+  /// send instead ("true"/"false", 1/0). Returns [fallback] for anything
+  /// else.
+  static bool asBool(Object? value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true') return true;
+      if (normalized == 'false') return false;
+    }
+    return fallback;
   }
 }

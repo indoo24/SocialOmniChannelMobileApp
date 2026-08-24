@@ -210,12 +210,18 @@ class _ReviewCallout extends StatelessWidget {
       decoration: BoxDecoration(
         color: ScenarioColors.warningSurface,
         borderRadius: BorderRadius.circular(Radii.lg),
-        border: Border.all(color: ScenarioColors.warning.withValues(alpha: 0.35)),
+        border: Border.all(
+          color: ScenarioColors.warning.withValues(alpha: 0.35),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_rounded, size: 20, color: ScenarioColors.warning),
+          Icon(
+            Icons.warning_amber_rounded,
+            size: 20,
+            color: ScenarioColors.warning,
+          ),
           const SizedBox(width: Space.sm),
           Expanded(
             child: Column(
@@ -224,7 +230,7 @@ class _ReviewCallout extends StatelessWidget {
                 Text(
                   context.l10n.reviewNeededMessage(count),
                   style: theme.textTheme.titleSmall?.copyWith(
-                    color: Colors.black38
+                    color: Colors.black38,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -232,31 +238,26 @@ class _ReviewCallout extends StatelessWidget {
                   context.l10n.reviewNeededDescription,
                   style: theme.textTheme.bodySmall,
                 ),
-                SizedBox(height: 10,),
+                SizedBox(height: 10),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                      elevation:3,
+                      elevation: 3,
                       shape: BeveledRectangleBorder(
-                        side: BorderSide(
-                          color: Colors.black45
-                        )
+                        side: BorderSide(color: Colors.black45),
                       ),
-                        backgroundColor: ScenarioColors.warningSurface,
-
+                      backgroundColor: ScenarioColors.warningSurface,
                     ),
                     onPressed: () {
                       context.go('/inbox');
                     },
-                    child: Text(context.l10n.checkInboxButton,
-                    style: const TextStyle(
-                      color: Colors.black45
-                    ) ,
+                    child: Text(
+                      context.l10n.checkInboxButton,
+                      style: const TextStyle(color: Colors.black45),
                     ),
                   ),
                 ),
-
               ],
             ),
           ),
@@ -327,10 +328,9 @@ class _WorkloadRow extends StatelessWidget {
       ),
       trailing: Text(
         '${entry.openConversations}',
-        style: Theme.of(context)
-            .textTheme
-            .titleMedium
-            ?.copyWith(fontWeight: FontWeight.w700),
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
       ),
     );
   }

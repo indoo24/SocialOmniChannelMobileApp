@@ -44,7 +44,9 @@ class ScreenSecurity {
   const ScreenSecurity._();
 
   @visibleForTesting
-  static const channel = MethodChannel('com.scenario.scenario_mobile/screen_security');
+  static const channel = MethodChannel(
+    'com.scenario.scenario_mobile/screen_security',
+  );
 
   /// Nested sensitive screens are normal — a conversation pushes customer
   /// details on top of itself — and each pops independently. Counting instead
@@ -75,9 +77,15 @@ class ScreenSecurity {
     } on MissingPluginException {
       // Platform without a handler (iOS today, and the test harness). Not an
       // error: the app must keep working, it simply does not get this defence.
-      AppLog.debug('ScreenSecurity', 'no platform handler; secure=$secure ignored');
+      AppLog.debug(
+        'ScreenSecurity',
+        'no platform handler; secure=$secure ignored',
+      );
     } on PlatformException catch (error) {
-      AppLog.debug('ScreenSecurity', 'setSecure($secure) failed: ${error.code}');
+      AppLog.debug(
+        'ScreenSecurity',
+        'setSecure($secure) failed: ${error.code}',
+      );
     }
   }
 }

@@ -25,10 +25,10 @@ class EmployeeBrief {
 
   factory EmployeeBrief.fromJson(Map<String, dynamic> json) => EmployeeBrief(
     id: JsonSafe.asInt(json['id'], fallback: -1),
-    fullName: (json['full_name'] as String?) ?? '',
-    initials: (json['initials'] as String?) ?? '',
-    avatarUrl: (json['avatar_url'] as String?) ?? '',
-    availability: (json['availability'] as String?) ?? 'OFFLINE',
+    fullName: JsonSafe.asString(json['full_name']),
+    initials: JsonSafe.asString(json['initials']),
+    avatarUrl: JsonSafe.asString(json['avatar_url']),
+    availability: JsonSafe.asString(json['availability'], fallback: 'OFFLINE'),
   );
 
   bool get isOnline => availability == 'ONLINE';
@@ -47,8 +47,8 @@ class Organization {
 
   factory Organization.fromJson(Map<String, dynamic> json) => Organization(
     id: JsonSafe.asInt(json['id'], fallback: -1),
-    name: (json['name'] as String?) ?? '',
-    timezone: (json['timezone'] as String?) ?? 'UTC',
+    name: JsonSafe.asString(json['name']),
+    timezone: JsonSafe.asString(json['timezone'], fallback: 'UTC'),
   );
 }
 
@@ -89,14 +89,14 @@ class Employee {
 
   factory Employee.fromJson(Map<String, dynamic> json) => Employee(
     id: JsonSafe.asInt(json['id'], fallback: -1),
-    email: (json['email'] as String?) ?? '',
-    fullName: (json['full_name'] as String?) ?? '',
-    initials: (json['initials'] as String?) ?? '',
-    role: (json['role'] as String?) ?? 'AGENT',
-    roleDisplay: (json['role_display'] as String?) ?? '',
-    availability: (json['availability'] as String?) ?? 'OFFLINE',
-    avatarUrl: (json['avatar_url'] as String?) ?? '',
-    title: (json['title'] as String?) ?? '',
+    email: JsonSafe.asString(json['email']),
+    fullName: JsonSafe.asString(json['full_name']),
+    initials: JsonSafe.asString(json['initials']),
+    role: JsonSafe.asString(json['role'], fallback: 'AGENT'),
+    roleDisplay: JsonSafe.asString(json['role_display']),
+    availability: JsonSafe.asString(json['availability'], fallback: 'OFFLINE'),
+    avatarUrl: JsonSafe.asString(json['avatar_url']),
+    title: JsonSafe.asString(json['title']),
     // Permissions drive which controls the UI offers. A malformed list
     // must therefore fail closed — an empty set hides everything — rather
     // than throw, which would leave the employee unparseable and the
@@ -104,7 +104,10 @@ class Employee {
     permissions: JsonSafe.asObjectList(
       json['permissions'],
     ).map((p) => p.toString()).toSet(),
-    visibilityScope: (json['visibility_scope'] as String?) ?? 'ASSIGNED',
+    visibilityScope: JsonSafe.asString(
+      json['visibility_scope'],
+      fallback: 'ASSIGNED',
+    ),
     organization: json['organization'] is Map
         ? Organization.fromJson(JsonSafe.asMap(json['organization']))
         : null,

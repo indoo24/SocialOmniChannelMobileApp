@@ -821,6 +821,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tapToCorrectHint => 'tap to correct';
 
   @override
+  String confidenceWithCorrectHintLabel(int percent) {
+    return '$percent% confidence · tap to correct';
+  }
+
+  @override
   String get savedToCustomerMessage => 'Saved to the customer';
 
   @override
@@ -1126,4 +1131,114 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get employeesLoadFailedMessage => 'Couldn\'t load employees.';
+
+  @override
+  String get rerunAnalysisTooltip => 'Re-run analysis';
+
+  @override
+  String get loadingIntelligenceLabel => 'Loading intelligence…';
+
+  @override
+  String get notAnalyzedYetTitle => 'Not analyzed yet';
+
+  @override
+  String get notAnalyzedYetMessage =>
+      'This conversation has no intelligence read yet. It appears once the analyzer runs, automatically or on demand.';
+
+  @override
+  String get runAnalysisButton => 'Run analysis';
+
+  @override
+  String get reviewBannerDefaultReason =>
+      'This conversation needs a human look.';
+
+  @override
+  String get intelligenceSummaryLabel => 'Summary';
+
+  @override
+  String get suggestedNextStepLabel => 'Suggested next step';
+
+  @override
+  String get interestedInLabel => 'Interested in';
+
+  @override
+  String get buyingSignalsLabel => 'Buying signals';
+
+  @override
+  String get objectionsLabel => 'Objections';
+
+  @override
+  String lastAnalyzedLabel(String when) {
+    return 'Last analyzed $when';
+  }
+
+  @override
+  String get resetToAiButton => 'Reset to AI';
+
+  @override
+  String get setScoreByHandTooltip => 'Set score by hand';
+
+  @override
+  String get handedBackToAnalyzerMessage => 'Handed back to the analyzer';
+
+  @override
+  String get leadScoreUpdatedMessage => 'Lead score updated';
+
+  @override
+  String get setLeadScoreDialogTitle => 'Set the lead score';
+
+  @override
+  String get leadScoreRangeFieldLabel => 'Score (0–100)';
+
+  @override
+  String get leadScoreFieldHelper => 'This overrides the analyzer\'s number.';
+
+  @override
+  String setByEmployeeLabel(String name) {
+    return 'Set by $name';
+  }
+
+  @override
+  String get aiGeneratedLabel => 'AI-generated';
+
+  @override
+  String analyzerOwnReadLabel(int score) {
+    return 'Analyzer\'s own read: $score';
+  }
+
+  @override
+  String get unconfirmedPurchaseClaimLabel => 'Unconfirmed purchase claim';
+
+  @override
+  String get confirmPurchaseDialogTitle => 'Confirm this purchase?';
+
+  @override
+  String get rejectPurchaseDialogTitle => 'Reject this claim?';
+
+  @override
+  String get noteOptionalLabel => 'Note (optional)';
+
+  @override
+  String get notYetButton => 'Not yet';
+
+  @override
+  String get purchaseConfirmedMessage => 'Purchase confirmed';
+
+  @override
+  String get purchaseNotConfirmedMessage => 'Recorded as not confirmed';
+
+  @override
+  String get purchaseHistoryTitle => 'Purchase confirmation history';
+
+  @override
+  String get purchaseHistoryLoadError => 'Could not load the history.';
+
+  @override
+  String get purchaseHistoryEmpty => 'No rulings recorded yet.';
+
+  @override
+  String get notConfirmedBadge => 'Not confirmed';
+
+  @override
+  String get anEmployeeLabel => 'An employee';
 }

@@ -366,6 +366,12 @@
     }
   },
   "tapToCorrectHint": "tap to correct",
+  "confidenceWithCorrectHintLabel": "{percent}% confidence · tap to correct",
+  "@confidenceWithCorrectHintLabel": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
   "savedToCustomerMessage": "Saved to the customer",
   "suggestionDismissedMessage": "Suggestion dismissed",
   "recordDetailDialogTitle": "Record a customer detail",
@@ -521,5 +527,55 @@
   "colorFieldLabel": "Color",
   "leadersFieldLabel": "Leaders",
   "membersFieldLabel": "Members",
-  "employeesLoadFailedMessage": "Couldn't load employees."
+  "employeesLoadFailedMessage": "Couldn't load employees.",
+
+  "rerunAnalysisTooltip": "Re-run analysis",
+  "loadingIntelligenceLabel": "Loading intelligence…",
+  "notAnalyzedYetTitle": "Not analyzed yet",
+  "notAnalyzedYetMessage": "This conversation has no intelligence read yet. It appears once the analyzer runs, automatically or on demand.",
+  "runAnalysisButton": "Run analysis",
+  "reviewBannerDefaultReason": "This conversation needs a human look.",
+  "intelligenceSummaryLabel": "Summary",
+  "suggestedNextStepLabel": "Suggested next step",
+  "interestedInLabel": "Interested in",
+  "buyingSignalsLabel": "Buying signals",
+  "objectionsLabel": "Objections",
+  "lastAnalyzedLabel": "Last analyzed {when}",
+  "@lastAnalyzedLabel": {
+    "placeholders": {
+      "when": {"type": "String"}
+    }
+  },
+  "resetToAiButton": "Reset to AI",
+  "setScoreByHandTooltip": "Set score by hand",
+  "handedBackToAnalyzerMessage": "Handed back to the analyzer",
+  "leadScoreUpdatedMessage": "Lead score updated",
+  "setLeadScoreDialogTitle": "Set the lead score",
+  "leadScoreRangeFieldLabel": "Score (0–100)",
+  "leadScoreFieldHelper": "This overrides the analyzer's number.",
+  "setByEmployeeLabel": "Set by {name}",
+  "@setByEmployeeLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "aiGeneratedLabel": "AI-generated",
+  "analyzerOwnReadLabel": "Analyzer's own read: {score}",
+  "@analyzerOwnReadLabel": {
+    "placeholders": {
+      "score": {"type": "int"}
+    }
+  },
+  "unconfirmedPurchaseClaimLabel": "Unconfirmed purchase claim",
+  "confirmPurchaseDialogTitle": "Confirm this purchase?",
+  "rejectPurchaseDialogTitle": "Reject this claim?",
+  "noteOptionalLabel": "Note (optional)",
+  "notYetButton": "Not yet",
+  "purchaseConfirmedMessage": "Purchase confirmed",
+  "purchaseNotConfirmedMessage": "Recorded as not confirmed",
+  "purchaseHistoryTitle": "Purchase confirmation history",
+  "purchaseHistoryLoadError": "Could not load the history.",
+  "purchaseHistoryEmpty": "No rulings recorded yet.",
+  "notConfirmedBadge": "Not confirmed",
+  "anEmployeeLabel": "An employee"
 }

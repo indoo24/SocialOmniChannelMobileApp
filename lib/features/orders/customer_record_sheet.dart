@@ -29,6 +29,7 @@ import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
 
@@ -96,15 +97,14 @@ class _CustomerRecordSheet extends ConsumerWidget {
               Icon(Icons.auto_awesome, size: 16, color: ScenarioColors.warning),
               const SizedBox(width: Space.xs),
               Text(
-                'Suggested from this chat',
+                context.l10n.suggestedFromChatTitle,
                 style: theme.textTheme.titleSmall,
               ),
             ],
           ),
           const SizedBox(height: Space.xs),
           Text(
-            'Read out of the conversation automatically. Nothing here is saved '
-            'to the customer until you accept it.',
+            context.l10n.suggestedFromChatDescription,
             style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: Space.sm),
@@ -128,7 +128,7 @@ class _CustomerRecordSheet extends ConsumerWidget {
           children: [
             Expanded(
               child: Text(
-                'Customer details',
+                context.l10n.customerDetailsTitle,
                 style: theme.textTheme.titleSmall,
               ),
             ),
@@ -141,7 +141,7 @@ class _CustomerRecordSheet extends ConsumerWidget {
                   conversationId: conversationId,
                 ),
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add'),
+                label: Text(context.l10n.commonAdd),
               ),
           ],
         ),
@@ -152,8 +152,7 @@ class _CustomerRecordSheet extends ConsumerWidget {
           )
         else if (recordedFacts.isEmpty)
           Text(
-            'Nothing recorded yet. Anything the customer shares — an address, a '
-            'phone number — can be saved here.',
+            context.l10n.nothingRecordedMessage,
             style: theme.textTheme.bodySmall,
           )
         else
@@ -162,7 +161,12 @@ class _CustomerRecordSheet extends ConsumerWidget {
         const SizedBox(height: Space.lg),
         Row(
           children: [
-            Expanded(child: Text('Orders', style: theme.textTheme.titleSmall)),
+            Expanded(
+              child: Text(
+                context.l10n.ordersTitle,
+                style: theme.textTheme.titleSmall,
+              ),
+            ),
             if (canManage)
               TextButton.icon(
                 onPressed: () => _showRecordOrderDialog(
@@ -172,7 +176,7 @@ class _CustomerRecordSheet extends ConsumerWidget {
                   conversationId: conversationId,
                 ),
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('Order'),
+                label: Text(context.l10n.orderButton),
               ),
           ],
         ),
@@ -183,7 +187,7 @@ class _CustomerRecordSheet extends ConsumerWidget {
           )
         else if (realOrders.isEmpty)
           Text(
-            'No orders recorded from this conversation.',
+            context.l10n.noOrdersRecordedMessage,
             style: theme.textTheme.bodySmall,
           )
         else
@@ -239,7 +243,9 @@ class _RecordedDetail extends StatelessWidget {
           ),
           const SizedBox(width: Space.sm),
           StatusBadge(
-            label: fact.source == 'EMPLOYEE' ? 'Employee' : 'Auto',
+            label: fact.source == 'EMPLOYEE'
+                ? context.l10n.employeeSourceBadge
+                : context.l10n.autoSourceBadge,
             tone: fact.source == 'EMPLOYEE'
                 ? BadgeTone.success
                 : BadgeTone.neutral,
@@ -303,7 +309,9 @@ class _SuggestedDetailState extends ConsumerState<_SuggestedDetail> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              confirmed ? 'Saved to the customer' : 'Suggestion dismissed',
+              confirmed
+                  ? context.l10n.savedToCustomerMessage
+                  : context.l10n.suggestionDismissedMessage,
             ),
           ),
         );
@@ -366,8 +374,13 @@ class _SuggestedDetailState extends ConsumerState<_SuggestedDetail> {
                   ),
                 const SizedBox(height: 2),
                 Text(
-                  '${(widget.fact.confidence * 100).round()}% confidence'
-                  '${widget.canManage && !_editing ? ' · tap to correct' : ''}',
+                  widget.canManage && !_editing
+                      ? context.l10n.confidenceWithCorrectHintLabel(
+                          (widget.fact.confidence * 100).round(),
+                        )
+                      : context.l10n.confidenceLabel(
+                          (widget.fact.confidence * 100).round(),
+                        ),
                   style: theme.textTheme.labelSmall,
                 ),
               ],
@@ -375,13 +388,13 @@ class _SuggestedDetailState extends ConsumerState<_SuggestedDetail> {
           ),
           if (widget.canManage) ...[
             IconButton(
-              tooltip: 'Save to the customer',
+              tooltip: context.l10n.saveToCustomerTooltip,
               onPressed: _busy ? null : () => _decide(true),
               icon: Icon(Icons.check, size: 20, color: ScenarioColors.success),
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
-              tooltip: "Dismiss — it won't be suggested again",
+              tooltip: context.l10n.dismissSuggestionTooltip,
               onPressed: _busy ? null : () => _decide(false),
               icon: const Icon(Icons.close, size: 20),
               visualDensity: VisualDensity.compact,
@@ -521,9 +534,13 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
           const SizedBox(height: Space.xs),
           Text(
             order.isClaim
-                ? 'Not counted as a sale until someone confirms it.'
+                ? context.l10n.notCountedAsSaleMessage
                 : order.isConfirmed
-                ? 'Confirmed by ${order.confirmedByName.isEmpty ? 'an employee' : order.confirmedByName}'
+                ? context.l10n.confirmedByMessage(
+                    order.confirmedByName.isEmpty
+                        ? context.l10n.confirmedByUnknownEmployee
+                        : order.confirmedByName,
+                  )
                 : '',
             style: theme.textTheme.labelSmall,
           ),
@@ -540,22 +557,22 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                             () => ref
                                 .read(directoryRepositoryProvider)
                                 .confirmOrder(order.id),
-                            'Order confirmed',
+                            context.l10n.orderConfirmedMessage,
                           ),
                     icon: const Icon(Icons.check, size: 16),
-                    label: const Text('Confirm'),
+                    label: Text(context.l10n.confirmAction),
                   ),
                 ),
                 const SizedBox(width: Space.sm),
                 IconButton(
-                  tooltip: 'Cancel this order',
+                  tooltip: context.l10n.cancelOrderTooltip,
                   onPressed: _busy
                       ? null
                       : () => _run(
                           () => ref
                               .read(directoryRepositoryProvider)
                               .cancelOrder(order.id),
-                          'Order cancelled',
+                          context.l10n.orderCancelledMessage,
                         ),
                   icon: Icon(
                     Icons.delete_outline,
@@ -587,24 +604,24 @@ Future<void> _showAddDetailDialog(
   final saved = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Record a customer detail'),
+      title: Text(context.l10n.recordDetailDialogTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: keyController,
             autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Detail',
-              hintText: 'address',
+            decoration: InputDecoration(
+              labelText: context.l10n.detailFieldLabel,
+              hintText: context.l10n.detailFieldHint,
             ),
           ),
           const SizedBox(height: Space.md),
           TextField(
             controller: valueController,
-            decoration: const InputDecoration(
-              labelText: 'Value',
-              hintText: '12 Nile St, Giza',
+            decoration: InputDecoration(
+              labelText: context.l10n.valueFieldLabel,
+              hintText: context.l10n.valueFieldHint,
             ),
           ),
         ],
@@ -612,11 +629,11 @@ Future<void> _showAddDetailDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Save'),
+          child: Text(context.l10n.commonSave),
         ),
       ],
     ),
@@ -692,11 +709,7 @@ Future<void> _showRecordOrderDialog(
     if (context.mounted) {
       ref.invalidate(conversationOrdersProvider(conversationId));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Order recorded. Confirm it once you've checked your own records.",
-          ),
-        ),
+        SnackBar(content: Text(context.l10n.orderRecordedMessage)),
       );
     }
   } on ApiException catch (error) {
@@ -740,7 +753,7 @@ class _OrderComposerState extends State<_OrderComposer> {
     final theme = Theme.of(context);
 
     return AlertDialog(
-      title: const Text('Record an order'),
+      title: Text(context.l10n.recordOrderDialogTitle),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
@@ -749,8 +762,7 @@ class _OrderComposerState extends State<_OrderComposer> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'What the customer asked for. Scenario has no payment data, so '
-                'this is a record of the conversation, not a receipt.',
+                context.l10n.orderComposerDescription,
                 style: theme.textTheme.bodySmall,
               ),
               const SizedBox(height: Space.md),
@@ -763,8 +775,8 @@ class _OrderComposerState extends State<_OrderComposer> {
                         flex: 3,
                         child: TextField(
                           controller: _rows[i].name,
-                          decoration: const InputDecoration(
-                            labelText: 'Product',
+                          decoration: InputDecoration(
+                            labelText: context.l10n.productFieldLabel,
                             isDense: true,
                           ),
                           onChanged: (_) => setState(() {}),
@@ -775,8 +787,8 @@ class _OrderComposerState extends State<_OrderComposer> {
                         child: TextField(
                           controller: _rows[i].quantity,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Qty',
+                          decoration: InputDecoration(
+                            labelText: context.l10n.qtyFieldLabel,
                             isDense: true,
                           ),
                           onChanged: (_) => setState(() {}),
@@ -790,8 +802,8 @@ class _OrderComposerState extends State<_OrderComposer> {
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
-                          decoration: const InputDecoration(
-                            labelText: 'Price',
+                          decoration: InputDecoration(
+                            labelText: context.l10n.priceFieldLabel,
                             isDense: true,
                           ),
                           onChanged: (_) => setState(() {}),
@@ -811,13 +823,16 @@ class _OrderComposerState extends State<_OrderComposer> {
               TextButton.icon(
                 onPressed: () => setState(() => _rows.add(_ItemRow())),
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add line'),
+                label: Text(context.l10n.addLineButton),
               ),
               const Divider(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Total', style: theme.textTheme.titleSmall),
+                  Text(
+                    context.l10n.totalLabel,
+                    style: theme.textTheme.titleSmall,
+                  ),
                   Text(
                     _total.toStringAsFixed(2),
                     style: theme.textTheme.titleSmall,
@@ -831,7 +846,7 @@ class _OrderComposerState extends State<_OrderComposer> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () {
@@ -843,7 +858,7 @@ class _OrderComposerState extends State<_OrderComposer> {
             widget.onChanged(payload);
             Navigator.of(context).pop(true);
           },
-          child: const Text('Record order'),
+          child: Text(context.l10n.recordOrderButton),
         ),
       ],
     );

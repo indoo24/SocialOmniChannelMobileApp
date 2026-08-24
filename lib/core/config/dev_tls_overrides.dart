@@ -69,9 +69,9 @@ class DevTlsOverrides extends HttpOverrides {
       AppLog.debug(
         'DevTlsOverrides',
         'Untrusted certificate for $host:$port — '
-        'subject: ${cert.subject}, issuer: ${cert.issuer}, '
-        'valid: ${cert.startValidity} to ${cert.endValidity} — '
-        'trusting: $trusted (development build, host must match "$expectedHost")',
+            'subject: ${cert.subject}, issuer: ${cert.issuer}, '
+            'valid: ${cert.startValidity} to ${cert.endValidity} — '
+            'trusting: $trusted (development build, host must match "$expectedHost")',
       );
       return trusted;
     };

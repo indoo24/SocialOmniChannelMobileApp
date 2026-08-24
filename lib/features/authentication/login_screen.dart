@@ -49,7 +49,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      await ref.read(authControllerProvider.notifier).login(
+      await ref
+          .read(authControllerProvider.notifier)
+          .login(
             email: _emailController.text,
             password: _passwordController.text,
           );
@@ -109,8 +111,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       validator: (value) =>
                           (value == null || !value.contains('@'))
-                              ? 'Enter your email address.'
-                              : null,
+                          ? 'Enter your email address.'
+                          : null,
                     ),
                     const SizedBox(height: Space.md),
                     TextFormField(
@@ -155,12 +157,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Sign in',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Inter',
+                          : const Text(
+                              'Sign in',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'Inter',
+                              ),
                             ),
-                          ),
                     ),
                     // Development builds only. `showsDeveloperAffordances`
                     // rather than `isDevelopment`: the environment defaults to
@@ -200,19 +203,15 @@ class _Brand extends StatelessWidget {
             color: ScenarioColors.primary,
             borderRadius: BorderRadius.circular(Radii.lg),
           ),
-          child: const Icon(
-            Icons.forum_rounded,
-            color: Colors.white,
-            size: 40,
-          ),
+          child: const Icon(Icons.forum_rounded, color: Colors.white, size: 40),
         ),
         const SizedBox(height: Space.md),
         Text(
           'Scenario',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-              ),
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+          ),
         ),
       ],
     );

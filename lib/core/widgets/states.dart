@@ -93,7 +93,8 @@ class ErrorStateView extends StatelessWidget {
     final theme = Theme.of(context);
     final api = error is ApiException ? error as ApiException : null;
     final isNetwork = api is NetworkException;
-    final canRetry = onRetry != null && (isNetwork || api == null || api.statusCode >= 500);
+    final canRetry =
+        onRetry != null && (isNetwork || api == null || api.statusCode >= 500);
 
     return Center(
       child: Padding(
@@ -186,13 +187,13 @@ class ConversationSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final base = Theme.of(context).colorScheme.surfaceContainerHighest;
     Widget bar(double width, double height) => Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            color: base,
-            borderRadius: BorderRadius.circular(Radii.sm),
-          ),
-        );
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: base,
+        borderRadius: BorderRadius.circular(Radii.sm),
+      ),
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(

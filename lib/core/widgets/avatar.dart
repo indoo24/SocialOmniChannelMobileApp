@@ -74,7 +74,10 @@ class InitialsAvatar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: ConversationBadges.providerColor(provider!),
                 shape: BoxShape.circle,
-                border: Border.all(color: theme.colorScheme.surface, width: 1.5),
+                border: Border.all(
+                  color: theme.colorScheme.surface,
+                  width: 1.5,
+                ),
               ),
               child: Icon(
                 ConversationBadges.providerIcon(provider!),
@@ -89,17 +92,17 @@ class InitialsAvatar extends StatelessWidget {
   }
 
   Widget _initials(ThemeData theme) => Container(
-        color: theme.colorScheme.surfaceContainerHighest,
-        alignment: Alignment.center,
-        child: Text(
-          initials.isEmpty ? '?' : initials,
-          style: TextStyle(
-            fontSize: size * 0.36,
-            fontWeight: FontWeight.w600,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      );
+    color: theme.colorScheme.surfaceContainerHighest,
+    alignment: Alignment.center,
+    child: Text(
+      initials.isEmpty ? '?' : initials,
+      style: TextStyle(
+        fontSize: size * 0.36,
+        fontWeight: FontWeight.w600,
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+    ),
+  );
 }
 
 /// Small presence dot for employee rows.

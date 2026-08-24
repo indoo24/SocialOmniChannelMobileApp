@@ -44,7 +44,11 @@ class AppSection {
 /// agent's dashboard shows the agent's own queue, and Settings always has a
 /// profile and an availability to manage even when Channels is hidden.
 const appSections = <AppSection>[
-  AppSection(path: '/dashboard', label: 'Dashboard', icon: Icons.space_dashboard_outlined),
+  AppSection(
+    path: '/dashboard',
+    label: 'Dashboard',
+    icon: Icons.space_dashboard_outlined,
+  ),
   AppSection(path: '/inbox', label: 'Inbox', icon: Icons.inbox_outlined),
   AppSection(
     path: '/customers',
@@ -70,7 +74,11 @@ const appSections = <AppSection>[
     icon: Icons.bar_chart_outlined,
     permission: Perm.analyticsView,
   ),
-  AppSection(path: '/settings', label: 'Settings', icon: Icons.settings_outlined),
+  AppSection(
+    path: '/settings',
+    label: 'Settings',
+    icon: Icons.settings_outlined,
+  ),
 ];
 
 /// Sections this employee may open — the drawer renders exactly these.
@@ -78,7 +86,10 @@ final accessibleSectionsProvider = Provider<List<AppSection>>((ref) {
   final employee = ref.watch(currentEmployeeProvider);
   if (employee == null) return const [];
   return appSections
-      .where((section) => section.permission == null || employee.can(section.permission!))
+      .where(
+        (section) =>
+            section.permission == null || employee.can(section.permission!),
+      )
       .toList(growable: false);
 });
 

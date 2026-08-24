@@ -49,7 +49,8 @@ class Routes {
   static const settings = '/settings';
 
   static String conversation(int id) => '/inbox/$id';
-  static String customer(int conversationId) => '/inbox/$conversationId/customer';
+  static String customer(int conversationId) =>
+      '/inbox/$conversationId/customer';
   static String customerProfile(int customerId) => '/customers/$customerId';
 }
 
@@ -184,10 +185,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // The profile screen folded into Settings' Profile tab. Kept as a
       // redirect so a link stored on a device from an older build still lands
       // somewhere sensible.
-      GoRoute(
-        path: '/profile',
-        redirect: (context, state) => Routes.settings,
-      ),
+      GoRoute(path: '/profile', redirect: (context, state) => Routes.settings),
     ],
     errorBuilder: (context, state) => const _InvalidRoute(),
   );

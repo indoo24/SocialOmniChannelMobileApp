@@ -103,7 +103,13 @@ void main() {
 
   group('untrusted JSON cannot crash a parse', () {
     test('an id of the wrong type does not throw', () {
-      final hostile = <Object?>[null, 'abc', true, <Object>[], <String, Object>{}];
+      final hostile = <Object?>[
+        null,
+        'abc',
+        true,
+        <Object>[],
+        <String, Object>{},
+      ];
 
       for (final bad in hostile) {
         expect(
@@ -164,10 +170,10 @@ void main() {
     });
 
     test('a count arriving as a string is still read', () {
-      final page = Paginated.fromJson(
-        {'results': const <Object?>[], 'count': '17'},
-        Message.fromJson,
-      );
+      final page = Paginated.fromJson({
+        'results': const <Object?>[],
+        'count': '17',
+      }, Message.fromJson);
 
       expect(page.count, 17);
     });
@@ -199,16 +205,47 @@ void main() {
     });
 
     test('parseList skips elements whose parser throws', () {
-      final out = JsonSafe.parseList<int>(
-        <Object?>[
-          {'v': 1},
-          {'v': 'boom'},
-          {'v': 3},
-        ],
-        (m) => m['v'] as int,
-      );
+      final out = JsonSafe.parseList<int>(<Object?>[
+        {'v': 1},
+        {'v': 'boom'},
+        {'v': 3},
+      ], (m) => m['v'] as int);
 
       expect(out, [1, 3]);
+    });
+
+    test('asBool converts only what is unambiguous', () {
+      expect(JsonSafe.asBool(true), true);
+      expect(JsonSafe.asBool(false), false);
+      expect(JsonSafe.asBool('true'), true);
+      expect(JsonSafe.asBool('FALSE'), false);
+      expect(JsonSafe.asBool(1), true);
+      expect(JsonSafe.asBool(0), false);
+      expect(JsonSafe.asBool('maybe', fallback: true), true);
+      expect(JsonSafe.asBool(null, fallback: true), true);
+      expect(JsonSafe.asBool(<String, dynamic>{}, fallback: true), true);
+    });
+
+    test('asDouble parses a DRF DecimalField string as well as a number', () {
+      expect(JsonSafe.asDouble(4.5), 4.5);
+      expect(JsonSafe.asDouble('4.50'), 4.5);
+      expect(JsonSafe.asDouble('not a number', fallback: -1), -1);
+      expect(JsonSafe.asDouble(null, fallback: -1), -1);
+    });
+
+    test('asDoubleOrNull keeps "no value" distinct from a real zero', () {
+      expect(JsonSafe.asDoubleOrNull(null), isNull);
+      expect(JsonSafe.asDoubleOrNull('garbage'), isNull);
+      expect(JsonSafe.asDoubleOrNull(0), 0.0);
+      expect(JsonSafe.asDoubleOrNull('12.5'), 12.5);
+    });
+
+    test('asStringOrNull keeps "absent" distinct from an empty string', () {
+      expect(JsonSafe.asStringOrNull(null), isNull);
+      expect(JsonSafe.asStringOrNull(<int>[1, 2]), isNull);
+      expect(JsonSafe.asStringOrNull(''), '');
+      expect(JsonSafe.asStringOrNull('next-page'), 'next-page');
+      expect(JsonSafe.asStringOrNull(42), '42');
     });
   });
 
@@ -254,36 +291,36 @@ void main() {
 
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
-        (call) async {
-          final args = Map<String, dynamic>.from(
-            (call.arguments as Map).cast<String, dynamic>(),
+            const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+            (call) async {
+              final args = Map<String, dynamic>.from(
+                (call.arguments as Map).cast<String, dynamic>(),
+              );
+              switch (call.method) {
+                case 'read':
+                  return storage[args['key'] as String];
+                case 'write':
+                  storage[args['key'] as String] = args['value'] as String;
+                  return null;
+                case 'delete':
+                  storage.remove(args['key'] as String);
+                  return null;
+                case 'deleteAll':
+                  storage.clear();
+                  return null;
+                default:
+                  return null;
+              }
+            },
           );
-          switch (call.method) {
-            case 'read':
-              return storage[args['key'] as String];
-            case 'write':
-              storage[args['key'] as String] = args['value'] as String;
-              return null;
-            case 'delete':
-              storage.remove(args['key'] as String);
-              return null;
-            case 'deleteAll':
-              storage.clear();
-              return null;
-            default:
-              return null;
-          }
-        },
-      );
     });
 
     tearDown(() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
-        null,
-      );
+            const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+            null,
+          );
     });
 
     test('is 128 unpredictable bits, stable for the installation', () async {
@@ -294,8 +331,11 @@ void main() {
       final store = SecureStore();
       final first = await store.deviceId();
 
-      expect(RegExp(r'^mob-[0-9a-f]{32}$').hasMatch(first), isTrue,
-          reason: 'got "$first"');
+      expect(
+        RegExp(r'^mob-[0-9a-f]{32}$').hasMatch(first),
+        isTrue,
+        reason: 'got "$first"',
+      );
 
       // Stable across calls within one installation.
       expect(await store.deviceId(), first);
@@ -316,34 +356,36 @@ void main() {
   group('screen security', () {
     setUp(ScreenSecurity.resetForTest);
 
-    test('nested sensitive screens hold the flag until the last one leaves',
-        () async {
-      final calls = <bool>[];
+    test(
+      'nested sensitive screens hold the flag until the last one leaves',
+      () async {
+        final calls = <bool>[];
 
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(ScreenSecurity.channel, (call) async {
-        if (call.method == 'setSecure') {
-          calls.add((call.arguments as Map)['secure'] as bool);
-        }
-        return null;
-      });
-      addTearDown(() {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(ScreenSecurity.channel, null);
-      });
+            .setMockMethodCallHandler(ScreenSecurity.channel, (call) async {
+              if (call.method == 'setSecure') {
+                calls.add((call.arguments as Map)['secure'] as bool);
+              }
+              return null;
+            });
+        addTearDown(() {
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+              .setMockMethodCallHandler(ScreenSecurity.channel, null);
+        });
 
-      // A conversation opens, then pushes customer details on top of itself.
-      await ScreenSecurity.acquire();
-      await ScreenSecurity.acquire();
-      expect(calls, [true], reason: 'only the first acquire sets the flag');
+        // A conversation opens, then pushes customer details on top of itself.
+        await ScreenSecurity.acquire();
+        await ScreenSecurity.acquire();
+        expect(calls, [true], reason: 'only the first acquire sets the flag');
 
-      // Customer details pops; the conversation is still on screen.
-      await ScreenSecurity.release();
-      expect(calls, [true], reason: 'flag must survive the inner pop');
+        // Customer details pops; the conversation is still on screen.
+        await ScreenSecurity.release();
+        expect(calls, [true], reason: 'flag must survive the inner pop');
 
-      await ScreenSecurity.release();
-      expect(calls, [true, false], reason: 'the last release clears it');
-    });
+        await ScreenSecurity.release();
+        expect(calls, [true, false], reason: 'the last release clears it');
+      },
+    );
 
     test('a missing platform handler is survivable, not fatal', () async {
       // iOS today: no handler is registered. The app must keep working, it
