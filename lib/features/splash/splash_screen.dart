@@ -60,8 +60,12 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foreground = theme.colorScheme.onSurface;
+    final mutedForeground = theme.textTheme.bodySmall!.color!;
+
     return ColoredBox(
-      color: const Color(0xFFFFFFFF),
+      color: theme.scaffoldBackgroundColor,
       child: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -93,7 +97,7 @@ class _SplashScreenState extends State<SplashScreen>
                           fontSize: 30,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.6,
-                          color: ScenarioColors.foreground,
+                          color: foreground,
                           height: 1.1,
                         ),
                       ),
@@ -132,7 +136,7 @@ class _SplashScreenState extends State<SplashScreen>
                         'Omnichannel customer service & intelligence',
                         style: TextStyle(
                           fontSize: 13,
-                          color: ScenarioColors.mutedForeground,
+                          color: mutedForeground,
                           letterSpacing: 0.1,
                         ),
                       ),
@@ -155,10 +159,11 @@ class _OmniChannelDash extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mutedForeground = Theme.of(context).textTheme.bodySmall!.color!;
     return Container(
       width: 18,
       height: 2,
-      color: ScenarioColors.mutedForeground.withValues(alpha: 0.5),
+      color: mutedForeground.withValues(alpha: 0.5),
     );
   }
 }
