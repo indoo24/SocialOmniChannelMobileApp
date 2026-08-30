@@ -343,6 +343,135 @@ are both only "something changed, go look" signals.
 
 ---
 
+## 4b. Follow-up flag — shipped on backend and web, not yet on mobile
+
+Added 30 August 2026. Backend and web are live; mobile is the only client
+without it.
+
+**Why it was not built here at the same time.** Every file it needs —
+`conversation_actions_sheet.dart`, `inbox_filters_sheet.dart`,
+`core/models/conversation.dart`, `app_en.arb`, `app_ar.arb` — is a file changed
+by the unmerged `development` work. Adding a feature to all five while that work
+is in flight would collide with it, so the contract shipped first and the mobile
+side is specified here instead.
+
+### What the feature is
+
+An agent marks a conversation for follow-up, optionally with a calendar day. It
+stays marked until somebody removes it.
+
+**It is not a reminder.** Nothing schedules, notifies, escalates, reassigns or
+unflags — not on the server, and nothing should on the client. No local
+notification, no time picker, no recurrence, no "overdue" styling. The date is
+stored and displayed, and that is the whole feature. Do not use the word "due".
+
+It is **shared conversation state**, not a private bookmark: Agent A marks it,
+the thread moves to Agent B, and B sees the same flag with A still credited.
+
+### API
+
+| Method | Path | Permission |
+|---|---|---|
+| `POST` | `/api/conversations/{id}/follow-up/` | `conversation.change_category` |
+
+`follow_up_date` is **three-valued**, and this is the part most likely to be got
+wrong:
+
+```jsonc
+{"is_follow_up": true}                              // keep whatever date is stored
+{"is_follow_up": true, "follow_up_date": "2026-09-05"} // set the date
+{"is_follow_up": true, "follow_up_date": null}      // clear the date, stay flagged
+{"is_follow_up": false}                             // remove the flag entirely
+```
+
+Sending the key with `null` is not the same as omitting it. If the client
+collapses "empty picker" into "omit the field", a user can never clear a date,
+and re-marking a dated conversation silently keeps a date they thought they had
+removed.
+
+Returns the full `ConversationDetail`. Never send `follow_up_marked_by` or
+`follow_up_marked_at` — the server takes both from the session and ignores them
+in the body.
+
+### Read fields (already on both list and detail payloads)
+
+```
+is_follow_up             bool
+follow_up_date           "YYYY-MM-DD" | null
+follow_up_marked_at      ISO datetime | null
+follow_up_marked_by_name string   // "" when not flagged
+```
+
+Because they are on the **list** representation, the inbox row can draw its
+indicator with no extra request.
+
+### Filtering
+
+`GET /api/conversations/?follow_up=true` — server-side, and it composes with
+everything else: `&assigned_to=`, `&status=`, `&provider=`, `&view=`, `&search=`.
+Paginates normally.
+
+Show **all** flagged conversations the employee may see. It is shared state, so
+this is not "my follow-ups".
+
+### Mobile work remaining
+
+1. **`core/models/conversation.dart`** — add the four fields. Keep
+   `followUpDate` as a **`String`** (`''` when absent), not a `DateTime`.
+   `DateTime.parse("2026-09-05")` is midnight local and re-formatting it can
+   move the day; the value is a calendar day and the API speaks `YYYY-MM-DD`.
+   Add them to `copyWith` too.
+
+2. **`features/conversations/conversation_repository.dart`** — one method beside
+   `changeCategory`:
+
+   ```dart
+   Future<void> setFollowUp(
+     int conversationId, {
+     required bool isFollowUp,
+     String? followUpDate,     // null clears
+     bool dateProvided = false, // false omits the key entirely
+   }) => _api.post<dynamic>(
+     '/conversations/$conversationId/follow-up/',
+     body: {
+       'is_follow_up': isFollowUp,
+       if (dateProvided) 'follow_up_date': followUpDate,
+     },
+   );
+   ```
+
+   The `dateProvided` flag is what preserves the three-valued contract.
+
+3. **`features/messages/conversation_actions_sheet.dart`** — a "Mark for
+   follow-up" / "Edit follow-up" tile. Use `showDatePicker` (date-only; there is
+   no `showTimePicker` here by design), plus "Remove date" and "Remove
+   follow-up". Read-only roles see the state without the control.
+
+4. **Inbox row** — a small flag chip showing `Follow-up` or the formatted day.
+   Keep it quieter than unread state and the channel badge.
+
+5. **`features/conversations/inbox_filters_sheet.dart`** — a Follow-up toggle
+   that sets `follow_up=true`. A toggle, not another radio option, so it
+   combines with the existing filters.
+
+6. **l10n** — new strings in `app_en.arb` and `app_ar.arb`, then
+   `flutter gen-l10n`. Suggested keys: `followUp`, `followUpDate`,
+   `markForFollowUp`, `removeFollowUp`, `removeFollowUpDate`,
+   `followUpMarkedBy`. **Have the Arabic reviewed by a native speaker** rather
+   than accepting a machine translation into a shipped product.
+
+7. **Realtime** — nothing to add. The change is broadcast as
+   `conversation.updated`, which `realtime_bridge.dart` already handles.
+
+8. **Tests** — model parsing of all four fields, the three-valued body
+   (especially that an empty picker sends `null` rather than omitting), the
+   filter, and the row indicator.
+
+Verify with `flutter analyze` and `flutter test`; both were clean on
+`development` @ `3e9e010` before this work.
+
+---
+
 ## 5. Deliberately not for mobile
 
 | Endpoint | Why |
