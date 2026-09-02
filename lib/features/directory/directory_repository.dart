@@ -13,6 +13,7 @@ import '../../core/models/conversation.dart';
 import '../../core/models/customer_detail.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
+import '../../core/models/routing_policy.dart';
 import '../../core/utils/json_safe.dart';
 
 class DirectoryRepository {
@@ -147,6 +148,26 @@ class DirectoryRepository {
   /// the rest), so the created-team response reuses it directly.
   Future<Team> createTeam(Map<String, dynamic> fields) async {
     final data = await _api.post<Map<String, dynamic>>('/teams/', body: fields);
+    return Team.fromJson(data);
+  }
+
+  /// `PATCH /teams/{id}/` — ADMIN only server-side (`team.manage`).
+  ///
+  /// [fields] should only carry what the administrator actually changed.
+  Future<Team> updateTeam(int teamId, Map<String, dynamic> fields) async {
+    final data = await _api.patch<Map<String, dynamic>>(
+      '/teams/$teamId/',
+      body: fields,
+    );
+    return Team.fromJson(data);
+  }
+
+  /// `DELETE /teams/{id}/` — ADMIN only server-side (`team.manage`).
+  ///
+  /// Soft deactivates rather than deleting: teams are referenced by past
+  /// conversations and assignments, so the row stays and `is_active` flips to false.
+  Future<Team> deactivateTeam(int teamId) async {
+    final data = await _api.delete<Map<String, dynamic>>('/teams/$teamId/');
     return Team.fromJson(data);
   }
 
@@ -319,5 +340,28 @@ class DirectoryRepository {
       body: {'confirmed': confirmed, 'value': ?value},
     );
     return CustomerFact.fromJson(data);
+  }
+
+  // ------------------------------------------------------- routing policy
+  Future<RoutingPolicy> routingPolicy() async {
+    final data = await _api.get<Map<String, dynamic>>('/routing/policy/');
+    return RoutingPolicy.fromJson(data);
+  }
+
+  Future<RoutingPolicy> updateRoutingPolicy({
+    bool? isEnabled,
+    int? maxOpenChatsPerAgent,
+    String? timezone,
+  }) async {
+    final body = <String, dynamic>{
+      'is_enabled': ?isEnabled,
+      'max_open_chats_per_agent': ?maxOpenChatsPerAgent,
+      'timezone': ?timezone,
+    };
+    final data = await _api.patch<Map<String, dynamic>>(
+      '/routing/policy/',
+      body: body,
+    );
+    return RoutingPolicy.fromJson(data);
   }
 }

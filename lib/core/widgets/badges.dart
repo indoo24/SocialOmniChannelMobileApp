@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/l10n_extensions.dart';
 import '../theme/tokens.dart';
+import '../utils/formatting.dart';
 
 enum BadgeTone { neutral, success, warning, danger, info }
 
@@ -132,6 +133,28 @@ class ConversationBadges {
   /// makes the same call — a row of "Normal" badges is noise.
   static bool showsPriority(String value) =>
       value == 'URGENT' || value == 'HIGH';
+
+  static (String, BadgeTone) stage(BuildContext context, String value) {
+    final tone = switch (value) {
+      'HOT_LEAD' => BadgeTone.danger,
+      'QUALIFIED_LEAD' => BadgeTone.info,
+      'PURCHASE_INTENT' => BadgeTone.warning,
+      'PURCHASED' || 'AGENT_CONFIRMED' => BadgeTone.success,
+      'LOST' || 'DISQUALIFIED' => BadgeTone.neutral,
+      _ => BadgeTone.neutral,
+    };
+    final label = switch (value) {
+      'NEW_LEAD' => context.l10n.stageNewLead,
+      'QUALIFIED_LEAD' => context.l10n.stageQualifiedLead,
+      'HOT_LEAD' => context.l10n.stageHotLead,
+      'PURCHASE_INTENT' => context.l10n.stagePurchaseIntent,
+      'PURCHASED' => context.l10n.stagePurchased,
+      'LOST' => context.l10n.stageLost,
+      'DISQUALIFIED' => context.l10n.stageDisqualified,
+      _ => humanizeEnum(value),
+    };
+    return (label, tone);
+  }
 
   static IconData providerIcon(String provider) => switch (provider) {
     'WHATSAPP' => Icons.chat_bubble,

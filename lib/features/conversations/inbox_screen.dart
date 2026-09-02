@@ -221,6 +221,14 @@ class ConversationRow extends StatelessWidget {
       context,
       conversation.priority,
     );
+    final stageValue = conversation.intelligence?.stage.isNotEmpty == true
+        ? conversation.intelligence!.stage
+        : (conversation.customer.lifecycleStage.isNotEmpty
+              ? conversation.customer.lifecycleStage
+              : null);
+    final (stageLabel, stageTone) = stageValue != null
+        ? ConversationBadges.stage(context, stageValue)
+        : ('', BadgeTone.neutral);
     final unread = conversation.hasUnread;
 
     return InkWell(
@@ -310,6 +318,12 @@ class ConversationRow extends StatelessWidget {
                           tone: priorityTone,
                           dense: true,
                           icon: Icons.priority_high,
+                        ),
+                      if (stageValue != null)
+                        StatusBadge(
+                          label: stageLabel,
+                          tone: stageTone,
+                          dense: true,
                         ),
                       if (conversation.category != null)
                         StatusBadge(

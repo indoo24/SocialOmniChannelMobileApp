@@ -446,4 +446,70 @@ void main() {
       );
     });
   });
+
+  group('DirectoryRepository.updateTeam', () {
+    test('PATCHes /teams/{id}/ with only the given fields', () async {
+      RequestOptions? captured;
+      final repository = _repositoryReturning((options) {
+        captured = options;
+        return _json(
+          '{"id": 5, "name": "VIP desk updated", "description": "High tier", '
+          '"language": "en", "color": "#0F766E", "is_active": true, '
+          '"members": [{"id": 1, "full_name": "Mona"}], "leaders": [], '
+          '"member_count": 1, "created_at": "2026-01-01T00:00:00Z", '
+          '"updated_at": "2026-01-01T00:00:00Z"}',
+          200,
+        );
+      });
+
+      final body = {'name': 'VIP desk updated', 'description': 'High tier'};
+      final result = await repository.updateTeam(5, body);
+
+      expect(captured!.method, 'PATCH');
+      expect(captured!.path, '/teams/5/');
+      expect(captured!.data, body);
+      expect(result.name, 'VIP desk updated');
+      expect(result.description, 'High tier');
+      expect(result.memberIds, [1]);
+    });
+
+    test('a 404 for a missing team throws ApiException', () {
+      final repository = _repositoryReturning(
+        (_) => _json(
+          '{"error": {"code": "not_found", "message": "Not found.", "details": {}}}',
+          404,
+        ),
+      );
+
+      expect(
+        () => repository.updateTeam(999, {'name': 'Ghost team'}),
+        throwsA(
+          isA<ApiException>().having((e) => e.message, 'message', 'Not found.'),
+        ),
+      );
+    });
+  });
+
+  group('DirectoryRepository.deactivateTeam', () {
+    test(
+      'DELETEs /teams/{id}/ and parses an is_active: false response',
+      () async {
+        RequestOptions? captured;
+        final repository = _repositoryReturning((options) {
+          captured = options;
+          return _json(
+            '{"id": 5, "name": "VIP desk", "is_active": false, "members": [], '
+            '"leaders": [], "member_count": 0}',
+            200,
+          );
+        });
+
+        final result = await repository.deactivateTeam(5);
+
+        expect(captured!.method, 'DELETE');
+        expect(captured!.path, '/teams/5/');
+        expect(result.isActive, isFalse);
+      },
+    );
+  });
 }

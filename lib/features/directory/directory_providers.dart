@@ -12,11 +12,16 @@ import '../../core/models/conversation.dart';
 import '../../core/models/customer_detail.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
+import '../../core/models/routing_policy.dart';
 import '../../core/providers.dart';
 import '../authentication/auth_controller.dart';
 
 final dashboardProvider = FutureProvider<DashboardSummary>((ref) {
   return ref.watch(directoryRepositoryProvider).dashboard();
+});
+
+final routingPolicyProvider = FutureProvider<RoutingPolicy>((ref) {
+  return ref.watch(directoryRepositoryProvider).routingPolicy();
 });
 
 final channelVolumeProvider = FutureProvider<List<ChannelVolume>>((ref) {

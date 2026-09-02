@@ -12,6 +12,7 @@
   "tabChannels": "Channels",
   "tabProfile": "Profile",
   "tabSecurity": "Security",
+  "tabAssignment": "Assignment",
 
   "signOutDialogTitle": "Sign out?",
   "signOutDialogMessage": "You will stop receiving new conversations on this device.",
@@ -257,6 +258,38 @@
     }
   },
   "nothingAssignedMessage": "Nothing assigned right now.",
+  "recentActivityTitle": "Recent activity",
+  "openInboxButton": "Open inbox",
+  "noRecentActivityMessage": "No recent activity yet.",
+  "stageNewLead": "New lead",
+  "stageQualifiedLead": "Qualified lead",
+  "stageHotLead": "Hot lead",
+  "stagePurchaseIntent": "Purchase intent",
+  "stagePurchased": "Purchased",
+  "stageLost": "Lost",
+  "stageDisqualified": "Disqualified",
+  "profileDetailsSectionTitle": "Personal details",
+  "jobTitleFieldLabel": "Job title",
+  "saveProfileButton": "Save profile",
+  "profileUpdatedSnackbar": "Profile updated",
+  "profileFirstNameRequiredError": "First name cannot be empty.",
+  "autoAssignmentTitle": "Automatic conversation assignment",
+  "autoAssignmentDescription": "Automatically routes incoming conversations to available agents based on workload and schedule. Affects new allocatable work only.",
+  "autoAssignmentStatusActive": "Active",
+  "autoAssignmentStatusInactive": "Disabled",
+  "autoAssignmentToggleLabel": "Enable automatic assignment",
+  "defaultChatCapacityTitle": "Default chat capacity",
+  "defaultChatCapacityDescription": "Maximum open conversations assigned to an agent at one time.",
+  "maxOpenChatsFieldLabel": "Max open chats per agent",
+  "maxOpenChatsInvalidError": "Enter a valid number greater than 0.",
+  "saveCapacityAction": "Save capacity",
+  "timezoneTitle": "Time zone",
+  "timezoneDescription": "Organization-level time zone. Changing this reinterprets existing schedules without rewriting them.",
+  "timezoneFieldLabel": "Select time zone",
+  "saveTimezoneAction": "Save time zone",
+  "assignmentPolicyUpdatedSnackbar": "Assignment settings updated",
+  "routingPolicyLoadFailed": "Couldn't load assignment settings.",
+  "routingPermissionDenied": "You don't have permission to manage assignment settings.",
   "openUnreadSummary": "{open} open · {unread} unread",
   "@openUnreadSummary": {
     "placeholders": {
@@ -520,7 +553,9 @@
   },
 
   "addTeamTitle": "Add team",
+  "editTeamTitle": "Edit team",
   "teamAddedSnackbar": "Team added",
+  "teamUpdatedSnackbar": "Team updated",
   "addTeamNameRequiredError": "Enter a team name.",
   "teamNameFieldLabel": "Team name",
   "descriptionFieldLabel": "Description",
@@ -528,6 +563,19 @@
   "leadersFieldLabel": "Leaders",
   "membersFieldLabel": "Members",
   "employeesLoadFailedMessage": "Couldn't load employees.",
+  "deactivateTeamConfirmTitle": "Deactivate team?",
+  "deactivateTeamConfirmBody": "{name} will no longer be available for routing conversations. Existing conversations and assignment history are kept.",
+  "@deactivateTeamConfirmBody": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "teamDeactivatedSnackbar": "{name} deactivated",
+  "@teamDeactivatedSnackbar": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
 
   "rerunAnalysisTooltip": "Re-run analysis",
   "loadingIntelligenceLabel": "Loading intelligence…",
