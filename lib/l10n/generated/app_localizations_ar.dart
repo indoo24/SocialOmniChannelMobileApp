@@ -24,6 +24,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get tabSecurity => 'الأمان';
 
   @override
+  String get tabAssignment => 'التوزيع';
+
+  @override
   String get signOutDialogTitle => 'تسجيل الخروج؟';
 
   @override
@@ -615,6 +618,106 @@ class AppLocalizationsAr extends AppLocalizations {
   String get nothingAssignedMessage => 'لا توجد مهام مُسندة حاليًا.';
 
   @override
+  String get recentActivityTitle => 'النشاط الأخير';
+
+  @override
+  String get openInboxButton => 'فتح صندوق الوارد';
+
+  @override
+  String get noRecentActivityMessage => 'لا يوجد نشاط أخير بعد.';
+
+  @override
+  String get stageNewLead => 'عميل محتمل جديد';
+
+  @override
+  String get stageQualifiedLead => 'عميل محتمل مؤهل';
+
+  @override
+  String get stageHotLead => 'عميل محتمل واعد';
+
+  @override
+  String get stagePurchaseIntent => 'نية الشراء';
+
+  @override
+  String get stagePurchased => 'تم الشراء';
+
+  @override
+  String get stageLost => 'مفقود';
+
+  @override
+  String get stageDisqualified => 'غير مؤهل';
+
+  @override
+  String get profileDetailsSectionTitle => 'البيانات الشخصية';
+
+  @override
+  String get jobTitleFieldLabel => 'المسمى الوظيفي';
+
+  @override
+  String get saveProfileButton => 'حفظ الملف الشخصي';
+
+  @override
+  String get profileUpdatedSnackbar => 'تم تحديث الملف الشخصي';
+
+  @override
+  String get profileFirstNameRequiredError => 'الاسم الأول مطلوب.';
+
+  @override
+  String get autoAssignmentTitle => 'التوزيع التلقائي للمحادثات';
+
+  @override
+  String get autoAssignmentDescription =>
+      'توجيه المحادثات الواردة تلقائيًا إلى الوكلاء المتاحين بناءً على عبء العمل وجدول العمل. يؤثر على المحادثات الجديدة فقط.';
+
+  @override
+  String get autoAssignmentStatusActive => 'نشط';
+
+  @override
+  String get autoAssignmentStatusInactive => 'معطّل';
+
+  @override
+  String get autoAssignmentToggleLabel => 'تفعيل التوزيع التلقائي';
+
+  @override
+  String get defaultChatCapacityTitle => 'سعة المحادثات الافتراضية';
+
+  @override
+  String get defaultChatCapacityDescription =>
+      'الحد الأقصى للمحادثات المفتوحة المسندة للوكيل في وقت واحد.';
+
+  @override
+  String get maxOpenChatsFieldLabel => 'الحد الأقصى للمحادثات المفتوحة';
+
+  @override
+  String get maxOpenChatsInvalidError => 'أدخل رقمًا صحيحًا أكبر من 0.';
+
+  @override
+  String get saveCapacityAction => 'حفظ السعة';
+
+  @override
+  String get timezoneTitle => 'المنطقة الزمنية';
+
+  @override
+  String get timezoneDescription =>
+      'المنطقة الزمنية للمؤسسة. تغييرها يعيد تفسير الجداول الحالية دون إعادة كتابتها.';
+
+  @override
+  String get timezoneFieldLabel => 'اختر المنطقة الزمنية';
+
+  @override
+  String get saveTimezoneAction => 'حفظ المنطقة الزمنية';
+
+  @override
+  String get assignmentPolicyUpdatedSnackbar => 'تم تحديث إعدادات التوزيع';
+
+  @override
+  String get routingPolicyLoadFailed => 'تعذر تحميل إعدادات التوزيع.';
+
+  @override
+  String get routingPermissionDenied =>
+      'ليس لديك صلاحية لإدارة إعدادات التوزيع.';
+
+  @override
   String openUnreadSummary(int open, int unread) {
     return '$open مفتوحة · $unread غير مقروءة';
   }
@@ -1087,9 +1190,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get avatarUrlFieldLabel => 'رابط الصورة الرمزية';
 
   @override
-  String get maxOpenChatsFieldLabel => 'الحد الأقصى للمحادثات المفتوحة';
-
-  @override
   String get newPasswordOptionalFieldLabel =>
       'كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)';
 
@@ -1134,7 +1234,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addTeamTitle => 'إضافة فريق';
 
   @override
+  String get editTeamTitle => 'تعديل الفريق';
+
+  @override
   String get teamAddedSnackbar => 'تمت إضافة الفريق';
+
+  @override
+  String get teamUpdatedSnackbar => 'تم تحديث الفريق';
 
   @override
   String get addTeamNameRequiredError => 'أدخل اسم الفريق.';
@@ -1156,6 +1262,19 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get employeesLoadFailedMessage => 'تعذّر تحميل الموظفين.';
+
+  @override
+  String get deactivateTeamConfirmTitle => 'إلغاء تفعيل الفريق؟';
+
+  @override
+  String deactivateTeamConfirmBody(String name) {
+    return 'لن يكون فريق $name متاحًا بعد الآن لتوجيه المحادثات. يتم الاحتفاظ بالمحادثات الحالية وسجل الإسناد.';
+  }
+
+  @override
+  String teamDeactivatedSnackbar(String name) {
+    return 'تم إلغاء تفعيل $name';
+  }
 
   @override
   String get rerunAnalysisTooltip => 'إعادة تشغيل التحليل';

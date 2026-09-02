@@ -8,11 +8,13 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/employee.dart';
+import '../../core/models/routing_policy.dart';
 import '../../core/preferences/preferences_controller.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
@@ -37,10 +39,13 @@ class SettingsScreen extends ConsumerWidget {
     }
 
     final canSeeChannels = employee.can(Perm.channelView);
+    final canManageRouting = employee.can(Perm.routingManage);
     final tabs = <(String, Widget)>[
       if (canSeeChannels) (context.l10n.tabChannels, const _ChannelsTab()),
       (context.l10n.tabProfile, const ProfileTab()),
       (context.l10n.tabSecurity, const _SecurityTab()),
+      if (canManageRouting)
+        (context.l10n.tabAssignment, const _AssignmentTab()),
     ];
 
     return DefaultTabController(
@@ -185,6 +190,9 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
         ),
 
         const SizedBox(height: Space.xl),
+        _ProfileDetailsSection(employee: employee),
+
+        const SizedBox(height: Space.xl),
         const _PreferencesSection(),
 
         const SizedBox(height: Space.xl),
@@ -235,6 +243,193 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
     'OFFLINE' => context.l10n.availabilityOffline,
     _ => value,
   };
+}
+
+class _ProfileDetailsSection extends ConsumerStatefulWidget {
+  const _ProfileDetailsSection({required this.employee});
+
+  final Employee employee;
+
+  @override
+  ConsumerState<_ProfileDetailsSection> createState() =>
+      _ProfileDetailsSectionState();
+}
+
+class _ProfileDetailsSectionState
+    extends ConsumerState<_ProfileDetailsSection> {
+  late final TextEditingController _firstName;
+  late final TextEditingController _lastName;
+  late final TextEditingController _email;
+  late final TextEditingController _title;
+  late final TextEditingController _phone;
+
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _firstName = TextEditingController(text: widget.employee.firstName);
+    _lastName = TextEditingController(text: widget.employee.lastName);
+    _email = TextEditingController(text: widget.employee.email);
+    _title = TextEditingController(text: widget.employee.title);
+    _phone = TextEditingController(text: widget.employee.phone);
+  }
+
+  @override
+  void didUpdateWidget(_ProfileDetailsSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.employee != widget.employee && !_saving) {
+      _firstName.text = widget.employee.firstName;
+      _lastName.text = widget.employee.lastName;
+      _email.text = widget.employee.email;
+      _title.text = widget.employee.title;
+      _phone.text = widget.employee.phone;
+    }
+  }
+
+  @override
+  void dispose() {
+    _firstName.dispose();
+    _lastName.dispose();
+    _email.dispose();
+    _title.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+
+    final firstName = _firstName.text.trim();
+    final lastName = _lastName.text.trim();
+    final title = _title.text.trim();
+    final phone = _phone.text.trim();
+
+    if (firstName.isEmpty) {
+      setState(() => _error = context.l10n.profileFirstNameRequiredError);
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      await ref
+          .read(authControllerProvider.notifier)
+          .updateProfile(
+            firstName: firstName,
+            lastName: lastName,
+            title: title,
+            phone: phone,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.profileUpdatedSnackbar)),
+        );
+      }
+    } on ApiException catch (err) {
+      if (mounted) {
+        setState(() => _error = err.message);
+      }
+    } catch (err) {
+      if (mounted) {
+        setState(() => _error = err.toString());
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.l10n.profileDetailsSectionTitle,
+          style: theme.textTheme.labelSmall?.copyWith(
+            letterSpacing: 0.6,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: Space.md),
+        if (_error != null) ...[
+          InlineError(message: _error!),
+          const SizedBox(height: Space.md),
+        ],
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _firstName,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  labelText: context.l10n.firstNameFieldLabel,
+                ),
+              ),
+            ),
+            const SizedBox(width: Space.md),
+            Expanded(
+              child: TextField(
+                controller: _lastName,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  labelText: context.l10n.lastNameFieldLabel,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: Space.md),
+        TextField(
+          controller: _email,
+          readOnly: true,
+          enabled: false,
+          decoration: InputDecoration(
+            labelText: context.l10n.emailFieldLabel,
+            suffixIcon: const Icon(Icons.lock_outline, size: 18),
+          ),
+        ),
+        const SizedBox(height: Space.md),
+        TextField(
+          controller: _title,
+          decoration: InputDecoration(
+            labelText: context.l10n.jobTitleFieldLabel,
+          ),
+        ),
+        const SizedBox(height: Space.md),
+        TextField(
+          controller: _phone,
+          keyboardType: TextInputType.phone,
+          decoration: InputDecoration(labelText: context.l10n.phoneFieldLabel),
+        ),
+        const SizedBox(height: Space.lg),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _saving ? null : _save,
+            child: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(context.l10n.saveProfileButton),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 // --------------------------------------------------------------------------- //
@@ -654,6 +849,510 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
                 ],
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --------------------------------------------------------------------------- //
+// Assignment — automatic routing, capacity and timezone
+// --------------------------------------------------------------------------- //
+const _standardIanaTimezones = [
+  'Africa/Cairo',
+  'Africa/Casablanca',
+  'Africa/Johannesburg',
+  'Africa/Lagos',
+  'Africa/Nairobi',
+  'America/Argentina/Buenos_Aires',
+  'America/Bogota',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Mexico_City',
+  'America/New_York',
+  'America/Phoenix',
+  'America/Sao_Paulo',
+  'America/Toronto',
+  'America/Vancouver',
+  'Asia/Amman',
+  'Asia/Baghdad',
+  'Asia/Bahrain',
+  'Asia/Beirut',
+  'Asia/Damascus',
+  'Asia/Dhaka',
+  'Asia/Dubai',
+  'Asia/Hong_Kong',
+  'Asia/Jakarta',
+  'Asia/Jerusalem',
+  'Asia/Karachi',
+  'Asia/Kolkata',
+  'Asia/Kuwait',
+  'Asia/Muscat',
+  'Asia/Qatar',
+  'Asia/Riyadh',
+  'Asia/Seoul',
+  'Asia/Shanghai',
+  'Asia/Singapore',
+  'Asia/Tokyo',
+  'Australia/Melbourne',
+  'Australia/Sydney',
+  'Europe/Amsterdam',
+  'Europe/Berlin',
+  'Europe/Istanbul',
+  'Europe/London',
+  'Europe/Madrid',
+  'Europe/Paris',
+  'Europe/Rome',
+  'Pacific/Auckland',
+  'Pacific/Honolulu',
+  'UTC',
+];
+
+class _AssignmentTab extends ConsumerWidget {
+  const _AssignmentTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final canManage = ref.watch(canProvider(Perm.routingManage));
+    if (!canManage) {
+      return Center(
+        child: EmptyState(
+          title: context.l10n.routingPermissionDenied,
+          icon: Icons.lock_outline,
+        ),
+      );
+    }
+
+    final policyAsync = ref.watch(routingPolicyProvider);
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(routingPolicyProvider);
+        await ref.read(routingPolicyProvider.future);
+      },
+      child: policyAsync.when(
+        loading: () => const LoadingState(),
+        error: (error, _) => ErrorStateView(
+          error: error,
+          onRetry: () => ref.invalidate(routingPolicyProvider),
+        ),
+        data: (policy) => _AssignmentTabContent(policy: policy),
+      ),
+    );
+  }
+}
+
+class _AssignmentTabContent extends StatefulWidget {
+  const _AssignmentTabContent({required this.policy});
+
+  final RoutingPolicy policy;
+
+  @override
+  State<_AssignmentTabContent> createState() => _AssignmentTabContentState();
+}
+
+class _AssignmentTabContentState extends State<_AssignmentTabContent> {
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(Space.lg),
+      children: [
+        _AutoAssignmentCard(policy: widget.policy),
+        const SizedBox(height: Space.lg),
+        _ChatCapacityCard(policy: widget.policy),
+        const SizedBox(height: Space.lg),
+        _TimezoneCard(policy: widget.policy),
+      ],
+    );
+  }
+}
+
+class _AutoAssignmentCard extends ConsumerStatefulWidget {
+  const _AutoAssignmentCard({required this.policy});
+
+  final RoutingPolicy policy;
+
+  @override
+  ConsumerState<_AutoAssignmentCard> createState() =>
+      _AutoAssignmentCardState();
+}
+
+class _AutoAssignmentCardState extends ConsumerState<_AutoAssignmentCard> {
+  bool _busy = false;
+
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+      ),
+    );
+  }
+
+  Future<void> _toggle(bool value) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(directoryRepositoryProvider)
+          .updateRoutingPolicy(isEnabled: value);
+      ref.invalidate(routingPolicyProvider);
+      if (mounted) {
+        _showMessage(context.l10n.assignmentPolicyUpdatedSnackbar);
+      }
+    } on ApiException catch (error) {
+      _showMessage(error.message, isError: true);
+    } catch (error) {
+      _showMessage(error.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isEnabled = widget.policy.isEnabled;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(Space.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.l10n.autoAssignmentTitle,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                const SizedBox(width: Space.sm),
+                StatusBadge(
+                  label: isEnabled
+                      ? context.l10n.autoAssignmentStatusActive
+                      : context.l10n.autoAssignmentStatusInactive,
+                  tone: isEnabled ? BadgeTone.success : BadgeTone.neutral,
+                  dense: true,
+                ),
+              ],
+            ),
+            const SizedBox(height: Space.sm),
+            Text(
+              context.l10n.autoAssignmentDescription,
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: Space.md),
+            if (_busy) ...[
+              const LinearProgressIndicator(minHeight: 2),
+              const SizedBox(height: Space.sm),
+            ],
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.l10n.autoAssignmentToggleLabel,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Switch.adaptive(
+                  value: isEnabled,
+                  onChanged: _busy ? null : _toggle,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatCapacityCard extends ConsumerStatefulWidget {
+  const _ChatCapacityCard({required this.policy});
+
+  final RoutingPolicy policy;
+
+  @override
+  ConsumerState<_ChatCapacityCard> createState() => _ChatCapacityCardState();
+}
+
+class _ChatCapacityCardState extends ConsumerState<_ChatCapacityCard> {
+  late final TextEditingController _controller;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.policy.maxOpenChatsPerAgent.toString(),
+    );
+  }
+
+  @override
+  void didUpdateWidget(_ChatCapacityCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.policy.maxOpenChatsPerAgent !=
+            widget.policy.maxOpenChatsPerAgent &&
+        !_busy) {
+      _controller.text = widget.policy.maxOpenChatsPerAgent.toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    if (_busy) return;
+    final text = _controller.text.trim();
+    final count = int.tryParse(text);
+    if (count == null || count <= 0) {
+      setState(() => _error = context.l10n.maxOpenChatsInvalidError);
+      return;
+    }
+
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
+    try {
+      await ref
+          .read(directoryRepositoryProvider)
+          .updateRoutingPolicy(maxOpenChatsPerAgent: count);
+      ref.invalidate(routingPolicyProvider);
+      if (mounted) {
+        _showMessage(context.l10n.assignmentPolicyUpdatedSnackbar);
+      }
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+      _showMessage(error.message, isError: true);
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+      _showMessage(error.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(Space.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.l10n.defaultChatCapacityTitle,
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: Space.sm),
+            Text(
+              context.l10n.defaultChatCapacityDescription,
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: Space.md),
+            if (_error != null) ...[
+              InlineError(message: _error!),
+              const SizedBox(height: Space.md),
+            ],
+            TextField(
+              controller: _controller,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                labelText: context.l10n.maxOpenChatsFieldLabel,
+              ),
+            ),
+            const SizedBox(height: Space.md),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _busy ? null : _save,
+                child: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(context.l10n.saveCapacityAction),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TimezoneCard extends ConsumerStatefulWidget {
+  const _TimezoneCard({required this.policy});
+
+  final RoutingPolicy policy;
+
+  @override
+  ConsumerState<_TimezoneCard> createState() => _TimezoneCardState();
+}
+
+class _TimezoneCardState extends ConsumerState<_TimezoneCard> {
+  late String _selectedTimezone;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedTimezone = widget.policy.timezone;
+  }
+
+  @override
+  void didUpdateWidget(_TimezoneCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.policy.timezone != widget.policy.timezone && !_busy) {
+      _selectedTimezone = widget.policy.timezone;
+    }
+  }
+
+  List<String> get _timezones {
+    final set = Set<String>.from(_standardIanaTimezones);
+    if (widget.policy.timezone.isNotEmpty) {
+      set.add(widget.policy.timezone);
+    }
+    final list = set.toList()..sort();
+    return list;
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
+    try {
+      await ref
+          .read(directoryRepositoryProvider)
+          .updateRoutingPolicy(timezone: _selectedTimezone);
+      ref.invalidate(routingPolicyProvider);
+      if (mounted) {
+        _showMessage(context.l10n.assignmentPolicyUpdatedSnackbar);
+      }
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+      _showMessage(error.message, isError: true);
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+      _showMessage(error.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final items = _timezones;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(Space.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.l10n.timezoneTitle,
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: Space.sm),
+            Text(
+              context.l10n.timezoneDescription,
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: Space.md),
+            if (_error != null) ...[
+              InlineError(message: _error!),
+              const SizedBox(height: Space.md),
+            ],
+            DropdownButtonFormField<String>(
+              initialValue: items.contains(_selectedTimezone)
+                  ? _selectedTimezone
+                  : (items.isNotEmpty ? items.first : null),
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: context.l10n.timezoneFieldLabel,
+              ),
+              items: [
+                for (final tz in items)
+                  DropdownMenuItem(
+                    value: tz,
+                    child: Text(tz, overflow: TextOverflow.ellipsis),
+                  ),
+              ],
+              onChanged: _busy
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        setState(() => _selectedTimezone = value);
+                      }
+                    },
+            ),
+            const SizedBox(height: Space.md),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _busy ? null : _save,
+                child: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(context.l10n.saveTimezoneAction),
+              ),
+            ),
           ],
         ),
       ),

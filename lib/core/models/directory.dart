@@ -9,7 +9,7 @@
 library;
 
 import '../utils/json_safe.dart';
-
+import 'conversation.dart';
 import 'employee.dart';
 
 class Team {
@@ -22,6 +22,8 @@ class Team {
     required this.memberCount,
     required this.leaderNames,
     this.description = '',
+    this.memberIds = const [],
+    this.leaderIds = const [],
   });
 
   final int id;
@@ -33,11 +35,39 @@ class Team {
   final List<String> leaderNames;
   final String description;
 
+  /// IDs of members and leaders for pre-filling the team editor sheet.
+  final List<int> memberIds;
+  final List<int> leaderIds;
+
   factory Team.fromJson(Map<String, dynamic> json) {
     List<String> names(String key) => JsonSafe.asObjectList(json[key])
         .map((m) => m is Map ? JsonSafe.asString(m['full_name']) : m.toString())
         .where((n) => n.isNotEmpty)
         .toList();
+
+    List<int> ids(String key, String fallbackKey) {
+      final explicit = json[key];
+      if (explicit is List) {
+        return explicit
+            .map(
+              (m) => m is int
+                  ? m
+                  : (m is Map
+                        ? JsonSafe.asIntOrNull(m['id'])
+                        : int.tryParse(m.toString())),
+            )
+            .whereType<int>()
+            .toList();
+      }
+      return JsonSafe.asObjectList(json[fallbackKey])
+          .map(
+            (m) => m is Map
+                ? JsonSafe.asIntOrNull(m['id'])
+                : (m is int ? m : int.tryParse(m.toString())),
+          )
+          .whereType<int>()
+          .toList();
+    }
 
     final members = json['members'];
     return Team(
@@ -51,6 +81,8 @@ class Team {
           : JsonSafe.asInt(json['member_count']),
       leaderNames: names('leaders'),
       description: JsonSafe.asString(json['description']),
+      memberIds: ids('member_ids', 'members'),
+      leaderIds: ids('leader_ids', 'leaders'),
     );
   }
 }
@@ -300,6 +332,7 @@ class DashboardSummary {
     required this.conversations,
     required this.intelligence,
     this.team,
+    this.recentConversations = const [],
   });
 
   final ConversationMetrics conversations;
@@ -309,6 +342,9 @@ class DashboardSummary {
   /// `analytics.view` — the backend omits the block rather than zeroing it, so
   /// the panel disappears instead of claiming nobody is online.
   final TeamMetrics? team;
+
+  /// Recent activity conversations from `GET /api/dashboard/`.
+  final List<Conversation> recentConversations;
 
   factory DashboardSummary.fromJson(Map<String, dynamic> json) =>
       DashboardSummary(
@@ -321,6 +357,10 @@ class DashboardSummary {
         team: json['team'] is Map
             ? TeamMetrics.fromJson(JsonSafe.asMap(json['team']))
             : null,
+        recentConversations: JsonSafe.parseList(
+          json['recent_conversations'],
+          Conversation.fromJson,
+        ),
       );
 }
 

@@ -128,6 +128,12 @@ abstract class AppLocalizations {
   /// **'Security'**
   String get tabSecurity;
 
+  /// No description provided for @tabAssignment.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignment'**
+  String get tabAssignment;
+
   /// No description provided for @signOutDialogTitle.
   ///
   /// In en, this message translates to:
@@ -1226,6 +1232,198 @@ abstract class AppLocalizations {
   /// **'Nothing assigned right now.'**
   String get nothingAssignedMessage;
 
+  /// No description provided for @recentActivityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent activity'**
+  String get recentActivityTitle;
+
+  /// No description provided for @openInboxButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open inbox'**
+  String get openInboxButton;
+
+  /// No description provided for @noRecentActivityMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent activity yet.'**
+  String get noRecentActivityMessage;
+
+  /// No description provided for @stageNewLead.
+  ///
+  /// In en, this message translates to:
+  /// **'New lead'**
+  String get stageNewLead;
+
+  /// No description provided for @stageQualifiedLead.
+  ///
+  /// In en, this message translates to:
+  /// **'Qualified lead'**
+  String get stageQualifiedLead;
+
+  /// No description provided for @stageHotLead.
+  ///
+  /// In en, this message translates to:
+  /// **'Hot lead'**
+  String get stageHotLead;
+
+  /// No description provided for @stagePurchaseIntent.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase intent'**
+  String get stagePurchaseIntent;
+
+  /// No description provided for @stagePurchased.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchased'**
+  String get stagePurchased;
+
+  /// No description provided for @stageLost.
+  ///
+  /// In en, this message translates to:
+  /// **'Lost'**
+  String get stageLost;
+
+  /// No description provided for @stageDisqualified.
+  ///
+  /// In en, this message translates to:
+  /// **'Disqualified'**
+  String get stageDisqualified;
+
+  /// No description provided for @profileDetailsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal details'**
+  String get profileDetailsSectionTitle;
+
+  /// No description provided for @jobTitleFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Job title'**
+  String get jobTitleFieldLabel;
+
+  /// No description provided for @saveProfileButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Save profile'**
+  String get saveProfileButton;
+
+  /// No description provided for @profileUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile updated'**
+  String get profileUpdatedSnackbar;
+
+  /// No description provided for @profileFirstNameRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'First name cannot be empty.'**
+  String get profileFirstNameRequiredError;
+
+  /// No description provided for @autoAssignmentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic conversation assignment'**
+  String get autoAssignmentTitle;
+
+  /// No description provided for @autoAssignmentDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically routes incoming conversations to available agents based on workload and schedule. Affects new allocatable work only.'**
+  String get autoAssignmentDescription;
+
+  /// No description provided for @autoAssignmentStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get autoAssignmentStatusActive;
+
+  /// No description provided for @autoAssignmentStatusInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get autoAssignmentStatusInactive;
+
+  /// No description provided for @autoAssignmentToggleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable automatic assignment'**
+  String get autoAssignmentToggleLabel;
+
+  /// No description provided for @defaultChatCapacityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Default chat capacity'**
+  String get defaultChatCapacityTitle;
+
+  /// No description provided for @defaultChatCapacityDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum open conversations assigned to an agent at one time.'**
+  String get defaultChatCapacityDescription;
+
+  /// No description provided for @maxOpenChatsFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max open chats'**
+  String get maxOpenChatsFieldLabel;
+
+  /// No description provided for @maxOpenChatsInvalidError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid number greater than 0.'**
+  String get maxOpenChatsInvalidError;
+
+  /// No description provided for @saveCapacityAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Save capacity'**
+  String get saveCapacityAction;
+
+  /// No description provided for @timezoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Time zone'**
+  String get timezoneTitle;
+
+  /// No description provided for @timezoneDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization-level time zone. Changing this reinterprets existing schedules without rewriting them.'**
+  String get timezoneDescription;
+
+  /// No description provided for @timezoneFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Select time zone'**
+  String get timezoneFieldLabel;
+
+  /// No description provided for @saveTimezoneAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Save time zone'**
+  String get saveTimezoneAction;
+
+  /// No description provided for @assignmentPolicyUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignment settings updated'**
+  String get assignmentPolicyUpdatedSnackbar;
+
+  /// No description provided for @routingPolicyLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load assignment settings.'**
+  String get routingPolicyLoadFailed;
+
+  /// No description provided for @routingPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to manage assignment settings.'**
+  String get routingPermissionDenied;
+
   /// No description provided for @openUnreadSummary.
   ///
   /// In en, this message translates to:
@@ -1958,12 +2156,6 @@ abstract class AppLocalizations {
   /// **'Avatar URL'**
   String get avatarUrlFieldLabel;
 
-  /// No description provided for @maxOpenChatsFieldLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Max open chats'**
-  String get maxOpenChatsFieldLabel;
-
   /// No description provided for @newPasswordOptionalFieldLabel.
   ///
   /// In en, this message translates to:
@@ -2042,11 +2234,23 @@ abstract class AppLocalizations {
   /// **'Add team'**
   String get addTeamTitle;
 
+  /// No description provided for @editTeamTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit team'**
+  String get editTeamTitle;
+
   /// No description provided for @teamAddedSnackbar.
   ///
   /// In en, this message translates to:
   /// **'Team added'**
   String get teamAddedSnackbar;
+
+  /// No description provided for @teamUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Team updated'**
+  String get teamUpdatedSnackbar;
 
   /// No description provided for @addTeamNameRequiredError.
   ///
@@ -2089,6 +2293,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load employees.'**
   String get employeesLoadFailedMessage;
+
+  /// No description provided for @deactivateTeamConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate team?'**
+  String get deactivateTeamConfirmTitle;
+
+  /// No description provided for @deactivateTeamConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will no longer be available for routing conversations. Existing conversations and assignment history are kept.'**
+  String deactivateTeamConfirmBody(String name);
+
+  /// No description provided for @teamDeactivatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} deactivated'**
+  String teamDeactivatedSnackbar(String name);
 
   /// No description provided for @rerunAnalysisTooltip.
   ///

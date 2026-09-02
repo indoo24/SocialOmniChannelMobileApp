@@ -24,6 +24,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabSecurity => 'Security';
 
   @override
+  String get tabAssignment => 'Assignment';
+
+  @override
   String get signOutDialogTitle => 'Sign out?';
 
   @override
@@ -609,6 +612,106 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nothingAssignedMessage => 'Nothing assigned right now.';
 
   @override
+  String get recentActivityTitle => 'Recent activity';
+
+  @override
+  String get openInboxButton => 'Open inbox';
+
+  @override
+  String get noRecentActivityMessage => 'No recent activity yet.';
+
+  @override
+  String get stageNewLead => 'New lead';
+
+  @override
+  String get stageQualifiedLead => 'Qualified lead';
+
+  @override
+  String get stageHotLead => 'Hot lead';
+
+  @override
+  String get stagePurchaseIntent => 'Purchase intent';
+
+  @override
+  String get stagePurchased => 'Purchased';
+
+  @override
+  String get stageLost => 'Lost';
+
+  @override
+  String get stageDisqualified => 'Disqualified';
+
+  @override
+  String get profileDetailsSectionTitle => 'Personal details';
+
+  @override
+  String get jobTitleFieldLabel => 'Job title';
+
+  @override
+  String get saveProfileButton => 'Save profile';
+
+  @override
+  String get profileUpdatedSnackbar => 'Profile updated';
+
+  @override
+  String get profileFirstNameRequiredError => 'First name cannot be empty.';
+
+  @override
+  String get autoAssignmentTitle => 'Automatic conversation assignment';
+
+  @override
+  String get autoAssignmentDescription =>
+      'Automatically routes incoming conversations to available agents based on workload and schedule. Affects new allocatable work only.';
+
+  @override
+  String get autoAssignmentStatusActive => 'Active';
+
+  @override
+  String get autoAssignmentStatusInactive => 'Disabled';
+
+  @override
+  String get autoAssignmentToggleLabel => 'Enable automatic assignment';
+
+  @override
+  String get defaultChatCapacityTitle => 'Default chat capacity';
+
+  @override
+  String get defaultChatCapacityDescription =>
+      'Maximum open conversations assigned to an agent at one time.';
+
+  @override
+  String get maxOpenChatsFieldLabel => 'Max open chats';
+
+  @override
+  String get maxOpenChatsInvalidError => 'Enter a valid number greater than 0.';
+
+  @override
+  String get saveCapacityAction => 'Save capacity';
+
+  @override
+  String get timezoneTitle => 'Time zone';
+
+  @override
+  String get timezoneDescription =>
+      'Organization-level time zone. Changing this reinterprets existing schedules without rewriting them.';
+
+  @override
+  String get timezoneFieldLabel => 'Select time zone';
+
+  @override
+  String get saveTimezoneAction => 'Save time zone';
+
+  @override
+  String get assignmentPolicyUpdatedSnackbar => 'Assignment settings updated';
+
+  @override
+  String get routingPolicyLoadFailed => 'Couldn\'t load assignment settings.';
+
+  @override
+  String get routingPermissionDenied =>
+      'You don\'t have permission to manage assignment settings.';
+
+  @override
   String openUnreadSummary(int open, int unread) {
     return '$open open · $unread unread';
   }
@@ -1062,9 +1165,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get avatarUrlFieldLabel => 'Avatar URL';
 
   @override
-  String get maxOpenChatsFieldLabel => 'Max open chats';
-
-  @override
   String get newPasswordOptionalFieldLabel =>
       'New password (leave blank to keep current)';
 
@@ -1109,7 +1209,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addTeamTitle => 'Add team';
 
   @override
+  String get editTeamTitle => 'Edit team';
+
+  @override
   String get teamAddedSnackbar => 'Team added';
+
+  @override
+  String get teamUpdatedSnackbar => 'Team updated';
 
   @override
   String get addTeamNameRequiredError => 'Enter a team name.';
@@ -1131,6 +1237,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get employeesLoadFailedMessage => 'Couldn\'t load employees.';
+
+  @override
+  String get deactivateTeamConfirmTitle => 'Deactivate team?';
+
+  @override
+  String deactivateTeamConfirmBody(String name) {
+    return '$name will no longer be available for routing conversations. Existing conversations and assignment history are kept.';
+  }
+
+  @override
+  String teamDeactivatedSnackbar(String name) {
+    return '$name deactivated';
+  }
 
   @override
   String get rerunAnalysisTooltip => 'Re-run analysis';
