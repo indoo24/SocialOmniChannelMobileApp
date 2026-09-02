@@ -438,6 +438,33 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addNoteAction => 'إضافة ملاحظة';
 
   @override
+  String get replyTab => 'رد';
+
+  @override
+  String get internalNoteTab => 'ملاحظة داخلية';
+
+  @override
+  String get templateTab => 'قالب';
+
+  @override
+  String get notVisibleToCustomer => 'غير مرئي للعميل';
+
+  @override
+  String get notSentToCustomer => 'لن تُرسل للعميل';
+
+  @override
+  String get saveNote => 'حفظ الملاحظة';
+
+  @override
+  String get approvedTemplate => 'قالب معتمد';
+
+  @override
+  String get chooseTemplate => 'اختر قالباً…';
+
+  @override
+  String get sendTemplate => 'إرسال القالب';
+
+  @override
   String get conversationFallbackTitle => 'المحادثة';
 
   @override

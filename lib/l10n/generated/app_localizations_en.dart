@@ -436,6 +436,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addNoteAction => 'Add note';
 
   @override
+  String get replyTab => 'Reply';
+
+  @override
+  String get internalNoteTab => 'Internal note';
+
+  @override
+  String get templateTab => 'Template';
+
+  @override
+  String get notVisibleToCustomer => 'Not visible to customer';
+
+  @override
+  String get notSentToCustomer => 'Not sent to the customer';
+
+  @override
+  String get saveNote => 'Save note';
+
+  @override
+  String get approvedTemplate => 'Approved template';
+
+  @override
+  String get chooseTemplate => 'Choose a template…';
+
+  @override
+  String get sendTemplate => 'Send template';
+
+  @override
   String get conversationFallbackTitle => 'Conversation';
 
   @override

@@ -908,6 +908,60 @@ abstract class AppLocalizations {
   /// **'Add note'**
   String get addNoteAction;
 
+  /// No description provided for @replyTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get replyTab;
+
+  /// No description provided for @internalNoteTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal note'**
+  String get internalNoteTab;
+
+  /// No description provided for @templateTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Template'**
+  String get templateTab;
+
+  /// No description provided for @notVisibleToCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Not visible to customer'**
+  String get notVisibleToCustomer;
+
+  /// No description provided for @notSentToCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent to the customer'**
+  String get notSentToCustomer;
+
+  /// No description provided for @saveNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Save note'**
+  String get saveNote;
+
+  /// No description provided for @approvedTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved template'**
+  String get approvedTemplate;
+
+  /// No description provided for @chooseTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a template…'**
+  String get chooseTemplate;
+
+  /// No description provided for @sendTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Send template'**
+  String get sendTemplate;
+
   /// No description provided for @conversationFallbackTitle.
   ///
   /// In en, this message translates to:
