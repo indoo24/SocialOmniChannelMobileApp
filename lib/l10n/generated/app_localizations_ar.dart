@@ -163,6 +163,79 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get hideChannelAction => 'إخفاء';
+
+  @override
+  String get showChannelAction => 'إظهار';
+
+  @override
+  String hiddenChannelsSectionTitle(int count) {
+    return 'مخفية ($count)';
+  }
+
+  @override
+  String get disconnectChannelAction => 'قطع الاتصال';
+
+  @override
+  String get reconnectChannelAction => 'إعادة الاتصال';
+
+  @override
+  String get checkStatusChannelAction => 'التحقق من الحالة';
+
+  @override
+  String get connectAnotherNumberAction => 'ربط رقم آخر';
+
+  @override
+  String get connectAnotherAccountAction => 'ربط حساب آخر';
+
+  @override
+  String get moreActionsTooltip => 'المزيد من الإجراءات';
+
+  @override
+  String channelIdentifierLabel(String value) {
+    return 'المعرّف: $value';
+  }
+
+  @override
+  String channelConnectedLabel(String when) {
+    return 'تم الربط $when';
+  }
+
+  @override
+  String channelLastActivityLabel(String when) {
+    return 'آخر نشاط $when';
+  }
+
+  @override
+  String get channelNoActivityLabel => 'لا يوجد نشاط بعد';
+
+  @override
+  String disconnectChannelDialogTitle(String channel) {
+    return 'قطع الاتصال بـ $channel؟';
+  }
+
+  @override
+  String get disconnectChannelDialogBody =>
+      'سيؤدي هذا إلى إزالة بيانات الاعتماد المخزّنة. يبقى سجل المحادثات، لكن لا يمكن إرسال أو استقبال رسائل جديدة على هذه القناة حتى تتم إعادة ربطها.';
+
+  @override
+  String channelDisconnectedSnackbar(String channel) {
+    return 'تم قطع الاتصال بـ $channel.';
+  }
+
+  @override
+  String get openingBrowserMessage => 'جارٍ فتح المتصفح…';
+
+  @override
+  String get couldNotOpenBrowserError => 'تعذّر فتح المتصفح لإتمام هذا الربط.';
+
+  @override
+  String get manageFromWebOnlyAction => 'إدارة من تطبيق الويب';
+
+  @override
+  String get manageFromWebOnlyHint => 'هذا الإجراء متاح فقط من تطبيق الويب.';
+
+  @override
   String get noConnectionTitle => 'لا يوجد اتصال';
 
   @override
@@ -438,6 +511,33 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addNoteAction => 'إضافة ملاحظة';
 
   @override
+  String get replyTab => 'رد';
+
+  @override
+  String get internalNoteTab => 'ملاحظة داخلية';
+
+  @override
+  String get templateTab => 'قالب';
+
+  @override
+  String get notVisibleToCustomer => 'غير مرئي للعميل';
+
+  @override
+  String get notSentToCustomer => 'لن تُرسل للعميل';
+
+  @override
+  String get saveNote => 'حفظ الملاحظة';
+
+  @override
+  String get approvedTemplate => 'قالب معتمد';
+
+  @override
+  String get chooseTemplate => 'اختر قالباً…';
+
+  @override
+  String get sendTemplate => 'إرسال القالب';
+
+  @override
   String get conversationFallbackTitle => 'المحادثة';
 
   @override
@@ -451,6 +551,42 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get intelligenceTooltip => 'ذكاء المحادثة';
+
+  @override
+  String get followUpTooltip => 'متابعة';
+
+  @override
+  String get markFollowUpTitle => 'متابعة المحادثة';
+
+  @override
+  String get editFollowUpTitle => 'تعديل المتابعة';
+
+  @override
+  String get followUpSwitchLabel => 'تحديد للمتابعة';
+
+  @override
+  String get followUpDateLabel => 'تاريخ المتابعة';
+
+  @override
+  String get noFollowUpDate => 'لم يُحدَّد تاريخ';
+
+  @override
+  String get clearDate => 'مسح التاريخ';
+
+  @override
+  String get removeFollowUp => 'إلغاء المتابعة';
+
+  @override
+  String get saveFollowUp => 'حفظ';
+
+  @override
+  String get followUpUpdatedMessage => 'تم تحديث المتابعة';
+
+  @override
+  String get followUpClearedMessage => 'تمت إزالة المتابعة';
+
+  @override
+  String get selectDate => 'اختيار تاريخ';
 
   @override
   String get loadingConversation => 'جارٍ تحميل المحادثة…';

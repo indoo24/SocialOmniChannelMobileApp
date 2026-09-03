@@ -225,6 +225,28 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     return matchKey;
   }
 
+  /// Updates the follow-up state of the conversation on the backend and updates
+  /// current state and inbox list immediately.
+  Future<void> updateFollowUp({
+    required bool isFollowUp,
+    String? followUpDate,
+    bool clearFollowUpDate = false,
+  }) async {
+    final updated = await ref
+        .read(conversationRepositoryProvider)
+        .followUp(
+          conversationId,
+          isFollowUp: isFollowUp,
+          followUpDate: followUpDate,
+          clearFollowUpDate: clearFollowUpDate,
+        );
+    final current = state.value;
+    if (current != null) {
+      state = AsyncData(current.copyWith(conversation: updated));
+    }
+    ref.read(inboxControllerProvider.notifier).refreshQuietly();
+  }
+
   /// Send a reply, showing it immediately as pending.
   ///
   /// The optimistic row carries a [Message.localId]; the server's response

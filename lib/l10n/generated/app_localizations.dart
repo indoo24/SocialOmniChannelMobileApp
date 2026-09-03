@@ -368,6 +368,126 @@ abstract class AppLocalizations {
   /// **'Muted by {name}'**
   String channelMutedByLabel(String name);
 
+  /// No description provided for @hideChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get hideChannelAction;
+
+  /// No description provided for @showChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get showChannelAction;
+
+  /// No description provided for @hiddenChannelsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden ({count})'**
+  String hiddenChannelsSectionTitle(int count);
+
+  /// No description provided for @disconnectChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get disconnectChannelAction;
+
+  /// No description provided for @reconnectChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect'**
+  String get reconnectChannelAction;
+
+  /// No description provided for @checkStatusChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Check status'**
+  String get checkStatusChannelAction;
+
+  /// No description provided for @connectAnotherNumberAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect another number'**
+  String get connectAnotherNumberAction;
+
+  /// No description provided for @connectAnotherAccountAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect another account'**
+  String get connectAnotherAccountAction;
+
+  /// No description provided for @moreActionsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get moreActionsTooltip;
+
+  /// No description provided for @channelIdentifierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'ID: {value}'**
+  String channelIdentifierLabel(String value);
+
+  /// No description provided for @channelConnectedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected {when}'**
+  String channelConnectedLabel(String when);
+
+  /// No description provided for @channelLastActivityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last activity {when}'**
+  String channelLastActivityLabel(String when);
+
+  /// No description provided for @channelNoActivityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'No activity yet'**
+  String get channelNoActivityLabel;
+
+  /// No description provided for @disconnectChannelDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect {channel}?'**
+  String disconnectChannelDialogTitle(String channel);
+
+  /// No description provided for @disconnectChannelDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the stored credential. The conversation history stays, but no new messages can be sent or received on this channel until it\'s reconnected.'**
+  String get disconnectChannelDialogBody;
+
+  /// No description provided for @channelDisconnectedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{channel} disconnected.'**
+  String channelDisconnectedSnackbar(String channel);
+
+  /// No description provided for @openingBrowserMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening browser…'**
+  String get openingBrowserMessage;
+
+  /// No description provided for @couldNotOpenBrowserError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the browser for this connection.'**
+  String get couldNotOpenBrowserError;
+
+  /// No description provided for @manageFromWebOnlyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage from web'**
+  String get manageFromWebOnlyAction;
+
+  /// No description provided for @manageFromWebOnlyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is only available from the web app.'**
+  String get manageFromWebOnlyHint;
+
   /// No description provided for @noConnectionTitle.
   ///
   /// In en, this message translates to:
@@ -908,6 +1028,60 @@ abstract class AppLocalizations {
   /// **'Add note'**
   String get addNoteAction;
 
+  /// No description provided for @replyTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get replyTab;
+
+  /// No description provided for @internalNoteTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal note'**
+  String get internalNoteTab;
+
+  /// No description provided for @templateTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Template'**
+  String get templateTab;
+
+  /// No description provided for @notVisibleToCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Not visible to customer'**
+  String get notVisibleToCustomer;
+
+  /// No description provided for @notSentToCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent to the customer'**
+  String get notSentToCustomer;
+
+  /// No description provided for @saveNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Save note'**
+  String get saveNote;
+
+  /// No description provided for @approvedTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved template'**
+  String get approvedTemplate;
+
+  /// No description provided for @chooseTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a template…'**
+  String get chooseTemplate;
+
+  /// No description provided for @sendTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Send template'**
+  String get sendTemplate;
+
   /// No description provided for @conversationFallbackTitle.
   ///
   /// In en, this message translates to:
@@ -937,6 +1111,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Conversation intelligence'**
   String get intelligenceTooltip;
+
+  /// No description provided for @followUpTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow up'**
+  String get followUpTooltip;
+
+  /// No description provided for @markFollowUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow up'**
+  String get markFollowUpTitle;
+
+  /// No description provided for @editFollowUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit follow-up'**
+  String get editFollowUpTitle;
+
+  /// No description provided for @followUpSwitchLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as follow-up'**
+  String get followUpSwitchLabel;
+
+  /// No description provided for @followUpDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up date'**
+  String get followUpDateLabel;
+
+  /// No description provided for @noFollowUpDate.
+  ///
+  /// In en, this message translates to:
+  /// **'No date set'**
+  String get noFollowUpDate;
+
+  /// No description provided for @clearDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear date'**
+  String get clearDate;
+
+  /// No description provided for @removeFollowUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove follow-up'**
+  String get removeFollowUp;
+
+  /// No description provided for @saveFollowUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get saveFollowUp;
+
+  /// No description provided for @followUpUpdatedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up updated'**
+  String get followUpUpdatedMessage;
+
+  /// No description provided for @followUpClearedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up removed'**
+  String get followUpClearedMessage;
+
+  /// No description provided for @selectDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Select date'**
+  String get selectDate;
 
   /// No description provided for @loadingConversation.
   ///

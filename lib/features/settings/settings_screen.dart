@@ -10,6 +10,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/models/directory.dart';
@@ -18,6 +19,7 @@ import '../../core/models/routing_policy.dart';
 import '../../core/preferences/preferences_controller.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
+import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/app_drawer.dart';
@@ -646,17 +648,24 @@ class _SecurityTabState extends ConsumerState<_SecurityTab> {
 // --------------------------------------------------------------------------- //
 // Channels
 // --------------------------------------------------------------------------- //
-/// Connected platforms, read-only.
+/// Connected platforms: status, activity, and the actions the backend
+/// actually exposes per provider.
 ///
-/// Connecting one is an OAuth flow against Meta that belongs on the web, where
-/// the redirect URI is whitelisted; showing its status here is what an on-call
-/// supervisor actually needs when replies start failing.
+/// Onboarding a *new* channel from scratch (the Meta app-review-gated OAuth
+/// dialogs) still starts here rather than a native form — every connect
+/// action below hands off to a browser and completes server-side against
+/// `/integrations/{provider}/callback/`, the same way the web client's popup
+/// does. What changed from the previous read-only version is that connecting
+/// *another* account for a provider already on this list, disconnecting one,
+/// and (for WhatsApp) re-checking readiness are all real, path-only backend
+/// calls with no OAuth redirect of their own — so those now happen in-app.
 class _ChannelsTab extends ConsumerWidget {
   const _ChannelsTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final channels = ref.watch(channelsProvider);
+    final hidden = ref.watch(hiddenChannelsProvider);
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -685,14 +694,59 @@ class _ChannelsTab extends ConsumerWidget {
             );
           }
 
-          return ListView.separated(
+          final visible = [
+            for (final c in rows)
+              if (!hidden.contains(c.id)) c,
+          ];
+          final hiddenRows = [
+            for (final c in rows)
+              if (hidden.contains(c.id)) c,
+          ];
+
+          return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(Space.lg),
-            itemCount: rows.length,
-            separatorBuilder: (_, _) => const SizedBox(height: Space.md),
-            itemBuilder: (context, index) => _ChannelCard(channel: rows[index]),
+            children: [
+              for (final channel in visible) ...[
+                _ChannelCard(channel: channel),
+                const SizedBox(height: Space.md),
+              ],
+              if (hiddenRows.isNotEmpty)
+                _HiddenChannelsSection(channels: hiddenRows),
+            ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _HiddenChannelsSection extends ConsumerWidget {
+  const _HiddenChannelsSection({required this.channels});
+
+  final List<ChannelConnection> channels;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: Space.sm),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: EdgeInsets.zero,
+        title: Text(
+          context.l10n.hiddenChannelsSectionTitle(channels.length),
+          style: theme.textTheme.labelSmall?.copyWith(
+            letterSpacing: 0.6,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        children: [
+          for (final channel in channels) ...[
+            _ChannelCard(channel: channel),
+            const SizedBox(height: Space.md),
+          ],
+        ],
       ),
     );
   }
@@ -720,15 +774,16 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
     );
   }
 
-  Future<void> _toggleMute() async {
+  /// Runs one backend action with the shared busy-guard/error-handling shape
+  /// every card action needs, then refreshes the list from the server rather
+  /// than patching local state — a disconnect or reconnect can change fields
+  /// (`status`, `has_credentials`, `connected_at`, ...) beyond whatever the
+  /// single action's own response happens to carry.
+  Future<void> _run(Future<void> Function() action) async {
+    if (_busy) return;
     setState(() => _busy = true);
     try {
-      final repository = ref.read(directoryRepositoryProvider);
-      if (widget.channel.isMuted) {
-        await repository.unmuteChannel(widget.channel.id);
-      } else {
-        await repository.muteChannel(widget.channel.id);
-      }
+      await action();
       ref.invalidate(channelsProvider);
     } on ApiException catch (error) {
       _showMessage(error.message, isError: true);
@@ -737,7 +792,17 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
     }
   }
 
+  Future<void> _toggleMute() => _run(() async {
+    final repository = ref.read(directoryRepositoryProvider);
+    if (widget.channel.isMuted) {
+      await repository.unmuteChannel(widget.channel.id);
+    } else {
+      await repository.muteChannel(widget.channel.id);
+    }
+  });
+
   Future<void> _test() async {
+    if (_busy) return;
     setState(() => _busy = true);
     try {
       final result = await ref
@@ -754,11 +819,124 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
     }
   }
 
+  Future<void> _checkStatus() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final result = await ref
+          .read(directoryRepositoryProvider)
+          .checkWhatsAppStatus(widget.channel.id);
+      ref.invalidate(channelsProvider);
+      _showMessage(result.detail);
+    } on ApiException catch (error) {
+      _showMessage(error.message, isError: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _disconnect() async {
+    final channel = widget.channel;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          dialogContext.l10n.disconnectChannelDialogTitle(
+            channel.displayName.isEmpty
+                ? ConversationBadges.providerLabel(
+                    dialogContext,
+                    channel.provider,
+                  )
+                : channel.displayName,
+          ),
+        ),
+        content: Text(dialogContext.l10n.disconnectChannelDialogBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(dialogContext.l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(dialogContext.l10n.disconnectChannelAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    await _run(() async {
+      final repository = ref.read(directoryRepositoryProvider);
+      switch (channel.provider) {
+        case 'WHATSAPP':
+          await repository.disconnectWhatsApp(channel.id);
+        case 'INSTAGRAM':
+          await repository.disconnectInstagram(channel.id);
+        case 'FACEBOOK':
+          await repository.disconnectMeta(channel.id);
+        case 'TIKTOK':
+          await repository.disconnectTikTok(channel.id);
+      }
+    });
+
+    if (mounted) {
+      _showMessage(
+        context.l10n.channelDisconnectedSnackbar(
+          channel.displayName.isEmpty
+              ? ConversationBadges.providerLabel(context, channel.provider)
+              : channel.displayName,
+        ),
+      );
+    }
+  }
+
+  /// Fetches a fresh `authorization_url` for the given provider and opens it
+  /// in the system browser. The org is sealed into a signed, expiring state
+  /// token server-side, so nothing the app sends chooses which workspace a
+  /// completed connection attaches to — same completion path
+  /// (`/integrations/{provider}/callback/`) the web popup uses.
+  Future<void> _connectAnother(
+    Future<ChannelAuthorizationUrl> Function() fetchUrl,
+  ) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final result = await fetchUrl();
+      final uri = Uri.tryParse(result.url);
+      if (uri == null || !uri.hasScheme) {
+        if (!mounted) return;
+        _showMessage(context.l10n.couldNotOpenBrowserError, isError: true);
+        return;
+      }
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened) {
+        if (!mounted) return;
+        _showMessage(context.l10n.couldNotOpenBrowserError, isError: true);
+        return;
+      }
+      // The redirect completes outside the app (browser → Meta/TikTok →
+      // `/integrations/*/callback/`), so there is no response here to apply —
+      // refreshing now mainly clears any stale error state; the new channel
+      // shows up once the employee returns and pulls to refresh.
+      ref.invalidate(channelsProvider);
+    } on ApiException catch (error) {
+      _showMessage(error.message, isError: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final channel = widget.channel;
     final canManage = ref.watch(canProvider(Perm.channelManage));
+    final isHidden = ref.watch(
+      hiddenChannelsProvider.select((h) => h.contains(channel.id)),
+    );
     final (label, tone) = switch (channel.status) {
       'CONNECTED' => (context.l10n.channelStatusConnected, BadgeTone.success),
       'DEGRADED' => (context.l10n.channelStatusDegraded, BadgeTone.warning),
@@ -779,12 +957,26 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
           children: [
             Row(
               children: [
+                Icon(
+                  ConversationBadges.providerIcon(channel.provider),
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: Space.sm),
                 Expanded(
                   child: Text(
-                    ConversationBadges.providerLabel(context, channel.provider),
+                    channel.providerDisplay.isEmpty
+                        ? ConversationBadges.providerLabel(
+                            context,
+                            channel.provider,
+                          )
+                        : channel.providerDisplay,
                     style: theme.textTheme.titleMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: Space.xs),
                 if (channel.isMuted) ...[
                   StatusBadge(
                     label: context.l10n.channelMutedLabel,
@@ -799,15 +991,49 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
             Text(
               channel.displayName.isEmpty ? '—' : channel.displayName,
               style: theme.textTheme.bodySmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
+            if (channel.externalAccountId.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                context.l10n.channelIdentifierLabel(channel.externalAccountId),
+                style: theme.textTheme.labelSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
             if (channel.statusDetail.isNotEmpty) ...[
               const SizedBox(height: Space.sm),
               Text(channel.statusDetail, style: theme.textTheme.bodySmall),
             ],
             const SizedBox(height: Space.sm),
-            Text(
-              context.l10n.channelConversationCount(channel.conversationCount),
-              style: theme.textTheme.labelSmall,
+            Wrap(
+              spacing: Space.sm,
+              runSpacing: 2,
+              children: [
+                Text(
+                  context.l10n.channelConversationCount(
+                    channel.conversationCount,
+                  ),
+                  style: theme.textTheme.labelSmall,
+                ),
+                if (channel.connectedAt != null)
+                  Text(
+                    context.l10n.channelConnectedLabel(
+                      formatRelativeTime(context, channel.connectedAt),
+                    ),
+                    style: theme.textTheme.labelSmall,
+                  ),
+                Text(
+                  channel.lastMessageAt != null
+                      ? context.l10n.channelLastActivityLabel(
+                          formatRelativeTime(context, channel.lastMessageAt),
+                        )
+                      : context.l10n.channelNoActivityLabel,
+                  style: theme.textTheme.labelSmall,
+                ),
+              ],
             ),
             if (channel.isMuted && channel.mutedByName.isNotEmpty) ...[
               const SizedBox(height: Space.xs),
@@ -816,45 +1042,168 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
                 style: theme.textTheme.labelSmall,
               ),
             ],
-            if (canManage) ...[
-              const SizedBox(height: Space.md),
-              if (_busy) const LinearProgressIndicator(minHeight: 2),
+            const SizedBox(height: Space.md),
+            if (_busy) ...[
+              const LinearProgressIndicator(minHeight: 2),
               const SizedBox(height: Space.sm),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _busy ? null : _toggleMute,
-                      icon: Icon(
-                        channel.isMuted
-                            ? Icons.notifications_active_outlined
-                            : Icons.notifications_off_outlined,
-                        size: 16,
-                      ),
-                      label: Text(
-                        channel.isMuted
-                            ? context.l10n.unmuteChannelAction
-                            : context.l10n.muteChannelAction,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: Space.sm),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _busy ? null : _test,
-                      icon: const Icon(Icons.network_check, size: 16),
-                      label: Text(context.l10n.testChannelAction),
-                    ),
-                  ),
-                ],
-              ),
             ],
+            _ChannelActionsRow(
+              channel: channel,
+              canManage: canManage,
+              busy: _busy,
+              isHidden: isHidden,
+              onToggleHidden: () =>
+                  ref.read(hiddenChannelsProvider.notifier).toggle(channel.id),
+              onTest: _test,
+              onToggleMute: _toggleMute,
+              onCheckStatus: channel.provider == 'WHATSAPP'
+                  ? _checkStatus
+                  : null,
+              onDisconnect: _disconnect,
+              onConnectAnother: () =>
+                  _connectAnother(switch (channel.provider) {
+                    'WHATSAPP' =>
+                      ref
+                          .read(directoryRepositoryProvider)
+                          .startWhatsAppEmbeddedSignupMobile,
+                    'INSTAGRAM' =>
+                      ref.read(directoryRepositoryProvider).authorizeInstagram,
+                    'FACEBOOK' =>
+                      ref.read(directoryRepositoryProvider).connectMeta,
+                    'TIKTOK' =>
+                      ref.read(directoryRepositoryProvider).authorizeTikTok,
+                    _ => () => throw StateError(
+                      'No connect flow for provider ${channel.provider}',
+                    ),
+                  }),
+            ),
           ],
         ),
       ),
     );
   }
 }
+
+/// Compact primary actions (Test, Mute/Hide) plus an overflow menu for the
+/// rest — the shape the task calls for on a one-handed mobile card, versus
+/// the web's row of separate buttons. Every write action is gated on
+/// `canManage` (`Perm.channelManage`); Hide is presentation-only and needs no
+/// permission, matching Mute's own view/manage split one level up (the tab
+/// itself already requires `channel.view` to be visible at all).
+class _ChannelActionsRow extends StatelessWidget {
+  const _ChannelActionsRow({
+    required this.channel,
+    required this.canManage,
+    required this.busy,
+    required this.isHidden,
+    required this.onToggleHidden,
+    required this.onTest,
+    required this.onToggleMute,
+    required this.onCheckStatus,
+    required this.onDisconnect,
+    required this.onConnectAnother,
+  });
+
+  final ChannelConnection channel;
+  final bool canManage;
+  final bool busy;
+  final bool isHidden;
+  final VoidCallback onToggleHidden;
+  final VoidCallback onTest;
+  final VoidCallback onToggleMute;
+  final VoidCallback? onCheckStatus;
+  final VoidCallback onDisconnect;
+  final VoidCallback onConnectAnother;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        if (canManage)
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: busy ? null : onTest,
+              icon: const Icon(Icons.network_check, size: 16),
+              label: Text(context.l10n.testChannelAction),
+            ),
+          ),
+        if (canManage) const SizedBox(width: Space.sm),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: busy
+                ? null
+                : (canManage ? onToggleMute : onToggleHidden),
+            icon: Icon(
+              canManage
+                  ? (channel.isMuted
+                        ? Icons.notifications_active_outlined
+                        : Icons.notifications_off_outlined)
+                  : (isHidden
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined),
+              size: 16,
+            ),
+            label: Text(
+              canManage
+                  ? (channel.isMuted
+                        ? context.l10n.unmuteChannelAction
+                        : context.l10n.muteChannelAction)
+                  : (isHidden
+                        ? context.l10n.showChannelAction
+                        : context.l10n.hideChannelAction),
+            ),
+          ),
+        ),
+        if (canManage) ...[
+          const SizedBox(width: Space.sm),
+          PopupMenuButton<_ChannelOverflowAction>(
+            enabled: !busy,
+            tooltip: context.l10n.moreActionsTooltip,
+            icon: const Icon(Icons.more_vert),
+            onSelected: (action) => switch (action) {
+              _ChannelOverflowAction.hide => onToggleHidden(),
+              _ChannelOverflowAction.checkStatus => onCheckStatus?.call(),
+              _ChannelOverflowAction.connectAnother => onConnectAnother(),
+              _ChannelOverflowAction.disconnect => onDisconnect(),
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: _ChannelOverflowAction.hide,
+                child: Text(
+                  isHidden
+                      ? context.l10n.showChannelAction
+                      : context.l10n.hideChannelAction,
+                ),
+              ),
+              if (onCheckStatus != null)
+                PopupMenuItem(
+                  value: _ChannelOverflowAction.checkStatus,
+                  child: Text(context.l10n.checkStatusChannelAction),
+                ),
+              PopupMenuItem(
+                value: _ChannelOverflowAction.connectAnother,
+                child: Text(
+                  channel.provider == 'WHATSAPP'
+                      ? context.l10n.connectAnotherNumberAction
+                      : context.l10n.connectAnotherAccountAction,
+                ),
+              ),
+              PopupMenuItem(
+                value: _ChannelOverflowAction.disconnect,
+                child: Text(
+                  context.l10n.disconnectChannelAction,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+enum _ChannelOverflowAction { hide, checkStatus, connectAnother, disconnect }
 
 // --------------------------------------------------------------------------- //
 // Assignment — automatic routing, capacity and timezone

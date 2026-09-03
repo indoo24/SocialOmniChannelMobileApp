@@ -157,13 +157,53 @@ class InternalNote {
   final String authorInitials;
   final DateTime createdAt;
 
-  factory InternalNote.fromJson(Map<String, dynamic> json) => InternalNote(
-    id: JsonSafe.asInt(json['id'], fallback: -1),
-    body: JsonSafe.asString(json['body']),
-    authorName: JsonSafe.asString(json['author_name']),
-    authorInitials: JsonSafe.asString(json['author_initials']),
-    createdAt:
-        DateTime.tryParse(JsonSafe.asString(json['created_at']))?.toLocal() ??
-        DateTime.now(),
-  );
+  factory InternalNote.fromJson(Map<String, dynamic> json) {
+    final body = JsonSafe.asString(
+      json['body'] ??
+          json['note'] ??
+          json['text'] ??
+          json['content'] ??
+          json['message'],
+    );
+
+    String authorName = JsonSafe.asString(json['author_name']);
+    String authorInitials = JsonSafe.asString(json['author_initials']);
+
+    if (authorName.isEmpty && json['author'] is Map<String, dynamic>) {
+      final authorMap = json['author'] as Map<String, dynamic>;
+      final first = JsonSafe.asString(authorMap['first_name']);
+      final last = JsonSafe.asString(authorMap['last_name']);
+      final full = '$first $last'.trim();
+      authorName = full.isNotEmpty
+          ? full
+          : JsonSafe.asString(
+              authorMap['name'] ??
+                  authorMap['display_name'] ??
+                  authorMap['email'],
+            );
+      authorInitials = JsonSafe.asString(authorMap['initials']);
+    }
+
+    if (authorName.isEmpty) {
+      authorName = JsonSafe.asString(
+        json['created_by_name'] ??
+            json['author'] ??
+            json['creator_name'] ??
+            json['employee_name'] ??
+            json['user_name'],
+      );
+    }
+
+    return InternalNote(
+      id: JsonSafe.asInt(json['id'], fallback: -1),
+      body: body,
+      authorName: authorName,
+      authorInitials: authorInitials,
+      createdAt:
+          DateTime.tryParse(
+            JsonSafe.asString(json['created_at'] ?? json['createdAt']),
+          )?.toLocal() ??
+          DateTime.now(),
+    );
+  }
 }

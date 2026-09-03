@@ -212,6 +212,89 @@ class DirectoryRepository {
     return ChannelTestResult.fromJson(data);
   }
 
+  // ------------------------------------------------------- integrations
+  // Disconnect destroys the stored credential; the connection row and every
+  // conversation it carried survive, deactivated. `channel.manage` server-side
+  // on every one of these. No request body — the id in the path is the only
+  // input the endpoint takes.
+  Future<ChannelConnectionState> disconnectInstagram(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/instagram/$channelId/disconnect/',
+    );
+    return ChannelConnectionState.fromJson(data);
+  }
+
+  Future<ChannelConnectionState> disconnectMeta(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/meta/$channelId/disconnect/',
+    );
+    return ChannelConnectionState.fromJson(data);
+  }
+
+  Future<ChannelConnectionState> disconnectTikTok(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/tiktok/$channelId/disconnect/',
+    );
+    return ChannelConnectionState.fromJson(data);
+  }
+
+  Future<ChannelConnectionState> disconnectWhatsApp(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/whatsapp/$channelId/disconnect/',
+    );
+    return ChannelConnectionState.fromJson(data);
+  }
+
+  /// Asks Meta whether this WhatsApp number can send/receive yet and updates
+  /// the channel accordingly. A read — it changes nothing at Meta.
+  Future<WhatsAppChannelStatus> checkWhatsAppStatus(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/whatsapp/$channelId/check-status/',
+    );
+    return WhatsAppChannelStatus.fromJson(data);
+  }
+
+  /// Begins **Business Login for Instagram** — a different product from
+  /// [connectMeta]'s Page-based flow. Returns the URL to open in a browser;
+  /// Instagram redirects back to `/integrations/instagram/callback/` server-side.
+  Future<ChannelAuthorizationUrl> authorizeInstagram() async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/instagram/authorize/',
+    );
+    return ChannelAuthorizationUrl.fromJson(data);
+  }
+
+  /// Begins the Meta OAuth dialog — covers Messenger and Page-linked
+  /// Instagram. Returns the URL to open in a browser; Meta redirects back to
+  /// `/integrations/meta/callback/` server-side.
+  Future<ChannelAuthorizationUrl> connectMeta() async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/meta/connect/',
+    );
+    return ChannelAuthorizationUrl.fromJson(data);
+  }
+
+  /// Begins TikTok Business Account authorization. Returns the URL to open
+  /// in a browser; TikTok redirects back to
+  /// `/integrations/tiktok/account/callback/` server-side.
+  Future<ChannelAuthorizationUrl> authorizeTikTok() async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/tiktok/authorize/',
+    );
+    return ChannelAuthorizationUrl.fromJson(data);
+  }
+
+  /// Begins WhatsApp Embedded Signup for a device that navigates the tab
+  /// rather than opening a popup — the mobile-shaped counterpart of the
+  /// web popup flow. Returns the URL to open in a browser; Meta redirects
+  /// back to `/integrations/meta/callback/` server-side.
+  Future<ChannelAuthorizationUrl> startWhatsAppEmbeddedSignupMobile() async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/whatsapp/embedded-signup/mobile/start/',
+    );
+    return ChannelAuthorizationUrl.fromJson(data);
+  }
+
   /// The conversation-category taxonomy. Open to any active employee, and
   /// not paginated — every role that can see a conversation needs to be able
   /// to render and filter by its category.

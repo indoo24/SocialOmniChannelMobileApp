@@ -75,6 +75,57 @@
     }
   },
 
+  "hideChannelAction": "Hide",
+  "showChannelAction": "Show",
+  "hiddenChannelsSectionTitle": "Hidden ({count})",
+  "@hiddenChannelsSectionTitle": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "disconnectChannelAction": "Disconnect",
+  "reconnectChannelAction": "Reconnect",
+  "checkStatusChannelAction": "Check status",
+  "connectAnotherNumberAction": "Connect another number",
+  "connectAnotherAccountAction": "Connect another account",
+  "moreActionsTooltip": "More actions",
+  "channelIdentifierLabel": "ID: {value}",
+  "@channelIdentifierLabel": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "channelConnectedLabel": "Connected {when}",
+  "@channelConnectedLabel": {
+    "placeholders": {
+      "when": {"type": "String"}
+    }
+  },
+  "channelLastActivityLabel": "Last activity {when}",
+  "@channelLastActivityLabel": {
+    "placeholders": {
+      "when": {"type": "String"}
+    }
+  },
+  "channelNoActivityLabel": "No activity yet",
+  "disconnectChannelDialogTitle": "Disconnect {channel}?",
+  "@disconnectChannelDialogTitle": {
+    "placeholders": {
+      "channel": {"type": "String"}
+    }
+  },
+  "disconnectChannelDialogBody": "This removes the stored credential. The conversation history stays, but no new messages can be sent or received on this channel until it's reconnected.",
+  "channelDisconnectedSnackbar": "{channel} disconnected.",
+  "@channelDisconnectedSnackbar": {
+    "placeholders": {
+      "channel": {"type": "String"}
+    }
+  },
+  "openingBrowserMessage": "Opening browser…",
+  "couldNotOpenBrowserError": "Couldn't open the browser for this connection.",
+  "manageFromWebOnlyAction": "Manage from web",
+  "manageFromWebOnlyHint": "This action is only available from the web app.",
+
   "noConnectionTitle": "No connection",
   "genericErrorTitle": "Something went wrong",
   "genericErrorFallbackMessage": "Please try again.",
@@ -185,12 +236,33 @@
   "internalNotesEmpty": "No internal notes yet.",
   "internalNoteInputHint": "Add a note for your team…",
   "addNoteAction": "Add note",
+  "replyTab": "Reply",
+  "internalNoteTab": "Internal note",
+  "templateTab": "Template",
+  "notVisibleToCustomer": "Not visible to customer",
+  "notSentToCustomer": "Not sent to the customer",
+  "saveNote": "Save note",
+  "approvedTemplate": "Approved template",
+  "chooseTemplate": "Choose a template…",
+  "sendTemplate": "Send template",
 
   "conversationFallbackTitle": "Conversation",
   "customerDetailsTooltip": "Customer details",
   "actionsTooltip": "Actions",
   "ordersTooltip": "Orders and customer details",
   "intelligenceTooltip": "Conversation intelligence",
+  "followUpTooltip": "Follow up",
+  "markFollowUpTitle": "Follow up",
+  "editFollowUpTitle": "Edit follow-up",
+  "followUpSwitchLabel": "Mark as follow-up",
+  "followUpDateLabel": "Follow-up date",
+  "noFollowUpDate": "No date set",
+  "clearDate": "Clear date",
+  "removeFollowUp": "Remove follow-up",
+  "saveFollowUp": "Save",
+  "followUpUpdatedMessage": "Follow-up updated",
+  "followUpClearedMessage": "Follow-up removed",
+  "selectDate": "Select date",
   "loadingConversation": "Loading conversation…",
   "noMessagesYetTitle": "No messages yet",
   "noMessagesYetMessage": "This conversation has no history.",

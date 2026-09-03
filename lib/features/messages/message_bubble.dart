@@ -72,10 +72,7 @@ class MessageBubble extends StatelessWidget {
         : theme.colorScheme.onSurface;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Space.md,
-        vertical: Space.xs,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: Space.md, vertical: 3),
       child: Row(
         mainAxisAlignment: isMine
             ? MainAxisAlignment.end
@@ -96,19 +93,15 @@ class MessageBubble extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: Space.md,
-                        vertical: Space.sm,
+                        vertical: 10,
                       ),
                       decoration: BoxDecoration(
                         color: background,
                         borderRadius: BorderRadius.only(
-                          topLeft: const Radius.circular(Radii.lg),
-                          topRight: const Radius.circular(Radii.lg),
-                          bottomLeft: Radius.circular(
-                            isMine ? Radii.lg : Radii.sm,
-                          ),
-                          bottomRight: Radius.circular(
-                            isMine ? Radii.sm : Radii.lg,
-                          ),
+                          topLeft: const Radius.circular(16),
+                          topRight: const Radius.circular(16),
+                          bottomLeft: Radius.circular(isMine ? 16 : 4),
+                          bottomRight: Radius.circular(isMine ? 4 : 16),
                         ),
                         border: isMine && !failed
                             ? null
@@ -119,6 +112,17 @@ class MessageBubble extends StatelessWidget {
                                       )
                                     : theme.colorScheme.outline,
                               ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: theme.brightness == Brightness.dark
+                                  ? 0.15
+                                  : 0.03,
+                            ),
+                            blurRadius: 3,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,6 +134,7 @@ class MessageBubble extends StatelessWidget {
                               message.text,
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: foreground,
+                                height: 1.35,
                               ),
                             ),
                         ],
@@ -137,7 +142,10 @@ class MessageBubble extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 3),
-                  _MetaRow(message: message),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: _MetaRow(message: message),
+                  ),
                   if (failed) ...[
                     const SizedBox(height: Space.xs),
                     _FailureActions(
@@ -173,7 +181,13 @@ class _MetaRow extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(labels.join(' · '), style: theme.textTheme.labelSmall),
+        Text(
+          labels.join(' · '),
+          style: theme.textTheme.labelSmall?.copyWith(
+            fontSize: 11,
+            color: theme.textTheme.labelSmall?.color?.withValues(alpha: 0.75),
+          ),
+        ),
         if (message.isOutbound) ...[
           const SizedBox(width: 4),
           _DeliveryIcon(message: message),
