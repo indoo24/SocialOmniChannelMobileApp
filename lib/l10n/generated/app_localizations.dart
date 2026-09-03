@@ -368,6 +368,126 @@ abstract class AppLocalizations {
   /// **'Muted by {name}'**
   String channelMutedByLabel(String name);
 
+  /// No description provided for @hideChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get hideChannelAction;
+
+  /// No description provided for @showChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get showChannelAction;
+
+  /// No description provided for @hiddenChannelsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden ({count})'**
+  String hiddenChannelsSectionTitle(int count);
+
+  /// No description provided for @disconnectChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get disconnectChannelAction;
+
+  /// No description provided for @reconnectChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect'**
+  String get reconnectChannelAction;
+
+  /// No description provided for @checkStatusChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Check status'**
+  String get checkStatusChannelAction;
+
+  /// No description provided for @connectAnotherNumberAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect another number'**
+  String get connectAnotherNumberAction;
+
+  /// No description provided for @connectAnotherAccountAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect another account'**
+  String get connectAnotherAccountAction;
+
+  /// No description provided for @moreActionsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get moreActionsTooltip;
+
+  /// No description provided for @channelIdentifierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'ID: {value}'**
+  String channelIdentifierLabel(String value);
+
+  /// No description provided for @channelConnectedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected {when}'**
+  String channelConnectedLabel(String when);
+
+  /// No description provided for @channelLastActivityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last activity {when}'**
+  String channelLastActivityLabel(String when);
+
+  /// No description provided for @channelNoActivityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'No activity yet'**
+  String get channelNoActivityLabel;
+
+  /// No description provided for @disconnectChannelDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect {channel}?'**
+  String disconnectChannelDialogTitle(String channel);
+
+  /// No description provided for @disconnectChannelDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the stored credential. The conversation history stays, but no new messages can be sent or received on this channel until it\'s reconnected.'**
+  String get disconnectChannelDialogBody;
+
+  /// No description provided for @channelDisconnectedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{channel} disconnected.'**
+  String channelDisconnectedSnackbar(String channel);
+
+  /// No description provided for @openingBrowserMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening browser…'**
+  String get openingBrowserMessage;
+
+  /// No description provided for @couldNotOpenBrowserError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the browser for this connection.'**
+  String get couldNotOpenBrowserError;
+
+  /// No description provided for @manageFromWebOnlyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage from web'**
+  String get manageFromWebOnlyAction;
+
+  /// No description provided for @manageFromWebOnlyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is only available from the web app.'**
+  String get manageFromWebOnlyHint;
+
   /// No description provided for @noConnectionTitle.
   ///
   /// In en, this message translates to:

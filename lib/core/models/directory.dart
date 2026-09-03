@@ -155,16 +155,33 @@ class ChannelConnection {
     required this.displayName,
     required this.status,
     required this.isActive,
+    this.providerDisplay = '',
+    this.externalAccountId = '',
+    this.avatarUrl = '',
     this.statusDetail = '',
     this.conversationCount = 0,
     this.isMuted = false,
     this.mutedAt,
     this.mutedByName = '',
+    this.hasCredentials = false,
+    this.isOperational = false,
+    this.tokenExpiresAt,
+    this.tokenDaysRemaining,
+    this.connectedAt,
+    this.lastSyncAt,
+    this.lastMessageAt,
   });
 
   final int id;
   final String provider;
+  final String providerDisplay;
   final String displayName;
+
+  /// The provider's own identifier for this account — a WhatsApp phone
+  /// number id, a Page id, and so on. Never a credential: the backend never
+  /// includes a token or secret in this payload.
+  final String externalAccountId;
+  final String avatarUrl;
   final String status;
   final bool isActive;
   final String statusDetail;
@@ -180,11 +197,32 @@ class ChannelConnection {
   /// employee.
   final String mutedByName;
 
+  /// Whether a credential is currently stored. False after a disconnect, or
+  /// before one is ever attached.
+  final bool hasCredentials;
+
+  /// Whether this platform can actually exchange messages yet — distinct
+  /// from [isConnected], which only reflects Scenario's own record of the
+  /// connection.
+  final bool isOperational;
+
+  /// Metadata about the stored credential's expiry, refreshed by an hourly
+  /// server-side sweep from Meta's own `debug_token`. Never the token itself.
+  final DateTime? tokenExpiresAt;
+  final int? tokenDaysRemaining;
+
+  final DateTime? connectedAt;
+  final DateTime? lastSyncAt;
+  final DateTime? lastMessageAt;
+
   factory ChannelConnection.fromJson(Map<String, dynamic> json) =>
       ChannelConnection(
         id: JsonSafe.asInt(json['id'], fallback: -1),
         provider: JsonSafe.asString(json['provider']),
+        providerDisplay: JsonSafe.asString(json['provider_display']),
         displayName: JsonSafe.asString(json['display_name']),
+        externalAccountId: JsonSafe.asString(json['external_account_id']),
+        avatarUrl: JsonSafe.asString(json['avatar_url']),
         status: JsonSafe.asString(json['status'], fallback: 'PENDING'),
         isActive: JsonSafe.asBool(json['is_active']),
         statusDetail: JsonSafe.asString(json['status_detail']),
@@ -192,6 +230,17 @@ class ChannelConnection {
         isMuted: JsonSafe.asBool(json['is_muted']),
         mutedAt: DateTime.tryParse(JsonSafe.asString(json['muted_at'])),
         mutedByName: JsonSafe.asString(json['muted_by_name']),
+        hasCredentials: JsonSafe.asBool(json['has_credentials']),
+        isOperational: JsonSafe.asBool(json['is_operational']),
+        tokenExpiresAt: DateTime.tryParse(
+          JsonSafe.asString(json['token_expires_at']),
+        ),
+        tokenDaysRemaining: JsonSafe.asIntOrNull(json['token_days_remaining']),
+        connectedAt: DateTime.tryParse(JsonSafe.asString(json['connected_at'])),
+        lastSyncAt: DateTime.tryParse(JsonSafe.asString(json['last_sync_at'])),
+        lastMessageAt: DateTime.tryParse(
+          JsonSafe.asString(json['last_message_at']),
+        ),
       );
 
   bool get isConnected => status == 'CONNECTED';
@@ -210,6 +259,62 @@ class ChannelTestResult {
       ChannelTestResult(
         ok: JsonSafe.asBool(json['ok']),
         detail: JsonSafe.asString(json['detail']),
+      );
+}
+
+/// The result of a provider disconnect (`POST
+/// /integrations/{provider}/{id}/disconnect/`). The connection row survives,
+/// deactivated — this is not a delete.
+class ChannelConnectionState {
+  const ChannelConnectionState({required this.status, required this.detail});
+
+  final String status;
+  final String detail;
+
+  factory ChannelConnectionState.fromJson(Map<String, dynamic> json) =>
+      ChannelConnectionState(
+        status: JsonSafe.asString(json['status']),
+        detail: JsonSafe.asString(json['detail']),
+      );
+}
+
+/// The result of `POST /integrations/whatsapp/{id}/check-status/` — a fresh
+/// read of the channel after asking Meta whether the number can send and
+/// receive yet.
+class WhatsAppChannelStatus {
+  const WhatsAppChannelStatus({
+    required this.id,
+    required this.displayName,
+    required this.status,
+    required this.detail,
+  });
+
+  final int id;
+  final String displayName;
+  final String status;
+  final String detail;
+
+  factory WhatsAppChannelStatus.fromJson(Map<String, dynamic> json) =>
+      WhatsAppChannelStatus(
+        id: JsonSafe.asInt(json['id'], fallback: -1),
+        displayName: JsonSafe.asString(json['display_name']),
+        status: JsonSafe.asString(json['status']),
+        detail: JsonSafe.asString(json['detail']),
+      );
+}
+
+/// The result of a `.../authorize/` or `.../connect/` (Meta) or `.../mobile/
+/// start/` (WhatsApp Embedded Signup) call — a URL to open in a browser to
+/// continue the provider's own OAuth flow. Completion happens server-side
+/// against `/integrations/{provider}/callback/`; the app never sees a token.
+class ChannelAuthorizationUrl {
+  const ChannelAuthorizationUrl({required this.url});
+
+  final String url;
+
+  factory ChannelAuthorizationUrl.fromJson(Map<String, dynamic> json) =>
+      ChannelAuthorizationUrl(
+        url: JsonSafe.asString(json['authorization_url']),
       );
 }
 

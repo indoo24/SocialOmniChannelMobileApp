@@ -55,11 +55,22 @@ dependencies:
   firebase_core: ^4.13.0
   firebase_messaging: ^16.5.0
 
+  # Opens a channel-connect OAuth URL (Meta/Instagram/TikTok/WhatsApp
+  # Embedded Signup) in the system browser. The redirect completes
+  # server-side against `/api/integrations/*/callback/`, so the app never
+  # handles a token — it only launches the URL the backend hands back.
+  url_launcher: ^6.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
   mocktail: ^1.0.4
+
+  # url_launcher has no platform channel handler in the widget-test
+  # environment; tests fake UrlLauncherPlatform.instance instead of letting
+  # the real MethodChannel implementation hang waiting for a response.
+  url_launcher_platform_interface: ^2.3.2
 
   # Virtual clock for tests that assert on timer-driven behaviour — the
   # realtime client's reconnect backoff, whose cap would otherwise take ten

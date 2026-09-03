@@ -163,6 +163,79 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get hideChannelAction => 'إخفاء';
+
+  @override
+  String get showChannelAction => 'إظهار';
+
+  @override
+  String hiddenChannelsSectionTitle(int count) {
+    return 'مخفية ($count)';
+  }
+
+  @override
+  String get disconnectChannelAction => 'قطع الاتصال';
+
+  @override
+  String get reconnectChannelAction => 'إعادة الاتصال';
+
+  @override
+  String get checkStatusChannelAction => 'التحقق من الحالة';
+
+  @override
+  String get connectAnotherNumberAction => 'ربط رقم آخر';
+
+  @override
+  String get connectAnotherAccountAction => 'ربط حساب آخر';
+
+  @override
+  String get moreActionsTooltip => 'المزيد من الإجراءات';
+
+  @override
+  String channelIdentifierLabel(String value) {
+    return 'المعرّف: $value';
+  }
+
+  @override
+  String channelConnectedLabel(String when) {
+    return 'تم الربط $when';
+  }
+
+  @override
+  String channelLastActivityLabel(String when) {
+    return 'آخر نشاط $when';
+  }
+
+  @override
+  String get channelNoActivityLabel => 'لا يوجد نشاط بعد';
+
+  @override
+  String disconnectChannelDialogTitle(String channel) {
+    return 'قطع الاتصال بـ $channel؟';
+  }
+
+  @override
+  String get disconnectChannelDialogBody =>
+      'سيؤدي هذا إلى إزالة بيانات الاعتماد المخزّنة. يبقى سجل المحادثات، لكن لا يمكن إرسال أو استقبال رسائل جديدة على هذه القناة حتى تتم إعادة ربطها.';
+
+  @override
+  String channelDisconnectedSnackbar(String channel) {
+    return 'تم قطع الاتصال بـ $channel.';
+  }
+
+  @override
+  String get openingBrowserMessage => 'جارٍ فتح المتصفح…';
+
+  @override
+  String get couldNotOpenBrowserError => 'تعذّر فتح المتصفح لإتمام هذا الربط.';
+
+  @override
+  String get manageFromWebOnlyAction => 'إدارة من تطبيق الويب';
+
+  @override
+  String get manageFromWebOnlyHint => 'هذا الإجراء متاح فقط من تطبيق الويب.';
+
+  @override
   String get noConnectionTitle => 'لا يوجد اتصال';
 
   @override

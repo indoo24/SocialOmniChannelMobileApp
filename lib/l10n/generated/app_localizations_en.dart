@@ -160,6 +160,81 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get hideChannelAction => 'Hide';
+
+  @override
+  String get showChannelAction => 'Show';
+
+  @override
+  String hiddenChannelsSectionTitle(int count) {
+    return 'Hidden ($count)';
+  }
+
+  @override
+  String get disconnectChannelAction => 'Disconnect';
+
+  @override
+  String get reconnectChannelAction => 'Reconnect';
+
+  @override
+  String get checkStatusChannelAction => 'Check status';
+
+  @override
+  String get connectAnotherNumberAction => 'Connect another number';
+
+  @override
+  String get connectAnotherAccountAction => 'Connect another account';
+
+  @override
+  String get moreActionsTooltip => 'More actions';
+
+  @override
+  String channelIdentifierLabel(String value) {
+    return 'ID: $value';
+  }
+
+  @override
+  String channelConnectedLabel(String when) {
+    return 'Connected $when';
+  }
+
+  @override
+  String channelLastActivityLabel(String when) {
+    return 'Last activity $when';
+  }
+
+  @override
+  String get channelNoActivityLabel => 'No activity yet';
+
+  @override
+  String disconnectChannelDialogTitle(String channel) {
+    return 'Disconnect $channel?';
+  }
+
+  @override
+  String get disconnectChannelDialogBody =>
+      'This removes the stored credential. The conversation history stays, but no new messages can be sent or received on this channel until it\'s reconnected.';
+
+  @override
+  String channelDisconnectedSnackbar(String channel) {
+    return '$channel disconnected.';
+  }
+
+  @override
+  String get openingBrowserMessage => 'Opening browser…';
+
+  @override
+  String get couldNotOpenBrowserError =>
+      'Couldn\'t open the browser for this connection.';
+
+  @override
+  String get manageFromWebOnlyAction => 'Manage from web';
+
+  @override
+  String get manageFromWebOnlyHint =>
+      'This action is only available from the web app.';
+
+  @override
   String get noConnectionTitle => 'No connection';
 
   @override
