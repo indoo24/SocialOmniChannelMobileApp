@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../app/router.dart';
 import '../../core/models/conversation.dart';
@@ -330,6 +331,8 @@ class ConversationRow extends StatelessWidget {
                           label: conversation.category!.label,
                           dense: true,
                         ),
+                      if (conversation.isFollowUp)
+                        _FollowUpBadge(followUpDate: conversation.followUpDate),
                       if (conversation.isUnassigned)
                         StatusBadge(
                           label: context.l10n.unassignedBadge,
@@ -356,6 +359,26 @@ class ConversationRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _FollowUpBadge extends StatelessWidget {
+  const _FollowUpBadge({this.followUpDate});
+
+  final DateTime? followUpDate;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = followUpDate != null
+        ? DateFormat('d MMM', context.l10n.localeName).format(followUpDate!)
+        : context.l10n.followUpTooltip;
+
+    return StatusBadge(
+      label: label,
+      tone: BadgeTone.warning,
+      icon: Icons.flag_rounded,
+      dense: true,
     );
   }
 }

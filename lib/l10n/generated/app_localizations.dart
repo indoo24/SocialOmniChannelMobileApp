@@ -992,6 +992,78 @@ abstract class AppLocalizations {
   /// **'Conversation intelligence'**
   String get intelligenceTooltip;
 
+  /// No description provided for @followUpTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow up'**
+  String get followUpTooltip;
+
+  /// No description provided for @markFollowUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow up'**
+  String get markFollowUpTitle;
+
+  /// No description provided for @editFollowUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit follow-up'**
+  String get editFollowUpTitle;
+
+  /// No description provided for @followUpSwitchLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as follow-up'**
+  String get followUpSwitchLabel;
+
+  /// No description provided for @followUpDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up date'**
+  String get followUpDateLabel;
+
+  /// No description provided for @noFollowUpDate.
+  ///
+  /// In en, this message translates to:
+  /// **'No date set'**
+  String get noFollowUpDate;
+
+  /// No description provided for @clearDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear date'**
+  String get clearDate;
+
+  /// No description provided for @removeFollowUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove follow-up'**
+  String get removeFollowUp;
+
+  /// No description provided for @saveFollowUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get saveFollowUp;
+
+  /// No description provided for @followUpUpdatedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up updated'**
+  String get followUpUpdatedMessage;
+
+  /// No description provided for @followUpClearedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up removed'**
+  String get followUpClearedMessage;
+
+  /// No description provided for @selectDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Select date'**
+  String get selectDate;
+
   /// No description provided for @loadingConversation.
   ///
   /// In en, this message translates to:

@@ -478,6 +478,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intelligenceTooltip => 'Conversation intelligence';
 
   @override
+  String get followUpTooltip => 'Follow up';
+
+  @override
+  String get markFollowUpTitle => 'Follow up';
+
+  @override
+  String get editFollowUpTitle => 'Edit follow-up';
+
+  @override
+  String get followUpSwitchLabel => 'Mark as follow-up';
+
+  @override
+  String get followUpDateLabel => 'Follow-up date';
+
+  @override
+  String get noFollowUpDate => 'No date set';
+
+  @override
+  String get clearDate => 'Clear date';
+
+  @override
+  String get removeFollowUp => 'Remove follow-up';
+
+  @override
+  String get saveFollowUp => 'Save';
+
+  @override
+  String get followUpUpdatedMessage => 'Follow-up updated';
+
+  @override
+  String get followUpClearedMessage => 'Follow-up removed';
+
+  @override
+  String get selectDate => 'Select date';
+
+  @override
   String get loadingConversation => 'Loading conversation…';
 
   @override

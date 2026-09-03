@@ -480,6 +480,42 @@ class AppLocalizationsAr extends AppLocalizations {
   String get intelligenceTooltip => 'ذكاء المحادثة';
 
   @override
+  String get followUpTooltip => 'متابعة';
+
+  @override
+  String get markFollowUpTitle => 'متابعة المحادثة';
+
+  @override
+  String get editFollowUpTitle => 'تعديل المتابعة';
+
+  @override
+  String get followUpSwitchLabel => 'تحديد للمتابعة';
+
+  @override
+  String get followUpDateLabel => 'تاريخ المتابعة';
+
+  @override
+  String get noFollowUpDate => 'لم يُحدَّد تاريخ';
+
+  @override
+  String get clearDate => 'مسح التاريخ';
+
+  @override
+  String get removeFollowUp => 'إلغاء المتابعة';
+
+  @override
+  String get saveFollowUp => 'حفظ';
+
+  @override
+  String get followUpUpdatedMessage => 'تم تحديث المتابعة';
+
+  @override
+  String get followUpClearedMessage => 'تمت إزالة المتابعة';
+
+  @override
+  String get selectDate => 'اختيار تاريخ';
+
+  @override
   String get loadingConversation => 'جارٍ تحميل المحادثة…';
 
   @override

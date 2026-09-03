@@ -206,6 +206,25 @@ class ConversationRepository {
         body: {'category_id': categoryId},
       );
 
+  Future<Conversation> followUp(
+    int conversationId, {
+    required bool isFollowUp,
+    String? followUpDate,
+    bool clearFollowUpDate = false,
+  }) async {
+    final body = <String, dynamic>{'is_follow_up': isFollowUp};
+    if (clearFollowUpDate) {
+      body['follow_up_date'] = null;
+    } else if (followUpDate != null) {
+      body['follow_up_date'] = followUpDate;
+    }
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/follow-up/',
+      body: body,
+    );
+    return Conversation.fromJson(data);
+  }
+
   Future<List<InternalNote>> notes(int conversationId) async {
     final data = await _api.get<dynamic>(
       '/conversations/$conversationId/notes/',

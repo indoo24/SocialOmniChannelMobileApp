@@ -7,10 +7,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
-import '../../app/router.dart';
 import '../../core/api/api_exception.dart';
+import '../../core/models/conversation.dart';
 import '../../core/models/employee.dart';
 import '../../core/models/message.dart';
 import '../../core/providers.dart';
@@ -24,11 +24,8 @@ import '../../core/realtime/realtime_logger.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
-import '../directory/directory_providers.dart';
-import '../orders/customer_record_sheet.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
-import 'intelligence_panel.dart';
 import 'message_bubble.dart';
 import 'notes_controller.dart';
 
@@ -48,10 +45,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   late final InboxController _inboxNotifier;
   late ProviderContainer _container;
   bool _sending = false;
+  bool _initialScrollDone = false;
+  bool _showScrollToBottom = false;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _activeNotifier = ref.read(activeConversationProvider.notifier);
     _inboxNotifier = ref.read(inboxControllerProvider.notifier);
     final activeNotifier = _activeNotifier;
@@ -66,6 +66,63 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     });
   }
 
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    if (!pos.hasContentDimensions) return;
+    final distanceFromBottom = pos.maxScrollExtent - pos.pixels;
+    final show = distanceFromBottom > 150;
+    if (show != _showScrollToBottom) {
+      setState(() => _showScrollToBottom = show);
+    }
+  }
+
+  bool _isNearBottom({double threshold = 150}) {
+    if (!_scrollController.hasClients) return true;
+    final pos = _scrollController.position;
+    if (!pos.hasContentDimensions) return true;
+    return (pos.maxScrollExtent - pos.pixels) <= threshold;
+  }
+
+  void _jumpToBottomInitial() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      if (_scrollController.position.hasContentDimensions) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        _initialScrollDone = true;
+        _onScroll();
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted &&
+              _scrollController.hasClients &&
+              _scrollController.position.hasContentDimensions) {
+            _scrollController.jumpTo(
+              _scrollController.position.maxScrollExtent,
+            );
+            _initialScrollDone = true;
+            _onScroll();
+          }
+        });
+      }
+    });
+  }
+
+  void _scrollToBottom({bool animated = false}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      final target = _scrollController.position.maxScrollExtent;
+      if (animated) {
+        _scrollController.animateTo(
+          target,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+        );
+      } else {
+        _scrollController.jumpTo(target);
+      }
+    });
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -74,6 +131,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     final activeNotifier = _activeNotifier;
     final inboxNotifier = _inboxNotifier;
     final container = _container;
@@ -106,7 +164,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       await ref
           .read(conversationControllerProvider(widget.conversationId).notifier)
           .send(text);
-      _scrollToBottom();
+      _scrollToBottom(animated: true);
     } on ApiException catch (error) {
       if (!mounted) return;
       // The failed bubble already carries the detail; the snackbar is for the
@@ -119,23 +177,15 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     }
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(
       conversationControllerProvider(widget.conversationId),
     );
     final canReply = ref.watch(canProvider(Perm.conversationReply));
+    final canChangeCategory = ref.watch(
+      canProvider(Perm.conversationChangeCategory),
+    );
 
     async.whenData((state) {
       final convoIdStr = widget.conversationId.toString();
@@ -175,7 +225,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       final prevCount = previous?.value?.messages.length ?? 0;
       final nextCount = next.value?.messages.length ?? 0;
       if (nextCount > prevCount) {
-        _scrollToBottom();
+        if (!_initialScrollDone) {
+          _jumpToBottomInitial();
+        } else if (_isNearBottom()) {
+          _scrollToBottom(animated: true);
+        } else {
+          _onScroll();
+        }
       }
     });
 
@@ -202,30 +258,18 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           orElse: () => Text(context.l10n.conversationFallbackTitle),
         ),
         actions: [
-          // Orders and captured details. Badged when the analyzer has read
-          // something out of the chat that nobody has reviewed.
           async.maybeWhen(
-            data: (state) => _RecordButton(
-              conversationId: widget.conversationId,
-              customerId: state.conversation.customer.id,
+            data: (state) => _FollowUpButton(
+              conversation: state.conversation,
+              canChange: canChangeCategory,
             ),
             orElse: () => const SizedBox.shrink(),
           ),
-          // Lead score, funnel stage, purchase status and the rest of the
-          // analyzer's read. Badged when it needs a human's attention.
           async.maybeWhen(
-            data: (state) => _IntelligenceButton(
-              conversationId: widget.conversationId,
-              needsHumanReview:
-                  state.conversation.intelligence?.needsHumanReview ?? false,
-            ),
+            data: (state) => state.conversation.assignedTo != null
+                ? _AssigneeAvatar(assignedTo: state.conversation.assignedTo!)
+                : const SizedBox.shrink(),
             orElse: () => const SizedBox.shrink(),
-          ),
-          IconButton(
-            tooltip: context.l10n.customerDetailsTooltip,
-            icon: const Icon(Icons.person_outline),
-            onPressed: () =>
-                context.push(Routes.customer(widget.conversationId)),
           ),
           IconButton(
             tooltip: context.l10n.actionsTooltip,
@@ -248,27 +292,44 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         data: (state) => Column(
           children: [
             Expanded(
-              child:
-                  (state.messages.isEmpty &&
-                      (ref
-                                  .watch(
-                                    notesControllerProvider(
-                                      widget.conversationId,
-                                    ),
-                                  )
-                                  .value ??
-                              const [])
-                          .isEmpty)
-                  ? EmptyState(
-                      title: context.l10n.noMessagesYetTitle,
-                      message: context.l10n.noMessagesYetMessage,
-                      icon: Icons.chat_bubble_outline,
-                    )
-                  : _MessageList(
-                      state: state,
-                      controller: _scrollController,
-                      conversationId: widget.conversationId,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child:
+                        (state.messages.isEmpty &&
+                            (ref
+                                        .watch(
+                                          notesControllerProvider(
+                                            widget.conversationId,
+                                          ),
+                                        )
+                                        .value ??
+                                    const [])
+                                .isEmpty)
+                        ? EmptyState(
+                            title: context.l10n.noMessagesYetTitle,
+                            message: context.l10n.noMessagesYetMessage,
+                            icon: Icons.chat_bubble_outline,
+                          )
+                        : _MessageList(
+                            state: state,
+                            controller: _scrollController,
+                            conversationId: widget.conversationId,
+                            onInitialLayout: _initialScrollDone
+                                ? null
+                                : _jumpToBottomInitial,
+                          ),
+                  ),
+                  PositionedDirectional(
+                    end: Space.md,
+                    bottom: Space.sm,
+                    child: _ScrollToBottomButton(
+                      visible: _showScrollToBottom,
+                      onPressed: () => _scrollToBottom(animated: true),
                     ),
+                  ),
+                ],
+              ),
             ),
             if (canReply)
               _Composer(
@@ -286,103 +347,318 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   }
 }
 
-/// Opens the orders and customer-details sheet, badged when the analyzer has
-/// left something unreviewed.
-class _RecordButton extends ConsumerWidget {
-  const _RecordButton({required this.conversationId, required this.customerId});
+/// Standalone Follow-up Flag button in the conversation header.
+class _FollowUpButton extends ConsumerWidget {
+  const _FollowUpButton({required this.conversation, required this.canChange});
 
-  final int conversationId;
-  final int customerId;
+  final Conversation conversation;
+  final bool canChange;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final facts =
-        ref.watch(customerFactsProvider(customerId)).value ?? const [];
-    final orders =
-        ref.watch(conversationOrdersProvider(conversationId)).value ?? const [];
+    final theme = Theme.of(context);
+    final isFollowUp = conversation.isFollowUp;
 
-    final pending =
-        facts.where((f) => f.needsReview).length +
-        orders.where((o) => o.isSuggestion).length;
+    final dateStr = conversation.followUpDate != null
+        ? ' (${DateFormat('yyyy-MM-dd').format(conversation.followUpDate!)})'
+        : '';
+    final tooltip = isFollowUp
+        ? '${context.l10n.followUpTooltip}$dateStr'
+        : context.l10n.followUpTooltip;
 
-    return Stack(
-      children: [
-        IconButton(
-          tooltip: context.l10n.ordersTooltip,
-          icon: const Icon(Icons.inventory_2_outlined),
-          onPressed: () => showCustomerRecordSheet(
-            context,
-            conversationId: conversationId,
-            customerId: customerId,
-          ),
-        ),
-        if (pending > 0)
-          Positioned(
-            right: 6,
-            top: 6,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-              constraints: const BoxConstraints(minWidth: 15),
-              decoration: BoxDecoration(
-                color: ScenarioColors.warning,
-                borderRadius: BorderRadius.circular(Radii.pill),
-              ),
-              child: Text(
-                '$pending',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-      ],
+    final flagColor = isFollowUp
+        ? const Color(0xFFEAB308)
+        : theme.colorScheme.onSurfaceVariant;
+
+    return IconButton(
+      tooltip: tooltip,
+      icon: Icon(
+        isFollowUp ? Icons.flag_rounded : Icons.flag_outlined,
+        color: flagColor,
+        size: 22,
+      ),
+      onPressed: canChange
+          ? () => _showFollowUpDialog(context, ref, conversation)
+          : null,
     );
   }
 }
 
-/// Opens the intelligence panel, dotted when the analyzer flagged this
-/// conversation for a human to look at.
-class _IntelligenceButton extends StatelessWidget {
-  const _IntelligenceButton({
-    required this.conversationId,
-    required this.needsHumanReview,
-  });
+/// Compact Assignee Avatar in the conversation header.
+class _AssigneeAvatar extends StatelessWidget {
+  const _AssigneeAvatar({required this.assignedTo});
 
-  final int conversationId;
-  final bool needsHumanReview;
+  final EmployeeBrief assignedTo;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        IconButton(
-          tooltip: context.l10n.intelligenceTooltip,
-          icon: const Icon(Icons.insights_outlined),
-          onPressed: () =>
-              showIntelligencePanel(context, conversationId: conversationId),
+    return Tooltip(
+      message: assignedTo.fullName,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: InitialsAvatar(
+          initials: assignedTo.initials,
+          imageUrl: assignedTo.avatarUrl,
+          size: 26,
         ),
-        if (needsHumanReview)
-          Positioned(
-            right: 8,
-            top: 8,
-            child: Container(
-              width: 9,
-              height: 9,
-              decoration: BoxDecoration(
-                color: ScenarioColors.warning,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.surface,
-                  width: 1.5,
+      ),
+    );
+  }
+}
+
+Future<void> _showFollowUpDialog(
+  BuildContext context,
+  WidgetRef ref,
+  Conversation conversation,
+) async {
+  DateTime? selectedDate = conversation.followUpDate;
+  bool isFollowUp = conversation.isFollowUp ? true : true;
+
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setDialogState) {
+        final theme = Theme.of(context);
+        final dateFormatted = selectedDate != null
+            ? DateFormat('yyyy-MM-dd').format(selectedDate!)
+            : context.l10n.noFollowUpDate;
+
+        return AlertDialog(
+          title: Text(
+            conversation.isFollowUp
+                ? context.l10n.editFollowUpTitle
+                : context.l10n.markFollowUpTitle,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  context.l10n.followUpSwitchLabel,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                value: isFollowUp,
+                onChanged: (val) => setDialogState(() => isFollowUp = val),
+              ),
+              if (isFollowUp) ...[
+                const SizedBox(height: Space.sm),
+                Text(
+                  context.l10n.followUpDateLabel,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: Space.xs),
+                InkWell(
+                  borderRadius: BorderRadius.circular(Radii.sm),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2040),
+                    );
+                    if (picked != null) {
+                      setDialogState(() => selectedDate = picked);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Space.md,
+                      vertical: Space.sm,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.4),
+                      ),
+                      borderRadius: BorderRadius.circular(Radii.sm),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: 18,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: Space.sm),
+                        Expanded(
+                          child: Text(
+                            dateFormatted,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                        if (selectedDate != null)
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 18),
+                            tooltip: context.l10n.clearDate,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () =>
+                                setDialogState(() => selectedDate = null),
+                          )
+                        else
+                          Icon(
+                            Icons.arrow_drop_down,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            if (conversation.isFollowUp)
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
+                ),
+                onPressed: () async {
+                  Navigator.of(dialogContext).pop();
+                  try {
+                    await ref
+                        .read(
+                          conversationControllerProvider(
+                            conversation.id,
+                          ).notifier,
+                        )
+                        .updateFollowUp(isFollowUp: false);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(context.l10n.followUpClearedMessage),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(e.toString()),
+                          backgroundColor: theme.colorScheme.error,
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: Text(context.l10n.removeFollowUp),
+              ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(context.l10n.discardAction),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 36)),
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                final dateStr = selectedDate != null
+                    ? DateFormat('yyyy-MM-dd').format(selectedDate!)
+                    : null;
+                final clearDate =
+                    conversation.followUpDate != null && selectedDate == null;
+                try {
+                  await ref
+                      .read(
+                        conversationControllerProvider(
+                          conversation.id,
+                        ).notifier,
+                      )
+                      .updateFollowUp(
+                        isFollowUp: isFollowUp,
+                        followUpDate: isFollowUp ? dateStr : null,
+                        clearFollowUpDate: isFollowUp ? clearDate : false,
+                      );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isFollowUp
+                              ? context.l10n.followUpUpdatedMessage
+                              : context.l10n.followUpClearedMessage,
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.toString()),
+                        backgroundColor: theme.colorScheme.error,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: Text(context.l10n.saveFollowUp),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
+/// Floating WhatsApp-style scroll-to-latest button.
+class _ScrollToBottomButton extends StatelessWidget {
+  const _ScrollToBottomButton({required this.visible, required this.onPressed});
+
+  final bool visible;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return AnimatedSlide(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+      offset: visible ? Offset.zero : const Offset(0, 1.5),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        opacity: visible ? 1.0 : 0.0,
+        child: IgnorePointer(
+          ignoring: !visible,
+          child: Material(
+            elevation: 4,
+            shadowColor: Colors.black.withValues(alpha: isDark ? 0.4 : 0.15),
+            shape: const CircleBorder(),
+            color: isDark
+                ? theme.colorScheme.surfaceContainerHighest
+                : Colors.white,
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onPressed,
+              child: Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isDark
+                        ? theme.colorScheme.outline
+                        : const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
+                ),
+                child: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 24,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
           ),
-      ],
+        ),
+      ),
     );
   }
 }
@@ -548,11 +824,13 @@ class _MessageList extends ConsumerWidget {
     required this.state,
     required this.controller,
     required this.conversationId,
+    this.onInitialLayout,
   });
 
   final ConversationState state;
   final ScrollController controller;
   final int conversationId;
+  final VoidCallback? onInitialLayout;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -565,6 +843,12 @@ class _MessageList extends ConsumerWidget {
         _TimelineEntry(message: m, time: m.sentAt),
       for (final n in notes) _TimelineEntry(note: n, time: n.createdAt),
     ]..sort((a, b) => a.time.compareTo(b.time));
+
+    if (onInitialLayout != null && entries.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        onInitialLayout!();
+      });
+    }
 
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {

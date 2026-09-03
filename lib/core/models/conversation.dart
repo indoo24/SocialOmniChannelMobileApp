@@ -196,6 +196,11 @@ class Conversation {
     String? priority,
     EmployeeBrief? assignedTo,
     ConversationCategory? category,
+    bool? isFollowUp,
+    DateTime? followUpDate,
+    bool clearFollowUpDate = false,
+    DateTime? followUpMarkedAt,
+    String? followUpMarkedByName,
   }) => Conversation(
     id: id,
     customer: customer,
@@ -214,10 +219,12 @@ class Conversation {
     lastMessageAt: lastMessageAt,
     startedAt: startedAt,
     subject: subject,
-    isFollowUp: isFollowUp,
-    followUpDate: followUpDate,
-    followUpMarkedAt: followUpMarkedAt,
-    followUpMarkedByName: followUpMarkedByName,
+    isFollowUp: isFollowUp ?? this.isFollowUp,
+    followUpDate: clearFollowUpDate
+        ? null
+        : (followUpDate ?? this.followUpDate),
+    followUpMarkedAt: followUpMarkedAt ?? this.followUpMarkedAt,
+    followUpMarkedByName: followUpMarkedByName ?? this.followUpMarkedByName,
   );
 }
 
