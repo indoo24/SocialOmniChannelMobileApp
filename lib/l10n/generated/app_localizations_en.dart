@@ -720,6 +720,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceMessageLabel => 'Voice message';
 
   @override
+  String get voiceNoteLabel => 'Voice note';
+
+  @override
+  String get recordingText => 'Recording';
+
+  @override
   String get playVoiceMessageTooltip => 'Play voice message';
 
   @override

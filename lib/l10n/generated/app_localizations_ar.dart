@@ -718,6 +718,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get voiceMessageLabel => 'رسالة صوتية';
 
   @override
+  String get voiceNoteLabel => 'تسجيل صوتي';
+
+  @override
+  String get recordingText => 'تسجيل';
+
+  @override
   String get playVoiceMessageTooltip => 'تشغيل الرسالة الصوتية';
 
   @override

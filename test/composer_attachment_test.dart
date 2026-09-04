@@ -993,7 +993,11 @@ void main() {
         // staging, which shows the Send button's own busy spinner too —
         // neither naturally goes idle. Two passes cover both phases, since
         // the Send spinner only appears after the upload spinner clears.
-        await _tapAndPumpUntilIdle(tester, find.byIcon(Icons.check), passes: 2);
+        await _tapAndPumpUntilIdle(
+          tester,
+          find.byIcon(Icons.stop_rounded),
+          passes: 2,
+        );
 
         expect(fakeRecord.stopped, isTrue);
         expect(fakeRecord.disposed, isTrue);
@@ -1093,7 +1097,7 @@ void main() {
       // Not pumpAndSettle(): stopping shows an indeterminate spinner while
       // the upload is in flight (real dart:io file I/O, so the tap runs
       // through runAsync() too), which never naturally goes idle either.
-      await _tapAndPumpUntilIdle(tester, find.byIcon(Icons.check));
+      await _tapAndPumpUntilIdle(tester, find.byIcon(Icons.stop_rounded));
 
       expect(find.text('Too large.'), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -1313,6 +1317,75 @@ void main() {
         await _tapMicAndWaitForRecording(tester);
 
         expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'normal composer has [attachment] [text field] [mic] [send] ordered with send at far right',
+      (tester) async {
+        final client = _stubClient((options) {
+          if (options.path.contains('/messages/')) {
+            return _json('{"results": []}', 200);
+          }
+          if (options.path.contains('/notes/')) {
+            return _json('[]', 200);
+          }
+          if (options.path.contains('/conversations/42/')) {
+            return _json(_conversationDetail, 200);
+          }
+          return _json('{}', 200);
+        });
+
+        await _pumpConversation(tester, client);
+
+        final attachX = tester
+            .getTopLeft(find.byIcon(Icons.attach_file_rounded))
+            .dx;
+        final inputX = tester
+            .getTopLeft(find.byKey(const ValueKey('composer_reply_input')))
+            .dx;
+        final micX = tester.getTopLeft(find.byIcon(Icons.mic_none_rounded)).dx;
+        final sendX = tester.getTopLeft(find.byIcon(Icons.send_rounded)).dx;
+
+        expect(attachX, lessThan(inputX));
+        expect(inputX, lessThan(micX));
+        expect(micX, lessThan(sendX));
+      },
+    );
+
+    testWidgets(
+      'recording bar shows red dot, recording text, 5:00 timer, trash, and square stop button on right',
+      (tester) async {
+        RecordPlatform.instance = _FakeRecordPlatform();
+
+        final client = _stubClient((options) {
+          if (options.path.contains('/messages/')) {
+            return _json('{"results": []}', 200);
+          }
+          if (options.path.contains('/notes/')) {
+            return _json('[]', 200);
+          }
+          if (options.path.contains('/conversations/42/')) {
+            return _json(_conversationDetail, 200);
+          }
+          return _json('{}', 200);
+        });
+
+        await _pumpConversation(tester, client);
+        await _tapMicAndWaitForRecording(tester);
+
+        expect(find.textContaining('Recording'), findsOneWidget);
+        expect(find.textContaining('/ 5:00'), findsOneWidget);
+        expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+        expect(find.byIcon(Icons.stop_rounded), findsOneWidget);
+
+        final trashX = tester.getTopLeft(find.byIcon(Icons.delete_outline)).dx;
+        final stopX = tester.getTopLeft(find.byIcon(Icons.stop_rounded)).dx;
+        expect(trashX, lessThan(stopX));
+
+        // Clean up
+        await tester.tap(find.byIcon(Icons.delete_outline));
+        await tester.pump();
       },
     );
   });

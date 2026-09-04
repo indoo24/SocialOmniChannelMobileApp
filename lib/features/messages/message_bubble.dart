@@ -317,10 +317,18 @@ class _Attachments extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final attachment in message.attachments)
+        for (var i = 0; i < message.attachments.length; i++)
           Padding(
-            padding: const EdgeInsets.only(bottom: Space.sm),
-            child: _Attachment(attachment: attachment),
+            padding: EdgeInsets.only(
+              bottom:
+                  i == message.attachments.length - 1 && message.text.isEmpty
+                  ? 0
+                  : Space.sm,
+            ),
+            child: _Attachment(
+              attachment: message.attachments[i],
+              isOutbound: message.isOutbound,
+            ),
           ),
       ],
     );
@@ -328,9 +336,10 @@ class _Attachments extends ConsumerWidget {
 }
 
 class _Attachment extends ConsumerWidget {
-  const _Attachment({required this.attachment});
+  const _Attachment({required this.attachment, this.isOutbound = true});
 
   final MessageAttachment attachment;
+  final bool isOutbound;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -351,20 +360,17 @@ class _Attachment extends ConsumerWidget {
       );
     }
 
-    // Attachment URLs reach the app from inbound channel messages, so their
-    // content is ultimately customer-controlled. Anything that does not
-    // resolve to a fetchable URL degrades to the file chip below, which
-    // names the attachment (or, for audio, shows its duration) without
-    // fetching it.
     final resolvedUrl = attachment.resolvedUrl;
 
-    if (attachment.isAudio && localPath == null && resolvedUrl.isNotEmpty) {
-      // Only a server-confirmed attachment reaches here: [localPath] is set
-      // exclusively on the agent's own not-yet-confirmed recording (see the
-      // comment above). A confirmed attachment with no resolvable URL is
-      // not expected in practice, but falls through to the file chip below
-      // rather than showing a player with nothing to play.
-      return _VoicePlayer(attachment: attachment, url: resolvedUrl);
+    if (attachment.isAudio &&
+        ((localPath != null && localPath.isNotEmpty) ||
+            resolvedUrl.isNotEmpty)) {
+      return _VoicePlayer(
+        attachment: attachment,
+        url: resolvedUrl,
+        localPath: localPath,
+        isOutbound: isOutbound,
+      );
     }
 
     final safeUrl = SafeUrl.forImage(resolvedUrl);
@@ -478,17 +484,21 @@ class _ImageViewerScreen extends StatelessWidget {
   }
 }
 
-/// A voice-message bubble: mic glyph, duration, and a play/pause control
+/// A voice-message bubble: mic glyph, duration, waveform, and a play/pause control
 /// with playback progress. Audio bytes are fetched lazily, only when the
 /// agent actually taps play — never pre-loaded or auto-played.
 class _VoicePlayer extends ConsumerStatefulWidget {
-  const _VoicePlayer({required this.attachment, required this.url});
+  const _VoicePlayer({
+    required this.attachment,
+    required this.url,
+    this.localPath,
+    this.isOutbound = true,
+  });
 
   final MessageAttachment attachment;
-
-  /// Already resolved and non-empty — the caller only builds this widget
-  /// once it has confirmed there is something to play.
   final String url;
+  final String? localPath;
+  final bool isOutbound;
 
   @override
   ConsumerState<_VoicePlayer> createState() => _VoicePlayerState();
@@ -532,8 +542,9 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
       return;
     }
 
+    final localPath = widget.localPath;
     final url = widget.url;
-    if (url.isEmpty) {
+    if ((localPath == null || localPath.isEmpty) && url.isEmpty) {
       if (mounted) setState(() => _load = _PlaybackLoad.error);
       return;
     }
@@ -541,20 +552,23 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
     setState(() => _load = _PlaybackLoad.loading);
 
     try {
-      final api = ref.read(apiClientProvider);
-      final response = await api.raw.get<List<int>>(
-        url,
-        options: Options(responseType: ResponseType.bytes),
-      );
-      // `ApiClient.raw` is the plain Dio client, configured (in
-      // ApiClient.create) with `validateStatus: (_) => true` so every other
-      // call site can map status codes to typed exceptions itself. Used
-      // directly like this, that means a 404/500 does not throw — checked
-      // by hand here instead of trusting a non-null body.
-      final status = response.statusCode ?? 0;
-      final bytes = response.data;
-      if (status < 200 || status >= 300 || bytes == null) {
-        throw StateError('attachment content fetch failed: $status');
+      Uint8List bytes;
+      if (localPath != null &&
+          localPath.isNotEmpty &&
+          File(localPath).existsSync()) {
+        bytes = await File(localPath).readAsBytes();
+      } else {
+        final api = ref.read(apiClientProvider);
+        final response = await api.raw.get<List<int>>(
+          url,
+          options: Options(responseType: ResponseType.bytes),
+        );
+        final status = response.statusCode ?? 0;
+        final data = response.data;
+        if (status < 200 || status >= 300 || data == null) {
+          throw StateError('attachment content fetch failed: $status');
+        }
+        bytes = Uint8List.fromList(data);
       }
 
       if (!mounted) return;
@@ -573,7 +587,7 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
         setState(() => _duration = duration);
       });
 
-      await player.play(BytesSource(Uint8List.fromList(bytes)));
+      await player.play(BytesSource(bytes));
 
       if (!mounted) {
         unawaited(player.dispose());
@@ -601,41 +615,101 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
         ? (_position.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0)
         : 0.0;
 
+    final isOutbound = widget.isOutbound;
+    final textColor = isOutbound ? Colors.white : theme.colorScheme.onSurface;
+    final activeWaveColor = isOutbound
+        ? Colors.white
+        : theme.colorScheme.primary;
+    final inactiveWaveColor = isOutbound
+        ? Colors.white.withValues(alpha: 0.40)
+        : theme.colorScheme.outlineVariant;
+
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 200, maxWidth: 240),
+      constraints: const BoxConstraints(minWidth: 200, maxWidth: 260),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _PlaybackButton(load: _load, playing: _playing, onTap: _toggle),
+          _PlaybackButton(
+            load: _load,
+            playing: _playing,
+            onTap: _toggle,
+            isOutbound: isOutbound,
+          ),
           const SizedBox(width: Space.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(Radii.pill),
-                  child: LinearProgressIndicator(
-                    value: _load == _PlaybackLoad.error ? 0 : progress,
-                    minHeight: 4,
-                    backgroundColor: theme.colorScheme.outlineVariant,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.mic_rounded,
+                      size: 15,
+                      color: textColor.withValues(alpha: 0.90),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      context.l10n.voiceNoteLabel,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _load == _PlaybackLoad.error
-                      ? context.l10n.voiceMessagePlaybackFailedError
-                      : _format(
+                const SizedBox(height: 6),
+                if (_load == _PlaybackLoad.error)
+                  Text(
+                    context.l10n.voiceMessagePlaybackFailedError,
+                    style: TextStyle(
+                      color: isOutbound
+                          ? Colors.white
+                          : theme.colorScheme.error,
+                      fontSize: 11,
+                    ),
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 20,
+                          child: _AudioWaveform(
+                            progress: progress,
+                            activeColor: activeWaveColor,
+                            inactiveColor: inactiveWaveColor,
+                            onSeek: (fraction) {
+                              if (_load == _PlaybackLoad.ready &&
+                                  _player != null &&
+                                  total != null) {
+                                final targetMs =
+                                    (total.inMilliseconds * fraction).round();
+                                _player!.seek(Duration(milliseconds: targetMs));
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _format(
                           total != null
                               ? (_playing ? _position : total)
                               : _position,
                         ),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: _load == _PlaybackLoad.error
-                        ? theme.colorScheme.error
-                        : null,
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.90),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
                   ),
-                ),
               ],
             ),
           ),
@@ -655,41 +729,178 @@ class _PlaybackButton extends StatelessWidget {
     required this.load,
     required this.playing,
     required this.onTap,
+    this.isOutbound = true,
   });
 
   final _PlaybackLoad load;
   final bool playing;
   final VoidCallback onTap;
+  final bool isOutbound;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bgColor = isOutbound
+        ? Colors.white.withValues(alpha: 0.22)
+        : theme.colorScheme.primary.withValues(alpha: 0.12);
+    final iconColor = isOutbound ? Colors.white : theme.colorScheme.primary;
 
     if (load == _PlaybackLoad.loading) {
-      return const SizedBox(
-        width: 36,
-        height: 36,
-        child: Padding(
-          padding: EdgeInsets.all(8),
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
+        padding: const EdgeInsets.all(10),
+        child: CircularProgressIndicator(strokeWidth: 2, color: iconColor),
       );
     }
 
-    return IconButton.filledTonal(
-      tooltip: playing
-          ? context.l10n.pauseVoiceMessageTooltip
-          : context.l10n.playVoiceMessageTooltip,
-      visualDensity: VisualDensity.compact,
-      icon: Icon(
-        load == _PlaybackLoad.error
-            ? Icons.refresh
-            : (playing ? Icons.pause : Icons.play_arrow),
-        color: theme.colorScheme.primary,
+    final icon = load == _PlaybackLoad.error
+        ? Icons.refresh
+        : (playing ? Icons.pause : Icons.play_arrow);
+
+    final tooltip = playing
+        ? context.l10n.pauseVoiceMessageTooltip
+        : context.l10n.playVoiceMessageTooltip;
+
+    return Material(
+      color: bgColor,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Tooltip(
+          message: tooltip,
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: Icon(icon, size: 24, color: iconColor),
+          ),
+        ),
       ),
-      onPressed: onTap,
     );
   }
+}
+
+class _AudioWaveform extends StatelessWidget {
+  const _AudioWaveform({
+    required this.progress,
+    required this.activeColor,
+    required this.inactiveColor,
+    this.onSeek,
+  });
+
+  final double progress;
+  final Color activeColor;
+  final Color inactiveColor;
+  final ValueChanged<double>? onSeek;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: onSeek == null
+          ? null
+          : (details) {
+              final box = context.findRenderObject() as RenderBox?;
+              if (box != null && box.size.width > 0) {
+                final fraction = (details.localPosition.dx / box.size.width)
+                    .clamp(0.0, 1.0);
+                onSeek!(fraction);
+              }
+            },
+      child: CustomPaint(
+        painter: _WaveformPainter(
+          progress: progress,
+          activeColor: activeColor,
+          inactiveColor: inactiveColor,
+        ),
+        size: Size.infinite,
+      ),
+    );
+  }
+}
+
+class _WaveformPainter extends CustomPainter {
+  _WaveformPainter({
+    required this.progress,
+    required this.activeColor,
+    required this.inactiveColor,
+  });
+
+  final double progress;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  static const List<double> _barFractions = [
+    0.30,
+    0.45,
+    0.70,
+    0.35,
+    0.55,
+    0.85,
+    0.65,
+    0.80,
+    0.50,
+    0.35,
+    0.60,
+    0.90,
+    0.75,
+    0.45,
+    0.65,
+    0.85,
+    0.95,
+    0.70,
+    0.40,
+    0.55,
+    0.75,
+    0.50,
+    0.30,
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final barCount = _barFractions.length;
+    if (barCount == 0 || size.width <= 0) return;
+
+    final barWidth = 2.5;
+    final totalBarsWidth = barCount * barWidth;
+    final spacing =
+        (size.width - totalBarsWidth) /
+        (barCount - 1).clamp(1, double.infinity);
+    final clampedSpacing = spacing.clamp(1.5, 4.0);
+
+    final activePaint = Paint()
+      ..color = activeColor
+      ..style = PaintingStyle.fill;
+    final inactivePaint = Paint()
+      ..color = inactiveColor
+      ..style = PaintingStyle.fill;
+
+    for (var i = 0; i < barCount; i++) {
+      final x = i * (barWidth + clampedSpacing);
+      if (x + barWidth > size.width) break;
+
+      final barFraction = _barFractions[i];
+      final barHeight = (size.height * barFraction).clamp(4.0, size.height);
+      final y = (size.height - barHeight) / 2;
+
+      final barProgress = i / barCount;
+      final paint = barProgress <= progress ? activePaint : inactivePaint;
+
+      final rrect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, y, barWidth, barHeight),
+        const Radius.circular(1.5),
+      );
+      canvas.drawRRect(rrect, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WaveformPainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.activeColor != activeColor ||
+      oldDelegate.inactiveColor != inactiveColor;
 }
 
 class _FileChip extends StatelessWidget {

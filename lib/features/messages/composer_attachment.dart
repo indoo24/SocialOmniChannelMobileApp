@@ -156,16 +156,26 @@ class _ComposerAttachmentButtonState
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: context.l10n.attachmentTooltip,
-      onPressed: (!widget.enabled || _busy) ? null : _openSheet,
-      icon: _busy
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.attach_file_rounded),
+    final theme = Theme.of(context);
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(Radii.md),
+      ),
+      child: IconButton(
+        tooltip: context.l10n.attachmentTooltip,
+        padding: EdgeInsets.zero,
+        onPressed: (!widget.enabled || _busy) ? null : _openSheet,
+        icon: _busy
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.attach_file_rounded, size: 20),
+      ),
     );
   }
 }
@@ -279,6 +289,7 @@ class ComposerVoiceRecorder extends ConsumerStatefulWidget {
     required this.enabled,
     required this.onStaged,
     required this.onError,
+    this.onRecordingChanged,
     super.key,
   });
 
@@ -286,6 +297,7 @@ class ComposerVoiceRecorder extends ConsumerStatefulWidget {
   final bool enabled;
   final ValueChanged<StagedAttachment> onStaged;
   final ValueChanged<String> onError;
+  final ValueChanged<bool>? onRecordingChanged;
 
   @override
   ConsumerState<ComposerVoiceRecorder> createState() =>
@@ -293,6 +305,8 @@ class ComposerVoiceRecorder extends ConsumerStatefulWidget {
 }
 
 class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
+  static const maxRecordingDuration = Duration(minutes: 5);
+
   AudioRecorder? _recorder;
   Timer? _ticker;
   Duration _elapsed = Duration.zero;
@@ -304,11 +318,6 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
   @override
   void dispose() {
     _ticker?.cancel();
-    // Best-effort: dropping the recorder mid-recording (navigating away)
-    // must not leave the microphone held or a half-written file behind.
-    // cancel() then dispose(), not concurrently — the package serializes
-    // its own calls through an internal semaphore, so firing both at once
-    // just queues the second behind the first anyway.
     final recorder = _recorder;
     if (recorder != null) {
       unawaited(_releaseRecorder(recorder));
@@ -317,19 +326,9 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
   }
 
   static Future<void> _releaseRecorder(AudioRecorder recorder) async {
-    // cancel() is what actually matters for safety — it stops the
-    // recording and releases the microphone. dispose() afterward only
-    // releases the package's own internal Dart-side resources (stream
-    // controllers, timers), so it runs best-effort and unawaited: nothing
-    // is left on screen to show an error for on a conversation the agent
-    // has already navigated away from, and it must not hold this future
-    // open (and by extension, this closure's captured recorder) if the
-    // platform call is slow.
     try {
       await recorder.cancel();
-    } catch (_) {
-      // Nothing to recover from here.
-    }
+    } catch (_) {}
     unawaited(recorder.dispose().catchError((_) {}));
   }
 
@@ -351,14 +350,6 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
       final path =
           '${dir.path}/voice-${DateTime.now().microsecondsSinceEpoch}.ogg';
 
-      // Opus in an Ogg container — what the backend's WhatsApp voice-note
-      // flow expects (`audio/ogg`), and what WhatsApp's own voice notes
-      // already use under the hood. `record`'s Android implementation
-      // requires Android 10+ (API 29) for this; a well-supported floor for
-      // this app's real device base, so a rejection here is treated as a
-      // genuine recording failure — the same generic "couldn't start
-      // recording" message any other `start()` failure already shows —
-      // rather than a silently different output format on old devices.
       await recorder.start(
         const RecordConfig(encoder: AudioEncoder.opus),
         path: path,
@@ -368,10 +359,17 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
       _elapsed = Duration.zero;
       _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
         if (!mounted) return;
-        setState(() => _elapsed += const Duration(seconds: 1));
+        final next = _elapsed + const Duration(seconds: 1);
+        if (next >= maxRecordingDuration) {
+          setState(() => _elapsed = maxRecordingDuration);
+          _stopAndSend();
+        } else {
+          setState(() => _elapsed = next);
+        }
       });
 
       setState(() => _recording = true);
+      widget.onRecordingChanged?.call(true);
     } catch (_) {
       if (!mounted) return;
       widget.onError(context.l10n.recordingFailedError);
@@ -390,14 +388,12 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
       _recording = false;
       _elapsed = Duration.zero;
     });
+    widget.onRecordingChanged?.call(false);
     if (recorder != null) {
       try {
         await recorder.cancel();
-      } catch (_) {
-        // Nothing to recover — the file, if any, is discarded either way.
-      } finally {
-        await recorder.dispose();
-      }
+      } catch (_) {}
+      await recorder.dispose();
     }
   }
 
@@ -414,6 +410,7 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
       _recording = false;
       _busy = true;
     });
+    widget.onRecordingChanged?.call(false);
 
     String? path;
     try {
@@ -484,82 +481,132 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
     final theme = Theme.of(context);
 
     if (_recording) {
+      final isDark = theme.brightness == Brightness.dark;
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: Space.xs, vertical: 4),
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: theme.colorScheme.errorContainer.withValues(alpha: 0.35),
-          borderRadius: BorderRadius.circular(Radii.pill),
+          color: isDark ? const Color(0xFF2A1517) : const Color(0xFFFEF2F2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark
+                ? const Color(0xFF991B1B).withValues(alpha: 0.5)
+                : const Color(0xFFFCA5A5),
+            width: 1,
+          ),
         ),
-        // No mainAxisSize.min here: this Row is meant to fill whatever
-        // width its Flexible ancestor in the composer gives it, so the
-        // label in the middle is the part that shrinks on a narrow
-        // screen — the icon buttons on either side keep their full size.
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEF4444),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      context.l10n.recordingText,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      '${_formatElapsed(_elapsed)} / 5:00',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: isDark
+                            ? Colors.white60
+                            : const Color(0xFF64748B),
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             IconButton(
               tooltip: context.l10n.cancelRecordingTooltip,
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               icon: Icon(
                 Icons.delete_outline,
-                color: theme.colorScheme.error,
-                size: 18,
+                color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                size: 20,
               ),
               onPressed: _cancel,
             ),
-            Container(
-              width: 6,
-              height: 6,
-              margin: const EdgeInsetsDirectional.only(end: 3),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.error,
-                shape: BoxShape.circle,
-              ),
-            ),
-            Expanded(
-              child: Text(
-                context.l10n.recordingLabel(_formatElapsed(_elapsed)),
-                overflow: TextOverflow.ellipsis,
-                softWrap: false,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+            const SizedBox(width: 6),
+            Material(
+              color: theme.colorScheme.primary,
+              borderRadius: BorderRadius.circular(8),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: _busy ? null : _stopAndSend,
+                child: Tooltip(
+                  message: context.l10n.stopRecordingTooltip,
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Center(
+                      child: _busy
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.stop_rounded,
+                              size: 20,
+                              color: Colors.white,
+                            ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-            IconButton.filled(
-              tooltip: context.l10n.stopRecordingTooltip,
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-              icon: _busy
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.check, size: 16),
-              onPressed: _busy ? null : _stopAndSend,
             ),
           ],
         ),
       );
     }
 
-    return IconButton(
-      tooltip: context.l10n.recordVoiceTooltip,
-      onPressed: (!widget.enabled || _busy) ? null : _start,
-      icon: _busy
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.mic_none_rounded),
+    return Container(
+      width: 44,
+      height: 44,
+      alignment: Alignment.center,
+      child: IconButton(
+        tooltip: context.l10n.recordVoiceTooltip,
+        padding: EdgeInsets.zero,
+        onPressed: (!widget.enabled || _busy) ? null : _start,
+        icon: _busy
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.mic_none_rounded, size: 22),
+      ),
     );
   }
 }

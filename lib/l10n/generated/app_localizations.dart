@@ -1424,6 +1424,18 @@ abstract class AppLocalizations {
   /// **'Voice message'**
   String get voiceMessageLabel;
 
+  /// No description provided for @voiceNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice note'**
+  String get voiceNoteLabel;
+
+  /// No description provided for @recordingText.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording'**
+  String get recordingText;
+
   /// No description provided for @playVoiceMessageTooltip.
   ///
   /// In en, this message translates to:

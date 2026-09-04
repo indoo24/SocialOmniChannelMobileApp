@@ -315,6 +315,8 @@
   "microphonePermissionDeniedError": "Microphone access was denied. Enable it in your device settings to record a voice message.",
   "recordingFailedError": "Couldn't start recording. Please try again.",
   "voiceMessageLabel": "Voice message",
+  "voiceNoteLabel": "Voice note",
+  "recordingText": "Recording",
   "playVoiceMessageTooltip": "Play voice message",
   "pauseVoiceMessageTooltip": "Pause voice message",
   "voiceMessagePlaybackFailedError": "Couldn't play this voice message.",

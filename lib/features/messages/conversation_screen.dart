@@ -1284,6 +1284,8 @@ class _ComposerState extends ConsumerState<_Composer> {
   /// one motion, matching WhatsApp's own behavior, rather than sitting as a
   /// staged preview the agent could otherwise edit alongside typed text.
   StagedAttachment? _stagedImage;
+  bool _isRecording = false;
+  final _voiceRecorderKey = GlobalKey<ComposerVoiceRecorderState>();
 
   static const _defaultTemplates = [
     'Hello! How can we help you today?',
@@ -1410,80 +1412,91 @@ class _ComposerState extends ConsumerState<_Composer> {
                     onRemoved: _onImageRemoved,
                   ),
                 ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  // Attachment button — logical-left per the design spec;
-                  // PositionedDirectional/the surrounding Row already handle
-                  // RTL by construction (Flutter mirrors Row children under
-                  // Directionality.rtl automatically), so no manual flip.
-                  ComposerAttachmentButton(
-                    conversationId: widget.conversationId,
-                    enabled: !widget.sending,
-                    onStaged: _onImageStaged,
-                    onError: _showMessage,
-                  ),
-                  Expanded(
-                    child: TextField(
-                      key: const ValueKey('composer_reply_input'),
-                      controller: widget.controller,
-                      minLines: 1,
-                      maxLines: 5,
-                      textCapitalization: TextCapitalization.sentences,
-                      keyboardType: TextInputType.multiline,
-                      decoration: InputDecoration(
-                        hintText: context.l10n.writeReplyHint,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: Space.md,
-                          vertical: 10,
+              if (_isRecording)
+                ComposerVoiceRecorder(
+                  key: _voiceRecorderKey,
+                  conversationId: widget.conversationId,
+                  enabled: !widget.sending,
+                  onStaged: _onVoiceStaged,
+                  onError: _showMessage,
+                  onRecordingChanged: (recording) {
+                    if (mounted) setState(() => _isRecording = recording);
+                  },
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Attachment button on the far left
+                    ComposerAttachmentButton(
+                      conversationId: widget.conversationId,
+                      enabled: !widget.sending,
+                      onStaged: _onImageStaged,
+                      onError: _showMessage,
+                    ),
+                    const SizedBox(width: Space.xs),
+                    // Text input in the middle
+                    Expanded(
+                      child: TextField(
+                        key: const ValueKey('composer_reply_input'),
+                        controller: widget.controller,
+                        minLines: 1,
+                        maxLines: 5,
+                        textCapitalization: TextCapitalization.sentences,
+                        keyboardType: TextInputType.multiline,
+                        decoration: InputDecoration(
+                          hintText: context.l10n.writeReplyHint,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: Space.md,
+                            vertical: 10,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: Space.xs),
-                  // Flexible: idle, this is just a mic icon at its natural
-                  // size; recording, the duration bar it swaps in is wide
-                  // enough to overflow a narrow Android screen alongside
-                  // the attachment and send buttons unless it can shrink.
-                  Flexible(
-                    child: ComposerVoiceRecorder(
+                    const SizedBox(width: Space.xs),
+                    // Microphone button immediately before Send
+                    ComposerVoiceRecorder(
+                      key: _voiceRecorderKey,
                       conversationId: widget.conversationId,
                       enabled: !widget.sending,
                       onStaged: _onVoiceStaged,
                       onError: _showMessage,
+                      onRecordingChanged: (recording) {
+                        if (mounted) setState(() => _isRecording = recording);
+                      },
                     ),
-                  ),
-                  const SizedBox(width: Space.xs),
-                  SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: IconButton.filled(
-                      onPressed: widget.sending
-                          ? null
-                          : () {
-                              final staged = _stagedImage;
-                              if (staged != null) {
-                                setState(() => _stagedImage = null);
-                              }
-                              widget.onSend(
-                                attachmentId: staged?.draftId,
-                                attachmentPreview: staged?.attachment,
-                              );
-                            },
-                      icon: widget.sending
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.send_rounded, size: 20),
+                    const SizedBox(width: Space.xs),
+                    // Send button fixed at far right
+                    SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: IconButton.filled(
+                        onPressed: widget.sending
+                            ? null
+                            : () {
+                                final staged = _stagedImage;
+                                if (staged != null) {
+                                  setState(() => _stagedImage = null);
+                                }
+                                widget.onSend(
+                                  attachmentId: staged?.draftId,
+                                  attachmentPreview: staged?.attachment,
+                                );
+                              },
+                        icon: widget.sending
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.send_rounded, size: 20),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
             ] else if (_mode == _ComposerMode.internalNote) ...[
               Column(
                 children: [
