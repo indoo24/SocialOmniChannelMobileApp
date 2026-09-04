@@ -488,6 +488,132 @@ abstract class AppLocalizations {
   /// **'This action is only available from the web app.'**
   String get manageFromWebOnlyHint;
 
+  /// No description provided for @updateTokenAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Update token'**
+  String get updateTokenAction;
+
+  /// No description provided for @updateTokenSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update access token'**
+  String get updateTokenSheetTitle;
+
+  /// No description provided for @updateTokenSheetDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace this number\'s access token if it expired or was regenerated in the Meta dashboard.'**
+  String get updateTokenSheetDescription;
+
+  /// No description provided for @otherWaysToConnectSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Other ways to connect'**
+  String get otherWaysToConnectSection;
+
+  /// No description provided for @addAnotherNumberAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add another number'**
+  String get addAnotherNumberAction;
+
+  /// No description provided for @addAnotherNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'via phone number ID and access token'**
+  String get addAnotherNumberHint;
+
+  /// No description provided for @addAnotherNumberSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a WhatsApp number'**
+  String get addAnotherNumberSheetTitle;
+
+  /// No description provided for @useInstagramTokenAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Instagram token'**
+  String get useInstagramTokenAction;
+
+  /// No description provided for @useInstagramTokenSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect with an Instagram token'**
+  String get useInstagramTokenSheetTitle;
+
+  /// No description provided for @useInstagramTokenSheetDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste an Instagram user token generated from Meta\'s dashboard. This attaches the account the token identifies.'**
+  String get useInstagramTokenSheetDescription;
+
+  /// No description provided for @manageFacebookPagesAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Facebook Pages'**
+  String get manageFacebookPagesAction;
+
+  /// No description provided for @phoneNumberIdFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number ID'**
+  String get phoneNumberIdFieldLabel;
+
+  /// No description provided for @accessTokenFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Access token'**
+  String get accessTokenFieldLabel;
+
+  /// No description provided for @wabaIdFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp Business Account ID'**
+  String get wabaIdFieldLabel;
+
+  /// No description provided for @wabaIdFieldOptionalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — derived from the token when left blank.'**
+  String get wabaIdFieldOptionalHint;
+
+  /// No description provided for @instagramTokenFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Instagram access token'**
+  String get instagramTokenFieldLabel;
+
+  /// No description provided for @fieldRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'This field is required.'**
+  String get fieldRequiredError;
+
+  /// No description provided for @channelConnectedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{channel} connected.'**
+  String channelConnectedSnackbar(String channel);
+
+  /// No description provided for @channelTokenUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Access token updated.'**
+  String get channelTokenUpdatedSnackbar;
+
+  /// No description provided for @connectAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get connectAction;
+
+  /// No description provided for @updateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateAction;
+
   /// No description provided for @noConnectionTitle.
   ///
   /// In en, this message translates to:
@@ -1213,6 +1339,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Read only'**
   String get readOnlyLabel;
+
+  /// No description provided for @attachmentTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach'**
+  String get attachmentTooltip;
+
+  /// No description provided for @attachFromGalleryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo from gallery'**
+  String get attachFromGalleryAction;
+
+  /// No description provided for @attachFromCameraAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get attachFromCameraAction;
+
+  /// No description provided for @removeAttachmentTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove attachment'**
+  String get removeAttachmentTooltip;
+
+  /// No description provided for @attachmentUploadingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading…'**
+  String get attachmentUploadingLabel;
+
+  /// No description provided for @attachmentUploadFailedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t upload that file. Please try again.'**
+  String get attachmentUploadFailedError;
+
+  /// No description provided for @attachmentPermissionDeniedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission was denied. Enable it in your device settings to attach photos.'**
+  String get attachmentPermissionDeniedError;
+
+  /// No description provided for @recordVoiceTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Record a voice message'**
+  String get recordVoiceTooltip;
+
+  /// No description provided for @recordingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording {duration}'**
+  String recordingLabel(String duration);
+
+  /// No description provided for @cancelRecordingTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel recording'**
+  String get cancelRecordingTooltip;
+
+  /// No description provided for @stopRecordingTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop and send'**
+  String get stopRecordingTooltip;
+
+  /// No description provided for @microphonePermissionDeniedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone access was denied. Enable it in your device settings to record a voice message.'**
+  String get microphonePermissionDeniedError;
+
+  /// No description provided for @recordingFailedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t start recording. Please try again.'**
+  String get recordingFailedError;
+
+  /// No description provided for @voiceMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice message'**
+  String get voiceMessageLabel;
+
+  /// No description provided for @playVoiceMessageTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Play voice message'**
+  String get playVoiceMessageTooltip;
+
+  /// No description provided for @pauseVoiceMessageTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause voice message'**
+  String get pauseVoiceMessageTooltip;
+
+  /// No description provided for @voiceMessagePlaybackFailedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t play this voice message.'**
+  String get voiceMessagePlaybackFailedError;
+
+  /// No description provided for @imageLoadFailedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load image'**
+  String get imageLoadFailedLabel;
 
   /// No description provided for @notDeliveredFallback.
   ///

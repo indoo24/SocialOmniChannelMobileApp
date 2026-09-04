@@ -318,6 +318,31 @@ class ChannelAuthorizationUrl {
       );
 }
 
+/// A channel that was just attached by a manual token connect — `POST
+/// /integrations/whatsapp/connect/` or `POST /integrations/instagram/connect/`.
+/// Matches Swagger's `ConnectedChannel` schema exactly.
+class ConnectedChannel {
+  const ConnectedChannel({
+    required this.id,
+    required this.displayName,
+    required this.status,
+    required this.detail,
+  });
+
+  final int id;
+  final String displayName;
+  final String status;
+  final String detail;
+
+  factory ConnectedChannel.fromJson(Map<String, dynamic> json) =>
+      ConnectedChannel(
+        id: JsonSafe.asInt(json['id'], fallback: -1),
+        displayName: JsonSafe.asString(json['display_name']),
+        status: JsonSafe.asString(json['status']),
+        detail: JsonSafe.asString(json['detail']),
+      );
+}
+
 // --------------------------------------------------------------------------- //
 // Dashboard
 // --------------------------------------------------------------------------- //

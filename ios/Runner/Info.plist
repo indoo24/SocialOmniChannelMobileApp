@@ -54,6 +54,16 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 	</dict>
+	<!-- Composer attachments (image_picker, record). iOS shows this text on
+	     the system permission prompt, which only appears the moment the
+	     agent taps the attachment button (camera/gallery) or the microphone
+	     button — never at launch. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Scenario needs camera access so you can take a photo to send in a conversation.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Scenario needs photo library access so you can attach an image to a conversation.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Scenario needs microphone access so you can record a voice message to send in a conversation.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

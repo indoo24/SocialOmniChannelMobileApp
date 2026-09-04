@@ -24,6 +24,7 @@ import '../../core/realtime/realtime_logger.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
+import 'composer_attachment.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
 import 'message_bubble.dart';
@@ -153,9 +154,17 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     super.dispose();
   }
 
-  Future<void> _send() async {
+  /// [attachmentId] is a draft already staged (uploaded) via the
+  /// attachment/voice flow in [_Composer] — this method only ever
+  /// references it, never uploads anything itself. [attachmentPreview]
+  /// renders that same local file in the optimistic bubble.
+  Future<void> _send({
+    String? attachmentId,
+    MessageAttachment? attachmentPreview,
+  }) async {
     final text = _composerController.text.trim();
-    if (text.isEmpty || _sending) return;
+    final hasAttachment = attachmentId != null;
+    if ((text.isEmpty && !hasAttachment) || _sending) return;
 
     setState(() => _sending = true);
     _composerController.clear();
@@ -163,7 +172,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     try {
       await ref
           .read(conversationControllerProvider(widget.conversationId).notifier)
-          .send(text);
+          .send(
+            text,
+            attachmentId: attachmentId,
+            attachmentPreview: attachmentPreview,
+          );
       _scrollToBottom(animated: true);
     } on ApiException catch (error) {
       if (!mounted) return;
@@ -1239,6 +1252,11 @@ class _SegmentTab extends StatelessWidget {
   }
 }
 
+/// Sends the composer's current text, plus an optional attachment already
+/// staged (uploaded) via [ConversationRepository.stageAttachment].
+typedef ComposerSendCallback =
+    void Function({String? attachmentId, MessageAttachment? attachmentPreview});
+
 class _Composer extends ConsumerStatefulWidget {
   const _Composer({
     required this.conversationId,
@@ -1250,7 +1268,7 @@ class _Composer extends ConsumerStatefulWidget {
   final int conversationId;
   final TextEditingController controller;
   final bool sending;
-  final VoidCallback onSend;
+  final ComposerSendCallback onSend;
 
   @override
   ConsumerState<_Composer> createState() => _ComposerState();
@@ -1261,12 +1279,46 @@ class _ComposerState extends ConsumerState<_Composer> {
   String? _selectedTemplate;
   bool _savingNote = false;
 
+  /// An image already picked and uploaded, waiting to be sent (or removed).
+  /// Voice notes skip this state entirely — recording finishes and sends in
+  /// one motion, matching WhatsApp's own behavior, rather than sitting as a
+  /// staged preview the agent could otherwise edit alongside typed text.
+  StagedAttachment? _stagedImage;
+
   static const _defaultTemplates = [
     'Hello! How can we help you today?',
     'Thank you for reaching out. We are looking into this for you.',
     'Your request has been received and is being processed.',
     'Is there anything else we can assist you with?',
   ];
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _onImageStaged(StagedAttachment staged) {
+    setState(() => _stagedImage = staged);
+  }
+
+  void _onImageRemoved() {
+    setState(() => _stagedImage = null);
+  }
+
+  void _onVoiceStaged(StagedAttachment staged) {
+    // A voice note sends immediately on finishing recording rather than
+    // sitting in the composer for a separate Send tap — matching the "Stop
+    // and send" affordance the recording bar itself already promises. Any
+    // text already typed goes along as the same message's caption — the
+    // `Reply` endpoint accepts `text` alongside `attachment_ids` in one
+    // call, the same combination an image send already uses.
+    widget.onSend(
+      attachmentId: staged.draftId,
+      attachmentPreview: staged.attachment,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1349,9 +1401,28 @@ class _ComposerState extends ConsumerState<_Composer> {
 
             // Mode Content
             if (_mode == _ComposerMode.reply) ...[
+              if (_stagedImage != null)
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: ComposerAttachmentPreview(
+                    conversationId: widget.conversationId,
+                    staged: _stagedImage!,
+                    onRemoved: _onImageRemoved,
+                  ),
+                ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  // Attachment button — logical-left per the design spec;
+                  // PositionedDirectional/the surrounding Row already handle
+                  // RTL by construction (Flutter mirrors Row children under
+                  // Directionality.rtl automatically), so no manual flip.
+                  ComposerAttachmentButton(
+                    conversationId: widget.conversationId,
+                    enabled: !widget.sending,
+                    onStaged: _onImageStaged,
+                    onError: _showMessage,
+                  ),
                   Expanded(
                     child: TextField(
                       key: const ValueKey('composer_reply_input'),
@@ -1369,12 +1440,36 @@ class _ComposerState extends ConsumerState<_Composer> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: Space.sm),
+                  const SizedBox(width: Space.xs),
+                  // Flexible: idle, this is just a mic icon at its natural
+                  // size; recording, the duration bar it swaps in is wide
+                  // enough to overflow a narrow Android screen alongside
+                  // the attachment and send buttons unless it can shrink.
+                  Flexible(
+                    child: ComposerVoiceRecorder(
+                      conversationId: widget.conversationId,
+                      enabled: !widget.sending,
+                      onStaged: _onVoiceStaged,
+                      onError: _showMessage,
+                    ),
+                  ),
+                  const SizedBox(width: Space.xs),
                   SizedBox(
                     width: 44,
                     height: 44,
                     child: IconButton.filled(
-                      onPressed: widget.sending ? null : widget.onSend,
+                      onPressed: widget.sending
+                          ? null
+                          : () {
+                              final staged = _stagedImage;
+                              if (staged != null) {
+                                setState(() => _stagedImage = null);
+                              }
+                              widget.onSend(
+                                attachmentId: staged?.draftId,
+                                attachmentPreview: staged?.attachment,
+                              );
+                            },
                       icon: widget.sending
                           ? const SizedBox(
                               width: 16,

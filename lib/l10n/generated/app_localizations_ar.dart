@@ -236,6 +236,74 @@ class AppLocalizationsAr extends AppLocalizations {
   String get manageFromWebOnlyHint => 'هذا الإجراء متاح فقط من تطبيق الويب.';
 
   @override
+  String get updateTokenAction => 'تحديث الرمز';
+
+  @override
+  String get updateTokenSheetTitle => 'تحديث رمز الوصول';
+
+  @override
+  String get updateTokenSheetDescription =>
+      'استبدل رمز الوصول لهذا الرقم إذا انتهت صلاحيته أو تم إنشاؤه من جديد في لوحة تحكم Meta.';
+
+  @override
+  String get otherWaysToConnectSection => 'طرق أخرى للربط';
+
+  @override
+  String get addAnotherNumberAction => 'إضافة رقم آخر';
+
+  @override
+  String get addAnotherNumberHint => 'عبر معرّف رقم الهاتف ورمز الوصول';
+
+  @override
+  String get addAnotherNumberSheetTitle => 'إضافة رقم واتساب';
+
+  @override
+  String get useInstagramTokenAction => 'استخدام رمز إنستغرام';
+
+  @override
+  String get useInstagramTokenSheetTitle => 'الربط باستخدام رمز إنستغرام';
+
+  @override
+  String get useInstagramTokenSheetDescription =>
+      'الصق رمز مستخدم إنستغرام الذي تم إنشاؤه من لوحة تحكم Meta. سيتم ربط الحساب الذي يحدده الرمز.';
+
+  @override
+  String get manageFacebookPagesAction => 'إدارة صفحات فيسبوك';
+
+  @override
+  String get phoneNumberIdFieldLabel => 'معرّف رقم الهاتف';
+
+  @override
+  String get accessTokenFieldLabel => 'رمز الوصول';
+
+  @override
+  String get wabaIdFieldLabel => 'معرّف حساب واتساب للأعمال';
+
+  @override
+  String get wabaIdFieldOptionalHint =>
+      'اختياري — يُستنتج من الرمز إذا تُرك فارغًا.';
+
+  @override
+  String get instagramTokenFieldLabel => 'رمز وصول إنستغرام';
+
+  @override
+  String get fieldRequiredError => 'هذا الحقل مطلوب.';
+
+  @override
+  String channelConnectedSnackbar(String channel) {
+    return 'تم ربط $channel.';
+  }
+
+  @override
+  String get channelTokenUpdatedSnackbar => 'تم تحديث رمز الوصول.';
+
+  @override
+  String get connectAction => 'ربط';
+
+  @override
+  String get updateAction => 'تحديث';
+
+  @override
   String get noConnectionTitle => 'لا يوجد اتصال';
 
   @override
@@ -602,6 +670,65 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get readOnlyLabel => 'للقراءة فقط';
+
+  @override
+  String get attachmentTooltip => 'إرفاق';
+
+  @override
+  String get attachFromGalleryAction => 'صورة من المعرض';
+
+  @override
+  String get attachFromCameraAction => 'التقاط صورة';
+
+  @override
+  String get removeAttachmentTooltip => 'إزالة المرفق';
+
+  @override
+  String get attachmentUploadingLabel => 'جارٍ الرفع…';
+
+  @override
+  String get attachmentUploadFailedError => 'تعذّر رفع الملف. حاول مرة أخرى.';
+
+  @override
+  String get attachmentPermissionDeniedError =>
+      'تم رفض الإذن. فعّله من إعدادات جهازك لإرفاق الصور.';
+
+  @override
+  String get recordVoiceTooltip => 'تسجيل رسالة صوتية';
+
+  @override
+  String recordingLabel(String duration) {
+    return 'جارٍ التسجيل $duration';
+  }
+
+  @override
+  String get cancelRecordingTooltip => 'إلغاء التسجيل';
+
+  @override
+  String get stopRecordingTooltip => 'إيقاف وإرسال';
+
+  @override
+  String get microphonePermissionDeniedError =>
+      'تم رفض الوصول إلى الميكروفون. فعّله من إعدادات جهازك لتسجيل رسالة صوتية.';
+
+  @override
+  String get recordingFailedError => 'تعذّر بدء التسجيل. حاول مرة أخرى.';
+
+  @override
+  String get voiceMessageLabel => 'رسالة صوتية';
+
+  @override
+  String get playVoiceMessageTooltip => 'تشغيل الرسالة الصوتية';
+
+  @override
+  String get pauseVoiceMessageTooltip => 'إيقاف الرسالة الصوتية مؤقتًا';
+
+  @override
+  String get voiceMessagePlaybackFailedError =>
+      'تعذّر تشغيل هذه الرسالة الصوتية.';
+
+  @override
+  String get imageLoadFailedLabel => 'تعذّر تحميل الصورة';
 
   @override
   String get notDeliveredFallback => 'لم يتم التسليم.';

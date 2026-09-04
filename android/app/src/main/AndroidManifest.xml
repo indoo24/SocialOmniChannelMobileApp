@@ -7,6 +7,20 @@
          explicitly here rather than relying on it being merged in from a
          dependency's own manifest (e.g. firebase-messaging). -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Composer attachments: image_picker's camera capture and record's
+         microphone capture. Both packages request these at call-time
+         (tapping the attachment/mic button), never at launch — the manifest
+         entry only makes the runtime request possible. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- Gallery selection on API 32 and below reads through the shared
+         media store; image_picker requests this itself only on those
+         versions (API 33+ uses the photo-picker system UI, which needs no
+         runtime permission at all). -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="scenario omnichannel"
         android:name="${applicationName}"

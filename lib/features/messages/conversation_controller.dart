@@ -252,10 +252,22 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   /// The optimistic row carries a [Message.localId]; the server's response
   /// replaces it. On failure the row stays, marked failed, holding the text so
   /// the agent does not lose what they typed.
-  Future<void> send(String text) async {
+  ///
+  /// [attachmentId] is a draft id already returned by `POST
+  /// /conversations/{id}/attachments/` (see
+  /// `ConversationRepository.stageAttachment`) — this method never uploads
+  /// anything itself, only references what the composer already staged.
+  /// [attachmentPreview] renders that same file locally in the optimistic
+  /// bubble; it carries no server data and is discarded once [sent] arrives.
+  Future<void> send(
+    String text, {
+    String? attachmentId,
+    MessageAttachment? attachmentPreview,
+  }) async {
     final current = state.value;
     final trimmed = text.trim();
-    if (current == null || trimmed.isEmpty) return;
+    final hasAttachment = attachmentId != null;
+    if (current == null || (trimmed.isEmpty && !hasAttachment)) return;
 
     final employee = ref.read(currentEmployeeProvider);
     final localId = 'local-${DateTime.now().microsecondsSinceEpoch}';
@@ -265,13 +277,19 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       text: trimmed,
       senderName: employee?.fullName ?? 'You',
       senderInitials: employee?.initials ?? '',
+      previewAttachment: attachmentPreview,
+      pendingAttachmentId: attachmentId,
     );
 
     RealtimeLogger.log(
       'CONTROLLER',
       'SEND_START',
       conversationId: conversationId.toString(),
-      data: {'localId': localId, 'textLength': trimmed.length},
+      data: {
+        'localId': localId,
+        'textLength': trimmed.length,
+        'hasAttachment': hasAttachment,
+      },
     );
 
     state = AsyncData(
@@ -281,7 +299,12 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     try {
       final sent = await ref
           .read(conversationRepositoryProvider)
-          .reply(current.conversation.id, trimmed);
+          .reply(
+            current.conversation.id,
+            trimmed,
+            attachmentIds: hasAttachment ? [attachmentId] : const [],
+            clientMessageId: localId,
+          );
 
       RealtimeLogger.log(
         'CONTROLLER',
@@ -339,8 +362,14 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   ///
   /// The failed row is removed before resending rather than kept alongside,
   /// so a retry can never leave two copies of the same reply on screen — and
-  /// the backend's own `external_id` idempotency covers the case where the
-  /// first attempt actually landed but the response was lost.
+  /// the backend's own `client_message_id` idempotency covers the case
+  /// where the first attempt actually landed but the response was lost.
+  ///
+  /// If the failed row carried an attachment, its draft id
+  /// ([Message.pendingAttachmentId]) is resent against — the draft itself
+  /// was already uploaded and survives a failed `reply()`, so a retry never
+  /// re-uploads the file, matching the equivalent server-stored-message
+  /// `POST .../messages/{id}/retry/` behavior one level up.
   Future<void> retry(String localId) async {
     final current = state.value;
     if (current == null) return;
@@ -350,13 +379,21 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         .firstOrNull;
     if (failed == null) return;
 
+    final preview = failed.attachments.isEmpty
+        ? null
+        : failed.attachments.first;
+
     state = AsyncData(
       current.copyWith(
         messages: current.messages.where((m) => m.localId != localId).toList(),
       ),
     );
 
-    await send(failed.text);
+    await send(
+      failed.text,
+      attachmentId: failed.pendingAttachmentId,
+      attachmentPreview: preview,
+    );
   }
 
   void discardFailed(String localId) {

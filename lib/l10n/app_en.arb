@@ -126,6 +126,33 @@
   "manageFromWebOnlyAction": "Manage from web",
   "manageFromWebOnlyHint": "This action is only available from the web app.",
 
+  "updateTokenAction": "Update token",
+  "updateTokenSheetTitle": "Update access token",
+  "updateTokenSheetDescription": "Replace this number's access token if it expired or was regenerated in the Meta dashboard.",
+  "otherWaysToConnectSection": "Other ways to connect",
+  "addAnotherNumberAction": "Add another number",
+  "addAnotherNumberHint": "via phone number ID and access token",
+  "addAnotherNumberSheetTitle": "Add a WhatsApp number",
+  "useInstagramTokenAction": "Use Instagram token",
+  "useInstagramTokenSheetTitle": "Connect with an Instagram token",
+  "useInstagramTokenSheetDescription": "Paste an Instagram user token generated from Meta's dashboard. This attaches the account the token identifies.",
+  "manageFacebookPagesAction": "Manage Facebook Pages",
+  "phoneNumberIdFieldLabel": "Phone number ID",
+  "accessTokenFieldLabel": "Access token",
+  "wabaIdFieldLabel": "WhatsApp Business Account ID",
+  "wabaIdFieldOptionalHint": "Optional — derived from the token when left blank.",
+  "instagramTokenFieldLabel": "Instagram access token",
+  "fieldRequiredError": "This field is required.",
+  "channelConnectedSnackbar": "{channel} connected.",
+  "@channelConnectedSnackbar": {
+    "placeholders": {
+      "channel": {"type": "String"}
+    }
+  },
+  "channelTokenUpdatedSnackbar": "Access token updated.",
+  "connectAction": "Connect",
+  "updateAction": "Update",
+
   "noConnectionTitle": "No connection",
   "genericErrorTitle": "Something went wrong",
   "genericErrorFallbackMessage": "Please try again.",
@@ -268,6 +295,30 @@
   "noMessagesYetMessage": "This conversation has no history.",
   "writeReplyHint": "Write a reply…",
   "readOnlyLabel": "Read only",
+
+  "attachmentTooltip": "Attach",
+  "attachFromGalleryAction": "Photo from gallery",
+  "attachFromCameraAction": "Take photo",
+  "removeAttachmentTooltip": "Remove attachment",
+  "attachmentUploadingLabel": "Uploading…",
+  "attachmentUploadFailedError": "Couldn't upload that file. Please try again.",
+  "attachmentPermissionDeniedError": "Permission was denied. Enable it in your device settings to attach photos.",
+  "recordVoiceTooltip": "Record a voice message",
+  "recordingLabel": "Recording {duration}",
+  "@recordingLabel": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "cancelRecordingTooltip": "Cancel recording",
+  "stopRecordingTooltip": "Stop and send",
+  "microphonePermissionDeniedError": "Microphone access was denied. Enable it in your device settings to record a voice message.",
+  "recordingFailedError": "Couldn't start recording. Please try again.",
+  "voiceMessageLabel": "Voice message",
+  "playVoiceMessageTooltip": "Play voice message",
+  "pauseVoiceMessageTooltip": "Pause voice message",
+  "voiceMessagePlaybackFailedError": "Couldn't play this voice message.",
+  "imageLoadFailedLabel": "Couldn't load image",
 
   "notDeliveredFallback": "Not delivered.",
   "discardAction": "Discard",

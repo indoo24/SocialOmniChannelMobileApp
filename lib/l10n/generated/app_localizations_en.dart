@@ -235,6 +235,74 @@ class AppLocalizationsEn extends AppLocalizations {
       'This action is only available from the web app.';
 
   @override
+  String get updateTokenAction => 'Update token';
+
+  @override
+  String get updateTokenSheetTitle => 'Update access token';
+
+  @override
+  String get updateTokenSheetDescription =>
+      'Replace this number\'s access token if it expired or was regenerated in the Meta dashboard.';
+
+  @override
+  String get otherWaysToConnectSection => 'Other ways to connect';
+
+  @override
+  String get addAnotherNumberAction => 'Add another number';
+
+  @override
+  String get addAnotherNumberHint => 'via phone number ID and access token';
+
+  @override
+  String get addAnotherNumberSheetTitle => 'Add a WhatsApp number';
+
+  @override
+  String get useInstagramTokenAction => 'Use Instagram token';
+
+  @override
+  String get useInstagramTokenSheetTitle => 'Connect with an Instagram token';
+
+  @override
+  String get useInstagramTokenSheetDescription =>
+      'Paste an Instagram user token generated from Meta\'s dashboard. This attaches the account the token identifies.';
+
+  @override
+  String get manageFacebookPagesAction => 'Manage Facebook Pages';
+
+  @override
+  String get phoneNumberIdFieldLabel => 'Phone number ID';
+
+  @override
+  String get accessTokenFieldLabel => 'Access token';
+
+  @override
+  String get wabaIdFieldLabel => 'WhatsApp Business Account ID';
+
+  @override
+  String get wabaIdFieldOptionalHint =>
+      'Optional — derived from the token when left blank.';
+
+  @override
+  String get instagramTokenFieldLabel => 'Instagram access token';
+
+  @override
+  String get fieldRequiredError => 'This field is required.';
+
+  @override
+  String channelConnectedSnackbar(String channel) {
+    return '$channel connected.';
+  }
+
+  @override
+  String get channelTokenUpdatedSnackbar => 'Access token updated.';
+
+  @override
+  String get connectAction => 'Connect';
+
+  @override
+  String get updateAction => 'Update';
+
+  @override
   String get noConnectionTitle => 'No connection';
 
   @override
@@ -602,6 +670,67 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readOnlyLabel => 'Read only';
+
+  @override
+  String get attachmentTooltip => 'Attach';
+
+  @override
+  String get attachFromGalleryAction => 'Photo from gallery';
+
+  @override
+  String get attachFromCameraAction => 'Take photo';
+
+  @override
+  String get removeAttachmentTooltip => 'Remove attachment';
+
+  @override
+  String get attachmentUploadingLabel => 'Uploading…';
+
+  @override
+  String get attachmentUploadFailedError =>
+      'Couldn\'t upload that file. Please try again.';
+
+  @override
+  String get attachmentPermissionDeniedError =>
+      'Permission was denied. Enable it in your device settings to attach photos.';
+
+  @override
+  String get recordVoiceTooltip => 'Record a voice message';
+
+  @override
+  String recordingLabel(String duration) {
+    return 'Recording $duration';
+  }
+
+  @override
+  String get cancelRecordingTooltip => 'Cancel recording';
+
+  @override
+  String get stopRecordingTooltip => 'Stop and send';
+
+  @override
+  String get microphonePermissionDeniedError =>
+      'Microphone access was denied. Enable it in your device settings to record a voice message.';
+
+  @override
+  String get recordingFailedError =>
+      'Couldn\'t start recording. Please try again.';
+
+  @override
+  String get voiceMessageLabel => 'Voice message';
+
+  @override
+  String get playVoiceMessageTooltip => 'Play voice message';
+
+  @override
+  String get pauseVoiceMessageTooltip => 'Pause voice message';
+
+  @override
+  String get voiceMessagePlaybackFailedError =>
+      'Couldn\'t play this voice message.';
+
+  @override
+  String get imageLoadFailedLabel => 'Couldn\'t load image';
 
   @override
   String get notDeliveredFallback => 'Not delivered.';
