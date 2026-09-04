@@ -10,6 +10,7 @@ import 'package:dio/dio.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/models/conversation.dart';
+import '../../core/models/conversation_group.dart';
 import '../../core/models/conversation_event.dart';
 import '../../core/models/conversion_event.dart';
 import '../../core/models/intelligence.dart';
@@ -91,6 +92,18 @@ class ConversationRepository {
       query: filters.toQuery(page, currentEmployeeId),
     );
     return Paginated.fromJson(data, Conversation.fromJson);
+  }
+
+  Future<Paginated<CustomerConversationGroup>> listGrouped({
+    ConversationFilters filters = const ConversationFilters(),
+    int page = 1,
+    int? currentEmployeeId,
+  }) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/conversations/grouped/',
+      query: filters.toQuery(page, currentEmployeeId),
+    );
+    return Paginated.fromJson(data, CustomerConversationGroup.fromJson);
   }
 
   Future<Conversation> detail(int id) async {

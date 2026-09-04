@@ -42,12 +42,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scenario_mobile/core/api/api_client.dart';
+import 'package:scenario_mobile/core/models/directory.dart';
 import 'package:scenario_mobile/core/models/employee.dart';
 import 'package:scenario_mobile/core/providers.dart';
 import 'package:scenario_mobile/core/realtime/realtime_bridge.dart';
 import 'package:scenario_mobile/core/theme/app_theme.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
 import 'package:scenario_mobile/features/conversations/inbox_controller.dart';
+import 'package:scenario_mobile/features/directory/directory_providers.dart';
 import 'package:scenario_mobile/features/messages/conversation_controller.dart';
 import 'package:scenario_mobile/features/settings/settings_screen.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
@@ -566,5 +568,194 @@ void main() {
             'Disconnect must trigger inboxControllerProvider.refreshQuietly()',
       );
     });
+  });
+
+  group('Inbox active channel filtering for disconnected / removed channels', () {
+    const channel5 = ChannelConnection(
+      id: 5,
+      provider: 'WHATSAPP',
+      displayName: 'Support Line',
+      status: 'CONNECTED',
+      isActive: true,
+      isMuted: false,
+    );
+
+    const channel9Connected = ChannelConnection(
+      id: 9,
+      provider: 'WHATSAPP',
+      displayName: 'Old Number',
+      status: 'CONNECTED',
+      isActive: true,
+      isMuted: false,
+    );
+
+    const channel9Disconnected = ChannelConnection(
+      id: 9,
+      provider: 'WHATSAPP',
+      displayName: 'Old Number',
+      status: 'DISCONNECTED',
+      isActive: false,
+      isMuted: false,
+    );
+
+    test(
+      'conversations belonging to disconnected channel are filtered out',
+      () async {
+        final adapter = _StubAdapter((options) {
+          if (options.path == '/conversations/') {
+            return _json(_page([_conversationA, _conversationB]), 200);
+          }
+          throw StateError('Unexpected request: ${options.path}');
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final container = ProviderContainer(
+          overrides: [
+            apiClientProvider.overrideWithValue(client),
+            currentEmployeeProvider.overrideWithValue(_adminEmployee),
+            channelsProvider.overrideWith(
+              (ref) => [channel5, channel9Disconnected],
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final state = await container.read(inboxControllerProvider.future);
+        expect(state.conversations.map((c) => c.id), [101]);
+        expect(state.conversations.any((c) => c.id == 102), isFalse);
+      },
+    );
+
+    test(
+      'conversations belonging to removed channel are filtered out',
+      () async {
+        // Channel 9 was completely deleted/removed from backend:
+        final adapter = _StubAdapter((options) {
+          if (options.path == '/conversations/') {
+            return _json(_page([_conversationA, _conversationB]), 200);
+          }
+          throw StateError('Unexpected request: ${options.path}');
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final container = ProviderContainer(
+          overrides: [
+            apiClientProvider.overrideWithValue(client),
+            currentEmployeeProvider.overrideWithValue(_adminEmployee),
+            channelsProvider.overrideWith((ref) => [channel5]),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final state = await container.read(inboxControllerProvider.future);
+        expect(state.conversations.map((c) => c.id), [101]);
+        expect(state.conversations.any((c) => c.id == 102), isFalse);
+      },
+    );
+
+    test(
+      'multi-conversation customer group shrinks when one number is disconnected',
+      () async {
+        // Customer 1 has conversations on both channel 5 and channel 9
+        const customer1ConvoChannel9 = '''
+{
+  "id": 105,
+  "customer": {"id": 1, "display_name": "Customer A"},
+  "provider": "WHATSAPP",
+  "channel_id": 9,
+  "channel_name": "Old number",
+  "status": "OPEN",
+  "priority": "NORMAL",
+  "unread_count": 1,
+  "message_count": 2
+}
+''';
+        var isDisconnected = false;
+        final adapter = _StubAdapter((options) {
+          if (options.path == '/conversations/') {
+            // Backend still returns both conversations:
+            return _json(_page([_conversationA, customer1ConvoChannel9]), 200);
+          }
+          throw StateError('Unexpected request: ${options.path}');
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final container = ProviderContainer(
+          overrides: [
+            apiClientProvider.overrideWithValue(client),
+            currentEmployeeProvider.overrideWithValue(_adminEmployee),
+            channelsProvider.overrideWith(
+              (ref) => [
+                channel5,
+                isDisconnected ? channel9Disconnected : channel9Connected,
+              ],
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Before disconnect: Customer A has 2 conversations in their group
+        final initial = await container.read(inboxControllerProvider.future);
+        expect(initial.conversations.map((c) => c.id), [101, 105]);
+        expect(initial.groups.length, 1);
+        expect(initial.groups.first.conversationCount, 2);
+        expect(initial.groups.first.isMultiConversation, isTrue);
+
+        // Now Channel 9 is disconnected and refreshQuietly() is triggered
+        isDisconnected = true;
+        await container.read(inboxControllerProvider.notifier).refreshQuietly();
+
+        final after = container.read(inboxControllerProvider).value!;
+        expect(after.conversations.map((c) => c.id), [101]);
+        expect(after.groups.length, 1);
+        expect(after.groups.first.conversationCount, 1);
+        expect(after.groups.first.isMultiConversation, isFalse);
+      },
+    );
+
+    test(
+      'customer with only disconnected channel conversations disappears from inbox',
+      () async {
+        var isDisconnected = false;
+        final adapter = _StubAdapter((options) {
+          if (options.path == '/conversations/') {
+            // Convo 101 on channel 5, Convo 102 on channel 9 (Customer B)
+            return _json(_page([_conversationA, _conversationB]), 200);
+          }
+          throw StateError('Unexpected request: ${options.path}');
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final container = ProviderContainer(
+          overrides: [
+            apiClientProvider.overrideWithValue(client),
+            currentEmployeeProvider.overrideWithValue(_adminEmployee),
+            channelsProvider.overrideWith(
+              (ref) => [
+                channel5,
+                isDisconnected ? channel9Disconnected : channel9Connected,
+              ],
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Before disconnect: Customer A and Customer B both present
+        final initial = await container.read(inboxControllerProvider.future);
+        expect(initial.groups.map((g) => g.customer.id).toSet(), {1, 2});
+
+        // Disconnect channel 9
+        isDisconnected = true;
+        await container.read(inboxControllerProvider.notifier).refreshQuietly();
+
+        final after = container.read(inboxControllerProvider).value!;
+        expect(after.groups.map((g) => g.customer.id), [1]);
+        expect(after.groups.any((g) => g.customer.id == 2), isFalse);
+      },
+    );
   });
 }

@@ -9,6 +9,7 @@
 library;
 
 import '../../core/api/api_client.dart';
+import '../../core/api/api_exception.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/customer_detail.dart';
 import '../../core/models/directory.dart';
@@ -179,11 +180,22 @@ class DirectoryRepository {
   }
 
   Future<Paginated<ChannelConnection>> channels() async {
-    final data = await _api.get<Map<String, dynamic>>(
-      '/channels/',
-      query: {'page_size': 50},
-    );
-    return Paginated.fromJson(data, ChannelConnection.fromJson);
+    try {
+      final data = await _api.get<Map<String, dynamic>>(
+        '/channels/',
+        query: {'page_size': 50},
+      );
+      return Paginated.fromJson(data, ChannelConnection.fromJson);
+    } on ApiException catch (e) {
+      if (e.statusCode == 403) {
+        final data = await _api.get<Map<String, dynamic>>(
+          '/conversations/channels/',
+          query: {'page_size': 50},
+        );
+        return Paginated.fromJson(data, ChannelConnection.fromJson);
+      }
+      rethrow;
+    }
   }
 
   /// Stop showing this channel's conversations without disconnecting it.

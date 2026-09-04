@@ -173,6 +173,7 @@
   "navEmployees": "Employees",
   "navTeams": "Teams",
   "navAnalytics": "Analytics",
+  "navTemplates": "Templates",
   "navSettings": "Settings",
   "noAccessTitle": "You don't have access",
   "noAccessMessage": "Your role does not include {section}. Ask an administrator if you need it.",
@@ -533,10 +534,15 @@
   "savedToCustomerMessage": "Saved to the customer",
   "suggestionDismissedMessage": "Suggestion dismissed",
   "recordDetailDialogTitle": "Record a customer detail",
+  "recordDetailDescription": "Something the customer shared — an address, a phone number, a preference.",
   "detailFieldLabel": "Detail",
   "detailFieldHint": "address",
   "valueFieldLabel": "Value",
   "valueFieldHint": "12 Nile St, Giza",
+  "removeLineTooltip": "Remove line",
+  "atLeastOneProductError": "Enter at least one product name.",
+  "validPriceError": "Enter a valid price.",
+  "detailRequiredError": "Enter both detail and value.",
   "confirmAction": "Confirm",
   "orderConfirmedMessage": "Order confirmed",
   "cancelOrderTooltip": "Cancel this order",
@@ -556,7 +562,7 @@
   "priceFieldLabel": "Price",
   "addLineButton": "Add line",
   "totalLabel": "Total",
-  "recordOrderButton": "Record order",
+  "recordOrderButton": "Record an order",
   "orderRecordedMessage": "Order recorded. Confirm it once you've checked your own records.",
 
   "avgResponseLabel": "Avg response",
@@ -750,5 +756,61 @@
   "purchaseHistoryLoadError": "Could not load the history.",
   "purchaseHistoryEmpty": "No rulings recorded yet.",
   "notConfirmedBadge": "Not confirmed",
-  "anEmployeeLabel": "An employee"
+  "anEmployeeLabel": "An employee",
+
+  "templatesTitle": "Message templates",
+  "templatesSubtitle": "Pre-approved WhatsApp messages you can send outside the 24-hour window.",
+  "wabaAccountLabel": "WhatsApp Business account",
+  "templatesCount": "{count, plural, one{1 template on this account} other{{count} templates on this account}}",
+  "@templatesCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "refreshAction": "Refresh",
+  "createTemplateAction": "Create template",
+  "templateNameLabel": "Name",
+  "templateCategoryLabel": "Category",
+  "templateLanguageLabel": "Language",
+  "templateStatusLabel": "Status",
+  "templateMetaIdLabel": "Meta ID",
+  "noTemplatesFound": "No templates found",
+  "noTemplatesMessage": "No message templates have been created for this WhatsApp Business account.",
+  "noWabaAccounts": "No WhatsApp accounts connected",
+  "noWabaAccountsMessage": "Connect a WhatsApp Business account in Settings to manage message templates.",
+  "createTemplateTitle": "Create message template",
+  "createTemplateSubtitle": "Submit a new WhatsApp message template for Meta review.",
+  "templateNameHelper": "Lowercase letters, numbers, and underscores only",
+  "templateBodyLabel": "Message body",
+  "templateBodyHint": "Enter the template message text. You can include variables.",
+  "submitForReviewAction": "Submit for review",
+  "templateSubmittedSnackbar": "Template submitted for review",
+  "templateInvalidNameError": "Template name must use lowercase letters, numbers and underscores only.",
+  "templateEmptyBodyError": "Template body cannot be empty.",
+  "templateRejectedReason": "Rejection reason: {reason}",
+  "@templateRejectedReason": {
+    "placeholders": {
+      "reason": {"type": "String"}
+    }
+  },
+  "templateUnsupportedNotice": "Unsupported components: {components}",
+  "@templateUnsupportedNotice": {
+    "placeholders": {
+      "components": {"type": "String"}
+    }
+  },
+  "loadingTemplates": "Loading templates…",
+  "noTemplatesAvailable": "No templates available",
+  "groupedConversationsCount": "{count, plural, one{1 conversation} other{{count} conversations}}",
+  "@groupedConversationsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "selectConversationTitle": "Select conversation",
+  "selectConversationSubtitle": "Available WhatsApp conversations for this customer",
+  "switchConversationAction": "Switch conversation",
+  "openConversationAction": "Open",
+  "currentConversationBadge": "Current",
+  "whatsappConversationsGroupTitle": "WhatsApp conversations"
 }

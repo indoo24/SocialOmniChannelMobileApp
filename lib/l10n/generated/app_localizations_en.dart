@@ -354,6 +354,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navAnalytics => 'Analytics';
 
   @override
+  String get navTemplates => 'Templates';
+
+  @override
   String get navSettings => 'Settings';
 
   @override
@@ -1211,6 +1214,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recordDetailDialogTitle => 'Record a customer detail';
 
   @override
+  String get recordDetailDescription =>
+      'Something the customer shared — an address, a phone number, a preference.';
+
+  @override
   String get detailFieldLabel => 'Detail';
 
   @override
@@ -1221,6 +1228,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get valueFieldHint => '12 Nile St, Giza';
+
+  @override
+  String get removeLineTooltip => 'Remove line';
+
+  @override
+  String get atLeastOneProductError => 'Enter at least one product name.';
+
+  @override
+  String get validPriceError => 'Enter a valid price.';
+
+  @override
+  String get detailRequiredError => 'Enter both detail and value.';
 
   @override
   String get confirmAction => 'Confirm';
@@ -1269,7 +1288,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get totalLabel => 'Total';
 
   @override
-  String get recordOrderButton => 'Record order';
+  String get recordOrderButton => 'Record an order';
 
   @override
   String get orderRecordedMessage =>
@@ -1633,4 +1652,137 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get anEmployeeLabel => 'An employee';
+
+  @override
+  String get templatesTitle => 'Message templates';
+
+  @override
+  String get templatesSubtitle =>
+      'Pre-approved WhatsApp messages you can send outside the 24-hour window.';
+
+  @override
+  String get wabaAccountLabel => 'WhatsApp Business account';
+
+  @override
+  String templatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count templates on this account',
+      one: '1 template on this account',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get refreshAction => 'Refresh';
+
+  @override
+  String get createTemplateAction => 'Create template';
+
+  @override
+  String get templateNameLabel => 'Name';
+
+  @override
+  String get templateCategoryLabel => 'Category';
+
+  @override
+  String get templateLanguageLabel => 'Language';
+
+  @override
+  String get templateStatusLabel => 'Status';
+
+  @override
+  String get templateMetaIdLabel => 'Meta ID';
+
+  @override
+  String get noTemplatesFound => 'No templates found';
+
+  @override
+  String get noTemplatesMessage =>
+      'No message templates have been created for this WhatsApp Business account.';
+
+  @override
+  String get noWabaAccounts => 'No WhatsApp accounts connected';
+
+  @override
+  String get noWabaAccountsMessage =>
+      'Connect a WhatsApp Business account in Settings to manage message templates.';
+
+  @override
+  String get createTemplateTitle => 'Create message template';
+
+  @override
+  String get createTemplateSubtitle =>
+      'Submit a new WhatsApp message template for Meta review.';
+
+  @override
+  String get templateNameHelper =>
+      'Lowercase letters, numbers, and underscores only';
+
+  @override
+  String get templateBodyLabel => 'Message body';
+
+  @override
+  String get templateBodyHint =>
+      'Enter the template message text. You can include variables.';
+
+  @override
+  String get submitForReviewAction => 'Submit for review';
+
+  @override
+  String get templateSubmittedSnackbar => 'Template submitted for review';
+
+  @override
+  String get templateInvalidNameError =>
+      'Template name must use lowercase letters, numbers and underscores only.';
+
+  @override
+  String get templateEmptyBodyError => 'Template body cannot be empty.';
+
+  @override
+  String templateRejectedReason(String reason) {
+    return 'Rejection reason: $reason';
+  }
+
+  @override
+  String templateUnsupportedNotice(String components) {
+    return 'Unsupported components: $components';
+  }
+
+  @override
+  String get loadingTemplates => 'Loading templates…';
+
+  @override
+  String get noTemplatesAvailable => 'No templates available';
+
+  @override
+  String groupedConversationsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conversations',
+      one: '1 conversation',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get selectConversationTitle => 'Select conversation';
+
+  @override
+  String get selectConversationSubtitle =>
+      'Available WhatsApp conversations for this customer';
+
+  @override
+  String get switchConversationAction => 'Switch conversation';
+
+  @override
+  String get openConversationAction => 'Open';
+
+  @override
+  String get currentConversationBadge => 'Current';
+
+  @override
+  String get whatsappConversationsGroupTitle => 'WhatsApp conversations';
 }

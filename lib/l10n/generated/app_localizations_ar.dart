@@ -355,6 +355,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get navAnalytics => 'التحليلات';
 
   @override
+  String get navTemplates => 'القوالب';
+
+  @override
   String get navSettings => 'الإعدادات';
 
   @override
@@ -1220,6 +1223,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get recordDetailDialogTitle => 'تسجيل بيانات عميل';
 
   @override
+  String get recordDetailDescription =>
+      'شيء شاركه العميل — عنوان، رقم هاتف، تفضيل معين.';
+
+  @override
   String get detailFieldLabel => 'التفصيل';
 
   @override
@@ -1230,6 +1237,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get valueFieldHint => '١٢ شارع النيل، الجيزة';
+
+  @override
+  String get removeLineTooltip => 'حذف البند';
+
+  @override
+  String get atLeastOneProductError => 'أدخل اسم منتج واحد على الأقل.';
+
+  @override
+  String get validPriceError => 'أدخل سعرًا صالحًا.';
+
+  @override
+  String get detailRequiredError => 'أدخل اسم البند وقيمته.';
 
   @override
   String get confirmAction => 'تأكيد';
@@ -1654,4 +1673,142 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get anEmployeeLabel => 'أحد الموظفين';
+
+  @override
+  String get templatesTitle => 'قوالب الرسائل';
+
+  @override
+  String get templatesSubtitle =>
+      'رسائل واتساب المعتمدة مسبقاً التي يمكنك إرسالها خارج نافذة الـ 24 ساعة.';
+
+  @override
+  String get wabaAccountLabel => 'حساب واتساب للأعمال';
+
+  @override
+  String templatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count قالب على هذا الحساب',
+      many: '$count قالباً على هذا الحساب',
+      few: '$count قوالب على هذا الحساب',
+      two: 'قالبان على هذا الحساب',
+      one: 'قالب واحد على هذا الحساب',
+      zero: 'لا توجد قوالب على هذا الحساب',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get refreshAction => 'تحديث';
+
+  @override
+  String get createTemplateAction => 'إنشاء قالب';
+
+  @override
+  String get templateNameLabel => 'الاسم';
+
+  @override
+  String get templateCategoryLabel => 'الفئة';
+
+  @override
+  String get templateLanguageLabel => 'اللغة';
+
+  @override
+  String get templateStatusLabel => 'الحالة';
+
+  @override
+  String get templateMetaIdLabel => 'معرّف Meta';
+
+  @override
+  String get noTemplatesFound => 'لم يتم العثور على قوالب';
+
+  @override
+  String get noTemplatesMessage =>
+      'لم يتم إنشاء قوالب رسائل لحساب واتساب للأعمال هذا بعد.';
+
+  @override
+  String get noWabaAccounts => 'لا توجد حسابات واتساب متصلة';
+
+  @override
+  String get noWabaAccountsMessage =>
+      'قم بربط حساب واتساب للأعمال في الإعدادات لإدارة قوالب الرسائل.';
+
+  @override
+  String get createTemplateTitle => 'إنشاء قالب رسالة';
+
+  @override
+  String get createTemplateSubtitle =>
+      'إرسال قالب رسالة واتساب جديد لمراجعته من Meta.';
+
+  @override
+  String get templateNameHelper => 'أحرف صغيرة وأرقام وشرطات سفلية فقط';
+
+  @override
+  String get templateBodyLabel => 'نص الرسالة';
+
+  @override
+  String get templateBodyHint => 'أدخل نص القالب. يمكنك تضمين متغيرات.';
+
+  @override
+  String get submitForReviewAction => 'إرسال للمراجعة';
+
+  @override
+  String get templateSubmittedSnackbar => 'تم إرسال القالب للمراجعة';
+
+  @override
+  String get templateInvalidNameError =>
+      'يجب أن يتكون اسم القالب من أحرف صغيرة وأرقام وشرطات سفلية فقط.';
+
+  @override
+  String get templateEmptyBodyError => 'لا يمكن أن يكون نص القالب فارغاً.';
+
+  @override
+  String templateRejectedReason(String reason) {
+    return 'سبب الرفض: $reason';
+  }
+
+  @override
+  String templateUnsupportedNotice(String components) {
+    return 'مكونات غير مدعومة: $components';
+  }
+
+  @override
+  String get loadingTemplates => 'جارٍ تحميل القوالب…';
+
+  @override
+  String get noTemplatesAvailable => 'لا توجد قوالب متاحة';
+
+  @override
+  String groupedConversationsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة',
+      many: '$count محادثة',
+      few: '$count محادثات',
+      two: 'محادثتان',
+      one: 'محادثة واحدة',
+      zero: 'لا توجد محادثات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get selectConversationTitle => 'اختر المحادثة';
+
+  @override
+  String get selectConversationSubtitle => 'محادثات واتساب المتاحة لهذا العميل';
+
+  @override
+  String get switchConversationAction => 'تبديل المحادثة';
+
+  @override
+  String get openConversationAction => 'فتح';
+
+  @override
+  String get currentConversationBadge => 'الحالية';
+
+  @override
+  String get whatsappConversationsGroupTitle => 'محادثات واتساب';
 }

@@ -108,6 +108,7 @@ void main() {
         'Employees',
         'Teams',
         'Analytics',
+        'Templates',
         'Settings',
       ]);
     });

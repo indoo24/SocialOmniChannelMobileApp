@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 
 import '../../app/router.dart';
 import '../../core/models/conversation.dart';
+import '../../core/models/conversation_group.dart';
 import '../../core/realtime/realtime_bridge.dart';
 import '../../core/realtime/realtime_client.dart';
 import '../../core/providers.dart';
@@ -25,6 +26,7 @@ import '../../core/widgets/states.dart';
 import '../../core/utils/formatting.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
+import 'customer_conversation_group_sheet.dart';
 import 'inbox_controller.dart';
 import 'inbox_filters_sheet.dart';
 
@@ -164,13 +166,15 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               );
             }
 
+            final groups = state.groups;
+
             return ListView.separated(
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: state.conversations.length + (state.hasMore ? 1 : 0),
+              itemCount: groups.length + (state.hasMore ? 1 : 0),
               separatorBuilder: (_, _) => const Divider(height: 1, indent: 68),
               itemBuilder: (context, index) {
-                if (index >= state.conversations.length) {
+                if (index >= groups.length) {
                   return const Padding(
                     padding: EdgeInsets.all(Space.lg),
                     child: Center(
@@ -183,7 +187,18 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                   );
                 }
 
-                final conversation = state.conversations[index];
+                final group = groups[index];
+                if (group.isMultiConversation) {
+                  return ConversationGroupRow(
+                    group: group,
+                    onTap: () => CustomerConversationGroupSheet.show(
+                      context,
+                      group: group,
+                    ),
+                  );
+                }
+
+                final conversation = group.primaryConversation;
                 return ConversationRow(
                   conversation: conversation,
                   currentEmployeeId: employee?.id,
@@ -193,6 +208,119 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               },
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class ConversationGroupRow extends StatelessWidget {
+  const ConversationGroupRow({
+    required this.group,
+    required this.onTap,
+    super.key,
+  });
+
+  final CustomerConversationGroup group;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final unread = group.isUnread;
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Space.lg,
+          vertical: Space.md,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InitialsAvatar(
+              initials: group.customer.initials,
+              imageUrl: group.customer.avatarUrl,
+              provider: group.provider,
+            ),
+            const SizedBox(width: Space.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          group.customer.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: unread
+                                ? FontWeight.w700
+                                : FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: Space.sm),
+                      Text(
+                        formatRelativeTime(context, group.lastMessageAt),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: unread ? theme.colorScheme.primary : null,
+                          fontWeight: unread ? FontWeight.w600 : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          group.lastMessagePreview.isEmpty
+                              ? context.l10n.noMessagesYetPreview
+                              : group.lastMessagePreview,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: unread
+                                ? theme.colorScheme.onSurface
+                                : theme.textTheme.bodySmall?.color,
+                            fontWeight: unread ? FontWeight.w500 : null,
+                          ),
+                        ),
+                      ),
+                      if (unread) ...[
+                        const SizedBox(width: Space.sm),
+                        _UnreadPill(count: group.unreadCount),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: Space.sm),
+                  Row(
+                    children: [
+                      StatusBadge(
+                        label:
+                            '${context.l10n.providerWhatsapp} · ${context.l10n.groupedConversationsCount(group.conversationCount)}',
+                        tone: BadgeTone.info,
+                        dense: true,
+                        icon: Icons.forum_outlined,
+                      ),
+                      const Spacer(),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

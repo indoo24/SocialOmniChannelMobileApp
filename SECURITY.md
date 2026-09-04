@@ -98,13 +98,6 @@ Never log a session cookie, an FCM token, a customer identifier, message text,
 a full request URI (the query string carries the inbox search term), or a
 response body.
 
-## Adding a screen
-
-If it displays conversation content or customer PII, wrap its route in
-`sensitive(...)` in `app/router.dart`. That sets Android's `FLAG_SECURE` while
-the screen is mounted, keeping it out of screenshots and the app-switcher
-snapshot.
-
 ## Parsing anything the app did not produce
 
 Use the helpers in `core/utils/json_safe.dart` rather than casting. A cast is
@@ -120,10 +113,6 @@ ultimately customer-controlled.
 
 ## Known gaps
 
-* **iOS app-switcher snapshots are unprotected.** iOS has no `FLAG_SECURE`
-  equivalent; it needs a native overlay on `sceneWillResignActive` in
-  `SceneDelegate.swift`. The Dart API is platform-agnostic already, so wiring it
-  needs no call-site changes.
 * **`flutter_secure_storage` is on 9.2.4**, two majors behind 11.0.0. The
   upgrade changes the Android options API and needs device testing on both
   platforms.

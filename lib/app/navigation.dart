@@ -75,6 +75,12 @@ const appSections = <AppSection>[
     permission: Perm.analyticsView,
   ),
   AppSection(
+    path: '/templates',
+    label: 'Templates',
+    icon: Icons.article_outlined,
+    permission: Perm.channelView,
+  ),
+  AppSection(
     path: '/settings',
     label: 'Settings',
     icon: Icons.settings_outlined,

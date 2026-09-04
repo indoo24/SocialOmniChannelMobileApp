@@ -716,6 +716,12 @@ abstract class AppLocalizations {
   /// **'Analytics'**
   String get navAnalytics;
 
+  /// No description provided for @navTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Templates'**
+  String get navTemplates;
+
   /// No description provided for @navSettings.
   ///
   /// In en, this message translates to:
@@ -2282,6 +2288,12 @@ abstract class AppLocalizations {
   /// **'Record a customer detail'**
   String get recordDetailDialogTitle;
 
+  /// No description provided for @recordDetailDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Something the customer shared — an address, a phone number, a preference.'**
+  String get recordDetailDescription;
+
   /// No description provided for @detailFieldLabel.
   ///
   /// In en, this message translates to:
@@ -2305,6 +2317,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'12 Nile St, Giza'**
   String get valueFieldHint;
+
+  /// No description provided for @removeLineTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove line'**
+  String get removeLineTooltip;
+
+  /// No description provided for @atLeastOneProductError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least one product name.'**
+  String get atLeastOneProductError;
+
+  /// No description provided for @validPriceError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid price.'**
+  String get validPriceError;
+
+  /// No description provided for @detailRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter both detail and value.'**
+  String get detailRequiredError;
 
   /// No description provided for @confirmAction.
   ///
@@ -2393,7 +2429,7 @@ abstract class AppLocalizations {
   /// No description provided for @recordOrderButton.
   ///
   /// In en, this message translates to:
-  /// **'Record order'**
+  /// **'Record an order'**
   String get recordOrderButton;
 
   /// No description provided for @orderRecordedMessage.
@@ -3007,6 +3043,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'An employee'**
   String get anEmployeeLabel;
+
+  /// No description provided for @templatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Message templates'**
+  String get templatesTitle;
+
+  /// No description provided for @templatesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-approved WhatsApp messages you can send outside the 24-hour window.'**
+  String get templatesSubtitle;
+
+  /// No description provided for @wabaAccountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp Business account'**
+  String get wabaAccountLabel;
+
+  /// No description provided for @templatesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 template on this account} other{{count} templates on this account}}'**
+  String templatesCount(int count);
+
+  /// No description provided for @refreshAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refreshAction;
+
+  /// No description provided for @createTemplateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Create template'**
+  String get createTemplateAction;
+
+  /// No description provided for @templateNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get templateNameLabel;
+
+  /// No description provided for @templateCategoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get templateCategoryLabel;
+
+  /// No description provided for @templateLanguageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get templateLanguageLabel;
+
+  /// No description provided for @templateStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get templateStatusLabel;
+
+  /// No description provided for @templateMetaIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Meta ID'**
+  String get templateMetaIdLabel;
+
+  /// No description provided for @noTemplatesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No templates found'**
+  String get noTemplatesFound;
+
+  /// No description provided for @noTemplatesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No message templates have been created for this WhatsApp Business account.'**
+  String get noTemplatesMessage;
+
+  /// No description provided for @noWabaAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'No WhatsApp accounts connected'**
+  String get noWabaAccounts;
+
+  /// No description provided for @noWabaAccountsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect a WhatsApp Business account in Settings to manage message templates.'**
+  String get noWabaAccountsMessage;
+
+  /// No description provided for @createTemplateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create message template'**
+  String get createTemplateTitle;
+
+  /// No description provided for @createTemplateSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit a new WhatsApp message template for Meta review.'**
+  String get createTemplateSubtitle;
+
+  /// No description provided for @templateNameHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowercase letters, numbers, and underscores only'**
+  String get templateNameHelper;
+
+  /// No description provided for @templateBodyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Message body'**
+  String get templateBodyLabel;
+
+  /// No description provided for @templateBodyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the template message text. You can include variables.'**
+  String get templateBodyHint;
+
+  /// No description provided for @submitForReviewAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit for review'**
+  String get submitForReviewAction;
+
+  /// No description provided for @templateSubmittedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Template submitted for review'**
+  String get templateSubmittedSnackbar;
+
+  /// No description provided for @templateInvalidNameError.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name must use lowercase letters, numbers and underscores only.'**
+  String get templateInvalidNameError;
+
+  /// No description provided for @templateEmptyBodyError.
+  ///
+  /// In en, this message translates to:
+  /// **'Template body cannot be empty.'**
+  String get templateEmptyBodyError;
+
+  /// No description provided for @templateRejectedReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejection reason: {reason}'**
+  String templateRejectedReason(String reason);
+
+  /// No description provided for @templateUnsupportedNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported components: {components}'**
+  String templateUnsupportedNotice(String components);
+
+  /// No description provided for @loadingTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading templates…'**
+  String get loadingTemplates;
+
+  /// No description provided for @noTemplatesAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No templates available'**
+  String get noTemplatesAvailable;
+
+  /// No description provided for @groupedConversationsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 conversation} other{{count} conversations}}'**
+  String groupedConversationsCount(int count);
+
+  /// No description provided for @selectConversationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select conversation'**
+  String get selectConversationTitle;
+
+  /// No description provided for @selectConversationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Available WhatsApp conversations for this customer'**
+  String get selectConversationSubtitle;
+
+  /// No description provided for @switchConversationAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch conversation'**
+  String get switchConversationAction;
+
+  /// No description provided for @openConversationAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get openConversationAction;
+
+  /// No description provided for @currentConversationBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get currentConversationBadge;
+
+  /// No description provided for @whatsappConversationsGroupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp conversations'**
+  String get whatsappConversationsGroupTitle;
 }
 
 class _AppLocalizationsDelegate

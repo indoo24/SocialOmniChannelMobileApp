@@ -27,6 +27,7 @@ import 'conversation_history_sheet.dart';
 import 'conversion_sheet.dart';
 import 'intelligence_providers.dart';
 import 'notes_sheet.dart';
+import '../orders/order_and_fact_dialogs.dart';
 
 const _statuses = [
   'OPEN',
@@ -184,9 +185,29 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
         _SectionCard(
           title: context.l10n.customerDetailsTitle,
           icon: Icons.person_outline,
+          trailing: (canManageOrders && customerId != null)
+              ? TextButton.icon(
+                  icon: const Icon(Icons.add, size: 16),
+                  label: Text(context.l10n.commonAdd),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Space.xs,
+                      vertical: 2,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () => showRecordCustomerDetailDialog(
+                    context,
+                    ref: ref,
+                    customerId: customerId,
+                    conversationId: widget.conversationId,
+                  ),
+                )
+              : null,
           child: conversation == null
               ? const LoadingState()
-              : _CustomerDetailsView(conversation: conversation),
+              : _CustomerDetailsView(conversation: conversation, facts: facts),
         ),
         const SizedBox(height: Space.lg),
 
@@ -260,8 +281,11 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
         _SectionCard(
           title: context.l10n.ordersTitle,
           icon: Icons.inventory_2_outlined,
-          trailing: ordersPending > 0
-              ? Container(
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (ordersPending > 0) ...[
+                Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 6,
                     vertical: 2,
@@ -278,8 +302,30 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                )
-              : null,
+                ),
+                const SizedBox(width: Space.xs),
+              ],
+              if (canManageOrders && customerId != null)
+                TextButton.icon(
+                  icon: const Icon(Icons.add, size: 16),
+                  label: Text(context.l10n.orderButton),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Space.xs,
+                      vertical: 2,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () => showRecordOrderDialog(
+                    context,
+                    ref: ref,
+                    customerId: customerId,
+                    conversationId: widget.conversationId,
+                  ),
+                ),
+            ],
+          ),
           child: ordersAsync.when(
             loading: () => const LoadingState(),
             error: (error, _) => ErrorStateView(
@@ -535,42 +581,61 @@ class _SectionCardState extends State<_SectionCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          InkWell(
-            borderRadius: BorderRadius.vertical(
-              top: const Radius.circular(Radii.md),
-              bottom: Radius.circular(_expanded ? 0 : Radii.md),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Space.md,
+              vertical: Space.xs,
             ),
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Space.md,
-                vertical: Space.sm + 2,
-              ),
-              child: Row(
-                children: [
-                  Icon(widget.icon, size: 20, color: theme.colorScheme.primary),
-                  const SizedBox(width: Space.sm),
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(Radii.sm),
+                    onTap: () => setState(() => _expanded = !_expanded),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: Space.sm),
+                      child: Row(
+                        children: [
+                          Icon(
+                            widget.icon,
+                            size: 20,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: Space.sm),
+                          Expanded(
+                            child: Text(
+                              widget.title,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  if (widget.trailing != null) ...[
-                    widget.trailing!,
-                    const SizedBox(width: Space.xs),
-                  ],
-                  Icon(
+                ),
+                if (widget.trailing != null) ...[
+                  widget.trailing!,
+                  const SizedBox(width: Space.xs),
+                ],
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  icon: Icon(
                     _expanded
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
                     size: 20,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
-                ],
-              ),
+                  onPressed: () => setState(() => _expanded = !_expanded),
+                ),
+              ],
             ),
           ),
           if (_expanded) ...[
@@ -590,14 +655,19 @@ class _SectionCardState extends State<_SectionCard> {
 // 1. CUSTOMER DETAILS VIEW
 // ---------------------------------------------------------------------------
 class _CustomerDetailsView extends StatelessWidget {
-  const _CustomerDetailsView({required this.conversation});
+  const _CustomerDetailsView({
+    required this.conversation,
+    this.facts = const [],
+  });
 
   final Conversation conversation;
+  final List<CustomerFact> facts;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final customer = conversation.customer;
+    final recordedFacts = facts.where((f) => !f.needsReview).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,6 +784,59 @@ class _CustomerDetailsView extends StatelessWidget {
               if (customer.country.isNotEmpty) customer.country,
             ].join(', '),
           ),
+
+        if (recordedFacts.isNotEmpty) ...[
+          const SizedBox(height: Space.md),
+          const Divider(height: 1),
+          const SizedBox(height: Space.sm),
+          for (final fact in recordedFacts)
+            Padding(
+              padding: const EdgeInsets.only(bottom: Space.xs),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Space.md,
+                  vertical: Space.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.45,
+                  ),
+                  borderRadius: BorderRadius.circular(Radii.md),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          style: theme.textTheme.bodySmall,
+                          children: [
+                            TextSpan(
+                              text: '${humanizeEnum(fact.key)}: ',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            TextSpan(text: fact.value),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: Space.sm),
+                    StatusBadge(
+                      label: fact.source == 'EMPLOYEE'
+                          ? context.l10n.employeeSourceBadge
+                          : fact.source,
+                      tone: fact.source == 'EMPLOYEE'
+                          ? BadgeTone.success
+                          : BadgeTone.neutral,
+                      dense: true,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ],
     );
   }
@@ -1165,6 +1288,12 @@ class _OrdersDataView extends StatelessWidget {
                 children: [
                   Row(
                     children: [
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 16,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: Space.xs),
                       Text(
                         'Order #${order.id}',
                         style: theme.textTheme.titleSmall?.copyWith(
@@ -1176,9 +1305,12 @@ class _OrdersDataView extends StatelessWidget {
                         label: order.statusDisplay.isNotEmpty
                             ? order.statusDisplay
                             : order.status,
-                        tone: order.isConfirmed
-                            ? BadgeTone.success
-                            : BadgeTone.info,
+                        tone: switch (order.status.toUpperCase()) {
+                          'CONFIRMED' => BadgeTone.success,
+                          'SUGGESTED' => BadgeTone.warning,
+                          'CANCELLED' || 'REFUNDED' => BadgeTone.neutral,
+                          _ => BadgeTone.info,
+                        },
                         dense: true,
                       ),
                     ],
@@ -1192,11 +1324,28 @@ class _OrdersDataView extends StatelessWidget {
                     ),
                   ),
                   if (order.items.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: Space.xs),
                     for (final item in order.items)
-                      Text(
-                        '${item.quantity}x ${item.productName} (${item.lineTotal} ${order.currency})',
-                        style: theme.textTheme.bodySmall,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${item.quantity}× ${item.productName}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall,
+                              ),
+                            ),
+                            Text(
+                              item.lineTotal,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                   ],
                 ],
