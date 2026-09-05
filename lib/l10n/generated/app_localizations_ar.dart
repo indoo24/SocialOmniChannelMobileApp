@@ -1263,6 +1263,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get orderCancelledMessage => 'تم إلغاء الطلب';
 
   @override
+  String get cancelOrderConfirmTitle => 'هل تريد إلغاء هذا الطلب؟';
+
+  @override
+  String get cancelOrderConfirmBody =>
+      'لن يُحتسب كعملية بيع. لا يمكن التراجع عن هذا من هنا.';
+
+  @override
+  String get keepOrderAction => 'الاحتفاظ بالطلب';
+
+  @override
   String get notCountedAsSaleMessage =>
       'لا يُحتسب كعملية بيع حتى يقوم أحد بتأكيده.';
 
@@ -1273,6 +1283,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get confirmedByUnknownEmployee => 'أحد الموظفين';
+
+  @override
+  String recordedByMessage(String name) {
+    return 'تم التسجيل بواسطة $name';
+  }
 
   @override
   String get recordOrderDialogTitle => 'تسجيل طلب';

@@ -547,6 +547,9 @@
   "orderConfirmedMessage": "Order confirmed",
   "cancelOrderTooltip": "Cancel this order",
   "orderCancelledMessage": "Order cancelled",
+  "cancelOrderConfirmTitle": "Cancel this order?",
+  "cancelOrderConfirmBody": "This won't be counted as a sale. You can't undo this from here.",
+  "keepOrderAction": "Keep order",
   "notCountedAsSaleMessage": "Not counted as a sale until someone confirms it.",
   "confirmedByMessage": "Confirmed by {name}",
   "@confirmedByMessage": {
@@ -555,6 +558,12 @@
     }
   },
   "confirmedByUnknownEmployee": "an employee",
+  "recordedByMessage": "Recorded by {name}",
+  "@recordedByMessage": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
   "recordOrderDialogTitle": "Record an order",
   "orderComposerDescription": "What the customer asked for. Scenario has no payment data, so this is a record of the conversation, not a receipt.",
   "productFieldLabel": "Product",

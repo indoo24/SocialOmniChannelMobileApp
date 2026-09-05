@@ -2366,6 +2366,24 @@ abstract class AppLocalizations {
   /// **'Order cancelled'**
   String get orderCancelledMessage;
 
+  /// No description provided for @cancelOrderConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this order?'**
+  String get cancelOrderConfirmTitle;
+
+  /// No description provided for @cancelOrderConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This won\'t be counted as a sale. You can\'t undo this from here.'**
+  String get cancelOrderConfirmBody;
+
+  /// No description provided for @keepOrderAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep order'**
+  String get keepOrderAction;
+
   /// No description provided for @notCountedAsSaleMessage.
   ///
   /// In en, this message translates to:
@@ -2383,6 +2401,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'an employee'**
   String get confirmedByUnknownEmployee;
+
+  /// No description provided for @recordedByMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded by {name}'**
+  String recordedByMessage(String name);
 
   /// No description provided for @recordOrderDialogTitle.
   ///

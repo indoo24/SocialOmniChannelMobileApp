@@ -1254,6 +1254,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderCancelledMessage => 'Order cancelled';
 
   @override
+  String get cancelOrderConfirmTitle => 'Cancel this order?';
+
+  @override
+  String get cancelOrderConfirmBody =>
+      'This won\'t be counted as a sale. You can\'t undo this from here.';
+
+  @override
+  String get keepOrderAction => 'Keep order';
+
+  @override
   String get notCountedAsSaleMessage =>
       'Not counted as a sale until someone confirms it.';
 
@@ -1264,6 +1274,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmedByUnknownEmployee => 'an employee';
+
+  @override
+  String recordedByMessage(String name) {
+    return 'Recorded by $name';
+  }
 
   @override
   String get recordOrderDialogTitle => 'Record an order';
