@@ -570,5 +570,22 @@
   "switchConversationAction": "تبديل المحادثة",
   "openConversationAction": "فتح",
   "currentConversationBadge": "الحالية",
-  "whatsappConversationsGroupTitle": "محادثات واتساب"
+  "whatsappConversationsGroupTitle": "محادثات واتساب",
+  "notificationsTitle": "الإشعارات",
+  "notificationsEmpty": "لا يوجد ما يستدعي انتباهك.",
+  "notificationsMarkAllRead": "تعليم الكل كمقروء",
+  "notificationsAllRead": "تم تعليم جميع الإشعارات كمقروءة",
+  "notificationsOpenConversation": "فتح المحادثة",
+  "notificationsUnreadLabel": "الإشعارات، {count} غير مقروء",
+  "notificationsOccurrences": "×{count}",
+  "notificationsFallbackAssignment": "تم توجيه المحادثة إلى {name} باستخدام التوجيه الاحتياطي لعدم توفر موظف مستوفٍ للشروط. يرجى مراجعة التوجيه.",
+  "notificationsEmployeeReassignment": "تمت إعادة توزيع {count} محادثة بعد إلغاء تفعيل {name}.",
+  "notificationsSomeCouldNotBePlaced": "وتعذّر إسناد {count} منها فأصبحت بلا مسؤول.",
+  "notificationsNoUsableEmployee": "تعذّر إسناد محادثة — لا يوجد موظف خدمة متاح.",
+  "reasonOutsideWorkingHours": "خارج ساعات العمل",
+  "reasonScheduleException": "في إجازة",
+  "reasonNotOnline": "غير متصل",
+  "reasonStaleHeartbeat": "لا يمكن الوصول",
+  "reasonAtCapacity": "بلغ الحد الأقصى",
+  "reasonNoSchedule": "بلا جدول"
 }

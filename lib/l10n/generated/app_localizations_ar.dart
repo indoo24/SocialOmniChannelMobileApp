@@ -1826,4 +1826,66 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get whatsappConversationsGroupTitle => 'محادثات واتساب';
+
+  @override
+  String get notificationsTitle => 'الإشعارات';
+
+  @override
+  String get notificationsEmpty => 'لا يوجد ما يستدعي انتباهك.';
+
+  @override
+  String get notificationsMarkAllRead => 'تعليم الكل كمقروء';
+
+  @override
+  String get notificationsAllRead => 'تم تعليم جميع الإشعارات كمقروءة';
+
+  @override
+  String get notificationsOpenConversation => 'فتح المحادثة';
+
+  @override
+  String notificationsUnreadLabel(String count) {
+    return 'الإشعارات، $count غير مقروء';
+  }
+
+  @override
+  String notificationsOccurrences(String count) {
+    return '×$count';
+  }
+
+  @override
+  String notificationsFallbackAssignment(String name) {
+    return 'تم توجيه المحادثة إلى $name باستخدام التوجيه الاحتياطي لعدم توفر موظف مستوفٍ للشروط. يرجى مراجعة التوجيه.';
+  }
+
+  @override
+  String notificationsEmployeeReassignment(String count, String name) {
+    return 'تمت إعادة توزيع $count محادثة بعد إلغاء تفعيل $name.';
+  }
+
+  @override
+  String notificationsSomeCouldNotBePlaced(String count) {
+    return 'وتعذّر إسناد $count منها فأصبحت بلا مسؤول.';
+  }
+
+  @override
+  String get notificationsNoUsableEmployee =>
+      'تعذّر إسناد محادثة — لا يوجد موظف خدمة متاح.';
+
+  @override
+  String get reasonOutsideWorkingHours => 'خارج ساعات العمل';
+
+  @override
+  String get reasonScheduleException => 'في إجازة';
+
+  @override
+  String get reasonNotOnline => 'غير متصل';
+
+  @override
+  String get reasonStaleHeartbeat => 'لا يمكن الوصول';
+
+  @override
+  String get reasonAtCapacity => 'بلغ الحد الأقصى';
+
+  @override
+  String get reasonNoSchedule => 'بلا جدول';
 }

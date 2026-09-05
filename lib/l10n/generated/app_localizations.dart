@@ -3277,6 +3277,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'WhatsApp conversations'**
   String get whatsappConversationsGroupTitle;
+
+  /// No description provided for @notificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notificationsTitle;
+
+  /// No description provided for @notificationsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing needs your attention.'**
+  String get notificationsEmpty;
+
+  /// No description provided for @notificationsMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all read'**
+  String get notificationsMarkAllRead;
+
+  /// No description provided for @notificationsAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'All notifications marked read'**
+  String get notificationsAllRead;
+
+  /// No description provided for @notificationsOpenConversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Open conversation'**
+  String get notificationsOpenConversation;
+
+  /// No description provided for @notificationsUnreadLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications, {count} unread'**
+  String notificationsUnreadLabel(String count);
+
+  /// No description provided for @notificationsOccurrences.
+  ///
+  /// In en, this message translates to:
+  /// **'×{count}'**
+  String notificationsOccurrences(String count);
+
+  /// No description provided for @notificationsFallbackAssignment.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned to {name} by fallback routing, because nobody was fully available. Please review.'**
+  String notificationsFallbackAssignment(String name);
+
+  /// No description provided for @notificationsEmployeeReassignment.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} conversations moved after {name} was deactivated.'**
+  String notificationsEmployeeReassignment(String count, String name);
+
+  /// No description provided for @notificationsSomeCouldNotBePlaced.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} could not be placed and are now unassigned.'**
+  String notificationsSomeCouldNotBePlaced(String count);
+
+  /// No description provided for @notificationsNoUsableEmployee.
+  ///
+  /// In en, this message translates to:
+  /// **'A conversation could not be assigned — no service employee is usable.'**
+  String get notificationsNoUsableEmployee;
+
+  /// No description provided for @reasonOutsideWorkingHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Outside working hours'**
+  String get reasonOutsideWorkingHours;
+
+  /// No description provided for @reasonScheduleException.
+  ///
+  /// In en, this message translates to:
+  /// **'On leave'**
+  String get reasonScheduleException;
+
+  /// No description provided for @reasonNotOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Not online'**
+  String get reasonNotOnline;
+
+  /// No description provided for @reasonStaleHeartbeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Not reachable'**
+  String get reasonStaleHeartbeat;
+
+  /// No description provided for @reasonAtCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'At capacity'**
+  String get reasonAtCapacity;
+
+  /// No description provided for @reasonNoSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'No schedule'**
+  String get reasonNoSchedule;
 }
 
 class _AppLocalizationsDelegate

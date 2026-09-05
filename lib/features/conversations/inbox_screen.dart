@@ -26,6 +26,7 @@ import '../../core/widgets/states.dart';
 import '../../core/utils/formatting.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
+import '../notifications/notification_bell_button.dart';
 import 'customer_conversation_group_sheet.dart';
 import 'inbox_controller.dart';
 import 'inbox_filters_sheet.dart';
@@ -106,6 +107,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
             },
           ),
           _FilterButton(active: !filters.isEmpty),
+          const NotificationBellButton(),
           IconButton(
             tooltip: context.l10n.settingsTitle,
             icon: InitialsAvatar(
