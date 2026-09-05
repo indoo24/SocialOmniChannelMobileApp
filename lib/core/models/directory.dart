@@ -215,33 +215,42 @@ class ChannelConnection {
   final DateTime? lastSyncAt;
   final DateTime? lastMessageAt;
 
-  factory ChannelConnection.fromJson(Map<String, dynamic> json) =>
-      ChannelConnection(
-        id: JsonSafe.asInt(json['id'], fallback: -1),
-        provider: JsonSafe.asString(json['provider']),
-        providerDisplay: JsonSafe.asString(json['provider_display']),
-        displayName: JsonSafe.asString(json['display_name']),
-        externalAccountId: JsonSafe.asString(json['external_account_id']),
-        avatarUrl: JsonSafe.asString(json['avatar_url']),
-        status: JsonSafe.asString(json['status'], fallback: 'PENDING'),
-        isActive: JsonSafe.asBool(json['is_active']),
-        statusDetail: JsonSafe.asString(json['status_detail']),
-        conversationCount: JsonSafe.asInt(json['conversation_count']),
-        isMuted: JsonSafe.asBool(json['is_muted']),
-        mutedAt: DateTime.tryParse(JsonSafe.asString(json['muted_at'])),
-        mutedByName: JsonSafe.asString(json['muted_by_name']),
-        hasCredentials: JsonSafe.asBool(json['has_credentials']),
-        isOperational: JsonSafe.asBool(json['is_operational']),
-        tokenExpiresAt: DateTime.tryParse(
-          JsonSafe.asString(json['token_expires_at']),
-        ),
-        tokenDaysRemaining: JsonSafe.asIntOrNull(json['token_days_remaining']),
-        connectedAt: DateTime.tryParse(JsonSafe.asString(json['connected_at'])),
-        lastSyncAt: DateTime.tryParse(JsonSafe.asString(json['last_sync_at'])),
-        lastMessageAt: DateTime.tryParse(
-          JsonSafe.asString(json['last_message_at']),
-        ),
+  factory ChannelConnection.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('channel_id') || json.containsKey('customer')) {
+      throw const FormatException(
+        'Expected Channel JSON but received Conversation JSON',
       );
+    }
+    return ChannelConnection(
+      id: JsonSafe.asInt(json['id'], fallback: -1),
+      provider: JsonSafe.asString(json['provider']),
+      providerDisplay: JsonSafe.asString(json['provider_display']),
+      displayName: JsonSafe.asString(json['display_name']),
+      externalAccountId: JsonSafe.asString(json['external_account_id']),
+      avatarUrl: JsonSafe.asString(json['avatar_url']),
+      status: JsonSafe.asString(
+        json['status'],
+        fallback: json['is_active'] == false ? 'DISCONNECTED' : 'CONNECTED',
+      ),
+      isActive: JsonSafe.asBool(json['is_active'], fallback: true),
+      statusDetail: JsonSafe.asString(json['status_detail']),
+      conversationCount: JsonSafe.asInt(json['conversation_count']),
+      isMuted: JsonSafe.asBool(json['is_muted']),
+      mutedAt: DateTime.tryParse(JsonSafe.asString(json['muted_at'])),
+      mutedByName: JsonSafe.asString(json['muted_by_name']),
+      hasCredentials: JsonSafe.asBool(json['has_credentials']),
+      isOperational: JsonSafe.asBool(json['is_operational']),
+      tokenExpiresAt: DateTime.tryParse(
+        JsonSafe.asString(json['token_expires_at']),
+      ),
+      tokenDaysRemaining: JsonSafe.asIntOrNull(json['token_days_remaining']),
+      connectedAt: DateTime.tryParse(JsonSafe.asString(json['connected_at'])),
+      lastSyncAt: DateTime.tryParse(JsonSafe.asString(json['last_sync_at'])),
+      lastMessageAt: DateTime.tryParse(
+        JsonSafe.asString(json['last_message_at']),
+      ),
+    );
+  }
 
   bool get isConnected => status == 'CONNECTED';
 }
@@ -315,6 +324,31 @@ class ChannelAuthorizationUrl {
   factory ChannelAuthorizationUrl.fromJson(Map<String, dynamic> json) =>
       ChannelAuthorizationUrl(
         url: JsonSafe.asString(json['authorization_url']),
+      );
+}
+
+/// A channel that was just attached by a manual token connect — `POST
+/// /integrations/whatsapp/connect/` or `POST /integrations/instagram/connect/`.
+/// Matches Swagger's `ConnectedChannel` schema exactly.
+class ConnectedChannel {
+  const ConnectedChannel({
+    required this.id,
+    required this.displayName,
+    required this.status,
+    required this.detail,
+  });
+
+  final int id;
+  final String displayName;
+  final String status;
+  final String detail;
+
+  factory ConnectedChannel.fromJson(Map<String, dynamic> json) =>
+      ConnectedChannel(
+        id: JsonSafe.asInt(json['id'], fallback: -1),
+        displayName: JsonSafe.asString(json['display_name']),
+        status: JsonSafe.asString(json['status']),
+        detail: JsonSafe.asString(json['detail']),
       );
 }
 

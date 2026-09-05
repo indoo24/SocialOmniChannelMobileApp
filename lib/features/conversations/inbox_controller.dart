@@ -9,8 +9,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/models/conversation.dart';
+import '../../core/models/conversation_group.dart';
+import '../../core/models/directory.dart';
 import '../../core/providers.dart';
 import '../authentication/auth_controller.dart';
+import '../directory/directory_providers.dart';
 import 'conversation_repository.dart';
 
 final inboxFiltersProvider =
@@ -27,15 +30,19 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
 }
 
 class InboxState {
-  const InboxState({
+  InboxState({
     this.conversations = const [],
     this.isLoadingMore = false,
     this.hasMore = false,
     this.total = 0,
     this.nextPage = 2,
-  });
+    List<CustomerConversationGroup>? groups,
+  }) : groups =
+           groups ??
+           CustomerConversationGroup.groupConversations(conversations);
 
   final List<Conversation> conversations;
+  final List<CustomerConversationGroup> groups;
   final bool isLoadingMore;
   final bool hasMore;
   final int total;
@@ -45,12 +52,18 @@ class InboxState {
 
   InboxState copyWith({
     List<Conversation>? conversations,
+    List<CustomerConversationGroup>? groups,
     bool? isLoadingMore,
     bool? hasMore,
     int? total,
     int? nextPage,
   }) => InboxState(
     conversations: conversations ?? this.conversations,
+    groups:
+        groups ??
+        (conversations != null
+            ? CustomerConversationGroup.groupConversations(conversations)
+            : this.groups),
     isLoadingMore: isLoadingMore ?? this.isLoadingMore,
     hasMore: hasMore ?? this.hasMore,
     total: total ?? this.total,
@@ -59,14 +72,71 @@ class InboxState {
 }
 
 class InboxController extends AsyncNotifier<InboxState> {
+  ConversationFilters? _lastFilters;
+
   @override
   Future<InboxState> build() async {
     // Rebuilds whenever the filters change — no manual resubscription.
     final filters = ref.watch(inboxFiltersProvider);
-    return _fetchFirstPage(filters);
+
+    // Watch channelsProvider changes so that when channels update (e.g. disconnected,
+    // removed, or reconnected), we update our list without forcing the AsyncNotifier
+    // into an AsyncLoading state or flashing a loading skeleton.
+    ref.listen<AsyncValue<List<ChannelConnection>>>(channelsProvider, (
+      prev,
+      next,
+    ) {
+      final channels = next.value;
+      final current = state.value;
+      if (current != null && channels != null && channels.isNotEmpty) {
+        final filtered = _filterByActiveChannels(
+          current.conversations,
+          channels,
+        );
+        state = AsyncData(current.copyWith(conversations: filtered));
+      }
+    });
+
+    List<ChannelConnection>? channels;
+    try {
+      channels = ref.read(channelsProvider).value;
+    } catch (_) {
+      channels = null;
+    }
+
+    final current = state.value;
+    if (_lastFilters == filters &&
+        current != null &&
+        current.conversations.isNotEmpty &&
+        channels != null &&
+        channels.isNotEmpty) {
+      final filtered = _filterByActiveChannels(current.conversations, channels);
+      return current.copyWith(conversations: filtered);
+    }
+
+    _lastFilters = filters;
+    return _fetchFirstPage(filters, channels: channels);
   }
 
-  Future<InboxState> _fetchFirstPage(ConversationFilters filters) async {
+  static List<Conversation> _filterByActiveChannels(
+    List<Conversation> conversations,
+    List<ChannelConnection>? channels,
+  ) {
+    if (channels == null || channels.isEmpty) return conversations;
+    final activeIds = channels
+        .where((c) => c.isActive && c.isConnected && !c.isMuted)
+        .map((c) => c.id)
+        .toSet();
+    return conversations.where((c) {
+      if (c.channelId == null) return true;
+      return activeIds.contains(c.channelId);
+    }).toList();
+  }
+
+  Future<InboxState> _fetchFirstPage(
+    ConversationFilters filters, {
+    List<ChannelConnection>? channels,
+  }) async {
     final page = await ref
         .read(conversationRepositoryProvider)
         .list(
@@ -75,8 +145,11 @@ class InboxController extends AsyncNotifier<InboxState> {
           currentEmployeeId: ref.read(currentEmployeeProvider)?.id,
         );
 
+    final effectiveChannels = channels ?? ref.read(channelsProvider).value;
+    final filtered = _filterByActiveChannels(page.results, effectiveChannels);
+
     return InboxState(
-      conversations: page.results,
+      conversations: filtered,
       hasMore: page.hasMore,
       total: page.count,
       nextPage: 2,
@@ -87,6 +160,8 @@ class InboxController extends AsyncNotifier<InboxState> {
   /// screen does not blank out under the agent's thumb.
   Future<void> refresh() async {
     try {
+      ref.invalidate(channelsProvider);
+      ref.invalidate(conversationCountsProvider);
       final fresh = await _fetchFirstPage(ref.read(inboxFiltersProvider));
       state = AsyncData(fresh);
     } on ApiException catch (error, stack) {
@@ -112,12 +187,15 @@ class InboxController extends AsyncNotifier<InboxState> {
             currentEmployeeId: ref.read(currentEmployeeProvider)?.id,
           );
 
+      final channels = ref.read(channelsProvider).value;
+      final filteredResults = _filterByActiveChannels(page.results, channels);
+
       // De-duplicate on id: a conversation can move between pages while the
       // agent is scrolling, and a repeated row is a visible bug.
       final seen = current.conversations.map((c) => c.id).toSet();
       final merged = [
         ...current.conversations,
-        ...page.results.where((c) => seen.add(c.id)),
+        ...filteredResults.where((c) => seen.add(c.id)),
       ];
 
       state = AsyncData(
@@ -139,6 +217,8 @@ class InboxController extends AsyncNotifier<InboxState> {
   /// refresh the agent did not ask for.
   Future<void> refreshQuietly() async {
     try {
+      ref.invalidate(channelsProvider);
+      ref.invalidate(conversationCountsProvider);
       final fresh = await _fetchFirstPage(ref.read(inboxFiltersProvider));
       state = AsyncData(fresh);
     } on ApiException {

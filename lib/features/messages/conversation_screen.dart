@@ -23,7 +23,11 @@ import '../../core/realtime/realtime_bridge.dart';
 import '../../core/realtime/realtime_logger.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
+import '../conversations/customer_conversation_group_sheet.dart';
 import '../conversations/inbox_controller.dart';
+import '../templates/templates_providers.dart';
+import '../../core/models/template.dart';
+import 'composer_attachment.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
 import 'message_bubble.dart';
@@ -153,9 +157,17 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     super.dispose();
   }
 
-  Future<void> _send() async {
+  /// [attachmentId] is a draft already staged (uploaded) via the
+  /// attachment/voice flow in [_Composer] — this method only ever
+  /// references it, never uploads anything itself. [attachmentPreview]
+  /// renders that same local file in the optimistic bubble.
+  Future<void> _send({
+    String? attachmentId,
+    MessageAttachment? attachmentPreview,
+  }) async {
     final text = _composerController.text.trim();
-    if (text.isEmpty || _sending) return;
+    final hasAttachment = attachmentId != null;
+    if ((text.isEmpty && !hasAttachment) || _sending) return;
 
     setState(() => _sending = true);
     _composerController.clear();
@@ -163,7 +175,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     try {
       await ref
           .read(conversationControllerProvider(widget.conversationId).notifier)
-          .send(text);
+          .send(
+            text,
+            attachmentId: attachmentId,
+            attachmentPreview: attachmentPreview,
+          );
       _scrollToBottom(animated: true);
     } on ApiException catch (error) {
       if (!mounted) return;
@@ -337,6 +353,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 controller: _composerController,
                 sending: _sending,
                 onSend: _send,
+                isWhatsApp:
+                    async.value?.conversation.provider.toUpperCase() ==
+                    'WHATSAPP',
               )
             else
               const _ReadOnlyNotice(),
@@ -663,78 +682,99 @@ class _ScrollToBottomButton extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
+class _Header extends ConsumerWidget {
   const _Header({required this.conversation});
 
   final dynamic conversation;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final (statusLabel, statusTone) = ConversationBadges.status(
       context,
       conversation.status as String,
     );
 
-    return Row(
-      children: [
-        InitialsAvatar(
-          initials: conversation.customer.initials as String,
-          imageUrl: conversation.customer.avatarUrl as String,
-          size: 36,
-          provider: conversation.provider as String,
-        ),
-        const SizedBox(width: Space.sm),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      conversation.customer.displayName as String,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  StatusBadge(
-                    label: statusLabel,
-                    tone: statusTone,
-                    dense: true,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 1.5),
-              Row(
-                children: [
-                  _ChannelPill(provider: conversation.provider as String),
-                  const SizedBox(width: 5),
-                  Expanded(
-                    child: Text(
-                      _formatSubtitle(context, conversation),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontSize: 11,
-                        color: theme.textTheme.labelSmall?.color?.withValues(
-                          alpha: 0.75,
+    final inboxState = ref.watch(inboxControllerProvider).value;
+    final groups = inboxState?.groups ?? const [];
+    final matchingGroup = groups
+        .where(
+          (g) =>
+              g.customer.id > 0 &&
+              g.customer.id == conversation.customer.id &&
+              g.isMultiConversation,
+        )
+        .firstOrNull;
+
+    return InkWell(
+      onTap: matchingGroup != null
+          ? () => CustomerConversationGroupSheet.show(
+              context,
+              group: matchingGroup,
+              currentConversationId: conversation.id as int?,
+            )
+          : null,
+      borderRadius: BorderRadius.circular(Radii.md),
+      child: Row(
+        children: [
+          InitialsAvatar(
+            initials: conversation.customer.initials as String,
+            imageUrl: conversation.customer.avatarUrl as String,
+            size: 36,
+            provider: conversation.provider as String,
+          ),
+          const SizedBox(width: Space.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        conversation.customer.displayName as String,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 4),
+                    StatusBadge(
+                      label: statusLabel,
+                      tone: statusTone,
+                      dense: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 1.5),
+                Row(
+                  children: [
+                    _ChannelPill(provider: conversation.provider as String),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        _formatSubtitle(context, conversation),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontSize: 11,
+                          color: theme.textTheme.labelSmall?.color?.withValues(
+                            alpha: 0.75,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1239,18 +1279,25 @@ class _SegmentTab extends StatelessWidget {
   }
 }
 
+/// Sends the composer's current text, plus an optional attachment already
+/// staged (uploaded) via [ConversationRepository.stageAttachment].
+typedef ComposerSendCallback =
+    void Function({String? attachmentId, MessageAttachment? attachmentPreview});
+
 class _Composer extends ConsumerStatefulWidget {
   const _Composer({
     required this.conversationId,
     required this.controller,
     required this.sending,
     required this.onSend,
+    this.isWhatsApp = false,
   });
 
   final int conversationId;
   final TextEditingController controller;
   final bool sending;
-  final VoidCallback onSend;
+  final ComposerSendCallback onSend;
+  final bool isWhatsApp;
 
   @override
   ConsumerState<_Composer> createState() => _ComposerState();
@@ -1258,23 +1305,63 @@ class _Composer extends ConsumerStatefulWidget {
 
 class _ComposerState extends ConsumerState<_Composer> {
   _ComposerMode _mode = _ComposerMode.reply;
-  String? _selectedTemplate;
+  WhatsAppTemplate? _selectedTemplate;
   bool _savingNote = false;
 
-  static const _defaultTemplates = [
-    'Hello! How can we help you today?',
-    'Thank you for reaching out. We are looking into this for you.',
-    'Your request has been received and is being processed.',
-    'Is there anything else we can assist you with?',
-  ];
+  /// An image already picked and uploaded, waiting to be sent (or removed).
+  /// Voice notes skip this state entirely — recording finishes and sends in
+  /// one motion, matching WhatsApp's own behavior, rather than sitting as a
+  /// staged preview the agent could otherwise edit alongside typed text.
+  StagedAttachment? _stagedImage;
+  bool _isRecording = false;
+  final _voiceRecorderKey = GlobalKey<ComposerVoiceRecorderState>();
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _onImageStaged(StagedAttachment staged) {
+    setState(() => _stagedImage = staged);
+  }
+
+  void _onImageRemoved() {
+    setState(() => _stagedImage = null);
+  }
+
+  void _onVoiceStaged(StagedAttachment staged) {
+    // A voice note sends immediately on finishing recording rather than
+    // sitting in the composer for a separate Send tap — matching the "Stop
+    // and send" affordance the recording bar itself already promises. Any
+    // text already typed goes along as the same message's caption — the
+    // `Reply` endpoint accepts `text` alongside `attachment_ids` in one
+    // call, the same combination an image send already uses.
+    widget.onSend(
+      attachmentId: staged.draftId,
+      attachmentPreview: staged.attachment,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final canNote = ref.watch(canProvider(Perm.conversationNote));
+    final convo = ref
+        .watch(conversationControllerProvider(widget.conversationId))
+        .value
+        ?.conversation;
+    final isWhatsApp = convo != null
+        ? (convo.provider.toUpperCase() == 'WHATSAPP')
+        : widget.isWhatsApp;
 
-    final isInternal = _mode == _ComposerMode.internalNote;
+    final currentMode = (!isWhatsApp && _mode == _ComposerMode.template)
+        ? _ComposerMode.reply
+        : _mode;
+
+    final isInternal = currentMode == _ComposerMode.internalNote;
     final composerBackground = isInternal
         ? (isDark ? const Color(0xFF231B06) : const Color(0xFFFEFCE8))
         : theme.colorScheme.surface;
@@ -1315,7 +1402,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                   _SegmentTab(
                     label: context.l10n.replyTab,
                     icon: Icons.chat_bubble_outline_rounded,
-                    active: _mode == _ComposerMode.reply,
+                    active: currentMode == _ComposerMode.reply,
                     activeColor: ScenarioColors.primary,
                     onTap: () => setState(() => _mode = _ComposerMode.reply),
                   ),
@@ -1324,7 +1411,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                     _SegmentTab(
                       label: context.l10n.internalNoteTab,
                       icon: Icons.sticky_note_2_outlined,
-                      active: _mode == _ComposerMode.internalNote,
+                      active: currentMode == _ComposerMode.internalNote,
                       activeColor: isDark
                           ? const Color(0xFFFBBF24)
                           : const Color(0xFFD97706),
@@ -1332,64 +1419,121 @@ class _ComposerState extends ConsumerState<_Composer> {
                           setState(() => _mode = _ComposerMode.internalNote),
                     ),
                   ],
-                  const SizedBox(width: Space.xs),
-                  _SegmentTab(
-                    label: context.l10n.templateTab,
-                    icon: Icons.description_outlined,
-                    active: _mode == _ComposerMode.template,
-                    activeColor: isDark
-                        ? const Color(0xFFA5B4FC)
-                        : const Color(0xFF4F46E5),
-                    onTap: () => setState(() => _mode = _ComposerMode.template),
-                  ),
+                  if (isWhatsApp) ...[
+                    const SizedBox(width: Space.xs),
+                    _SegmentTab(
+                      label: context.l10n.templateTab,
+                      icon: Icons.description_outlined,
+                      active: currentMode == _ComposerMode.template,
+                      activeColor: isDark
+                          ? const Color(0xFFA5B4FC)
+                          : const Color(0xFF4F46E5),
+                      onTap: () =>
+                          setState(() => _mode = _ComposerMode.template),
+                    ),
+                  ],
                 ],
               ),
             ),
             const SizedBox(height: Space.xs),
 
             // Mode Content
-            if (_mode == _ComposerMode.reply) ...[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      key: const ValueKey('composer_reply_input'),
-                      controller: widget.controller,
-                      minLines: 1,
-                      maxLines: 5,
-                      textCapitalization: TextCapitalization.sentences,
-                      keyboardType: TextInputType.multiline,
-                      decoration: InputDecoration(
-                        hintText: context.l10n.writeReplyHint,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: Space.md,
-                          vertical: 10,
+            if (currentMode == _ComposerMode.reply) ...[
+              if (_stagedImage != null)
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: ComposerAttachmentPreview(
+                    conversationId: widget.conversationId,
+                    staged: _stagedImage!,
+                    onRemoved: _onImageRemoved,
+                  ),
+                ),
+              if (_isRecording)
+                ComposerVoiceRecorder(
+                  key: _voiceRecorderKey,
+                  conversationId: widget.conversationId,
+                  enabled: !widget.sending,
+                  onStaged: _onVoiceStaged,
+                  onError: _showMessage,
+                  onRecordingChanged: (recording) {
+                    if (mounted) setState(() => _isRecording = recording);
+                  },
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Attachment button on the far left
+                    ComposerAttachmentButton(
+                      conversationId: widget.conversationId,
+                      enabled: !widget.sending,
+                      onStaged: _onImageStaged,
+                      onError: _showMessage,
+                    ),
+                    const SizedBox(width: Space.xs),
+                    // Text input in the middle
+                    Expanded(
+                      child: TextField(
+                        key: const ValueKey('composer_reply_input'),
+                        controller: widget.controller,
+                        minLines: 1,
+                        maxLines: 5,
+                        textCapitalization: TextCapitalization.sentences,
+                        keyboardType: TextInputType.multiline,
+                        decoration: InputDecoration(
+                          hintText: context.l10n.writeReplyHint,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: Space.md,
+                            vertical: 10,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: Space.sm),
-                  SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: IconButton.filled(
-                      onPressed: widget.sending ? null : widget.onSend,
-                      icon: widget.sending
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.send_rounded, size: 20),
+                    const SizedBox(width: Space.xs),
+                    // Microphone button immediately before Send
+                    ComposerVoiceRecorder(
+                      key: _voiceRecorderKey,
+                      conversationId: widget.conversationId,
+                      enabled: !widget.sending,
+                      onStaged: _onVoiceStaged,
+                      onError: _showMessage,
+                      onRecordingChanged: (recording) {
+                        if (mounted) setState(() => _isRecording = recording);
+                      },
                     ),
-                  ),
-                ],
-              ),
-            ] else if (_mode == _ComposerMode.internalNote) ...[
+                    const SizedBox(width: Space.xs),
+                    // Send button fixed at far right
+                    SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: IconButton.filled(
+                        onPressed: widget.sending
+                            ? null
+                            : () {
+                                final staged = _stagedImage;
+                                if (staged != null) {
+                                  setState(() => _stagedImage = null);
+                                }
+                                widget.onSend(
+                                  attachmentId: staged?.draftId,
+                                  attachmentPreview: staged?.attachment,
+                                );
+                              },
+                        icon: widget.sending
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.send_rounded, size: 20),
+                      ),
+                    ),
+                  ],
+                ),
+            ] else if (currentMode == _ComposerMode.internalNote) ...[
               Column(
                 children: [
                   TextField(
@@ -1520,7 +1664,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                   ),
                 ],
               ),
-            ] else if (_mode == _ComposerMode.template) ...[
+            ] else if (currentMode == _ComposerMode.template) ...[
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1531,37 +1675,141 @@ class _ComposerState extends ConsumerState<_Composer> {
                     ),
                   ),
                   const SizedBox(height: Space.xs),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          initialValue: _selectedTemplate,
-                          hint: Text(context.l10n.chooseTemplate),
-                          items: [
-                            for (final t in _defaultTemplates)
-                              DropdownMenuItem(
-                                value: t,
-                                child: Text(
-                                  t,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                  ref
+                      .watch(
+                        conversationTemplatesProvider(widget.conversationId),
+                      )
+                      .when(
+                        loading: () => Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<WhatsAppTemplate>(
+                                isExpanded: true,
+                                items: const [],
+                                onChanged: null,
+                                hint: Row(
+                                  children: [
+                                    const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                    const SizedBox(width: Space.sm),
+                                    Text(context.l10n.loadingTemplates),
+                                  ],
                                 ),
                               ),
+                            ),
                           ],
-                          onChanged: (val) =>
-                              setState(() => _selectedTemplate = val),
                         ),
+                        error: (err, _) => Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                context.l10n.genericErrorFallbackMessage,
+                                style: TextStyle(
+                                  color: ScenarioColors.danger,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                ref
+                                  ..invalidate(
+                                    conversationTemplatesProvider(
+                                      widget.conversationId,
+                                    ),
+                                  )
+                                  ..invalidate(templatesForChannelProvider);
+                              },
+                              child: Text(context.l10n.retryButton),
+                            ),
+                          ],
+                        ),
+                        data: (templates) {
+                          if (templates.isEmpty) {
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child:
+                                      DropdownButtonFormField<WhatsAppTemplate>(
+                                        isExpanded: true,
+                                        items: const [],
+                                        onChanged: null,
+                                        hint: Text(
+                                          context.l10n.noTemplatesAvailable,
+                                        ),
+                                      ),
+                                ),
+                                const SizedBox(width: Space.xs),
+                                IconButton(
+                                  tooltip: context.l10n.refreshAction,
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  onPressed: () {
+                                    ref
+                                      ..invalidate(
+                                        conversationTemplatesProvider(
+                                          widget.conversationId,
+                                        ),
+                                      )
+                                      ..invalidate(templatesForChannelProvider);
+                                  },
+                                ),
+                              ],
+                            );
+                          }
+
+                          final validSelection =
+                              templates.any(
+                                (t) => t.id == _selectedTemplate?.id,
+                              )
+                              ? _selectedTemplate
+                              : null;
+
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<WhatsAppTemplate>(
+                                  isExpanded: true,
+                                  initialValue: validSelection,
+                                  hint: Text(context.l10n.chooseTemplate),
+                                  items: [
+                                    for (final t in templates)
+                                      DropdownMenuItem(
+                                        value: t,
+                                        child: Text(
+                                          '${t.name} · ${t.body.isNotEmpty ? t.body : t.language}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                  ],
+                                  onChanged: (val) =>
+                                      setState(() => _selectedTemplate = val),
+                                ),
+                              ),
+                              const SizedBox(width: Space.xs),
+                              IconButton(
+                                tooltip: 'Reset',
+                                icon: const Icon(Icons.refresh_rounded),
+                                onPressed: () {
+                                  setState(() => _selectedTemplate = null);
+                                  ref
+                                    ..invalidate(
+                                      conversationTemplatesProvider(
+                                        widget.conversationId,
+                                      ),
+                                    )
+                                    ..invalidate(templatesForChannelProvider);
+                                },
+                              ),
+                            ],
+                          );
+                        },
                       ),
-                      const SizedBox(width: Space.xs),
-                      IconButton(
-                        tooltip: 'Reset',
-                        icon: const Icon(Icons.refresh_rounded),
-                        onPressed: () =>
-                            setState(() => _selectedTemplate = null),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: Space.sm),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -1573,7 +1821,9 @@ class _ComposerState extends ConsumerState<_Composer> {
                         onPressed: (_selectedTemplate == null || widget.sending)
                             ? null
                             : () async {
-                                final text = _selectedTemplate!;
+                                final text = _selectedTemplate!.body.isNotEmpty
+                                    ? _selectedTemplate!.body
+                                    : _selectedTemplate!.name;
                                 await ref
                                     .read(
                                       conversationControllerProvider(

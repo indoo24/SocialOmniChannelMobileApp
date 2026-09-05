@@ -235,6 +235,74 @@ class AppLocalizationsEn extends AppLocalizations {
       'This action is only available from the web app.';
 
   @override
+  String get updateTokenAction => 'Update token';
+
+  @override
+  String get updateTokenSheetTitle => 'Update access token';
+
+  @override
+  String get updateTokenSheetDescription =>
+      'Replace this number\'s access token if it expired or was regenerated in the Meta dashboard.';
+
+  @override
+  String get otherWaysToConnectSection => 'Other ways to connect';
+
+  @override
+  String get addAnotherNumberAction => 'Add another number';
+
+  @override
+  String get addAnotherNumberHint => 'via phone number ID and access token';
+
+  @override
+  String get addAnotherNumberSheetTitle => 'Add a WhatsApp number';
+
+  @override
+  String get useInstagramTokenAction => 'Use Instagram token';
+
+  @override
+  String get useInstagramTokenSheetTitle => 'Connect with an Instagram token';
+
+  @override
+  String get useInstagramTokenSheetDescription =>
+      'Paste an Instagram user token generated from Meta\'s dashboard. This attaches the account the token identifies.';
+
+  @override
+  String get manageFacebookPagesAction => 'Manage Facebook Pages';
+
+  @override
+  String get phoneNumberIdFieldLabel => 'Phone number ID';
+
+  @override
+  String get accessTokenFieldLabel => 'Access token';
+
+  @override
+  String get wabaIdFieldLabel => 'WhatsApp Business Account ID';
+
+  @override
+  String get wabaIdFieldOptionalHint =>
+      'Optional — derived from the token when left blank.';
+
+  @override
+  String get instagramTokenFieldLabel => 'Instagram access token';
+
+  @override
+  String get fieldRequiredError => 'This field is required.';
+
+  @override
+  String channelConnectedSnackbar(String channel) {
+    return '$channel connected.';
+  }
+
+  @override
+  String get channelTokenUpdatedSnackbar => 'Access token updated.';
+
+  @override
+  String get connectAction => 'Connect';
+
+  @override
+  String get updateAction => 'Update';
+
+  @override
   String get noConnectionTitle => 'No connection';
 
   @override
@@ -284,6 +352,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get navAnalytics => 'Analytics';
+
+  @override
+  String get navTemplates => 'Templates';
 
   @override
   String get navSettings => 'Settings';
@@ -602,6 +673,73 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readOnlyLabel => 'Read only';
+
+  @override
+  String get attachmentTooltip => 'Attach';
+
+  @override
+  String get attachFromGalleryAction => 'Photo from gallery';
+
+  @override
+  String get attachFromCameraAction => 'Take photo';
+
+  @override
+  String get removeAttachmentTooltip => 'Remove attachment';
+
+  @override
+  String get attachmentUploadingLabel => 'Uploading…';
+
+  @override
+  String get attachmentUploadFailedError =>
+      'Couldn\'t upload that file. Please try again.';
+
+  @override
+  String get attachmentPermissionDeniedError =>
+      'Permission was denied. Enable it in your device settings to attach photos.';
+
+  @override
+  String get recordVoiceTooltip => 'Record a voice message';
+
+  @override
+  String recordingLabel(String duration) {
+    return 'Recording $duration';
+  }
+
+  @override
+  String get cancelRecordingTooltip => 'Cancel recording';
+
+  @override
+  String get stopRecordingTooltip => 'Stop and send';
+
+  @override
+  String get microphonePermissionDeniedError =>
+      'Microphone access was denied. Enable it in your device settings to record a voice message.';
+
+  @override
+  String get recordingFailedError =>
+      'Couldn\'t start recording. Please try again.';
+
+  @override
+  String get voiceMessageLabel => 'Voice message';
+
+  @override
+  String get voiceNoteLabel => 'Voice note';
+
+  @override
+  String get recordingText => 'Recording';
+
+  @override
+  String get playVoiceMessageTooltip => 'Play voice message';
+
+  @override
+  String get pauseVoiceMessageTooltip => 'Pause voice message';
+
+  @override
+  String get voiceMessagePlaybackFailedError =>
+      'Couldn\'t play this voice message.';
+
+  @override
+  String get imageLoadFailedLabel => 'Couldn\'t load image';
 
   @override
   String get notDeliveredFallback => 'Not delivered.';
@@ -1076,6 +1214,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recordDetailDialogTitle => 'Record a customer detail';
 
   @override
+  String get recordDetailDescription =>
+      'Something the customer shared — an address, a phone number, a preference.';
+
+  @override
   String get detailFieldLabel => 'Detail';
 
   @override
@@ -1086,6 +1228,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get valueFieldHint => '12 Nile St, Giza';
+
+  @override
+  String get removeLineTooltip => 'Remove line';
+
+  @override
+  String get atLeastOneProductError => 'Enter at least one product name.';
+
+  @override
+  String get validPriceError => 'Enter a valid price.';
+
+  @override
+  String get detailRequiredError => 'Enter both detail and value.';
 
   @override
   String get confirmAction => 'Confirm';
@@ -1100,6 +1254,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderCancelledMessage => 'Order cancelled';
 
   @override
+  String get cancelOrderConfirmTitle => 'Cancel this order?';
+
+  @override
+  String get cancelOrderConfirmBody =>
+      'This won\'t be counted as a sale. You can\'t undo this from here.';
+
+  @override
+  String get keepOrderAction => 'Keep order';
+
+  @override
   String get notCountedAsSaleMessage =>
       'Not counted as a sale until someone confirms it.';
 
@@ -1110,6 +1274,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmedByUnknownEmployee => 'an employee';
+
+  @override
+  String recordedByMessage(String name) {
+    return 'Recorded by $name';
+  }
 
   @override
   String get recordOrderDialogTitle => 'Record an order';
@@ -1134,7 +1303,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get totalLabel => 'Total';
 
   @override
-  String get recordOrderButton => 'Record order';
+  String get recordOrderButton => 'Record an order';
 
   @override
   String get orderRecordedMessage =>
@@ -1498,4 +1667,137 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get anEmployeeLabel => 'An employee';
+
+  @override
+  String get templatesTitle => 'Message templates';
+
+  @override
+  String get templatesSubtitle =>
+      'Pre-approved WhatsApp messages you can send outside the 24-hour window.';
+
+  @override
+  String get wabaAccountLabel => 'WhatsApp Business account';
+
+  @override
+  String templatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count templates on this account',
+      one: '1 template on this account',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get refreshAction => 'Refresh';
+
+  @override
+  String get createTemplateAction => 'Create template';
+
+  @override
+  String get templateNameLabel => 'Name';
+
+  @override
+  String get templateCategoryLabel => 'Category';
+
+  @override
+  String get templateLanguageLabel => 'Language';
+
+  @override
+  String get templateStatusLabel => 'Status';
+
+  @override
+  String get templateMetaIdLabel => 'Meta ID';
+
+  @override
+  String get noTemplatesFound => 'No templates found';
+
+  @override
+  String get noTemplatesMessage =>
+      'No message templates have been created for this WhatsApp Business account.';
+
+  @override
+  String get noWabaAccounts => 'No WhatsApp accounts connected';
+
+  @override
+  String get noWabaAccountsMessage =>
+      'Connect a WhatsApp Business account in Settings to manage message templates.';
+
+  @override
+  String get createTemplateTitle => 'Create message template';
+
+  @override
+  String get createTemplateSubtitle =>
+      'Submit a new WhatsApp message template for Meta review.';
+
+  @override
+  String get templateNameHelper =>
+      'Lowercase letters, numbers, and underscores only';
+
+  @override
+  String get templateBodyLabel => 'Message body';
+
+  @override
+  String get templateBodyHint =>
+      'Enter the template message text. You can include variables.';
+
+  @override
+  String get submitForReviewAction => 'Submit for review';
+
+  @override
+  String get templateSubmittedSnackbar => 'Template submitted for review';
+
+  @override
+  String get templateInvalidNameError =>
+      'Template name must use lowercase letters, numbers and underscores only.';
+
+  @override
+  String get templateEmptyBodyError => 'Template body cannot be empty.';
+
+  @override
+  String templateRejectedReason(String reason) {
+    return 'Rejection reason: $reason';
+  }
+
+  @override
+  String templateUnsupportedNotice(String components) {
+    return 'Unsupported components: $components';
+  }
+
+  @override
+  String get loadingTemplates => 'Loading templates…';
+
+  @override
+  String get noTemplatesAvailable => 'No templates available';
+
+  @override
+  String groupedConversationsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conversations',
+      one: '1 conversation',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get selectConversationTitle => 'Select conversation';
+
+  @override
+  String get selectConversationSubtitle =>
+      'Available WhatsApp conversations for this customer';
+
+  @override
+  String get switchConversationAction => 'Switch conversation';
+
+  @override
+  String get openConversationAction => 'Open';
+
+  @override
+  String get currentConversationBadge => 'Current';
+
+  @override
+  String get whatsappConversationsGroupTitle => 'WhatsApp conversations';
 }

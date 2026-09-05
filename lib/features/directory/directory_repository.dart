@@ -9,6 +9,7 @@
 library;
 
 import '../../core/api/api_client.dart';
+import '../../core/api/api_exception.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/customer_detail.dart';
 import '../../core/models/directory.dart';
@@ -179,11 +180,22 @@ class DirectoryRepository {
   }
 
   Future<Paginated<ChannelConnection>> channels() async {
-    final data = await _api.get<Map<String, dynamic>>(
-      '/channels/',
-      query: {'page_size': 50},
-    );
-    return Paginated.fromJson(data, ChannelConnection.fromJson);
+    try {
+      final data = await _api.get<Map<String, dynamic>>(
+        '/channels/',
+        query: {'page_size': 50},
+      );
+      return Paginated.fromJson(data, ChannelConnection.fromJson);
+    } on ApiException catch (e) {
+      if (e.statusCode == 403) {
+        final data = await _api.get<Map<String, dynamic>>(
+          '/conversations/channels/',
+          query: {'page_size': 50},
+        );
+        return Paginated.fromJson(data, ChannelConnection.fromJson);
+      }
+      rethrow;
+    }
   }
 
   /// Stop showing this channel's conversations without disconnecting it.
@@ -293,6 +305,50 @@ class DirectoryRepository {
       '/integrations/whatsapp/embedded-signup/mobile/start/',
     );
     return ChannelAuthorizationUrl.fromJson(data);
+  }
+
+  /// The manual alternative to Embedded Signup, for a number provisioned in
+  /// the Meta dashboard. `POST /integrations/whatsapp/connect/` —
+  /// `channel.manage` server-side. The token is verified against Graph
+  /// before anything is stored.
+  ///
+  /// Used both to attach a new number ("Add another number") and — by
+  /// resubmitting the same `phoneNumberId` with a freshly generated
+  /// `accessToken` — to rotate an existing connection's credential ("Update
+  /// token"). Swagger documents no separate update endpoint; a 409 here
+  /// ("Already connected to another workspace, or connected through a
+  /// different onboarding mode") is surfaced to the caller verbatim via
+  /// [ApiException] rather than assumed away.
+  Future<ConnectedChannel> connectWhatsApp({
+    required String phoneNumberId,
+    required String accessToken,
+    String? wabaId,
+  }) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/whatsapp/connect/',
+      body: {
+        'phone_number_id': phoneNumberId,
+        'access_token': accessToken,
+        'waba_id': ?wabaId,
+      },
+    );
+    return ConnectedChannel.fromJson(data);
+  }
+
+  /// Instagram Login — a distinct API from the Page-based flow behind
+  /// [connectMeta]/[authorizeInstagram] — attaches an account by an
+  /// Instagram user token pasted from Meta's dashboard "Generate token"
+  /// button. `POST /integrations/instagram/connect/` — `channel.manage`
+  /// server-side. The account id is derived from the token, not supplied by
+  /// the caller.
+  Future<ConnectedChannel> connectInstagram({
+    required String accessToken,
+  }) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/instagram/connect/',
+      body: {'access_token': accessToken},
+    );
+    return ConnectedChannel.fromJson(data);
   }
 
   /// The conversation-category taxonomy. Open to any active employee, and

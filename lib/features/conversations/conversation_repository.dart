@@ -6,8 +6,11 @@
 /// of that here would create two answers to one question.
 library;
 
+import 'package:dio/dio.dart';
+
 import '../../core/api/api_client.dart';
 import '../../core/models/conversation.dart';
+import '../../core/models/conversation_group.dart';
 import '../../core/models/conversation_event.dart';
 import '../../core/models/conversion_event.dart';
 import '../../core/models/intelligence.dart';
@@ -91,6 +94,18 @@ class ConversationRepository {
     return Paginated.fromJson(data, Conversation.fromJson);
   }
 
+  Future<Paginated<CustomerConversationGroup>> listGrouped({
+    ConversationFilters filters = const ConversationFilters(),
+    int page = 1,
+    int? currentEmployeeId,
+  }) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/conversations/grouped/',
+      query: filters.toQuery(page, currentEmployeeId),
+    );
+    return Paginated.fromJson(data, CustomerConversationGroup.fromJson);
+  }
+
   Future<Conversation> detail(int id) async {
     final data = await _api.get<Map<String, dynamic>>('/conversations/$id/');
     return Conversation.fromJson(data);
@@ -159,13 +174,72 @@ class ConversationRepository {
   /// Never talks to Meta/WhatsApp directly — the platform integration, the
   /// 24-hour window rules and the token all live server-side, and the app
   /// would have no legitimate way to hold any of them.
-  Future<Message> reply(int conversationId, String text) async {
+  ///
+  /// [text] alone is a plain text reply, matching the previous behavior.
+  /// [attachmentIds] references files already staged via [stageAttachment] —
+  /// `text` is optional the moment there is at least one, per the backend's
+  /// own `Reply` contract ("a photograph is a complete message"). Passing
+  /// [clientMessageId] lets a caller give the server the idempotency key it
+  /// documents, so retrying a request whose response was lost cannot produce
+  /// two stored messages.
+  Future<Message> reply(
+    int conversationId,
+    String text, {
+    List<String> attachmentIds = const [],
+    String? clientMessageId,
+  }) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/conversations/$conversationId/reply/',
-      body: {'text': text},
+      body: {
+        'text': text,
+        if (attachmentIds.isNotEmpty) 'attachment_ids': attachmentIds,
+        'client_message_id': ?clientMessageId,
+      },
     );
     return Message.fromJson(data);
   }
+
+  /// Uploads one file and returns a draft — nothing appears in the
+  /// customer's timeline until [reply] is called with its id in
+  /// `attachmentIds`. `multipart/form-data`, matching the endpoint's only
+  /// documented content type.
+  ///
+  /// [isVoice] and [durationMs] apply only to a voice recording: the
+  /// backend repackages it into the container the platform renders as a
+  /// voice note. Omitted for a plain image/file attachment.
+  ///
+  /// [mimeType], when given, is sent as the multipart part's Content-Type
+  /// verbatim instead of Dio's own extension-based guess — used for the
+  /// voice recorder, whose file extension alone (`.ogg`) is not enough to
+  /// guarantee the exact `audio/ogg` the backend expects.
+  Future<AttachmentDraft> stageAttachment(
+    int conversationId, {
+    required String filePath,
+    required String fileName,
+    bool isVoice = false,
+    int? durationMs,
+    String? mimeType,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        filePath,
+        filename: fileName,
+        contentType: mimeType == null ? null : DioMediaType.parse(mimeType),
+      ),
+      if (isVoice) 'is_voice': 'true',
+      if (durationMs != null) 'duration_ms': durationMs.toString(),
+    });
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/attachments/',
+      body: formData,
+    );
+    return AttachmentDraft.fromJson(data);
+  }
+
+  /// Removes a staged draft and its bytes. Safe to call on something
+  /// already gone — a double-tap on "remove" is not an error.
+  Future<void> discardAttachment(int conversationId, String draftId) => _api
+      .delete<dynamic>('/conversations/$conversationId/attachments/$draftId/');
 
   Future<void> markRead(int conversationId) =>
       _api.post<dynamic>('/conversations/$conversationId/read/');

@@ -16,6 +16,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/navigation.dart';
 import '../../features/authentication/auth_controller.dart';
 import '../../features/conversations/inbox_controller.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../theme/tokens.dart';
 import 'avatar.dart';
 
@@ -183,7 +184,7 @@ class _SectionTile extends StatelessWidget {
                 const SizedBox(width: Space.md),
                 Expanded(
                   child: Text(
-                    section.label,
+                    _sectionLabel(context, section),
                     style: TextStyle(
                       color: foreground,
                       fontSize: 14,
@@ -198,6 +199,21 @@ class _SectionTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _sectionLabel(BuildContext context, AppSection section) {
+    final l10n = context.l10n;
+    return switch (section.path) {
+      '/dashboard' => l10n.navDashboard,
+      '/inbox' => l10n.navInbox,
+      '/customers' => l10n.navCustomers,
+      '/employees' => l10n.navEmployees,
+      '/teams' => l10n.navTeams,
+      '/analytics' => l10n.navAnalytics,
+      '/templates' => l10n.navTemplates,
+      '/settings' => l10n.navSettings,
+      _ => section.label,
+    };
   }
 }
 

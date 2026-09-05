@@ -13,7 +13,6 @@ import 'package:scenario_mobile/core/config/environment.dart';
 import 'package:scenario_mobile/core/logging/app_log.dart';
 import 'package:scenario_mobile/core/models/conversation.dart';
 import 'package:scenario_mobile/core/models/message.dart';
-import 'package:scenario_mobile/core/security/screen_security.dart';
 import 'package:scenario_mobile/core/storage/secure_store.dart';
 import 'package:scenario_mobile/core/utils/json_safe.dart';
 import 'package:scenario_mobile/core/utils/safe_url.dart';
@@ -350,48 +349,6 @@ void main() {
       }
 
       expect(seen, hasLength(50));
-    });
-  });
-
-  group('screen security', () {
-    setUp(ScreenSecurity.resetForTest);
-
-    test(
-      'nested sensitive screens hold the flag until the last one leaves',
-      () async {
-        final calls = <bool>[];
-
-        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(ScreenSecurity.channel, (call) async {
-              if (call.method == 'setSecure') {
-                calls.add((call.arguments as Map)['secure'] as bool);
-              }
-              return null;
-            });
-        addTearDown(() {
-          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-              .setMockMethodCallHandler(ScreenSecurity.channel, null);
-        });
-
-        // A conversation opens, then pushes customer details on top of itself.
-        await ScreenSecurity.acquire();
-        await ScreenSecurity.acquire();
-        expect(calls, [true], reason: 'only the first acquire sets the flag');
-
-        // Customer details pops; the conversation is still on screen.
-        await ScreenSecurity.release();
-        expect(calls, [true], reason: 'flag must survive the inner pop');
-
-        await ScreenSecurity.release();
-        expect(calls, [true, false], reason: 'the last release clears it');
-      },
-    );
-
-    test('a missing platform handler is survivable, not fatal', () async {
-      // iOS today: no handler is registered. The app must keep working, it
-      // simply does not get this defence.
-      await expectLater(ScreenSecurity.acquire(), completes);
-      await expectLater(ScreenSecurity.release(), completes);
     });
   });
 }

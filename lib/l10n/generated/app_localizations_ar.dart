@@ -236,6 +236,74 @@ class AppLocalizationsAr extends AppLocalizations {
   String get manageFromWebOnlyHint => 'هذا الإجراء متاح فقط من تطبيق الويب.';
 
   @override
+  String get updateTokenAction => 'تحديث الرمز';
+
+  @override
+  String get updateTokenSheetTitle => 'تحديث رمز الوصول';
+
+  @override
+  String get updateTokenSheetDescription =>
+      'استبدل رمز الوصول لهذا الرقم إذا انتهت صلاحيته أو تم إنشاؤه من جديد في لوحة تحكم Meta.';
+
+  @override
+  String get otherWaysToConnectSection => 'طرق أخرى للربط';
+
+  @override
+  String get addAnotherNumberAction => 'إضافة رقم آخر';
+
+  @override
+  String get addAnotherNumberHint => 'عبر معرّف رقم الهاتف ورمز الوصول';
+
+  @override
+  String get addAnotherNumberSheetTitle => 'إضافة رقم واتساب';
+
+  @override
+  String get useInstagramTokenAction => 'استخدام رمز إنستغرام';
+
+  @override
+  String get useInstagramTokenSheetTitle => 'الربط باستخدام رمز إنستغرام';
+
+  @override
+  String get useInstagramTokenSheetDescription =>
+      'الصق رمز مستخدم إنستغرام الذي تم إنشاؤه من لوحة تحكم Meta. سيتم ربط الحساب الذي يحدده الرمز.';
+
+  @override
+  String get manageFacebookPagesAction => 'إدارة صفحات فيسبوك';
+
+  @override
+  String get phoneNumberIdFieldLabel => 'معرّف رقم الهاتف';
+
+  @override
+  String get accessTokenFieldLabel => 'رمز الوصول';
+
+  @override
+  String get wabaIdFieldLabel => 'معرّف حساب واتساب للأعمال';
+
+  @override
+  String get wabaIdFieldOptionalHint =>
+      'اختياري — يُستنتج من الرمز إذا تُرك فارغًا.';
+
+  @override
+  String get instagramTokenFieldLabel => 'رمز وصول إنستغرام';
+
+  @override
+  String get fieldRequiredError => 'هذا الحقل مطلوب.';
+
+  @override
+  String channelConnectedSnackbar(String channel) {
+    return 'تم ربط $channel.';
+  }
+
+  @override
+  String get channelTokenUpdatedSnackbar => 'تم تحديث رمز الوصول.';
+
+  @override
+  String get connectAction => 'ربط';
+
+  @override
+  String get updateAction => 'تحديث';
+
+  @override
   String get noConnectionTitle => 'لا يوجد اتصال';
 
   @override
@@ -285,6 +353,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get navAnalytics => 'التحليلات';
+
+  @override
+  String get navTemplates => 'القوالب';
 
   @override
   String get navSettings => 'الإعدادات';
@@ -602,6 +673,71 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get readOnlyLabel => 'للقراءة فقط';
+
+  @override
+  String get attachmentTooltip => 'إرفاق';
+
+  @override
+  String get attachFromGalleryAction => 'صورة من المعرض';
+
+  @override
+  String get attachFromCameraAction => 'التقاط صورة';
+
+  @override
+  String get removeAttachmentTooltip => 'إزالة المرفق';
+
+  @override
+  String get attachmentUploadingLabel => 'جارٍ الرفع…';
+
+  @override
+  String get attachmentUploadFailedError => 'تعذّر رفع الملف. حاول مرة أخرى.';
+
+  @override
+  String get attachmentPermissionDeniedError =>
+      'تم رفض الإذن. فعّله من إعدادات جهازك لإرفاق الصور.';
+
+  @override
+  String get recordVoiceTooltip => 'تسجيل رسالة صوتية';
+
+  @override
+  String recordingLabel(String duration) {
+    return 'جارٍ التسجيل $duration';
+  }
+
+  @override
+  String get cancelRecordingTooltip => 'إلغاء التسجيل';
+
+  @override
+  String get stopRecordingTooltip => 'إيقاف وإرسال';
+
+  @override
+  String get microphonePermissionDeniedError =>
+      'تم رفض الوصول إلى الميكروفون. فعّله من إعدادات جهازك لتسجيل رسالة صوتية.';
+
+  @override
+  String get recordingFailedError => 'تعذّر بدء التسجيل. حاول مرة أخرى.';
+
+  @override
+  String get voiceMessageLabel => 'رسالة صوتية';
+
+  @override
+  String get voiceNoteLabel => 'تسجيل صوتي';
+
+  @override
+  String get recordingText => 'تسجيل';
+
+  @override
+  String get playVoiceMessageTooltip => 'تشغيل الرسالة الصوتية';
+
+  @override
+  String get pauseVoiceMessageTooltip => 'إيقاف الرسالة الصوتية مؤقتًا';
+
+  @override
+  String get voiceMessagePlaybackFailedError =>
+      'تعذّر تشغيل هذه الرسالة الصوتية.';
+
+  @override
+  String get imageLoadFailedLabel => 'تعذّر تحميل الصورة';
 
   @override
   String get notDeliveredFallback => 'لم يتم التسليم.';
@@ -1087,6 +1223,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get recordDetailDialogTitle => 'تسجيل بيانات عميل';
 
   @override
+  String get recordDetailDescription =>
+      'شيء شاركه العميل — عنوان، رقم هاتف، تفضيل معين.';
+
+  @override
   String get detailFieldLabel => 'التفصيل';
 
   @override
@@ -1097,6 +1237,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get valueFieldHint => '١٢ شارع النيل، الجيزة';
+
+  @override
+  String get removeLineTooltip => 'حذف البند';
+
+  @override
+  String get atLeastOneProductError => 'أدخل اسم منتج واحد على الأقل.';
+
+  @override
+  String get validPriceError => 'أدخل سعرًا صالحًا.';
+
+  @override
+  String get detailRequiredError => 'أدخل اسم البند وقيمته.';
 
   @override
   String get confirmAction => 'تأكيد';
@@ -1111,6 +1263,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get orderCancelledMessage => 'تم إلغاء الطلب';
 
   @override
+  String get cancelOrderConfirmTitle => 'هل تريد إلغاء هذا الطلب؟';
+
+  @override
+  String get cancelOrderConfirmBody =>
+      'لن يُحتسب كعملية بيع. لا يمكن التراجع عن هذا من هنا.';
+
+  @override
+  String get keepOrderAction => 'الاحتفاظ بالطلب';
+
+  @override
   String get notCountedAsSaleMessage =>
       'لا يُحتسب كعملية بيع حتى يقوم أحد بتأكيده.';
 
@@ -1121,6 +1283,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get confirmedByUnknownEmployee => 'أحد الموظفين';
+
+  @override
+  String recordedByMessage(String name) {
+    return 'تم التسجيل بواسطة $name';
+  }
 
   @override
   String get recordOrderDialogTitle => 'تسجيل طلب';
@@ -1521,4 +1688,142 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get anEmployeeLabel => 'أحد الموظفين';
+
+  @override
+  String get templatesTitle => 'قوالب الرسائل';
+
+  @override
+  String get templatesSubtitle =>
+      'رسائل واتساب المعتمدة مسبقاً التي يمكنك إرسالها خارج نافذة الـ 24 ساعة.';
+
+  @override
+  String get wabaAccountLabel => 'حساب واتساب للأعمال';
+
+  @override
+  String templatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count قالب على هذا الحساب',
+      many: '$count قالباً على هذا الحساب',
+      few: '$count قوالب على هذا الحساب',
+      two: 'قالبان على هذا الحساب',
+      one: 'قالب واحد على هذا الحساب',
+      zero: 'لا توجد قوالب على هذا الحساب',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get refreshAction => 'تحديث';
+
+  @override
+  String get createTemplateAction => 'إنشاء قالب';
+
+  @override
+  String get templateNameLabel => 'الاسم';
+
+  @override
+  String get templateCategoryLabel => 'الفئة';
+
+  @override
+  String get templateLanguageLabel => 'اللغة';
+
+  @override
+  String get templateStatusLabel => 'الحالة';
+
+  @override
+  String get templateMetaIdLabel => 'معرّف Meta';
+
+  @override
+  String get noTemplatesFound => 'لم يتم العثور على قوالب';
+
+  @override
+  String get noTemplatesMessage =>
+      'لم يتم إنشاء قوالب رسائل لحساب واتساب للأعمال هذا بعد.';
+
+  @override
+  String get noWabaAccounts => 'لا توجد حسابات واتساب متصلة';
+
+  @override
+  String get noWabaAccountsMessage =>
+      'قم بربط حساب واتساب للأعمال في الإعدادات لإدارة قوالب الرسائل.';
+
+  @override
+  String get createTemplateTitle => 'إنشاء قالب رسالة';
+
+  @override
+  String get createTemplateSubtitle =>
+      'إرسال قالب رسالة واتساب جديد لمراجعته من Meta.';
+
+  @override
+  String get templateNameHelper => 'أحرف صغيرة وأرقام وشرطات سفلية فقط';
+
+  @override
+  String get templateBodyLabel => 'نص الرسالة';
+
+  @override
+  String get templateBodyHint => 'أدخل نص القالب. يمكنك تضمين متغيرات.';
+
+  @override
+  String get submitForReviewAction => 'إرسال للمراجعة';
+
+  @override
+  String get templateSubmittedSnackbar => 'تم إرسال القالب للمراجعة';
+
+  @override
+  String get templateInvalidNameError =>
+      'يجب أن يتكون اسم القالب من أحرف صغيرة وأرقام وشرطات سفلية فقط.';
+
+  @override
+  String get templateEmptyBodyError => 'لا يمكن أن يكون نص القالب فارغاً.';
+
+  @override
+  String templateRejectedReason(String reason) {
+    return 'سبب الرفض: $reason';
+  }
+
+  @override
+  String templateUnsupportedNotice(String components) {
+    return 'مكونات غير مدعومة: $components';
+  }
+
+  @override
+  String get loadingTemplates => 'جارٍ تحميل القوالب…';
+
+  @override
+  String get noTemplatesAvailable => 'لا توجد قوالب متاحة';
+
+  @override
+  String groupedConversationsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة',
+      many: '$count محادثة',
+      few: '$count محادثات',
+      two: 'محادثتان',
+      one: 'محادثة واحدة',
+      zero: 'لا توجد محادثات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get selectConversationTitle => 'اختر المحادثة';
+
+  @override
+  String get selectConversationSubtitle => 'محادثات واتساب المتاحة لهذا العميل';
+
+  @override
+  String get switchConversationAction => 'تبديل المحادثة';
+
+  @override
+  String get openConversationAction => 'فتح';
+
+  @override
+  String get currentConversationBadge => 'الحالية';
+
+  @override
+  String get whatsappConversationsGroupTitle => 'محادثات واتساب';
 }

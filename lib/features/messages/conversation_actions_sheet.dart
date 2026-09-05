@@ -27,6 +27,7 @@ import 'conversation_history_sheet.dart';
 import 'conversion_sheet.dart';
 import 'intelligence_providers.dart';
 import 'notes_sheet.dart';
+import '../orders/order_and_fact_dialogs.dart';
 
 const _statuses = [
   'OPEN',
@@ -184,9 +185,29 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
         _SectionCard(
           title: context.l10n.customerDetailsTitle,
           icon: Icons.person_outline,
+          trailing: (canManageOrders && customerId != null)
+              ? TextButton.icon(
+                  icon: const Icon(Icons.add, size: 16),
+                  label: Text(context.l10n.commonAdd),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Space.xs,
+                      vertical: 2,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () => showRecordCustomerDetailDialog(
+                    context,
+                    ref: ref,
+                    customerId: customerId,
+                    conversationId: widget.conversationId,
+                  ),
+                )
+              : null,
           child: conversation == null
               ? const LoadingState()
-              : _CustomerDetailsView(conversation: conversation),
+              : _CustomerDetailsView(conversation: conversation, facts: facts),
         ),
         const SizedBox(height: Space.lg),
 
@@ -260,8 +281,11 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
         _SectionCard(
           title: context.l10n.ordersTitle,
           icon: Icons.inventory_2_outlined,
-          trailing: ordersPending > 0
-              ? Container(
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (ordersPending > 0) ...[
+                Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 6,
                     vertical: 2,
@@ -278,8 +302,30 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                )
-              : null,
+                ),
+                const SizedBox(width: Space.xs),
+              ],
+              if (canManageOrders && customerId != null)
+                TextButton.icon(
+                  icon: const Icon(Icons.add, size: 16),
+                  label: Text(context.l10n.orderButton),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Space.xs,
+                      vertical: 2,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () => showRecordOrderDialog(
+                    context,
+                    ref: ref,
+                    customerId: customerId,
+                    conversationId: widget.conversationId,
+                  ),
+                ),
+            ],
+          ),
           child: ordersAsync.when(
             loading: () => const LoadingState(),
             error: (error, _) => ErrorStateView(
@@ -535,42 +581,61 @@ class _SectionCardState extends State<_SectionCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          InkWell(
-            borderRadius: BorderRadius.vertical(
-              top: const Radius.circular(Radii.md),
-              bottom: Radius.circular(_expanded ? 0 : Radii.md),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Space.md,
+              vertical: Space.xs,
             ),
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Space.md,
-                vertical: Space.sm + 2,
-              ),
-              child: Row(
-                children: [
-                  Icon(widget.icon, size: 20, color: theme.colorScheme.primary),
-                  const SizedBox(width: Space.sm),
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(Radii.sm),
+                    onTap: () => setState(() => _expanded = !_expanded),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: Space.sm),
+                      child: Row(
+                        children: [
+                          Icon(
+                            widget.icon,
+                            size: 20,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: Space.sm),
+                          Expanded(
+                            child: Text(
+                              widget.title,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  if (widget.trailing != null) ...[
-                    widget.trailing!,
-                    const SizedBox(width: Space.xs),
-                  ],
-                  Icon(
+                ),
+                if (widget.trailing != null) ...[
+                  widget.trailing!,
+                  const SizedBox(width: Space.xs),
+                ],
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  icon: Icon(
                     _expanded
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
                     size: 20,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
-                ],
-              ),
+                  onPressed: () => setState(() => _expanded = !_expanded),
+                ),
+              ],
             ),
           ),
           if (_expanded) ...[
@@ -590,14 +655,19 @@ class _SectionCardState extends State<_SectionCard> {
 // 1. CUSTOMER DETAILS VIEW
 // ---------------------------------------------------------------------------
 class _CustomerDetailsView extends StatelessWidget {
-  const _CustomerDetailsView({required this.conversation});
+  const _CustomerDetailsView({
+    required this.conversation,
+    this.facts = const [],
+  });
 
   final Conversation conversation;
+  final List<CustomerFact> facts;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final customer = conversation.customer;
+    final recordedFacts = facts.where((f) => !f.needsReview).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,6 +784,59 @@ class _CustomerDetailsView extends StatelessWidget {
               if (customer.country.isNotEmpty) customer.country,
             ].join(', '),
           ),
+
+        if (recordedFacts.isNotEmpty) ...[
+          const SizedBox(height: Space.md),
+          const Divider(height: 1),
+          const SizedBox(height: Space.sm),
+          for (final fact in recordedFacts)
+            Padding(
+              padding: const EdgeInsets.only(bottom: Space.xs),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Space.md,
+                  vertical: Space.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.45,
+                  ),
+                  borderRadius: BorderRadius.circular(Radii.md),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          style: theme.textTheme.bodySmall,
+                          children: [
+                            TextSpan(
+                              text: '${humanizeEnum(fact.key)}: ',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            TextSpan(text: fact.value),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: Space.sm),
+                    StatusBadge(
+                      label: fact.source == 'EMPLOYEE'
+                          ? context.l10n.employeeSourceBadge
+                          : fact.source,
+                      tone: fact.source == 'EMPLOYEE'
+                          ? BadgeTone.success
+                          : BadgeTone.neutral,
+                      dense: true,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ],
     );
   }
@@ -1150,60 +1273,247 @@ class _OrdersDataView extends StatelessWidget {
             ),
           )
         else
-          for (final order in realOrders) ...[
-            Container(
-              margin: const EdgeInsets.only(bottom: Space.sm),
-              padding: const EdgeInsets.all(Space.sm),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.4,
-                ),
-                borderRadius: BorderRadius.circular(Radii.sm),
+          for (final order in realOrders)
+            _LiveOrderCard(
+              order: order,
+              conversationId: conversationId,
+              canManage: canManage,
+            ),
+      ],
+    );
+  }
+}
+
+/// One order card in the live Orders section — the actual per-order state
+/// (confirm/cancel busy flag) that `_OrdersDataView` itself, a
+/// `StatelessWidget`, has no room to hold.
+///
+/// A pending order (`isClaim` — `SUGGESTED` or `RECORDED`, i.e. not yet
+/// attested) shows who recorded it and the same "not counted as a sale"
+/// wording, Confirm and cancel actions the web card shows; a resolved order
+/// (`CONFIRMED`/`CANCELLED`/`REFUNDED`) shows only its resulting state,
+/// matching `Order.isClaim` — the backend's own answer to "is this still
+/// pending," never reconstructed from `status` locally.
+class _LiveOrderCard extends ConsumerStatefulWidget {
+  const _LiveOrderCard({
+    required this.order,
+    required this.conversationId,
+    required this.canManage,
+  });
+
+  final Order order;
+  final int conversationId;
+  final bool canManage;
+
+  @override
+  ConsumerState<_LiveOrderCard> createState() => _LiveOrderCardState();
+}
+
+class _LiveOrderCardState extends ConsumerState<_LiveOrderCard> {
+  bool _busy = false;
+
+  Future<void> _run(Future<void> Function() action, String message) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await action();
+      if (!mounted) return;
+      ref.invalidate(conversationOrdersProvider(widget.conversationId));
+      ref.invalidate(performanceProvider);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } on ApiException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Confirms, then cancels — same `showDialog<bool>` confirm-then-act shape
+  /// as `conversation_screen.dart`'s `_confirmDeleteMessage`. Cancelling is
+  /// destructive (no undo from this screen), so it gets the same treatment
+  /// as deactivating an employee/team rather than firing straight from the
+  /// icon tap.
+  Future<void> _confirmCancel() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(dialogContext.l10n.cancelOrderConfirmTitle),
+        content: Text(dialogContext.l10n.cancelOrderConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(dialogContext.l10n.keepOrderAction),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(dialogContext.l10n.cancelOrderTooltip),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    await _run(
+      () => ref.read(directoryRepositoryProvider).cancelOrder(widget.order.id),
+      context.l10n.orderCancelledMessage,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final order = widget.order;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: Space.sm),
+      padding: const EdgeInsets.all(Space.sm),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(Radii.sm),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.inventory_2_outlined,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Order #${order.id}',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const Spacer(),
-                      StatusBadge(
-                        label: order.statusDisplay.isNotEmpty
-                            ? order.statusDisplay
-                            : order.status,
-                        tone: order.isConfirmed
-                            ? BadgeTone.success
-                            : BadgeTone.info,
-                        dense: true,
-                      ),
-                    ],
+              const SizedBox(width: Space.xs),
+              Text(
+                'Order #${order.id}',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              // A pending order names who recorded it — the badge alone
+              // ("Recorded") doesn't carry attribution the way the web
+              // card's header does.
+              if (order.isClaim && order.recordedByName.isNotEmpty) ...[
+                Flexible(
+                  child: Text(
+                    context.l10n.recordedByMessage(order.recordedByName),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${order.totalAmount} ${order.currency}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  if (order.items.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    for (final item in order.items)
-                      Text(
-                        '${item.quantity}x ${item.productName} (${item.lineTotal} ${order.currency})',
+                ),
+                const SizedBox(width: Space.xs),
+              ],
+              StatusBadge(
+                label: order.statusDisplay.isNotEmpty
+                    ? order.statusDisplay
+                    : order.status,
+                tone: switch (order.status.toUpperCase()) {
+                  'CONFIRMED' => BadgeTone.success,
+                  'SUGGESTED' => BadgeTone.warning,
+                  'CANCELLED' || 'REFUNDED' => BadgeTone.neutral,
+                  _ => BadgeTone.info,
+                },
+                dense: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${order.totalAmount} ${order.currency}',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          if (order.items.isNotEmpty) ...[
+            const SizedBox(height: Space.xs),
+            for (final item in order.items)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${item.quantity}× ${item.productName}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall,
                       ),
+                    ),
+                    Text(
+                      item.lineTotal,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
-                ],
+                ),
               ),
+          ],
+
+          const SizedBox(height: Space.xs),
+          Text(
+            order.isClaim
+                ? context.l10n.notCountedAsSaleMessage
+                : order.isConfirmed
+                ? context.l10n.confirmedByMessage(
+                    order.confirmedByName.isEmpty
+                        ? context.l10n.confirmedByUnknownEmployee
+                        : order.confirmedByName,
+                  )
+                : '',
+            style: theme.textTheme.labelSmall,
+          ),
+
+          if (widget.canManage && order.isClaim) ...[
+            const SizedBox(height: Space.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () => _run(
+                            () => ref
+                                .read(directoryRepositoryProvider)
+                                .confirmOrder(order.id),
+                            context.l10n.orderConfirmedMessage,
+                          ),
+                    icon: _busy
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.check, size: 16),
+                    label: Text(context.l10n.confirmAction),
+                  ),
+                ),
+                const SizedBox(width: Space.sm),
+                IconButton(
+                  tooltip: context.l10n.cancelOrderTooltip,
+                  onPressed: _busy ? null : _confirmCancel,
+                  icon: Icon(
+                    Icons.delete_outline,
+                    size: 20,
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
             ),
           ],
-      ],
+        ],
+      ),
     );
   }
 }

@@ -452,4 +452,178 @@ void main() {
       expect(result.url, 'https://www.tiktok.com/v2/auth/authorize?x=1');
     });
   });
+
+  group('ConnectedChannel.fromJson', () {
+    test('parses the connected-channel response shape', () {
+      final result = ConnectedChannel.fromJson({
+        'id': 9,
+        'display_name': 'New line',
+        'status': 'CONNECTED',
+        'detail': 'Verified against Graph.',
+      });
+
+      expect(result.id, 9);
+      expect(result.displayName, 'New line');
+      expect(result.status, 'CONNECTED');
+      expect(result.detail, 'Verified against Graph.');
+    });
+
+    test('defaults safely when fields are absent', () {
+      final result = ConnectedChannel.fromJson({});
+      expect(result.id, -1);
+      expect(result.displayName, isEmpty);
+      expect(result.status, isEmpty);
+      expect(result.detail, isEmpty);
+    });
+  });
+
+  group('DirectoryRepository.connectWhatsApp', () {
+    test(
+      'POSTs to /integrations/whatsapp/connect/ with the exact request body',
+      () async {
+        RequestOptions? captured;
+        final repository = _repositoryReturning((options) {
+          captured = options;
+          return _json(
+            '{"id": 9, "display_name": "New line", "status": "CONNECTED", "detail": "ok"}',
+            201,
+          );
+        });
+
+        final result = await repository.connectWhatsApp(
+          phoneNumberId: '1234567890',
+          accessToken: 'EAAtoken123',
+        );
+
+        expect(captured!.method, 'POST');
+        expect(captured!.path, '/integrations/whatsapp/connect/');
+        expect(captured!.data, {
+          'phone_number_id': '1234567890',
+          'access_token': 'EAAtoken123',
+        });
+        expect(result.id, 9);
+        expect(result.displayName, 'New line');
+      },
+    );
+
+    test('includes waba_id only when provided', () async {
+      RequestOptions? captured;
+      final repository = _repositoryReturning((options) {
+        captured = options;
+        return _json(
+          '{"id": 9, "display_name": "New line", "status": "CONNECTED", "detail": "ok"}',
+          201,
+        );
+      });
+
+      await repository.connectWhatsApp(
+        phoneNumberId: '1234567890',
+        accessToken: 'EAAtoken123',
+        wabaId: 'waba-42',
+      );
+
+      expect(captured!.data, {
+        'phone_number_id': '1234567890',
+        'access_token': 'EAAtoken123',
+        'waba_id': 'waba-42',
+      });
+    });
+
+    test(
+      'a 409 (already connected) throws ApiException with the server message',
+      () async {
+        final repository = _repositoryReturning(
+          (_) => _json(
+            '{"error": {"code": "conflict", "message": "Already connected to another workspace.", "details": {}}}',
+            409,
+          ),
+        );
+
+        expect(
+          () => repository.connectWhatsApp(
+            phoneNumberId: '1234567890',
+            accessToken: 'bad',
+          ),
+          throwsA(
+            isA<Exception>().having(
+              (e) => e.toString(),
+              'message',
+              contains('Already connected to another workspace.'),
+            ),
+          ),
+        );
+      },
+    );
+
+    test('a 400 (invalid token) throws ApiException', () async {
+      final repository = _repositoryReturning(
+        (_) => _json(
+          '{"error": {"code": "invalid", "message": "Graph rejected the token.", "details": {}}}',
+          400,
+        ),
+      );
+
+      expect(
+        () => repository.connectWhatsApp(
+          phoneNumberId: '1234567890',
+          accessToken: 'bad',
+        ),
+        throwsA(isA<Exception>()),
+      );
+    });
+  });
+
+  group('DirectoryRepository.connectInstagram', () {
+    test(
+      'POSTs to /integrations/instagram/connect/ with the exact request body',
+      () async {
+        RequestOptions? captured;
+        final repository = _repositoryReturning((options) {
+          captured = options;
+          return _json(
+            '{"id": 21, "display_name": "Acme IG", "status": "CONNECTED", "detail": "ok"}',
+            201,
+          );
+        });
+
+        final result = await repository.connectInstagram(
+          accessToken: 'IGtoken456',
+        );
+
+        expect(captured!.method, 'POST');
+        expect(captured!.path, '/integrations/instagram/connect/');
+        expect(captured!.data, {'access_token': 'IGtoken456'});
+        expect(result.id, 21);
+        expect(result.displayName, 'Acme IG');
+      },
+    );
+
+    test('a 400 (missing/rejected token) throws ApiException', () async {
+      final repository = _repositoryReturning(
+        (_) => _json(
+          '{"error": {"code": "invalid", "message": "Meta rejected it.", "details": {}}}',
+          400,
+        ),
+      );
+
+      expect(
+        () => repository.connectInstagram(accessToken: 'bad'),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('a 403 (missing permission) throws ApiException', () async {
+      final repository = _repositoryReturning(
+        (_) => _json(
+          '{"error": {"code": "forbidden", "message": "Not allowed.", "details": {}}}',
+          403,
+        ),
+      );
+
+      expect(
+        () => repository.connectInstagram(accessToken: 'x'),
+        throwsA(isA<Exception>()),
+      );
+    });
+  });
 }
