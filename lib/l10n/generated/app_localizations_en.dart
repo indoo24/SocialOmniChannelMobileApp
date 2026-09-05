@@ -1800,4 +1800,66 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get whatsappConversationsGroupTitle => 'WhatsApp conversations';
+
+  @override
+  String get notificationsTitle => 'Notifications';
+
+  @override
+  String get notificationsEmpty => 'Nothing needs your attention.';
+
+  @override
+  String get notificationsMarkAllRead => 'Mark all read';
+
+  @override
+  String get notificationsAllRead => 'All notifications marked read';
+
+  @override
+  String get notificationsOpenConversation => 'Open conversation';
+
+  @override
+  String notificationsUnreadLabel(String count) {
+    return 'Notifications, $count unread';
+  }
+
+  @override
+  String notificationsOccurrences(String count) {
+    return '×$count';
+  }
+
+  @override
+  String notificationsFallbackAssignment(String name) {
+    return 'Assigned to $name by fallback routing, because nobody was fully available. Please review.';
+  }
+
+  @override
+  String notificationsEmployeeReassignment(String count, String name) {
+    return '$count conversations moved after $name was deactivated.';
+  }
+
+  @override
+  String notificationsSomeCouldNotBePlaced(String count) {
+    return '$count could not be placed and are now unassigned.';
+  }
+
+  @override
+  String get notificationsNoUsableEmployee =>
+      'A conversation could not be assigned — no service employee is usable.';
+
+  @override
+  String get reasonOutsideWorkingHours => 'Outside working hours';
+
+  @override
+  String get reasonScheduleException => 'On leave';
+
+  @override
+  String get reasonNotOnline => 'Not online';
+
+  @override
+  String get reasonStaleHeartbeat => 'Not reachable';
+
+  @override
+  String get reasonAtCapacity => 'At capacity';
+
+  @override
+  String get reasonNoSchedule => 'No schedule';
 }

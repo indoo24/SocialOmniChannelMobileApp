@@ -19,6 +19,7 @@ import '../../features/directory/directory_providers.dart';
 import '../../features/messages/conversation_controller.dart';
 import '../../features/messages/intelligence_providers.dart';
 import '../../features/messages/notes_controller.dart';
+import '../../features/notifications/notifications_controller.dart';
 import '../api/api_exception.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
@@ -443,6 +444,10 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
         if (conversationId != null) {
           _checkAccess(ref, conversationId, traceId: effectiveTraceId);
         }
+
+      case RealtimeEvents.notificationCreated:
+        ref.invalidate(notificationsControllerProvider);
+        ref.invalidate(notificationsUnreadCountProvider);
 
       case RealtimeEvents.presenceChanged:
       case RealtimeEvents.connectionReady:

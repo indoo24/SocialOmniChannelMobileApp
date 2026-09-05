@@ -821,5 +821,48 @@
   "switchConversationAction": "Switch conversation",
   "openConversationAction": "Open",
   "currentConversationBadge": "Current",
-  "whatsappConversationsGroupTitle": "WhatsApp conversations"
+  "whatsappConversationsGroupTitle": "WhatsApp conversations",
+  "notificationsTitle": "Notifications",
+  "notificationsEmpty": "Nothing needs your attention.",
+  "notificationsMarkAllRead": "Mark all read",
+  "notificationsAllRead": "All notifications marked read",
+  "notificationsOpenConversation": "Open conversation",
+  "notificationsUnreadLabel": "Notifications, {count} unread",
+  "@notificationsUnreadLabel": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "notificationsOccurrences": "×{count}",
+  "@notificationsOccurrences": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "notificationsFallbackAssignment": "Assigned to {name} by fallback routing, because nobody was fully available. Please review.",
+  "@notificationsFallbackAssignment": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "notificationsEmployeeReassignment": "{count} conversations moved after {name} was deactivated.",
+  "@notificationsEmployeeReassignment": {
+    "placeholders": {
+      "count": {"type": "String"},
+      "name": {"type": "String"}
+    }
+  },
+  "notificationsSomeCouldNotBePlaced": "{count} could not be placed and are now unassigned.",
+  "@notificationsSomeCouldNotBePlaced": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "notificationsNoUsableEmployee": "A conversation could not be assigned — no service employee is usable.",
+  "reasonOutsideWorkingHours": "Outside working hours",
+  "reasonScheduleException": "On leave",
+  "reasonNotOnline": "Not online",
+  "reasonStaleHeartbeat": "Not reachable",
+  "reasonAtCapacity": "At capacity",
+  "reasonNoSchedule": "No schedule"
 }

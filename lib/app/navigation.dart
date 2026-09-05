@@ -20,6 +20,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/models/employee.dart';
 import '../features/authentication/auth_controller.dart';
+import '../l10n/generated/app_localizations.dart';
 
 class AppSection {
   const AppSection({
@@ -27,6 +28,7 @@ class AppSection {
     required this.label,
     required this.icon,
     this.permission,
+    this.hiddenForRoles = const [],
   });
 
   final String path;
@@ -35,6 +37,22 @@ class AppSection {
 
   /// Capability required to reach it. Null means every signed-in employee.
   final String? permission;
+
+  /// Roles that cannot view or access this section.
+  final List<String> hiddenForRoles;
+
+  String localizedLabel(AppLocalizations l10n) => switch (path) {
+    '/dashboard' => l10n.navDashboard,
+    '/inbox' => l10n.navInbox,
+    '/customers' => l10n.navCustomers,
+    '/employees' => l10n.navEmployees,
+    '/teams' => l10n.navTeams,
+    '/analytics' => l10n.navAnalytics,
+    '/templates' => l10n.navTemplates,
+    '/settings' => l10n.navSettings,
+    '/notifications' => l10n.notificationsTitle,
+    _ => label,
+  };
 }
 
 /// Every routable section, in drawer order — the web sidebar's order.
@@ -61,6 +79,7 @@ const appSections = <AppSection>[
     label: 'Employees',
     icon: Icons.badge_outlined,
     permission: Perm.employeeView,
+    hiddenForRoles: ['AGENT'],
   ),
   AppSection(
     path: '/teams',
@@ -92,10 +111,10 @@ final accessibleSectionsProvider = Provider<List<AppSection>>((ref) {
   final employee = ref.watch(currentEmployeeProvider);
   if (employee == null) return const [];
   return appSections
-      .where(
-        (section) =>
-            section.permission == null || employee.can(section.permission!),
-      )
+      .where((section) {
+        if (section.hiddenForRoles.contains(employee.role)) return false;
+        return section.permission == null || employee.can(section.permission!);
+      })
       .toList(growable: false);
 });
 
@@ -108,8 +127,13 @@ final canAccessPathProvider = Provider.family<bool, String>((ref, path) {
   final employee = ref.watch(currentEmployeeProvider);
   if (employee == null) return false;
 
+  if (path == '/notifications') {
+    return employee.can(Perm.notificationView);
+  }
+
   for (final section in appSections) {
     if (section.path == path) {
+      if (section.hiddenForRoles.contains(employee.role)) return false;
       return section.permission == null || employee.can(section.permission!);
     }
   }

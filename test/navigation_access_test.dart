@@ -75,8 +75,8 @@ ProviderContainer _containerFor(Employee? employee) {
   return container;
 }
 
-List<String> _labelsFor(Set<String> permissions) {
-  final container = _containerFor(_employee(permissions));
+List<String> _labelsFor(Set<String> permissions, {String role = 'AGENT'}) {
+  final container = _containerFor(_employee(permissions, role: role));
   return container
       .read(accessibleSectionsProvider)
       .map((section) => section.label)
@@ -85,23 +85,25 @@ List<String> _labelsFor(Set<String> permissions) {
 
 void main() {
   group('drawer sections', () {
-    test('an agent gets everything except Analytics', () {
-      expect(_labelsFor(_agent), [
+    test('an agent gets everything except Analytics and Employees', () {
+      expect(_labelsFor(_agent, role: 'AGENT'), [
         'Dashboard',
         'Inbox',
         'Customers',
-        'Employees',
         'Teams',
         'Settings',
       ]);
     });
 
-    test('a team leader gains Analytics', () {
-      expect(_labelsFor(_teamLeader), contains('Analytics'));
+    test('a team leader gains Analytics and sees Employees', () {
+      expect(
+        _labelsFor(_teamLeader, role: 'TEAM_LEADER'),
+        containsAll(['Analytics', 'Employees']),
+      );
     });
 
     test('a supervisor sees every section', () {
-      expect(_labelsFor(_supervisor), [
+      expect(_labelsFor(_supervisor, role: 'SUPERVISOR'), [
         'Dashboard',
         'Inbox',
         'Customers',
@@ -114,15 +116,22 @@ void main() {
     });
 
     test('QA reviews history, so it keeps Analytics and the directories', () {
-      final labels = _labelsFor(_qa);
+      final labels = _labelsFor(_qa, role: 'QA');
       expect(labels, contains('Analytics'));
       expect(labels, contains('Customers'));
+      expect(labels, contains('Employees'));
       expect(labels, contains('Inbox'));
     });
 
     test('Dashboard, Inbox and Settings are offered to every role', () {
-      for (final permissions in [_agent, _teamLeader, _supervisor, _qa]) {
-        final labels = _labelsFor(permissions);
+      final roles = [
+        (_agent, 'AGENT'),
+        (_teamLeader, 'TEAM_LEADER'),
+        (_supervisor, 'SUPERVISOR'),
+        (_qa, 'QA'),
+      ];
+      for (final (permissions, role) in roles) {
+        final labels = _labelsFor(permissions, role: role);
         expect(labels, containsAll(['Dashboard', 'Inbox', 'Settings']));
       }
     });
@@ -135,21 +144,28 @@ void main() {
 
   group('route guard', () {
     test('refuses a section the role lacks, whatever route it came from', () {
-      final container = _containerFor(_employee(_agent));
+      final container = _containerFor(_employee(_agent, role: 'AGENT'));
       expect(container.read(canAccessPathProvider('/analytics')), isFalse);
+      expect(container.read(canAccessPathProvider('/employees')), isFalse);
       expect(container.read(canAccessPathProvider('/customers')), isTrue);
     });
 
     test('allows paths outside the table, which are guarded server-side', () {
       // A conversation is reached through the inbox and filtered by the
       // backend's own visibility rule; the table has no opinion on it.
-      final container = _containerFor(_employee(_agent));
+      final container = _containerFor(_employee(_agent, role: 'AGENT'));
       expect(container.read(canAccessPathProvider('/inbox/42')), isTrue);
     });
 
     test('every gated section agrees with its drawer entry', () {
-      for (final permissions in [_agent, _teamLeader, _supervisor, _qa]) {
-        final container = _containerFor(_employee(permissions));
+      final roles = [
+        (_agent, 'AGENT'),
+        (_teamLeader, 'TEAM_LEADER'),
+        (_supervisor, 'SUPERVISOR'),
+        (_qa, 'QA'),
+      ];
+      for (final (permissions, role) in roles) {
+        final container = _containerFor(_employee(permissions, role: role));
         final offered = container
             .read(accessibleSectionsProvider)
             .map((s) => s.path)
@@ -166,8 +182,14 @@ void main() {
     });
 
     test('the landing path is one the role can actually open', () {
-      for (final permissions in [_agent, _teamLeader, _supervisor, _qa]) {
-        final container = _containerFor(_employee(permissions));
+      final roles = [
+        (_agent, 'AGENT'),
+        (_teamLeader, 'TEAM_LEADER'),
+        (_supervisor, 'SUPERVISOR'),
+        (_qa, 'QA'),
+      ];
+      for (final (permissions, role) in roles) {
+        final container = _containerFor(_employee(permissions, role: role));
         final landing = container.read(landingPathProvider);
         expect(container.read(canAccessPathProvider(landing)), isTrue);
       }

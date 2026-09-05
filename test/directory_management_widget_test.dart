@@ -28,6 +28,7 @@ import 'package:scenario_mobile/core/models/customer_detail.dart';
 import 'package:scenario_mobile/core/models/employee.dart';
 import 'package:scenario_mobile/core/providers.dart';
 import 'package:scenario_mobile/core/theme/app_theme.dart';
+import 'package:scenario_mobile/core/widgets/section_scaffold.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
 import 'package:scenario_mobile/features/directory/customer_profile_screen.dart';
 import 'package:scenario_mobile/features/directory/employees_screen.dart';
@@ -299,7 +300,7 @@ void main() {
         await tester.pumpWidget(
           _screenHarness(
             apiClient: client,
-            employee: _employee(role: 'AGENT', permissions: _agentPerms),
+            employee: _employee(role: 'SUPERVISOR', permissions: _agentPerms),
             screen: const EmployeesScreen(),
           ),
         );
@@ -310,6 +311,24 @@ void main() {
         // Confirms the directory itself still rendered — this is a real
         // absence of the controls, not an unrelated load failure hiding them.
         expect(find.text('Mona Other'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'an agent cannot access the employee screen and sees NoAccessScreen',
+      (tester) async {
+        final client = _clientFrom(_adapter());
+        await tester.pumpWidget(
+          _screenHarness(
+            apiClient: client,
+            employee: _employee(role: 'AGENT', permissions: _agentPerms),
+            screen: const EmployeesScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(NoAccessScreen), findsOneWidget);
+        expect(find.text('Mona Other'), findsNothing);
       },
     );
 

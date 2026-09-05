@@ -202,18 +202,7 @@ class _SectionTile extends StatelessWidget {
   }
 
   static String _sectionLabel(BuildContext context, AppSection section) {
-    final l10n = context.l10n;
-    return switch (section.path) {
-      '/dashboard' => l10n.navDashboard,
-      '/inbox' => l10n.navInbox,
-      '/customers' => l10n.navCustomers,
-      '/employees' => l10n.navEmployees,
-      '/teams' => l10n.navTeams,
-      '/analytics' => l10n.navAnalytics,
-      '/templates' => l10n.navTemplates,
-      '/settings' => l10n.navSettings,
-      _ => section.label,
-    };
+    return section.localizedLabel(context.l10n);
   }
 }
 
@@ -255,66 +244,94 @@ class _AccountFooter extends ConsumerWidget {
     final employee = ref.watch(currentEmployeeProvider);
     if (employee == null) return const SizedBox.shrink();
 
-    return InkWell(
-      onTap: () {
-        Navigator.of(context).pop();
-        context.go('/settings');
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: Space.lg,
-          vertical: Space.md,
-        ),
-        child: Row(
-          children: [
-            InitialsAvatar(
-              initials: employee.initials,
-              imageUrl: employee.avatarUrl,
-              size: 34,
-            ),
-            const SizedBox(width: Space.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    employee.fullName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      PresenceDot(availability: employee.availability, size: 7),
-                      const SizedBox(width: Space.xs),
-                      Text(
-                        employee.roleDisplay.isEmpty
-                            ? employee.role
-                            : employee.roleDisplay,
-                        style: TextStyle(
-                          color: ScenarioColors.sidebarForeground.withValues(
-                            alpha: 0.65,
-                          ),
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
+
+    return Tooltip(
+      message: context.l10n.navSettings,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).pop();
+          context.go('/settings');
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Space.lg,
+            vertical: Space.md,
+          ),
+          child: Row(
+            children: [
+              InitialsAvatar(
+                initials: employee.initials,
+                imageUrl: employee.avatarUrl,
+                size: 34,
               ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              size: 18,
-              color: ScenarioColors.sidebarForeground.withValues(alpha: 0.5),
-            ),
-          ],
+              const SizedBox(width: Space.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      employee.fullName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Tooltip(
+                          message: _availabilityLabel(
+                            context,
+                            employee.availability,
+                          ),
+                          child: PresenceDot(
+                            availability: employee.availability,
+                            size: 7,
+                          ),
+                        ),
+                        const SizedBox(width: Space.xs),
+                        Text(
+                          _roleLabel(context, employee.role),
+                          style: TextStyle(
+                            color: ScenarioColors.sidebarForeground.withValues(
+                              alpha: 0.65,
+                            ),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                isRtl ? Icons.chevron_left : Icons.chevron_right,
+                size: 18,
+                color: ScenarioColors.sidebarForeground.withValues(alpha: 0.5),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  static String _roleLabel(BuildContext context, String role) => switch (role) {
+    'ADMIN' => context.l10n.roleAdmin,
+    'SUPERVISOR' => context.l10n.roleSupervisor,
+    'TEAM_LEADER' => context.l10n.roleTeamLeader,
+    'QA' => context.l10n.roleQa,
+    _ => context.l10n.roleAgent,
+  };
+
+  static String _availabilityLabel(BuildContext context, String availability) =>
+      switch (availability) {
+        'ONLINE' => context.l10n.availabilityOnline,
+        'AWAY' => context.l10n.availabilityAway,
+        'BREAK' => context.l10n.availabilityOnBreak,
+        _ => context.l10n.availabilityOffline,
+      };
 }

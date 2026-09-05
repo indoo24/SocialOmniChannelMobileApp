@@ -224,6 +224,7 @@ class RealtimeEvents {
   static const intelligenceUpdated = 'intelligence.updated';
   static const presenceChanged = 'presence.changed';
   static const connectionReady = 'connection.ready';
+  static const notificationCreated = 'notification.created';
 }
 
 enum RealtimeStatus { disconnected, connecting, connected }

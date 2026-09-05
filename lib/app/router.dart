@@ -33,6 +33,7 @@ import '../features/directory/customers_screen.dart';
 import '../features/directory/employees_screen.dart';
 import '../features/directory/teams_screen.dart';
 import '../features/messages/conversation_screen.dart';
+import '../features/notifications/notifications_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/templates/templates_screen.dart';
 import 'navigation.dart';
@@ -48,6 +49,7 @@ class Routes {
   static const analytics = '/analytics';
   static const templates = '/templates';
   static const settings = '/settings';
+  static const notifications = '/notifications';
 
   static String conversation(int id) => '/inbox/$id';
   static String customer(int conversationId) =>
@@ -177,6 +179,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.settings,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: Routes.notifications,
+        builder: (context, state) => guard(
+          Routes.notifications,
+          'Notifications',
+          const NotificationsScreen(),
+        ),
       ),
       // The profile screen folded into Settings' Profile tab. Kept as a
       // redirect so a link stored on a device from an older build still lands

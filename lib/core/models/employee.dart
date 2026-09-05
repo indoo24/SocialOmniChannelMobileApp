@@ -217,4 +217,5 @@ class Perm {
   /// ones taking the order. QA does not have it: reviewing history is not
   /// recording sales against it.
   static const orderManage = 'order.manage';
+  static const notificationView = 'notification.view';
 }
