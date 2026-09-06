@@ -76,6 +76,10 @@ if (file("google-services.json").exists()) {
 
 android {
     namespace = "com.scenario.scenario_mobile"
+    // Flutter's own bundled default (flutter.compileSdkVersion) is 36 as of
+    // this SDK, but flutter_secure_storage 11.x's Android plugin requires
+    // compiling against 37 — see its own AAR metadata check. AGP 9.0.1 does
+    // not yet list 37 as its "recommended" ceiling but does support it.
     compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
