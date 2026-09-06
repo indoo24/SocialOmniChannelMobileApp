@@ -107,6 +107,22 @@ class ApiClient {
 
   Future<void> clearCookies() => _cookieJar.deleteAll();
 
+  /// Headers a non-Dio HTTP client needs to fetch an authenticated media URL
+  /// (an attachment's image/audio content) as this signed-in employee.
+  ///
+  /// Every other request in the app goes through [Dio], which attaches the
+  /// session cookie automatically via the `CookieManager` interceptor
+  /// registered in [create]. `CachedNetworkImage`'s own image loader is a
+  /// separate HTTP client that interceptor never touches, so the cookie has
+  /// to be read from the same jar and handed over explicitly instead.
+  Future<Map<String, String>> mediaAuthHeaders() async {
+    final cookies = await _cookieJar.loadForRequest(
+      Uri.parse(Environment.current.apiBaseUrl),
+    );
+    if (cookies.isEmpty) return const {};
+    return {'Cookie': cookies.map((c) => '${c.name}=${c.value}').join('; ')};
+  }
+
   /// Fetch a CSRF token before the first unsafe request.
   ///
   /// Django only sets the CSRF cookie when something asks for it. The web app

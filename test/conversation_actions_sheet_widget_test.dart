@@ -1,15 +1,8 @@
-/// Reproduction harness for the reported crash: opening the real Actions
-/// sheet (`conversation_actions_sheet.dart`'s `_ActionsSheet`, via the
-/// public `showConversationActionsSheet`) and tapping its "Conversions" row.
-///
-/// `test/conversion_sheet_widget_test.dart` already proved the *navigation
-/// pattern* (a stacked modal sheet opened without popping its parent) is
-/// safe, but it drove that through a synthetic stand-in `ListTile`, not the
-/// real `_ActionsSheet` widget — which reads `conversationControllerProvider`,
-/// `currentEmployeeProvider` and several `Perm` gates before it ever renders
-/// its rows. This file closes that gap: it pumps the actual `_ActionsSheet`
-/// against a stubbed `ApiClient` so `ConversationController`'s real fetch
-/// path runs, then taps the real "Conversions" `ListTile`.
+/// Tests for the comprehensive Actions Bottom Sheet containing:
+/// 1. Customer Details DATA
+/// 2. Intelligence DATA
+/// 3. Orders DATA
+/// 4. Conversation Actions
 library;
 
 import 'dart:async';
@@ -25,6 +18,7 @@ import 'package:scenario_mobile/core/models/employee.dart';
 import 'package:scenario_mobile/core/providers.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
 import 'package:scenario_mobile/features/messages/conversation_actions_sheet.dart';
+import 'package:scenario_mobile/features/messages/conversation_screen.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
 // ignore: library_private_types_in_public_api
@@ -62,11 +56,6 @@ ApiClient _stubClient(
   return client;
 }
 
-// No extra permissions: the "Conversation history" and "Conversions" rows
-// are shown to every active employee (conversation_actions_sheet.dart's own
-// comment: "Open to any active employee — no permission gate"), so an empty
-// permission set is enough to reach the real row this bug report is about
-// without needing to stub categoriesProvider/assign/status/priority too.
 final _employee = Employee(
   id: 1,
   email: 'agent@acme.test',
@@ -75,14 +64,11 @@ final _employee = Employee(
   role: 'AGENT',
   roleDisplay: 'Agent',
   availability: 'ONLINE',
-  permissions: const {},
+  permissions: const {Perm.conversationReply, Perm.conversationChangeCategory},
   visibilityScope: 'ASSIGNED',
   organization: const Organization(id: 1, name: 'Acme Retail'),
 );
 
-/// Stubs exactly what `ConversationController._fetchAndMergeOnOpen()` calls
-/// (`GET /conversations/{id}/` and `GET /conversations/{id}/messages/`), plus
-/// whatever the tapped sheet needs, via [extra].
 ApiClient _clientFor({
   FutureOr<ResponseBody>? Function(RequestOptions options)? extra,
 }) {
@@ -90,20 +76,106 @@ ApiClient _clientFor({
     final fromExtra = extra?.call(options);
     if (fromExtra != null) return fromExtra;
     if (options.path.endsWith('/conversations/1/')) {
-      return _json(
-        '{"id": 1, "customer": {"id": 1, "display_name": "Test Customer"}, '
-        '"provider": "WHATSAPP", "status": "OPEN", "priority": "NORMAL", '
-        '"unread_count": 0, "message_count": 0}',
-        200,
-      );
+      return _json('''{
+          "id": 1,
+          "customer": {
+            "id": 1,
+            "display_name": "Sarah Connor",
+            "initials": "SC",
+            "phone": "+123456789",
+            "email": "sarah@example.com",
+            "country": "USA",
+            "city": "Los Angeles"
+          },
+          "provider": "WHATSAPP",
+          "channel_name": "Support Line",
+          "status": "OPEN",
+          "priority": "NORMAL",
+          "unread_count": 0,
+          "message_count": 5
+        }''', 200);
     }
     if (options.path.contains('/messages/')) {
       return _json('{"results": [], "count": 0}', 200);
     }
-    if (options.path.contains('/conversions/')) {
+    if (options.path.contains('/intelligence/')) {
+      return _json('''{
+          "stage": "CONSIDERING",
+          "confidence": 0.85,
+          "purchase_status": "NONE",
+          "purchase_evidence": "",
+          "purchase_intent": "HIGH",
+          "intent_strength": "STRONG",
+          "urgency": "high",
+          "sentiment": "positive",
+          "interested_products": ["Widget Pro", "Accessories"],
+          "objections": ["Price hesitation"],
+          "buying_signals": ["Asked about delivery"],
+          "quantity_signal": "2",
+          "summary": "Customer interested in buying 2 units of Widget Pro.",
+          "next_best_action": "Send checkout link",
+          "lead_score": 85,
+          "lead_score_signals": [],
+          "lead_score_auto": 85,
+          "lead_score_override": null,
+          "is_lead_score_overridden": false,
+          "lead_score_overridden_by_name": "",
+          "lead_score_overridden_at": null,
+          "needs_human_review": false,
+          "review_reason": "",
+          "is_purchase_claim_pending": false,
+          "is_agent_confirmed": false,
+          "confirmed_by_name": "",
+          "purchase_confirmed_at": null,
+          "purchase_confirmation_note": "",
+          "analysis_version": "1.0",
+          "analyzer_key": "v1",
+          "analyzed_at": "2026-09-02T12:00:00Z"
+        }''', 200);
+    }
+    if (options.path.contains('/orders')) {
+      return _json('''{
+          "count": 1,
+          "next": null,
+          "previous": null,
+          "results": [
+            {
+              "id": 99,
+              "customer": 1,
+              "conversation": 1,
+              "status": "CONFIRMED",
+              "status_display": "Confirmed",
+              "source": "AGENT",
+              "is_claim": false,
+              "total_amount": "250.00",
+              "currency": "USD",
+              "items": [
+                {
+                  "id": 1,
+                  "product_name": "Widget Pro",
+                  "quantity": 2,
+                  "unit_price": "125.00",
+                  "line_total": "250.00"
+                }
+              ],
+              "recorded_by_name": "Sam Agent",
+              "confirmed_by_name": "Sam Agent",
+              "evidence": "",
+              "note": ""
+            }
+          ]
+        }''', 200);
+    }
+    if (options.path.contains('/facts')) {
       return _json('[]', 200);
     }
-    if (options.path.contains('/events/')) {
+    if (options.path.contains('/conversions')) {
+      return _json('[]', 200);
+    }
+    if (options.path.contains('/events')) {
+      return _json('[]', 200);
+    }
+    if (options.path.contains('/notes')) {
       return _json('[]', 200);
     }
     return _json('{}', 200);
@@ -131,7 +203,63 @@ Widget _openButton(BuildContext context) => ElevatedButton(
 
 void main() {
   testWidgets(
-    'opening the real Actions sheet and tapping Conversions does not throw',
+    'Actions bottom sheet renders Customer details data, Orders data, Intelligence data, and Actions',
+    (tester) async {
+      final client = _clientFor();
+
+      await tester.pumpWidget(
+        _harness(
+          apiClient: client,
+          child: Builder(builder: _openButton),
+        ),
+      );
+
+      await tester.tap(find.text('open actions'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+
+      // 1. Customer Details DATA is rendered
+      expect(find.text('Customer details'), findsOneWidget);
+      expect(find.text('Sarah Connor'), findsOneWidget);
+      expect(find.text('+123456789'), findsOneWidget);
+      expect(find.text('sarah@example.com'), findsOneWidget);
+
+      // 2. Intelligence DATA is rendered
+      expect(find.text('Intelligence'), findsOneWidget);
+      expect(find.text('85'), findsOneWidget);
+      expect(
+        find.text('Customer interested in buying 2 units of Widget Pro.'),
+        findsOneWidget,
+      );
+      expect(find.text('Widget Pro'), findsOneWidget);
+      expect(find.text('Price hesitation'), findsOneWidget);
+
+      // 3. Orders DATA is rendered (scroll down)
+      await tester.scrollUntilVisible(
+        find.text('Orders'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text('Orders'), findsOneWidget);
+      expect(find.text('Order #99'), findsOneWidget);
+      expect(find.text('250.00 USD'), findsOneWidget);
+
+      // 4. Actions are rendered and functional (scroll down)
+      await tester.scrollUntilVisible(
+        find.text('Actions'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text('Actions'), findsOneWidget);
+      expect(find.text('View history'), findsOneWidget);
+      expect(find.text('Internal notes'), findsOneWidget);
+      expect(find.text('Conversions'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'opening the real Actions sheet and tapping Conversions opens conversions sheet',
     (tester) async {
       final client = _clientFor();
 
@@ -145,6 +273,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+
+      // Scroll to Conversions tile and tap it
+      await tester.scrollUntilVisible(
+        find.text('Conversions'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -100));
+      await tester.pumpAndSettle();
       expect(find.text('Conversions'), findsOneWidget);
 
       await tester.tap(find.text('Conversions'));
@@ -152,27 +289,6 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.text('Nothing reported to Meta yet.'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'opening the real Actions sheet and tapping Conversation history does not throw',
-    (tester) async {
-      final client = _clientFor();
-
-      await tester.pumpWidget(
-        _harness(
-          apiClient: client,
-          child: Builder(builder: _openButton),
-        ),
-      );
-      await tester.tap(find.text('open actions'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('View history'));
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
     },
   );
 
@@ -197,6 +313,54 @@ void main() {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
       }
+    },
+  );
+
+  testWidgets(
+    'ConversationScreen AppBar 3-dot button opens comprehensive actions sheet with data',
+    (tester) async {
+      final client = _clientFor();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            apiClientProvider.overrideWithValue(client),
+            currentEmployeeProvider.overrideWithValue(_employee),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const ConversationScreen(conversationId: 1),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 3-dot actions button exists
+      expect(find.byIcon(Icons.more_vert), findsOneWidget);
+
+      // Tapping 3-dot actions button opens comprehensive sheet
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+
+      // Verify data sections are rendered
+      expect(find.text('Customer details'), findsOneWidget);
+      expect(find.text('Sarah Connor'), findsNWidgets(2));
+      expect(find.text('Intelligence'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('Orders'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text('Orders'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('Actions'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text('Actions'), findsOneWidget);
     },
   );
 }

@@ -55,6 +55,21 @@ class _PushBridgeState extends ConsumerState<PushBridge>
   StreamSubscription<RemoteMessage>? _foregroundMessageSub;
   StreamSubscription<RemoteMessage>? _messageOpenedAppSub;
 
+  /// FCM's own delivery id (`RemoteMessage.messageId`) of every tap already
+  /// handled this session.
+  ///
+  /// `firebase_messaging`'s Android plugin re-delivers the same tapped
+  /// message through `onMessageOpenedApp` on every `onAttachedToActivity`
+  /// call — not just cold start, but any later reattachment (e.g. resuming
+  /// from background) — because it re-reads the still-set launch `Intent`
+  /// and its own persisted message store is never purged after first
+  /// delivery. That is a plugin/OS-interaction quirk, not a second server
+  /// push: confirmed by matching `messageId` across both firings in a real
+  /// device log. `messageId` is unique per FCM delivery and always present,
+  /// unlike the backend's own `message_id` data field (only guaranteed on
+  /// `new_message`), so it is the key this guards on.
+  final Set<String> _handledNotificationIds = {};
+
   static void _log(String message) => AppLog.debug('PushBridge', message);
 
   @override
@@ -316,6 +331,18 @@ class _PushBridgeState extends ConsumerState<PushBridge>
       '${AppLog.redact(message.messageId)}, '
       'dataKeys: ${message.data.keys.join(',')}',
     );
+
+    final notificationId = message.messageId;
+    if (notificationId != null &&
+        !_handledNotificationIds.add(notificationId)) {
+      // Already processed this exact delivery — the plugin replayed it
+      // (see _handledNotificationIds' doc comment). Not a second message.
+      _log(
+        '_handleNotificationTap() — duplicate delivery of '
+        '${AppLog.redact(notificationId)}, ignoring.',
+      );
+      return;
+    }
 
     final conversationId = _conversationIdFrom(message);
     if (conversationId == null) {

@@ -12,6 +12,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/conversations/inbox_screen.dart'
     show realtimeStatusProvider;
+import '../../features/notifications/notification_bell_button.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../realtime/realtime_client.dart';
 import '../theme/tokens.dart';
 import 'app_drawer.dart';
@@ -46,7 +48,7 @@ class SectionScaffold extends StatelessWidget {
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: titleWidget ?? Text(title),
-        actions: actions,
+        actions: [...?actions, const NotificationBellButton()],
         bottom: const ConnectionBanner(),
       ),
       body: content,
@@ -118,11 +120,13 @@ class NoAccessScreen extends ConsumerWidget {
                 color: theme.colorScheme.outline,
               ),
               const SizedBox(height: Space.lg),
-              Text("You don't have access", style: theme.textTheme.titleMedium),
+              Text(
+                context.l10n.noAccessTitle,
+                style: theme.textTheme.titleMedium,
+              ),
               const SizedBox(height: Space.sm),
               Text(
-                'Your role does not include $sectionLabel. Ask an administrator '
-                'if you need it.',
+                context.l10n.noAccessMessage(sectionLabel),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall,
               ),

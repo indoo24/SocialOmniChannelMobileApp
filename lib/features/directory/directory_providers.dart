@@ -12,11 +12,16 @@ import '../../core/models/conversation.dart';
 import '../../core/models/customer_detail.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
+import '../../core/models/routing_policy.dart';
 import '../../core/providers.dart';
 import '../authentication/auth_controller.dart';
 
 final dashboardProvider = FutureProvider<DashboardSummary>((ref) {
   return ref.watch(directoryRepositoryProvider).dashboard();
+});
+
+final routingPolicyProvider = FutureProvider<RoutingPolicy>((ref) {
+  return ref.watch(directoryRepositoryProvider).routingPolicy();
 });
 
 final channelVolumeProvider = FutureProvider<List<ChannelVolume>>((ref) {
@@ -36,6 +41,32 @@ final channelsProvider = FutureProvider<List<ChannelConnection>>((ref) async {
 final categoriesProvider = FutureProvider<List<ConversationCategory>>((ref) {
   return ref.watch(directoryRepositoryProvider).categories();
 });
+
+/// Channels the signed-in employee has collapsed out of view this session.
+///
+/// There is no backend field for "hidden" — [ChannelConnection.isMuted] is a
+/// different, server-known concept (stop routing/surfacing conversations) and
+/// [ChannelConnection.isActive] is the channel's connection state, whose
+/// write path (`PATCH /channels/{id}/`) the API docs tie to archival
+/// ("an archived channel is a 404 on every route"), not a lightweight
+/// per-viewer collapse. So this is purely local, in-memory UI state — reset
+/// on app restart — mirroring what a "Hide" affordance means in the web
+/// screenshot: fold the card out of the way, nothing more.
+class HiddenChannelsController extends Notifier<Set<int>> {
+  @override
+  Set<int> build() => const {};
+
+  void toggle(int channelId) {
+    final next = Set<int>.from(state);
+    if (!next.remove(channelId)) next.add(channelId);
+    state = next;
+  }
+}
+
+final hiddenChannelsProvider =
+    NotifierProvider<HiddenChannelsController, Set<int>>(
+      HiddenChannelsController.new,
+    );
 
 /// Search text for a directory screen.
 ///

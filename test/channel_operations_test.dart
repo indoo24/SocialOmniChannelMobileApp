@@ -1,6 +1,7 @@
-/// Channel mute/unmute/test: `ChannelConnection`/`ChannelTestResult` model
-/// parsing and `DirectoryRepository.muteChannel()`/`.unmuteChannel()`/
-/// `.testChannel()`.
+/// Channel mute/unmute/test/disconnect/check-status/connect-another:
+/// `ChannelConnection`/`ChannelTestResult`/`ChannelConnectionState`/
+/// `WhatsAppChannelStatus`/`ChannelAuthorizationUrl` model parsing, and every
+/// `DirectoryRepository` method the Channels settings card calls.
 ///
 /// Mirrors `api_client_test.dart`'s `_StubAdapter` — networking is tested
 /// directly against canned responses rather than through widgets.
@@ -188,6 +189,441 @@ void main() {
       );
 
       expect(() => repository.testChannel(5), throwsA(isA<Exception>()));
+    });
+  });
+
+  group('ChannelConnection.fromJson — extended fields', () {
+    test('parses every field the live schema documents', () {
+      final channel = ChannelConnection.fromJson({
+        'id': 5,
+        'provider': 'WHATSAPP',
+        'provider_display': 'WhatsApp Business',
+        'display_name': 'Support line',
+        'external_account_id': '1234567890',
+        'avatar_url': '',
+        'status': 'CONNECTED',
+        'is_active': true,
+        'status_detail': '',
+        'conversation_count': 12,
+        'is_muted': false,
+        'has_credentials': true,
+        'is_operational': true,
+        'token_expires_at': '2026-12-01T00:00:00Z',
+        'token_days_remaining': 45,
+        'connected_at': '2026-06-01T09:00:00Z',
+        'last_sync_at': '2026-09-01T09:00:00Z',
+        'last_message_at': '2026-09-02T09:00:00Z',
+      });
+
+      expect(channel.providerDisplay, 'WhatsApp Business');
+      expect(channel.externalAccountId, '1234567890');
+      expect(channel.hasCredentials, isTrue);
+      expect(channel.isOperational, isTrue);
+      expect(channel.tokenDaysRemaining, 45);
+      expect(channel.tokenExpiresAt, isNotNull);
+      expect(channel.connectedAt, isNotNull);
+      expect(channel.lastSyncAt, isNotNull);
+      expect(channel.lastMessageAt, isNotNull);
+    });
+
+    test('defaults extended fields safely when absent', () {
+      final channel = ChannelConnection.fromJson({
+        'id': 5,
+        'provider': 'WHATSAPP',
+      });
+
+      expect(channel.providerDisplay, isEmpty);
+      expect(channel.externalAccountId, isEmpty);
+      expect(channel.hasCredentials, isFalse);
+      expect(channel.isOperational, isFalse);
+      expect(channel.tokenDaysRemaining, isNull);
+      expect(channel.connectedAt, isNull);
+      expect(channel.lastMessageAt, isNull);
+    });
+  });
+
+  group('ChannelConnectionState.fromJson', () {
+    test('parses the disconnect response shape', () {
+      final state = ChannelConnectionState.fromJson({
+        'status': 'DISCONNECTED',
+        'detail': 'Credential removed.',
+      });
+
+      expect(state.status, 'DISCONNECTED');
+      expect(state.detail, 'Credential removed.');
+    });
+  });
+
+  group('WhatsAppChannelStatus.fromJson', () {
+    test('parses the check-status response shape', () {
+      final status = WhatsAppChannelStatus.fromJson({
+        'id': 5,
+        'display_name': 'Support line',
+        'status': 'CONNECTED',
+        'detail': 'Ready to send and receive.',
+      });
+
+      expect(status.id, 5);
+      expect(status.status, 'CONNECTED');
+      expect(status.detail, 'Ready to send and receive.');
+    });
+  });
+
+  group('ChannelAuthorizationUrl.fromJson', () {
+    test('parses the authorization_url field', () {
+      final result = ChannelAuthorizationUrl.fromJson({
+        'authorization_url': 'https://www.facebook.com/dialog/oauth?x=1',
+      });
+
+      expect(result.url, 'https://www.facebook.com/dialog/oauth?x=1');
+    });
+
+    test('defaults to empty string when absent', () {
+      final result = ChannelAuthorizationUrl.fromJson({});
+      expect(result.url, isEmpty);
+    });
+  });
+
+  group('DirectoryRepository — provider disconnect', () {
+    test('disconnectWhatsApp POSTs to the WhatsApp disconnect path', () async {
+      RequestOptions? captured;
+      final repository = _repositoryReturning((options) {
+        captured = options;
+        return _json('{"status": "DISCONNECTED", "detail": "ok"}', 200);
+      });
+
+      final result = await repository.disconnectWhatsApp(5);
+
+      expect(captured!.method, 'POST');
+      expect(captured!.path, '/integrations/whatsapp/5/disconnect/');
+      expect(captured!.data, isNull);
+      expect(result.status, 'DISCONNECTED');
+    });
+
+    test(
+      'disconnectInstagram POSTs to the Instagram disconnect path',
+      () async {
+        RequestOptions? captured;
+        final repository = _repositoryReturning((options) {
+          captured = options;
+          return _json('{"status": "DISCONNECTED", "detail": "ok"}', 200);
+        });
+
+        await repository.disconnectInstagram(7);
+
+        expect(captured!.method, 'POST');
+        expect(captured!.path, '/integrations/instagram/7/disconnect/');
+      },
+    );
+
+    test('disconnectMeta POSTs to the Meta disconnect path', () async {
+      RequestOptions? captured;
+      final repository = _repositoryReturning((options) {
+        captured = options;
+        return _json('{"status": "DISCONNECTED", "detail": "ok"}', 200);
+      });
+
+      await repository.disconnectMeta(9);
+
+      expect(captured!.method, 'POST');
+      expect(captured!.path, '/integrations/meta/9/disconnect/');
+    });
+
+    test('disconnectTikTok POSTs to the TikTok disconnect path', () async {
+      RequestOptions? captured;
+      final repository = _repositoryReturning((options) {
+        captured = options;
+        return _json('{"status": "DISCONNECTED", "detail": "ok"}', 200);
+      });
+
+      await repository.disconnectTikTok(11);
+
+      expect(captured!.method, 'POST');
+      expect(captured!.path, '/integrations/tiktok/11/disconnect/');
+    });
+
+    test('a 403 from any disconnect throws ApiException', () async {
+      final repository = _repositoryReturning(
+        (_) => _json(
+          '{"error": {"code": "forbidden", "message": "Not allowed.", "details": {}}}',
+          403,
+        ),
+      );
+
+      expect(() => repository.disconnectWhatsApp(5), throwsA(isA<Exception>()));
+    });
+  });
+
+  group('DirectoryRepository.checkWhatsAppStatus', () {
+    test('POSTs to the WhatsApp check-status path', () async {
+      RequestOptions? captured;
+      final repository = _repositoryReturning((options) {
+        captured = options;
+        return _json('''
+{
+  "id": 5,
+  "display_name": "Support line",
+  "status": "CONNECTED",
+  "detail": "Ready to send and receive."
+}
+''', 200);
+      });
+
+      final result = await repository.checkWhatsAppStatus(5);
+
+      expect(captured!.method, 'POST');
+      expect(captured!.path, '/integrations/whatsapp/5/check-status/');
+      expect(result.status, 'CONNECTED');
+    });
+  });
+
+  group('DirectoryRepository — connect-another authorization URLs', () {
+    test(
+      'startWhatsAppEmbeddedSignupMobile POSTs to the mobile/start path',
+      () async {
+        RequestOptions? captured;
+        final repository = _repositoryReturning((options) {
+          captured = options;
+          return _json(
+            '{"authorization_url": "https://business.facebook.com/wa/signup?x=1"}',
+            200,
+          );
+        });
+
+        final result = await repository.startWhatsAppEmbeddedSignupMobile();
+
+        expect(captured!.method, 'POST');
+        expect(
+          captured!.path,
+          '/integrations/whatsapp/embedded-signup/mobile/start/',
+        );
+        expect(result.url, 'https://business.facebook.com/wa/signup?x=1');
+      },
+    );
+
+    test('authorizeInstagram POSTs to the Instagram authorize path', () async {
+      RequestOptions? captured;
+      final repository = _repositoryReturning((options) {
+        captured = options;
+        return _json(
+          '{"authorization_url": "https://instagram.com/oauth/authorize?x=1"}',
+          200,
+        );
+      });
+
+      final result = await repository.authorizeInstagram();
+
+      expect(captured!.method, 'POST');
+      expect(captured!.path, '/integrations/instagram/authorize/');
+      expect(result.url, 'https://instagram.com/oauth/authorize?x=1');
+    });
+
+    test('connectMeta POSTs to the Meta connect path', () async {
+      RequestOptions? captured;
+      final repository = _repositoryReturning((options) {
+        captured = options;
+        return _json(
+          '{"authorization_url": "https://www.facebook.com/dialog/oauth?x=1"}',
+          200,
+        );
+      });
+
+      final result = await repository.connectMeta();
+
+      expect(captured!.method, 'POST');
+      expect(captured!.path, '/integrations/meta/connect/');
+      expect(result.url, 'https://www.facebook.com/dialog/oauth?x=1');
+    });
+
+    test('authorizeTikTok POSTs to the TikTok authorize path', () async {
+      RequestOptions? captured;
+      final repository = _repositoryReturning((options) {
+        captured = options;
+        return _json(
+          '{"authorization_url": "https://www.tiktok.com/v2/auth/authorize?x=1"}',
+          200,
+        );
+      });
+
+      final result = await repository.authorizeTikTok();
+
+      expect(captured!.method, 'POST');
+      expect(captured!.path, '/integrations/tiktok/authorize/');
+      expect(result.url, 'https://www.tiktok.com/v2/auth/authorize?x=1');
+    });
+  });
+
+  group('ConnectedChannel.fromJson', () {
+    test('parses the connected-channel response shape', () {
+      final result = ConnectedChannel.fromJson({
+        'id': 9,
+        'display_name': 'New line',
+        'status': 'CONNECTED',
+        'detail': 'Verified against Graph.',
+      });
+
+      expect(result.id, 9);
+      expect(result.displayName, 'New line');
+      expect(result.status, 'CONNECTED');
+      expect(result.detail, 'Verified against Graph.');
+    });
+
+    test('defaults safely when fields are absent', () {
+      final result = ConnectedChannel.fromJson({});
+      expect(result.id, -1);
+      expect(result.displayName, isEmpty);
+      expect(result.status, isEmpty);
+      expect(result.detail, isEmpty);
+    });
+  });
+
+  group('DirectoryRepository.connectWhatsApp', () {
+    test(
+      'POSTs to /integrations/whatsapp/connect/ with the exact request body',
+      () async {
+        RequestOptions? captured;
+        final repository = _repositoryReturning((options) {
+          captured = options;
+          return _json(
+            '{"id": 9, "display_name": "New line", "status": "CONNECTED", "detail": "ok"}',
+            201,
+          );
+        });
+
+        final result = await repository.connectWhatsApp(
+          phoneNumberId: '1234567890',
+          accessToken: 'EAAtoken123',
+        );
+
+        expect(captured!.method, 'POST');
+        expect(captured!.path, '/integrations/whatsapp/connect/');
+        expect(captured!.data, {
+          'phone_number_id': '1234567890',
+          'access_token': 'EAAtoken123',
+        });
+        expect(result.id, 9);
+        expect(result.displayName, 'New line');
+      },
+    );
+
+    test('includes waba_id only when provided', () async {
+      RequestOptions? captured;
+      final repository = _repositoryReturning((options) {
+        captured = options;
+        return _json(
+          '{"id": 9, "display_name": "New line", "status": "CONNECTED", "detail": "ok"}',
+          201,
+        );
+      });
+
+      await repository.connectWhatsApp(
+        phoneNumberId: '1234567890',
+        accessToken: 'EAAtoken123',
+        wabaId: 'waba-42',
+      );
+
+      expect(captured!.data, {
+        'phone_number_id': '1234567890',
+        'access_token': 'EAAtoken123',
+        'waba_id': 'waba-42',
+      });
+    });
+
+    test(
+      'a 409 (already connected) throws ApiException with the server message',
+      () async {
+        final repository = _repositoryReturning(
+          (_) => _json(
+            '{"error": {"code": "conflict", "message": "Already connected to another workspace.", "details": {}}}',
+            409,
+          ),
+        );
+
+        expect(
+          () => repository.connectWhatsApp(
+            phoneNumberId: '1234567890',
+            accessToken: 'bad',
+          ),
+          throwsA(
+            isA<Exception>().having(
+              (e) => e.toString(),
+              'message',
+              contains('Already connected to another workspace.'),
+            ),
+          ),
+        );
+      },
+    );
+
+    test('a 400 (invalid token) throws ApiException', () async {
+      final repository = _repositoryReturning(
+        (_) => _json(
+          '{"error": {"code": "invalid", "message": "Graph rejected the token.", "details": {}}}',
+          400,
+        ),
+      );
+
+      expect(
+        () => repository.connectWhatsApp(
+          phoneNumberId: '1234567890',
+          accessToken: 'bad',
+        ),
+        throwsA(isA<Exception>()),
+      );
+    });
+  });
+
+  group('DirectoryRepository.connectInstagram', () {
+    test(
+      'POSTs to /integrations/instagram/connect/ with the exact request body',
+      () async {
+        RequestOptions? captured;
+        final repository = _repositoryReturning((options) {
+          captured = options;
+          return _json(
+            '{"id": 21, "display_name": "Acme IG", "status": "CONNECTED", "detail": "ok"}',
+            201,
+          );
+        });
+
+        final result = await repository.connectInstagram(
+          accessToken: 'IGtoken456',
+        );
+
+        expect(captured!.method, 'POST');
+        expect(captured!.path, '/integrations/instagram/connect/');
+        expect(captured!.data, {'access_token': 'IGtoken456'});
+        expect(result.id, 21);
+        expect(result.displayName, 'Acme IG');
+      },
+    );
+
+    test('a 400 (missing/rejected token) throws ApiException', () async {
+      final repository = _repositoryReturning(
+        (_) => _json(
+          '{"error": {"code": "invalid", "message": "Meta rejected it.", "details": {}}}',
+          400,
+        ),
+      );
+
+      expect(
+        () => repository.connectInstagram(accessToken: 'bad'),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('a 403 (missing permission) throws ApiException', () async {
+      final repository = _repositoryReturning(
+        (_) => _json(
+          '{"error": {"code": "forbidden", "message": "Not allowed.", "details": {}}}',
+          403,
+        ),
+      );
+
+      expect(
+        () => repository.connectInstagram(accessToken: 'x'),
+        throwsA(isA<Exception>()),
+      );
     });
   });
 }

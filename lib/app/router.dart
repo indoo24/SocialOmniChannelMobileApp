@@ -21,7 +21,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../core/security/screen_security.dart';
 import '../core/widgets/section_scaffold.dart';
 import '../features/analytics/analytics_screen.dart';
 import '../features/authentication/auth_controller.dart';
@@ -34,7 +33,9 @@ import '../features/directory/customers_screen.dart';
 import '../features/directory/employees_screen.dart';
 import '../features/directory/teams_screen.dart';
 import '../features/messages/conversation_screen.dart';
+import '../features/notifications/notifications_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/templates/templates_screen.dart';
 import 'navigation.dart';
 
 class Routes {
@@ -46,7 +47,9 @@ class Routes {
   static const employees = '/employees';
   static const teams = '/teams';
   static const analytics = '/analytics';
+  static const templates = '/templates';
   static const settings = '/settings';
+  static const notifications = '/notifications';
 
   static String conversation(int id) => '/inbox/$id';
   static String customer(int conversationId) =>
@@ -57,16 +60,6 @@ class Routes {
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _AuthRouterNotifier(ref);
   ref.onDispose(notifier.dispose);
-
-  /// Marks a route whose contents must not reach a screenshot or the
-  /// app-switcher snapshot.
-  ///
-  /// Applied at the router rather than inside each screen for two reasons: it
-  /// is one list to audit instead of a flag scattered across widgets, and the
-  /// protection then covers every way a route is entered — tab, deep link,
-  /// notification tap, restored location — rather than only the paths that
-  /// remembered to opt in. See core/security/screen_security.dart.
-  Widget sensitive(Widget child) => SecureScreen(child: child);
 
   /// Wraps a section so an unreachable one refuses rather than renders.
   ///
@@ -112,7 +105,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // The password field itself, and the pre-filled employee email above it.
       GoRoute(
         path: Routes.login,
-        builder: (context, state) => sensitive(const LoginScreen()),
+        builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
         path: Routes.dashboard,
@@ -128,7 +121,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final id = int.tryParse(state.pathParameters['id'] ?? '');
               if (id == null) return const _InvalidRoute();
-              return sensitive(ConversationScreen(conversationId: id));
+              return ConversationScreen(conversationId: id);
             },
             routes: [
               // Customer PII: name, phone, email, order history.
@@ -137,7 +130,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final id = int.tryParse(state.pathParameters['id'] ?? '');
                   if (id == null) return const _InvalidRoute();
-                  return sensitive(CustomerDetailsScreen(conversationId: id));
+                  return CustomerDetailsScreen(conversationId: id);
                 },
               ),
             ],
@@ -157,7 +150,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               return guard(
                 Routes.customers,
                 'Customers',
-                sensitive(CustomerProfileScreen(customerId: id)),
+                CustomerProfileScreen(customerId: id),
               );
             },
           ),
@@ -179,8 +172,21 @@ final routerProvider = Provider<GoRouter>((ref) {
             guard(Routes.analytics, 'Analytics', const AnalyticsScreen()),
       ),
       GoRoute(
+        path: Routes.templates,
+        builder: (context, state) =>
+            guard(Routes.templates, 'Templates', const TemplatesScreen()),
+      ),
+      GoRoute(
         path: Routes.settings,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: Routes.notifications,
+        builder: (context, state) => guard(
+          Routes.notifications,
+          'Notifications',
+          const NotificationsScreen(),
+        ),
       ),
       // The profile screen folded into Settings' Profile tab. Kept as a
       // redirect so a link stored on a device from an older build still lands

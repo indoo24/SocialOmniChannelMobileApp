@@ -154,6 +154,23 @@ class AuthController extends Notifier<AuthState> {
     state = state.copyWith(employee: employee);
   }
 
+  Future<void> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? title,
+    String? phone,
+  }) async {
+    final employee = await ref
+        .read(authRepositoryProvider)
+        .updateProfile(
+          firstName: firstName,
+          lastName: lastName,
+          title: title,
+          phone: phone,
+        );
+    state = state.copyWith(employee: employee);
+  }
+
   Future<void> refreshEmployee() async {
     if (!state.isAuthenticated) return;
     try {

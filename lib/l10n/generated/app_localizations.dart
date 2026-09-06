@@ -128,6 +128,12 @@ abstract class AppLocalizations {
   /// **'Security'**
   String get tabSecurity;
 
+  /// No description provided for @tabAssignment.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignment'**
+  String get tabAssignment;
+
   /// No description provided for @signOutDialogTitle.
   ///
   /// In en, this message translates to:
@@ -362,6 +368,252 @@ abstract class AppLocalizations {
   /// **'Muted by {name}'**
   String channelMutedByLabel(String name);
 
+  /// No description provided for @hideChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get hideChannelAction;
+
+  /// No description provided for @showChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get showChannelAction;
+
+  /// No description provided for @hiddenChannelsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden ({count})'**
+  String hiddenChannelsSectionTitle(int count);
+
+  /// No description provided for @disconnectChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get disconnectChannelAction;
+
+  /// No description provided for @reconnectChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect'**
+  String get reconnectChannelAction;
+
+  /// No description provided for @checkStatusChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Check status'**
+  String get checkStatusChannelAction;
+
+  /// No description provided for @connectAnotherNumberAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect another number'**
+  String get connectAnotherNumberAction;
+
+  /// No description provided for @connectAnotherAccountAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect another account'**
+  String get connectAnotherAccountAction;
+
+  /// No description provided for @moreActionsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get moreActionsTooltip;
+
+  /// No description provided for @channelIdentifierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'ID: {value}'**
+  String channelIdentifierLabel(String value);
+
+  /// No description provided for @channelConnectedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected {when}'**
+  String channelConnectedLabel(String when);
+
+  /// No description provided for @channelLastActivityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last activity {when}'**
+  String channelLastActivityLabel(String when);
+
+  /// No description provided for @channelNoActivityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'No activity yet'**
+  String get channelNoActivityLabel;
+
+  /// No description provided for @disconnectChannelDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect {channel}?'**
+  String disconnectChannelDialogTitle(String channel);
+
+  /// No description provided for @disconnectChannelDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the stored credential. The conversation history stays, but no new messages can be sent or received on this channel until it\'s reconnected.'**
+  String get disconnectChannelDialogBody;
+
+  /// No description provided for @channelDisconnectedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{channel} disconnected.'**
+  String channelDisconnectedSnackbar(String channel);
+
+  /// No description provided for @openingBrowserMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening browser…'**
+  String get openingBrowserMessage;
+
+  /// No description provided for @couldNotOpenBrowserError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the browser for this connection.'**
+  String get couldNotOpenBrowserError;
+
+  /// No description provided for @manageFromWebOnlyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage from web'**
+  String get manageFromWebOnlyAction;
+
+  /// No description provided for @manageFromWebOnlyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is only available from the web app.'**
+  String get manageFromWebOnlyHint;
+
+  /// No description provided for @updateTokenAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Update token'**
+  String get updateTokenAction;
+
+  /// No description provided for @updateTokenSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update access token'**
+  String get updateTokenSheetTitle;
+
+  /// No description provided for @updateTokenSheetDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace this number\'s access token if it expired or was regenerated in the Meta dashboard.'**
+  String get updateTokenSheetDescription;
+
+  /// No description provided for @otherWaysToConnectSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Other ways to connect'**
+  String get otherWaysToConnectSection;
+
+  /// No description provided for @addAnotherNumberAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add another number'**
+  String get addAnotherNumberAction;
+
+  /// No description provided for @addAnotherNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'via phone number ID and access token'**
+  String get addAnotherNumberHint;
+
+  /// No description provided for @addAnotherNumberSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a WhatsApp number'**
+  String get addAnotherNumberSheetTitle;
+
+  /// No description provided for @useInstagramTokenAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Instagram token'**
+  String get useInstagramTokenAction;
+
+  /// No description provided for @useInstagramTokenSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect with an Instagram token'**
+  String get useInstagramTokenSheetTitle;
+
+  /// No description provided for @useInstagramTokenSheetDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste an Instagram user token generated from Meta\'s dashboard. This attaches the account the token identifies.'**
+  String get useInstagramTokenSheetDescription;
+
+  /// No description provided for @manageFacebookPagesAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Facebook Pages'**
+  String get manageFacebookPagesAction;
+
+  /// No description provided for @phoneNumberIdFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number ID'**
+  String get phoneNumberIdFieldLabel;
+
+  /// No description provided for @accessTokenFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Access token'**
+  String get accessTokenFieldLabel;
+
+  /// No description provided for @wabaIdFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp Business Account ID'**
+  String get wabaIdFieldLabel;
+
+  /// No description provided for @wabaIdFieldOptionalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — derived from the token when left blank.'**
+  String get wabaIdFieldOptionalHint;
+
+  /// No description provided for @instagramTokenFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Instagram access token'**
+  String get instagramTokenFieldLabel;
+
+  /// No description provided for @fieldRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'This field is required.'**
+  String get fieldRequiredError;
+
+  /// No description provided for @channelConnectedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{channel} connected.'**
+  String channelConnectedSnackbar(String channel);
+
+  /// No description provided for @channelTokenUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Access token updated.'**
+  String get channelTokenUpdatedSnackbar;
+
+  /// No description provided for @connectAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get connectAction;
+
+  /// No description provided for @updateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateAction;
+
   /// No description provided for @noConnectionTitle.
   ///
   /// In en, this message translates to:
@@ -463,6 +715,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Analytics'**
   String get navAnalytics;
+
+  /// No description provided for @navTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Templates'**
+  String get navTemplates;
 
   /// No description provided for @navSettings.
   ///
@@ -902,6 +1160,60 @@ abstract class AppLocalizations {
   /// **'Add note'**
   String get addNoteAction;
 
+  /// No description provided for @replyTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get replyTab;
+
+  /// No description provided for @internalNoteTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal note'**
+  String get internalNoteTab;
+
+  /// No description provided for @templateTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Template'**
+  String get templateTab;
+
+  /// No description provided for @notVisibleToCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Not visible to customer'**
+  String get notVisibleToCustomer;
+
+  /// No description provided for @notSentToCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent to the customer'**
+  String get notSentToCustomer;
+
+  /// No description provided for @saveNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Save note'**
+  String get saveNote;
+
+  /// No description provided for @approvedTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved template'**
+  String get approvedTemplate;
+
+  /// No description provided for @chooseTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a template…'**
+  String get chooseTemplate;
+
+  /// No description provided for @sendTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Send template'**
+  String get sendTemplate;
+
   /// No description provided for @conversationFallbackTitle.
   ///
   /// In en, this message translates to:
@@ -932,6 +1244,78 @@ abstract class AppLocalizations {
   /// **'Conversation intelligence'**
   String get intelligenceTooltip;
 
+  /// No description provided for @followUpTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow up'**
+  String get followUpTooltip;
+
+  /// No description provided for @markFollowUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow up'**
+  String get markFollowUpTitle;
+
+  /// No description provided for @editFollowUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit follow-up'**
+  String get editFollowUpTitle;
+
+  /// No description provided for @followUpSwitchLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as follow-up'**
+  String get followUpSwitchLabel;
+
+  /// No description provided for @followUpDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up date'**
+  String get followUpDateLabel;
+
+  /// No description provided for @noFollowUpDate.
+  ///
+  /// In en, this message translates to:
+  /// **'No date set'**
+  String get noFollowUpDate;
+
+  /// No description provided for @clearDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear date'**
+  String get clearDate;
+
+  /// No description provided for @removeFollowUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove follow-up'**
+  String get removeFollowUp;
+
+  /// No description provided for @saveFollowUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get saveFollowUp;
+
+  /// No description provided for @followUpUpdatedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up updated'**
+  String get followUpUpdatedMessage;
+
+  /// No description provided for @followUpClearedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up removed'**
+  String get followUpClearedMessage;
+
+  /// No description provided for @selectDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Select date'**
+  String get selectDate;
+
   /// No description provided for @loadingConversation.
   ///
   /// In en, this message translates to:
@@ -961,6 +1345,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Read only'**
   String get readOnlyLabel;
+
+  /// No description provided for @attachmentTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach'**
+  String get attachmentTooltip;
+
+  /// No description provided for @attachFromGalleryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo from gallery'**
+  String get attachFromGalleryAction;
+
+  /// No description provided for @attachFromCameraAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get attachFromCameraAction;
+
+  /// No description provided for @removeAttachmentTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove attachment'**
+  String get removeAttachmentTooltip;
+
+  /// No description provided for @attachmentUploadingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading…'**
+  String get attachmentUploadingLabel;
+
+  /// No description provided for @attachmentUploadFailedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t upload that file. Please try again.'**
+  String get attachmentUploadFailedError;
+
+  /// No description provided for @attachmentPermissionDeniedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission was denied. Enable it in your device settings to attach photos.'**
+  String get attachmentPermissionDeniedError;
+
+  /// No description provided for @recordVoiceTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Record a voice message'**
+  String get recordVoiceTooltip;
+
+  /// No description provided for @recordingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording {duration}'**
+  String recordingLabel(String duration);
+
+  /// No description provided for @cancelRecordingTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel recording'**
+  String get cancelRecordingTooltip;
+
+  /// No description provided for @stopRecordingTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop and send'**
+  String get stopRecordingTooltip;
+
+  /// No description provided for @microphonePermissionDeniedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone access was denied. Enable it in your device settings to record a voice message.'**
+  String get microphonePermissionDeniedError;
+
+  /// No description provided for @recordingFailedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t start recording. Please try again.'**
+  String get recordingFailedError;
+
+  /// No description provided for @voiceMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice message'**
+  String get voiceMessageLabel;
+
+  /// No description provided for @voiceNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice note'**
+  String get voiceNoteLabel;
+
+  /// No description provided for @recordingText.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording'**
+  String get recordingText;
+
+  /// No description provided for @playVoiceMessageTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Play voice message'**
+  String get playVoiceMessageTooltip;
+
+  /// No description provided for @pauseVoiceMessageTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause voice message'**
+  String get pauseVoiceMessageTooltip;
+
+  /// No description provided for @voiceMessagePlaybackFailedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t play this voice message.'**
+  String get voiceMessagePlaybackFailedError;
+
+  /// No description provided for @imageLoadFailedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load image'**
+  String get imageLoadFailedLabel;
 
   /// No description provided for @notDeliveredFallback.
   ///
@@ -1225,6 +1729,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nothing assigned right now.'**
   String get nothingAssignedMessage;
+
+  /// No description provided for @recentActivityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent activity'**
+  String get recentActivityTitle;
+
+  /// No description provided for @openInboxButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open inbox'**
+  String get openInboxButton;
+
+  /// No description provided for @noRecentActivityMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent activity yet.'**
+  String get noRecentActivityMessage;
+
+  /// No description provided for @stageNewLead.
+  ///
+  /// In en, this message translates to:
+  /// **'New lead'**
+  String get stageNewLead;
+
+  /// No description provided for @stageQualifiedLead.
+  ///
+  /// In en, this message translates to:
+  /// **'Qualified lead'**
+  String get stageQualifiedLead;
+
+  /// No description provided for @stageHotLead.
+  ///
+  /// In en, this message translates to:
+  /// **'Hot lead'**
+  String get stageHotLead;
+
+  /// No description provided for @stagePurchaseIntent.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase intent'**
+  String get stagePurchaseIntent;
+
+  /// No description provided for @stagePurchased.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchased'**
+  String get stagePurchased;
+
+  /// No description provided for @stageLost.
+  ///
+  /// In en, this message translates to:
+  /// **'Lost'**
+  String get stageLost;
+
+  /// No description provided for @stageDisqualified.
+  ///
+  /// In en, this message translates to:
+  /// **'Disqualified'**
+  String get stageDisqualified;
+
+  /// No description provided for @profileDetailsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal details'**
+  String get profileDetailsSectionTitle;
+
+  /// No description provided for @jobTitleFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Job title'**
+  String get jobTitleFieldLabel;
+
+  /// No description provided for @saveProfileButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Save profile'**
+  String get saveProfileButton;
+
+  /// No description provided for @profileUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile updated'**
+  String get profileUpdatedSnackbar;
+
+  /// No description provided for @profileFirstNameRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'First name cannot be empty.'**
+  String get profileFirstNameRequiredError;
+
+  /// No description provided for @autoAssignmentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic conversation assignment'**
+  String get autoAssignmentTitle;
+
+  /// No description provided for @autoAssignmentDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically routes incoming conversations to available agents based on workload and schedule. Affects new allocatable work only.'**
+  String get autoAssignmentDescription;
+
+  /// No description provided for @autoAssignmentStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get autoAssignmentStatusActive;
+
+  /// No description provided for @autoAssignmentStatusInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get autoAssignmentStatusInactive;
+
+  /// No description provided for @autoAssignmentToggleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable automatic assignment'**
+  String get autoAssignmentToggleLabel;
+
+  /// No description provided for @defaultChatCapacityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Default chat capacity'**
+  String get defaultChatCapacityTitle;
+
+  /// No description provided for @defaultChatCapacityDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum open conversations assigned to an agent at one time.'**
+  String get defaultChatCapacityDescription;
+
+  /// No description provided for @maxOpenChatsFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max open chats'**
+  String get maxOpenChatsFieldLabel;
+
+  /// No description provided for @maxOpenChatsInvalidError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid number greater than 0.'**
+  String get maxOpenChatsInvalidError;
+
+  /// No description provided for @saveCapacityAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Save capacity'**
+  String get saveCapacityAction;
+
+  /// No description provided for @timezoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Time zone'**
+  String get timezoneTitle;
+
+  /// No description provided for @timezoneDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization-level time zone. Changing this reinterprets existing schedules without rewriting them.'**
+  String get timezoneDescription;
+
+  /// No description provided for @timezoneFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Select time zone'**
+  String get timezoneFieldLabel;
+
+  /// No description provided for @saveTimezoneAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Save time zone'**
+  String get saveTimezoneAction;
+
+  /// No description provided for @assignmentPolicyUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignment settings updated'**
+  String get assignmentPolicyUpdatedSnackbar;
+
+  /// No description provided for @routingPolicyLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load assignment settings.'**
+  String get routingPolicyLoadFailed;
+
+  /// No description provided for @routingPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to manage assignment settings.'**
+  String get routingPermissionDenied;
 
   /// No description provided for @openUnreadSummary.
   ///
@@ -1592,6 +2288,12 @@ abstract class AppLocalizations {
   /// **'Record a customer detail'**
   String get recordDetailDialogTitle;
 
+  /// No description provided for @recordDetailDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Something the customer shared — an address, a phone number, a preference.'**
+  String get recordDetailDescription;
+
   /// No description provided for @detailFieldLabel.
   ///
   /// In en, this message translates to:
@@ -1615,6 +2317,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'12 Nile St, Giza'**
   String get valueFieldHint;
+
+  /// No description provided for @removeLineTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove line'**
+  String get removeLineTooltip;
+
+  /// No description provided for @atLeastOneProductError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least one product name.'**
+  String get atLeastOneProductError;
+
+  /// No description provided for @validPriceError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid price.'**
+  String get validPriceError;
+
+  /// No description provided for @detailRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter both detail and value.'**
+  String get detailRequiredError;
 
   /// No description provided for @confirmAction.
   ///
@@ -1640,6 +2366,24 @@ abstract class AppLocalizations {
   /// **'Order cancelled'**
   String get orderCancelledMessage;
 
+  /// No description provided for @cancelOrderConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this order?'**
+  String get cancelOrderConfirmTitle;
+
+  /// No description provided for @cancelOrderConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This won\'t be counted as a sale. You can\'t undo this from here.'**
+  String get cancelOrderConfirmBody;
+
+  /// No description provided for @keepOrderAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep order'**
+  String get keepOrderAction;
+
   /// No description provided for @notCountedAsSaleMessage.
   ///
   /// In en, this message translates to:
@@ -1657,6 +2401,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'an employee'**
   String get confirmedByUnknownEmployee;
+
+  /// No description provided for @recordedByMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded by {name}'**
+  String recordedByMessage(String name);
 
   /// No description provided for @recordOrderDialogTitle.
   ///
@@ -1703,7 +2453,7 @@ abstract class AppLocalizations {
   /// No description provided for @recordOrderButton.
   ///
   /// In en, this message translates to:
-  /// **'Record order'**
+  /// **'Record an order'**
   String get recordOrderButton;
 
   /// No description provided for @orderRecordedMessage.
@@ -1958,12 +2708,6 @@ abstract class AppLocalizations {
   /// **'Avatar URL'**
   String get avatarUrlFieldLabel;
 
-  /// No description provided for @maxOpenChatsFieldLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Max open chats'**
-  String get maxOpenChatsFieldLabel;
-
   /// No description provided for @newPasswordOptionalFieldLabel.
   ///
   /// In en, this message translates to:
@@ -2042,11 +2786,23 @@ abstract class AppLocalizations {
   /// **'Add team'**
   String get addTeamTitle;
 
+  /// No description provided for @editTeamTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit team'**
+  String get editTeamTitle;
+
   /// No description provided for @teamAddedSnackbar.
   ///
   /// In en, this message translates to:
   /// **'Team added'**
   String get teamAddedSnackbar;
+
+  /// No description provided for @teamUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Team updated'**
+  String get teamUpdatedSnackbar;
 
   /// No description provided for @addTeamNameRequiredError.
   ///
@@ -2089,6 +2845,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load employees.'**
   String get employeesLoadFailedMessage;
+
+  /// No description provided for @deactivateTeamConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate team?'**
+  String get deactivateTeamConfirmTitle;
+
+  /// No description provided for @deactivateTeamConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will no longer be available for routing conversations. Existing conversations and assignment history are kept.'**
+  String deactivateTeamConfirmBody(String name);
+
+  /// No description provided for @teamDeactivatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} deactivated'**
+  String teamDeactivatedSnackbar(String name);
 
   /// No description provided for @rerunAnalysisTooltip.
   ///
@@ -2293,6 +3067,318 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'An employee'**
   String get anEmployeeLabel;
+
+  /// No description provided for @templatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Message templates'**
+  String get templatesTitle;
+
+  /// No description provided for @templatesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-approved WhatsApp messages you can send outside the 24-hour window.'**
+  String get templatesSubtitle;
+
+  /// No description provided for @wabaAccountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp Business account'**
+  String get wabaAccountLabel;
+
+  /// No description provided for @templatesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 template on this account} other{{count} templates on this account}}'**
+  String templatesCount(int count);
+
+  /// No description provided for @refreshAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refreshAction;
+
+  /// No description provided for @createTemplateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Create template'**
+  String get createTemplateAction;
+
+  /// No description provided for @templateNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get templateNameLabel;
+
+  /// No description provided for @templateCategoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get templateCategoryLabel;
+
+  /// No description provided for @templateLanguageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get templateLanguageLabel;
+
+  /// No description provided for @templateStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get templateStatusLabel;
+
+  /// No description provided for @templateMetaIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Meta ID'**
+  String get templateMetaIdLabel;
+
+  /// No description provided for @noTemplatesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No templates found'**
+  String get noTemplatesFound;
+
+  /// No description provided for @noTemplatesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No message templates have been created for this WhatsApp Business account.'**
+  String get noTemplatesMessage;
+
+  /// No description provided for @noWabaAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'No WhatsApp accounts connected'**
+  String get noWabaAccounts;
+
+  /// No description provided for @noWabaAccountsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect a WhatsApp Business account in Settings to manage message templates.'**
+  String get noWabaAccountsMessage;
+
+  /// No description provided for @createTemplateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create message template'**
+  String get createTemplateTitle;
+
+  /// No description provided for @createTemplateSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit a new WhatsApp message template for Meta review.'**
+  String get createTemplateSubtitle;
+
+  /// No description provided for @templateNameHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowercase letters, numbers, and underscores only'**
+  String get templateNameHelper;
+
+  /// No description provided for @templateBodyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Message body'**
+  String get templateBodyLabel;
+
+  /// No description provided for @templateBodyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the template message text. You can include variables.'**
+  String get templateBodyHint;
+
+  /// No description provided for @submitForReviewAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit for review'**
+  String get submitForReviewAction;
+
+  /// No description provided for @templateSubmittedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Template submitted for review'**
+  String get templateSubmittedSnackbar;
+
+  /// No description provided for @templateInvalidNameError.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name must use lowercase letters, numbers and underscores only.'**
+  String get templateInvalidNameError;
+
+  /// No description provided for @templateEmptyBodyError.
+  ///
+  /// In en, this message translates to:
+  /// **'Template body cannot be empty.'**
+  String get templateEmptyBodyError;
+
+  /// No description provided for @templateRejectedReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejection reason: {reason}'**
+  String templateRejectedReason(String reason);
+
+  /// No description provided for @templateUnsupportedNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported components: {components}'**
+  String templateUnsupportedNotice(String components);
+
+  /// No description provided for @loadingTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading templates…'**
+  String get loadingTemplates;
+
+  /// No description provided for @noTemplatesAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No templates available'**
+  String get noTemplatesAvailable;
+
+  /// No description provided for @groupedConversationsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 conversation} other{{count} conversations}}'**
+  String groupedConversationsCount(int count);
+
+  /// No description provided for @selectConversationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select conversation'**
+  String get selectConversationTitle;
+
+  /// No description provided for @selectConversationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Available WhatsApp conversations for this customer'**
+  String get selectConversationSubtitle;
+
+  /// No description provided for @switchConversationAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch conversation'**
+  String get switchConversationAction;
+
+  /// No description provided for @openConversationAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get openConversationAction;
+
+  /// No description provided for @currentConversationBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get currentConversationBadge;
+
+  /// No description provided for @whatsappConversationsGroupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp conversations'**
+  String get whatsappConversationsGroupTitle;
+
+  /// No description provided for @notificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notificationsTitle;
+
+  /// No description provided for @notificationsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing needs your attention.'**
+  String get notificationsEmpty;
+
+  /// No description provided for @notificationsMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all read'**
+  String get notificationsMarkAllRead;
+
+  /// No description provided for @notificationsAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'All notifications marked read'**
+  String get notificationsAllRead;
+
+  /// No description provided for @notificationsOpenConversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Open conversation'**
+  String get notificationsOpenConversation;
+
+  /// No description provided for @notificationsUnreadLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications, {count} unread'**
+  String notificationsUnreadLabel(String count);
+
+  /// No description provided for @notificationsOccurrences.
+  ///
+  /// In en, this message translates to:
+  /// **'×{count}'**
+  String notificationsOccurrences(String count);
+
+  /// No description provided for @notificationsFallbackAssignment.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned to {name} by fallback routing, because nobody was fully available. Please review.'**
+  String notificationsFallbackAssignment(String name);
+
+  /// No description provided for @notificationsEmployeeReassignment.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} conversations moved after {name} was deactivated.'**
+  String notificationsEmployeeReassignment(String count, String name);
+
+  /// No description provided for @notificationsSomeCouldNotBePlaced.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} could not be placed and are now unassigned.'**
+  String notificationsSomeCouldNotBePlaced(String count);
+
+  /// No description provided for @notificationsNoUsableEmployee.
+  ///
+  /// In en, this message translates to:
+  /// **'A conversation could not be assigned — no service employee is usable.'**
+  String get notificationsNoUsableEmployee;
+
+  /// No description provided for @reasonOutsideWorkingHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Outside working hours'**
+  String get reasonOutsideWorkingHours;
+
+  /// No description provided for @reasonScheduleException.
+  ///
+  /// In en, this message translates to:
+  /// **'On leave'**
+  String get reasonScheduleException;
+
+  /// No description provided for @reasonNotOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Not online'**
+  String get reasonNotOnline;
+
+  /// No description provided for @reasonStaleHeartbeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Not reachable'**
+  String get reasonStaleHeartbeat;
+
+  /// No description provided for @reasonAtCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'At capacity'**
+  String get reasonAtCapacity;
+
+  /// No description provided for @reasonNoSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'No schedule'**
+  String get reasonNoSchedule;
 }
 
 class _AppLocalizationsDelegate

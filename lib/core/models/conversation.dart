@@ -9,6 +9,10 @@ class CustomerBrief {
     this.avatarUrl = '',
     this.lifecycleStage = '',
     this.preferredLanguage = '',
+    this.email = '',
+    this.phone = '',
+    this.country = '',
+    this.city = '',
   });
 
   final int id;
@@ -16,6 +20,10 @@ class CustomerBrief {
   final String avatarUrl;
   final String lifecycleStage;
   final String preferredLanguage;
+  final String email;
+  final String phone;
+  final String country;
+  final String city;
 
   factory CustomerBrief.fromJson(Map<String, dynamic> json) => CustomerBrief(
     id: JsonSafe.asInt(json['id'], fallback: -1),
@@ -26,6 +34,10 @@ class CustomerBrief {
     avatarUrl: JsonSafe.asString(json['avatar_url']),
     lifecycleStage: JsonSafe.asString(json['lifecycle_stage']),
     preferredLanguage: JsonSafe.asString(json['preferred_language']),
+    email: JsonSafe.asString(json['email']),
+    phone: JsonSafe.asString(json['phone']),
+    country: JsonSafe.asString(json['country']),
+    city: JsonSafe.asString(json['city']),
   );
 
   String get initials {
@@ -104,6 +116,7 @@ class Conversation {
     required this.unreadCount,
     required this.messageCount,
     this.channelName = '',
+    this.channelId,
     this.assignedTo,
     this.assignedTeam,
     this.category,
@@ -112,12 +125,17 @@ class Conversation {
     this.lastMessageAt,
     this.startedAt,
     this.subject = '',
+    this.isFollowUp = false,
+    this.followUpDate,
+    this.followUpMarkedAt,
+    this.followUpMarkedByName = '',
   });
 
   final int id;
   final CustomerBrief customer;
   final String provider;
   final String channelName;
+  final int? channelId;
   final EmployeeBrief? assignedTo;
   final TeamBrief? assignedTeam;
   final String status;
@@ -130,12 +148,17 @@ class Conversation {
   final DateTime? startedAt;
   final IntelligenceBrief? intelligence;
   final String subject;
+  final bool isFollowUp;
+  final DateTime? followUpDate;
+  final DateTime? followUpMarkedAt;
+  final String followUpMarkedByName;
 
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
     id: JsonSafe.asInt(json['id'], fallback: -1),
     customer: CustomerBrief.fromJson(JsonSafe.asMap(json['customer'])),
     provider: JsonSafe.asString(json['provider'], fallback: 'MOCK'),
     channelName: JsonSafe.asString(json['channel_name']),
+    channelId: JsonSafe.asIntOrNull(json['channel_id']),
     assignedTo: json['assigned_to'] is Map
         ? EmployeeBrief.fromJson(JsonSafe.asMap(json['assigned_to']))
         : null,
@@ -156,6 +179,10 @@ class Conversation {
         ? IntelligenceBrief.fromJson(JsonSafe.asMap(json['intelligence']))
         : null,
     subject: JsonSafe.asString(json['subject']),
+    isFollowUp: JsonSafe.asBool(json['is_follow_up']),
+    followUpDate: _parseDate(json['follow_up_date']),
+    followUpMarkedAt: _parseDate(json['follow_up_marked_at']),
+    followUpMarkedByName: JsonSafe.asString(json['follow_up_marked_by_name']),
   );
 
   bool get isUnassigned => assignedTo == null;
@@ -169,6 +196,11 @@ class Conversation {
     String? priority,
     EmployeeBrief? assignedTo,
     ConversationCategory? category,
+    bool? isFollowUp,
+    DateTime? followUpDate,
+    bool clearFollowUpDate = false,
+    DateTime? followUpMarkedAt,
+    String? followUpMarkedByName,
   }) => Conversation(
     id: id,
     customer: customer,
@@ -178,6 +210,7 @@ class Conversation {
     unreadCount: unreadCount ?? this.unreadCount,
     messageCount: messageCount,
     channelName: channelName,
+    channelId: channelId,
     assignedTo: assignedTo ?? this.assignedTo,
     assignedTeam: assignedTeam,
     category: category ?? this.category,
@@ -186,6 +219,12 @@ class Conversation {
     lastMessageAt: lastMessageAt,
     startedAt: startedAt,
     subject: subject,
+    isFollowUp: isFollowUp ?? this.isFollowUp,
+    followUpDate: clearFollowUpDate
+        ? null
+        : (followUpDate ?? this.followUpDate),
+    followUpMarkedAt: followUpMarkedAt ?? this.followUpMarkedAt,
+    followUpMarkedByName: followUpMarkedByName ?? this.followUpMarkedByName,
   );
 }
 

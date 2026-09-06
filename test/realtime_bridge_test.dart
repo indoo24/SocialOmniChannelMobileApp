@@ -303,5 +303,12 @@ void main() {
         expect(container.read(revokedConversationProvider), isNull);
       },
     );
+
+    test('notification_created event has correct event name', () {
+      final event = RealtimeEvent(RealtimeEvents.notificationCreated, {
+        'id': 101,
+      });
+      expect(event.event, 'notification.created');
+    });
   });
 }

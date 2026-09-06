@@ -11,6 +11,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/navigation.dart';
+import '../../app/router.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/employee.dart';
 import '../../core/theme/tokens.dart';
@@ -38,6 +40,11 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canAccess = ref.watch(canAccessPathProvider(Routes.employees));
+    if (!canAccess) {
+      return NoAccessScreen(sectionLabel: context.l10n.navEmployees);
+    }
+
     final employees = ref.watch(employeeDirectoryProvider);
     final currentEmployee = ref.watch(currentEmployeeProvider);
     final canManage =

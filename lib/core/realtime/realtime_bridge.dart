@@ -15,9 +15,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/authentication/auth_controller.dart';
 import '../../features/conversations/inbox_controller.dart';
+import '../../features/directory/directory_providers.dart';
 import '../../features/messages/conversation_controller.dart';
 import '../../features/messages/intelligence_providers.dart';
 import '../../features/messages/notes_controller.dart';
+import '../../features/notifications/notifications_controller.dart';
 import '../api/api_exception.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
@@ -216,6 +218,7 @@ class _RealtimeBridgeState extends ConsumerState<RealtimeBridge>
       case AppLifecycleState.resumed:
         if (isAuthenticated) {
           client.connect();
+          ref.invalidate(channelsProvider);
           // The socket was down; whatever arrived meanwhile is missing.
           ref.read(inboxControllerProvider.notifier).refreshQuietly();
           final active = ref.read(activeConversationProvider);
@@ -441,6 +444,10 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
         if (conversationId != null) {
           _checkAccess(ref, conversationId, traceId: effectiveTraceId);
         }
+
+      case RealtimeEvents.notificationCreated:
+        ref.invalidate(notificationsControllerProvider);
+        ref.invalidate(notificationsUnreadCountProvider);
 
       case RealtimeEvents.presenceChanged:
       case RealtimeEvents.connectionReady:

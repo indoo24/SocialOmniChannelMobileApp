@@ -12,6 +12,7 @@
   "tabChannels": "Channels",
   "tabProfile": "Profile",
   "tabSecurity": "Security",
+  "tabAssignment": "Assignment",
 
   "signOutDialogTitle": "Sign out?",
   "signOutDialogMessage": "You will stop receiving new conversations on this device.",
@@ -74,6 +75,84 @@
     }
   },
 
+  "hideChannelAction": "Hide",
+  "showChannelAction": "Show",
+  "hiddenChannelsSectionTitle": "Hidden ({count})",
+  "@hiddenChannelsSectionTitle": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "disconnectChannelAction": "Disconnect",
+  "reconnectChannelAction": "Reconnect",
+  "checkStatusChannelAction": "Check status",
+  "connectAnotherNumberAction": "Connect another number",
+  "connectAnotherAccountAction": "Connect another account",
+  "moreActionsTooltip": "More actions",
+  "channelIdentifierLabel": "ID: {value}",
+  "@channelIdentifierLabel": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "channelConnectedLabel": "Connected {when}",
+  "@channelConnectedLabel": {
+    "placeholders": {
+      "when": {"type": "String"}
+    }
+  },
+  "channelLastActivityLabel": "Last activity {when}",
+  "@channelLastActivityLabel": {
+    "placeholders": {
+      "when": {"type": "String"}
+    }
+  },
+  "channelNoActivityLabel": "No activity yet",
+  "disconnectChannelDialogTitle": "Disconnect {channel}?",
+  "@disconnectChannelDialogTitle": {
+    "placeholders": {
+      "channel": {"type": "String"}
+    }
+  },
+  "disconnectChannelDialogBody": "This removes the stored credential. The conversation history stays, but no new messages can be sent or received on this channel until it's reconnected.",
+  "channelDisconnectedSnackbar": "{channel} disconnected.",
+  "@channelDisconnectedSnackbar": {
+    "placeholders": {
+      "channel": {"type": "String"}
+    }
+  },
+  "openingBrowserMessage": "Opening browser…",
+  "couldNotOpenBrowserError": "Couldn't open the browser for this connection.",
+  "manageFromWebOnlyAction": "Manage from web",
+  "manageFromWebOnlyHint": "This action is only available from the web app.",
+
+  "updateTokenAction": "Update token",
+  "updateTokenSheetTitle": "Update access token",
+  "updateTokenSheetDescription": "Replace this number's access token if it expired or was regenerated in the Meta dashboard.",
+  "otherWaysToConnectSection": "Other ways to connect",
+  "addAnotherNumberAction": "Add another number",
+  "addAnotherNumberHint": "via phone number ID and access token",
+  "addAnotherNumberSheetTitle": "Add a WhatsApp number",
+  "useInstagramTokenAction": "Use Instagram token",
+  "useInstagramTokenSheetTitle": "Connect with an Instagram token",
+  "useInstagramTokenSheetDescription": "Paste an Instagram user token generated from Meta's dashboard. This attaches the account the token identifies.",
+  "manageFacebookPagesAction": "Manage Facebook Pages",
+  "phoneNumberIdFieldLabel": "Phone number ID",
+  "accessTokenFieldLabel": "Access token",
+  "wabaIdFieldLabel": "WhatsApp Business Account ID",
+  "wabaIdFieldOptionalHint": "Optional — derived from the token when left blank.",
+  "instagramTokenFieldLabel": "Instagram access token",
+  "fieldRequiredError": "This field is required.",
+  "channelConnectedSnackbar": "{channel} connected.",
+  "@channelConnectedSnackbar": {
+    "placeholders": {
+      "channel": {"type": "String"}
+    }
+  },
+  "channelTokenUpdatedSnackbar": "Access token updated.",
+  "connectAction": "Connect",
+  "updateAction": "Update",
+
   "noConnectionTitle": "No connection",
   "genericErrorTitle": "Something went wrong",
   "genericErrorFallbackMessage": "Please try again.",
@@ -94,6 +173,7 @@
   "navEmployees": "Employees",
   "navTeams": "Teams",
   "navAnalytics": "Analytics",
+  "navTemplates": "Templates",
   "navSettings": "Settings",
   "noAccessTitle": "You don't have access",
   "noAccessMessage": "Your role does not include {section}. Ask an administrator if you need it.",
@@ -184,17 +264,64 @@
   "internalNotesEmpty": "No internal notes yet.",
   "internalNoteInputHint": "Add a note for your team…",
   "addNoteAction": "Add note",
+  "replyTab": "Reply",
+  "internalNoteTab": "Internal note",
+  "templateTab": "Template",
+  "notVisibleToCustomer": "Not visible to customer",
+  "notSentToCustomer": "Not sent to the customer",
+  "saveNote": "Save note",
+  "approvedTemplate": "Approved template",
+  "chooseTemplate": "Choose a template…",
+  "sendTemplate": "Send template",
 
   "conversationFallbackTitle": "Conversation",
   "customerDetailsTooltip": "Customer details",
   "actionsTooltip": "Actions",
   "ordersTooltip": "Orders and customer details",
   "intelligenceTooltip": "Conversation intelligence",
+  "followUpTooltip": "Follow up",
+  "markFollowUpTitle": "Follow up",
+  "editFollowUpTitle": "Edit follow-up",
+  "followUpSwitchLabel": "Mark as follow-up",
+  "followUpDateLabel": "Follow-up date",
+  "noFollowUpDate": "No date set",
+  "clearDate": "Clear date",
+  "removeFollowUp": "Remove follow-up",
+  "saveFollowUp": "Save",
+  "followUpUpdatedMessage": "Follow-up updated",
+  "followUpClearedMessage": "Follow-up removed",
+  "selectDate": "Select date",
   "loadingConversation": "Loading conversation…",
   "noMessagesYetTitle": "No messages yet",
   "noMessagesYetMessage": "This conversation has no history.",
   "writeReplyHint": "Write a reply…",
   "readOnlyLabel": "Read only",
+
+  "attachmentTooltip": "Attach",
+  "attachFromGalleryAction": "Photo from gallery",
+  "attachFromCameraAction": "Take photo",
+  "removeAttachmentTooltip": "Remove attachment",
+  "attachmentUploadingLabel": "Uploading…",
+  "attachmentUploadFailedError": "Couldn't upload that file. Please try again.",
+  "attachmentPermissionDeniedError": "Permission was denied. Enable it in your device settings to attach photos.",
+  "recordVoiceTooltip": "Record a voice message",
+  "recordingLabel": "Recording {duration}",
+  "@recordingLabel": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "cancelRecordingTooltip": "Cancel recording",
+  "stopRecordingTooltip": "Stop and send",
+  "microphonePermissionDeniedError": "Microphone access was denied. Enable it in your device settings to record a voice message.",
+  "recordingFailedError": "Couldn't start recording. Please try again.",
+  "voiceMessageLabel": "Voice message",
+  "voiceNoteLabel": "Voice note",
+  "recordingText": "Recording",
+  "playVoiceMessageTooltip": "Play voice message",
+  "pauseVoiceMessageTooltip": "Pause voice message",
+  "voiceMessagePlaybackFailedError": "Couldn't play this voice message.",
+  "imageLoadFailedLabel": "Couldn't load image",
 
   "notDeliveredFallback": "Not delivered.",
   "discardAction": "Discard",
@@ -257,6 +384,38 @@
     }
   },
   "nothingAssignedMessage": "Nothing assigned right now.",
+  "recentActivityTitle": "Recent activity",
+  "openInboxButton": "Open inbox",
+  "noRecentActivityMessage": "No recent activity yet.",
+  "stageNewLead": "New lead",
+  "stageQualifiedLead": "Qualified lead",
+  "stageHotLead": "Hot lead",
+  "stagePurchaseIntent": "Purchase intent",
+  "stagePurchased": "Purchased",
+  "stageLost": "Lost",
+  "stageDisqualified": "Disqualified",
+  "profileDetailsSectionTitle": "Personal details",
+  "jobTitleFieldLabel": "Job title",
+  "saveProfileButton": "Save profile",
+  "profileUpdatedSnackbar": "Profile updated",
+  "profileFirstNameRequiredError": "First name cannot be empty.",
+  "autoAssignmentTitle": "Automatic conversation assignment",
+  "autoAssignmentDescription": "Automatically routes incoming conversations to available agents based on workload and schedule. Affects new allocatable work only.",
+  "autoAssignmentStatusActive": "Active",
+  "autoAssignmentStatusInactive": "Disabled",
+  "autoAssignmentToggleLabel": "Enable automatic assignment",
+  "defaultChatCapacityTitle": "Default chat capacity",
+  "defaultChatCapacityDescription": "Maximum open conversations assigned to an agent at one time.",
+  "maxOpenChatsFieldLabel": "Max open chats per agent",
+  "maxOpenChatsInvalidError": "Enter a valid number greater than 0.",
+  "saveCapacityAction": "Save capacity",
+  "timezoneTitle": "Time zone",
+  "timezoneDescription": "Organization-level time zone. Changing this reinterprets existing schedules without rewriting them.",
+  "timezoneFieldLabel": "Select time zone",
+  "saveTimezoneAction": "Save time zone",
+  "assignmentPolicyUpdatedSnackbar": "Assignment settings updated",
+  "routingPolicyLoadFailed": "Couldn't load assignment settings.",
+  "routingPermissionDenied": "You don't have permission to manage assignment settings.",
   "openUnreadSummary": "{open} open · {unread} unread",
   "@openUnreadSummary": {
     "placeholders": {
@@ -375,14 +534,22 @@
   "savedToCustomerMessage": "Saved to the customer",
   "suggestionDismissedMessage": "Suggestion dismissed",
   "recordDetailDialogTitle": "Record a customer detail",
+  "recordDetailDescription": "Something the customer shared — an address, a phone number, a preference.",
   "detailFieldLabel": "Detail",
   "detailFieldHint": "address",
   "valueFieldLabel": "Value",
   "valueFieldHint": "12 Nile St, Giza",
+  "removeLineTooltip": "Remove line",
+  "atLeastOneProductError": "Enter at least one product name.",
+  "validPriceError": "Enter a valid price.",
+  "detailRequiredError": "Enter both detail and value.",
   "confirmAction": "Confirm",
   "orderConfirmedMessage": "Order confirmed",
   "cancelOrderTooltip": "Cancel this order",
   "orderCancelledMessage": "Order cancelled",
+  "cancelOrderConfirmTitle": "Cancel this order?",
+  "cancelOrderConfirmBody": "This won't be counted as a sale. You can't undo this from here.",
+  "keepOrderAction": "Keep order",
   "notCountedAsSaleMessage": "Not counted as a sale until someone confirms it.",
   "confirmedByMessage": "Confirmed by {name}",
   "@confirmedByMessage": {
@@ -391,6 +558,12 @@
     }
   },
   "confirmedByUnknownEmployee": "an employee",
+  "recordedByMessage": "Recorded by {name}",
+  "@recordedByMessage": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
   "recordOrderDialogTitle": "Record an order",
   "orderComposerDescription": "What the customer asked for. Scenario has no payment data, so this is a record of the conversation, not a receipt.",
   "productFieldLabel": "Product",
@@ -398,7 +571,7 @@
   "priceFieldLabel": "Price",
   "addLineButton": "Add line",
   "totalLabel": "Total",
-  "recordOrderButton": "Record order",
+  "recordOrderButton": "Record an order",
   "orderRecordedMessage": "Order recorded. Confirm it once you've checked your own records.",
 
   "avgResponseLabel": "Avg response",
@@ -520,7 +693,9 @@
   },
 
   "addTeamTitle": "Add team",
+  "editTeamTitle": "Edit team",
   "teamAddedSnackbar": "Team added",
+  "teamUpdatedSnackbar": "Team updated",
   "addTeamNameRequiredError": "Enter a team name.",
   "teamNameFieldLabel": "Team name",
   "descriptionFieldLabel": "Description",
@@ -528,6 +703,19 @@
   "leadersFieldLabel": "Leaders",
   "membersFieldLabel": "Members",
   "employeesLoadFailedMessage": "Couldn't load employees.",
+  "deactivateTeamConfirmTitle": "Deactivate team?",
+  "deactivateTeamConfirmBody": "{name} will no longer be available for routing conversations. Existing conversations and assignment history are kept.",
+  "@deactivateTeamConfirmBody": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "teamDeactivatedSnackbar": "{name} deactivated",
+  "@teamDeactivatedSnackbar": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
 
   "rerunAnalysisTooltip": "Re-run analysis",
   "loadingIntelligenceLabel": "Loading intelligence…",
@@ -577,5 +765,104 @@
   "purchaseHistoryLoadError": "Could not load the history.",
   "purchaseHistoryEmpty": "No rulings recorded yet.",
   "notConfirmedBadge": "Not confirmed",
-  "anEmployeeLabel": "An employee"
+  "anEmployeeLabel": "An employee",
+
+  "templatesTitle": "Message templates",
+  "templatesSubtitle": "Pre-approved WhatsApp messages you can send outside the 24-hour window.",
+  "wabaAccountLabel": "WhatsApp Business account",
+  "templatesCount": "{count, plural, one{1 template on this account} other{{count} templates on this account}}",
+  "@templatesCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "refreshAction": "Refresh",
+  "createTemplateAction": "Create template",
+  "templateNameLabel": "Name",
+  "templateCategoryLabel": "Category",
+  "templateLanguageLabel": "Language",
+  "templateStatusLabel": "Status",
+  "templateMetaIdLabel": "Meta ID",
+  "noTemplatesFound": "No templates found",
+  "noTemplatesMessage": "No message templates have been created for this WhatsApp Business account.",
+  "noWabaAccounts": "No WhatsApp accounts connected",
+  "noWabaAccountsMessage": "Connect a WhatsApp Business account in Settings to manage message templates.",
+  "createTemplateTitle": "Create message template",
+  "createTemplateSubtitle": "Submit a new WhatsApp message template for Meta review.",
+  "templateNameHelper": "Lowercase letters, numbers, and underscores only",
+  "templateBodyLabel": "Message body",
+  "templateBodyHint": "Enter the template message text. You can include variables.",
+  "submitForReviewAction": "Submit for review",
+  "templateSubmittedSnackbar": "Template submitted for review",
+  "templateInvalidNameError": "Template name must use lowercase letters, numbers and underscores only.",
+  "templateEmptyBodyError": "Template body cannot be empty.",
+  "templateRejectedReason": "Rejection reason: {reason}",
+  "@templateRejectedReason": {
+    "placeholders": {
+      "reason": {"type": "String"}
+    }
+  },
+  "templateUnsupportedNotice": "Unsupported components: {components}",
+  "@templateUnsupportedNotice": {
+    "placeholders": {
+      "components": {"type": "String"}
+    }
+  },
+  "loadingTemplates": "Loading templates…",
+  "noTemplatesAvailable": "No templates available",
+  "groupedConversationsCount": "{count, plural, one{1 conversation} other{{count} conversations}}",
+  "@groupedConversationsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "selectConversationTitle": "Select conversation",
+  "selectConversationSubtitle": "Available WhatsApp conversations for this customer",
+  "switchConversationAction": "Switch conversation",
+  "openConversationAction": "Open",
+  "currentConversationBadge": "Current",
+  "whatsappConversationsGroupTitle": "WhatsApp conversations",
+  "notificationsTitle": "Notifications",
+  "notificationsEmpty": "Nothing needs your attention.",
+  "notificationsMarkAllRead": "Mark all read",
+  "notificationsAllRead": "All notifications marked read",
+  "notificationsOpenConversation": "Open conversation",
+  "notificationsUnreadLabel": "Notifications, {count} unread",
+  "@notificationsUnreadLabel": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "notificationsOccurrences": "×{count}",
+  "@notificationsOccurrences": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "notificationsFallbackAssignment": "Assigned to {name} by fallback routing, because nobody was fully available. Please review.",
+  "@notificationsFallbackAssignment": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "notificationsEmployeeReassignment": "{count} conversations moved after {name} was deactivated.",
+  "@notificationsEmployeeReassignment": {
+    "placeholders": {
+      "count": {"type": "String"},
+      "name": {"type": "String"}
+    }
+  },
+  "notificationsSomeCouldNotBePlaced": "{count} could not be placed and are now unassigned.",
+  "@notificationsSomeCouldNotBePlaced": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "notificationsNoUsableEmployee": "A conversation could not be assigned — no service employee is usable.",
+  "reasonOutsideWorkingHours": "Outside working hours",
+  "reasonScheduleException": "On leave",
+  "reasonNotOnline": "Not online",
+  "reasonStaleHeartbeat": "Not reachable",
+  "reasonAtCapacity": "At capacity",
+  "reasonNoSchedule": "No schedule"
 }

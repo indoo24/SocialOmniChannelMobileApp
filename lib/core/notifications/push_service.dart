@@ -35,6 +35,7 @@ class PushDataKeys {
   const PushDataKeys._();
   static const type = 'type';
   static const conversationId = 'conversation_id';
+  static const messageId = 'message_id';
 
   static const typeNewMessage = 'new_message';
   static const typeConversationAssigned = 'conversation_assigned';

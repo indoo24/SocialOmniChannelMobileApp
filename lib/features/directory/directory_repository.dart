@@ -9,10 +9,12 @@
 library;
 
 import '../../core/api/api_client.dart';
+import '../../core/api/api_exception.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/customer_detail.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
+import '../../core/models/routing_policy.dart';
 import '../../core/utils/json_safe.dart';
 
 class DirectoryRepository {
@@ -150,6 +152,26 @@ class DirectoryRepository {
     return Team.fromJson(data);
   }
 
+  /// `PATCH /teams/{id}/` — ADMIN only server-side (`team.manage`).
+  ///
+  /// [fields] should only carry what the administrator actually changed.
+  Future<Team> updateTeam(int teamId, Map<String, dynamic> fields) async {
+    final data = await _api.patch<Map<String, dynamic>>(
+      '/teams/$teamId/',
+      body: fields,
+    );
+    return Team.fromJson(data);
+  }
+
+  /// `DELETE /teams/{id}/` — ADMIN only server-side (`team.manage`).
+  ///
+  /// Soft deactivates rather than deleting: teams are referenced by past
+  /// conversations and assignments, so the row stays and `is_active` flips to false.
+  Future<Team> deactivateTeam(int teamId) async {
+    final data = await _api.delete<Map<String, dynamic>>('/teams/$teamId/');
+    return Team.fromJson(data);
+  }
+
   Future<Paginated<Conversation>> customerConversations(int customerId) async {
     final data = await _api.get<Map<String, dynamic>>(
       '/customers/$customerId/conversations/',
@@ -158,11 +180,22 @@ class DirectoryRepository {
   }
 
   Future<Paginated<ChannelConnection>> channels() async {
-    final data = await _api.get<Map<String, dynamic>>(
-      '/channels/',
-      query: {'page_size': 50},
-    );
-    return Paginated.fromJson(data, ChannelConnection.fromJson);
+    try {
+      final data = await _api.get<Map<String, dynamic>>(
+        '/channels/',
+        query: {'page_size': 50},
+      );
+      return Paginated.fromJson(data, ChannelConnection.fromJson);
+    } on ApiException catch (e) {
+      if (e.statusCode == 403) {
+        final data = await _api.get<Map<String, dynamic>>(
+          '/conversations/channels/',
+          query: {'page_size': 50},
+        );
+        return Paginated.fromJson(data, ChannelConnection.fromJson);
+      }
+      rethrow;
+    }
   }
 
   /// Stop showing this channel's conversations without disconnecting it.
@@ -189,6 +222,133 @@ class DirectoryRepository {
       '/channels/$channelId/test/',
     );
     return ChannelTestResult.fromJson(data);
+  }
+
+  // ------------------------------------------------------- integrations
+  // Disconnect destroys the stored credential; the connection row and every
+  // conversation it carried survive, deactivated. `channel.manage` server-side
+  // on every one of these. No request body — the id in the path is the only
+  // input the endpoint takes.
+  Future<ChannelConnectionState> disconnectInstagram(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/instagram/$channelId/disconnect/',
+    );
+    return ChannelConnectionState.fromJson(data);
+  }
+
+  Future<ChannelConnectionState> disconnectMeta(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/meta/$channelId/disconnect/',
+    );
+    return ChannelConnectionState.fromJson(data);
+  }
+
+  Future<ChannelConnectionState> disconnectTikTok(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/tiktok/$channelId/disconnect/',
+    );
+    return ChannelConnectionState.fromJson(data);
+  }
+
+  Future<ChannelConnectionState> disconnectWhatsApp(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/whatsapp/$channelId/disconnect/',
+    );
+    return ChannelConnectionState.fromJson(data);
+  }
+
+  /// Asks Meta whether this WhatsApp number can send/receive yet and updates
+  /// the channel accordingly. A read — it changes nothing at Meta.
+  Future<WhatsAppChannelStatus> checkWhatsAppStatus(int channelId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/whatsapp/$channelId/check-status/',
+    );
+    return WhatsAppChannelStatus.fromJson(data);
+  }
+
+  /// Begins **Business Login for Instagram** — a different product from
+  /// [connectMeta]'s Page-based flow. Returns the URL to open in a browser;
+  /// Instagram redirects back to `/integrations/instagram/callback/` server-side.
+  Future<ChannelAuthorizationUrl> authorizeInstagram() async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/instagram/authorize/',
+    );
+    return ChannelAuthorizationUrl.fromJson(data);
+  }
+
+  /// Begins the Meta OAuth dialog — covers Messenger and Page-linked
+  /// Instagram. Returns the URL to open in a browser; Meta redirects back to
+  /// `/integrations/meta/callback/` server-side.
+  Future<ChannelAuthorizationUrl> connectMeta() async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/meta/connect/',
+    );
+    return ChannelAuthorizationUrl.fromJson(data);
+  }
+
+  /// Begins TikTok Business Account authorization. Returns the URL to open
+  /// in a browser; TikTok redirects back to
+  /// `/integrations/tiktok/account/callback/` server-side.
+  Future<ChannelAuthorizationUrl> authorizeTikTok() async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/tiktok/authorize/',
+    );
+    return ChannelAuthorizationUrl.fromJson(data);
+  }
+
+  /// Begins WhatsApp Embedded Signup for a device that navigates the tab
+  /// rather than opening a popup — the mobile-shaped counterpart of the
+  /// web popup flow. Returns the URL to open in a browser; Meta redirects
+  /// back to `/integrations/meta/callback/` server-side.
+  Future<ChannelAuthorizationUrl> startWhatsAppEmbeddedSignupMobile() async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/whatsapp/embedded-signup/mobile/start/',
+    );
+    return ChannelAuthorizationUrl.fromJson(data);
+  }
+
+  /// The manual alternative to Embedded Signup, for a number provisioned in
+  /// the Meta dashboard. `POST /integrations/whatsapp/connect/` —
+  /// `channel.manage` server-side. The token is verified against Graph
+  /// before anything is stored.
+  ///
+  /// Used both to attach a new number ("Add another number") and — by
+  /// resubmitting the same `phoneNumberId` with a freshly generated
+  /// `accessToken` — to rotate an existing connection's credential ("Update
+  /// token"). Swagger documents no separate update endpoint; a 409 here
+  /// ("Already connected to another workspace, or connected through a
+  /// different onboarding mode") is surfaced to the caller verbatim via
+  /// [ApiException] rather than assumed away.
+  Future<ConnectedChannel> connectWhatsApp({
+    required String phoneNumberId,
+    required String accessToken,
+    String? wabaId,
+  }) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/whatsapp/connect/',
+      body: {
+        'phone_number_id': phoneNumberId,
+        'access_token': accessToken,
+        'waba_id': ?wabaId,
+      },
+    );
+    return ConnectedChannel.fromJson(data);
+  }
+
+  /// Instagram Login — a distinct API from the Page-based flow behind
+  /// [connectMeta]/[authorizeInstagram] — attaches an account by an
+  /// Instagram user token pasted from Meta's dashboard "Generate token"
+  /// button. `POST /integrations/instagram/connect/` — `channel.manage`
+  /// server-side. The account id is derived from the token, not supplied by
+  /// the caller.
+  Future<ConnectedChannel> connectInstagram({
+    required String accessToken,
+  }) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/integrations/instagram/connect/',
+      body: {'access_token': accessToken},
+    );
+    return ConnectedChannel.fromJson(data);
   }
 
   /// The conversation-category taxonomy. Open to any active employee, and
@@ -319,5 +479,28 @@ class DirectoryRepository {
       body: {'confirmed': confirmed, 'value': ?value},
     );
     return CustomerFact.fromJson(data);
+  }
+
+  // ------------------------------------------------------- routing policy
+  Future<RoutingPolicy> routingPolicy() async {
+    final data = await _api.get<Map<String, dynamic>>('/routing/policy/');
+    return RoutingPolicy.fromJson(data);
+  }
+
+  Future<RoutingPolicy> updateRoutingPolicy({
+    bool? isEnabled,
+    int? maxOpenChatsPerAgent,
+    String? timezone,
+  }) async {
+    final body = <String, dynamic>{
+      'is_enabled': ?isEnabled,
+      'max_open_chats_per_agent': ?maxOpenChatsPerAgent,
+      'timezone': ?timezone,
+    };
+    final data = await _api.patch<Map<String, dynamic>>(
+      '/routing/policy/',
+      body: body,
+    );
+    return RoutingPolicy.fromJson(data);
   }
 }

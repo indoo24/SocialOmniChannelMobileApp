@@ -28,6 +28,7 @@ import 'package:scenario_mobile/core/models/customer_detail.dart';
 import 'package:scenario_mobile/core/models/employee.dart';
 import 'package:scenario_mobile/core/providers.dart';
 import 'package:scenario_mobile/core/theme/app_theme.dart';
+import 'package:scenario_mobile/core/widgets/section_scaffold.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
 import 'package:scenario_mobile/features/directory/customer_profile_screen.dart';
 import 'package:scenario_mobile/features/directory/employees_screen.dart';
@@ -299,7 +300,7 @@ void main() {
         await tester.pumpWidget(
           _screenHarness(
             apiClient: client,
-            employee: _employee(role: 'AGENT', permissions: _agentPerms),
+            employee: _employee(role: 'SUPERVISOR', permissions: _agentPerms),
             screen: const EmployeesScreen(),
           ),
         );
@@ -310,6 +311,24 @@ void main() {
         // Confirms the directory itself still rendered — this is a real
         // absence of the controls, not an unrelated load failure hiding them.
         expect(find.text('Mona Other'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'an agent cannot access the employee screen and sees NoAccessScreen',
+      (tester) async {
+        final client = _clientFrom(_adapter());
+        await tester.pumpWidget(
+          _screenHarness(
+            apiClient: client,
+            employee: _employee(role: 'AGENT', permissions: _agentPerms),
+            screen: const EmployeesScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(NoAccessScreen), findsOneWidget);
+        expect(find.text('Mona Other'), findsNothing);
       },
     );
 
@@ -551,7 +570,9 @@ void main() {
   });
 
   group('TeamsScreen — admin-only visibility', () {
-    testWidgets('a non-admin sees no Add Team button', (tester) async {
+    testWidgets('a non-admin sees no Add Team button and no management menu', (
+      tester,
+    ) async {
       final client = _clientFrom(_adapter());
       await tester.pumpWidget(
         _screenHarness(
@@ -563,8 +584,134 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(FloatingActionButton), findsNothing);
+      expect(_managementMenus(), findsNothing);
       expect(find.text('Support'), findsOneWidget);
     });
+
+    testWidgets('an admin sees Add Team and a management menu on team cards', (
+      tester,
+    ) async {
+      final client = _clientFrom(_adapter());
+      await tester.pumpWidget(
+        _screenHarness(
+          apiClient: client,
+          employee: _employee(role: 'ADMIN', permissions: _adminPerms),
+          screen: const TeamsScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(_managementMenus(), findsOneWidget);
+
+      await tester.tap(_managementMenus().first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Deactivate'), findsOneWidget);
+    });
+
+    testWidgets(
+      'Edit Team is prefilled from the card and a successful save closes the '
+      'sheet, refreshes the list and shows a confirmation',
+      (tester) async {
+        var patchCount = 0;
+        final adapter = _adapter(
+          extra: (options) {
+            if (options.path == '/teams/3/' && options.method == 'PATCH') {
+              patchCount += 1;
+              return _json(
+                '{"id": 3, "name": "Support", "description": "Tier 2 support", '
+                '"language": "en", "color": "#0F766E", "is_active": true, '
+                '"members": [], "leaders": [], "member_count": 0}',
+                200,
+              );
+            }
+            return _notHandled();
+          },
+        );
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(
+          _screenHarness(
+            apiClient: client,
+            employee: _employee(role: 'ADMIN', permissions: _adminPerms),
+            screen: const TeamsScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Support'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Edit team'), findsOneWidget);
+        expect(find.text('Support'), findsWidgets);
+
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Description'),
+          'Tier 2 support',
+        );
+
+        await _scrollToAndTapSave(tester);
+        await tester.pumpAndSettle();
+
+        expect(patchCount, 1);
+        final patchRequest = adapter.received.firstWhere(
+          (r) => r.method == 'PATCH' && r.path == '/teams/3/',
+        );
+        expect(patchRequest.data, {'description': 'Tier 2 support'});
+        expect(find.text('Team updated'), findsOneWidget);
+        expect(find.text('Edit team'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'Deactivate Team asks for confirmation naming the team, then deactivates '
+      'on success',
+      (tester) async {
+        var deleteCount = 0;
+        final adapter = _adapter(
+          extra: (options) {
+            if (options.path == '/teams/3/' && options.method == 'DELETE') {
+              deleteCount += 1;
+              return _json(
+                '{"id": 3, "name": "Support", "is_active": false}',
+                200,
+              );
+            }
+            return _notHandled();
+          },
+        );
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(
+          _screenHarness(
+            apiClient: client,
+            employee: _employee(role: 'ADMIN', permissions: _adminPerms),
+            screen: const TeamsScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(_managementMenus().first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Deactivate'));
+        await tester.pumpAndSettle();
+
+        // Confirmation names the team and never says "delete".
+        expect(find.textContaining('Support'), findsWidgets);
+        expect(
+          find.textContaining('permanent', findRichText: true),
+          findsNothing,
+        );
+
+        await tester.tap(find.text('Deactivate').last);
+        await tester.pumpAndSettle();
+
+        expect(deleteCount, 1);
+        expect(find.textContaining('deactivated'), findsOneWidget);
+      },
+    );
 
     testWidgets(
       'an admin sees Add Team, and a successful create refreshes the list',

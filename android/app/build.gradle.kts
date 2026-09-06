@@ -76,7 +76,7 @@ if (file("google-services.json").exists()) {
 
 android {
     namespace = "com.scenario.scenario_mobile"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

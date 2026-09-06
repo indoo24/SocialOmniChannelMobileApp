@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/router.dart';
+import '../../core/models/conversation.dart';
 import '../../core/models/directory.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/avatar.dart';
@@ -19,6 +21,7 @@ import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
+import '../conversations/inbox_screen.dart';
 import '../directory/directory_providers.dart';
 import '../performance/performance_card.dart';
 
@@ -140,6 +143,19 @@ class DashboardScreen extends ConsumerWidget {
               ),
               _WorkloadCard(team: data.team!),
             ],
+
+            const SizedBox(height: Space.xl),
+            SectionHeading(
+              context.l10n.recentActivityTitle,
+              trailing: TextButton(
+                onPressed: () => context.go(Routes.inbox),
+                child: Text(context.l10n.openInboxButton),
+              ),
+            ),
+            _RecentActivityCard(
+              conversations: data.recentConversations,
+              currentEmployeeId: employee?.id,
+            ),
 
             const SizedBox(height: Space.xxl),
           ],
@@ -331,6 +347,52 @@ class _WorkloadRow extends StatelessWidget {
         style: Theme.of(
           context,
         ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+class _RecentActivityCard extends StatelessWidget {
+  const _RecentActivityCard({
+    required this.conversations,
+    required this.currentEmployeeId,
+  });
+
+  final List<Conversation> conversations;
+  final int? currentEmployeeId;
+
+  @override
+  Widget build(BuildContext context) {
+    if (conversations.isEmpty) {
+      return Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(Space.xl),
+          child: Center(
+            child: Text(
+              context.l10n.noRecentActivityMessage,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < conversations.length; i++) ...[
+            if (i > 0) const Divider(height: 1, indent: 68),
+            ConversationRow(
+              conversation: conversations[i],
+              currentEmployeeId: currentEmployeeId,
+              onTap: () =>
+                  context.push(Routes.conversation(conversations[i].id)),
+            ),
+          ],
+        ],
       ),
     );
   }
