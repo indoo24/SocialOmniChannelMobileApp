@@ -78,9 +78,23 @@ android {
     namespace = "com.scenario.scenario_mobile"
     // Flutter's own bundled default (flutter.compileSdkVersion) is 36 as of
     // this SDK, but flutter_secure_storage 11.x's Android plugin requires
-    // compiling against 37 — see its own AAR metadata check. AGP 9.0.1 does
-    // not yet list 37 as its "recommended" ceiling but does support it.
+    // compiling against 37 — see its own AAR metadata check.
+    //
+    // API level 37 has NOT been finalized/published by Google as a plain
+    // "android-37" platform — verified directly against Google's own SDK
+    // repository manifest (dl.google.com/android/repository/repository2-3.xml)
+    // and https://developer.android.com/tools/releases/platforms, which still
+    // lists API 36 as latest. Only sub-revisions exist: android-37.0,
+    // android-37.1, android-37.2 (the "SDK extension" scheme Google uses for
+    // an API level before it gets a stable integer release). `compileSdk = 37`
+    // alone asks AGP for the literal, nonexistent target hash "android-37" —
+    // most tasks resolve this leniently against the closest 37.x install, but
+    // R8's own classpath resolution (minifyReleaseWithR8) does not, which is
+    // the exact "Failed to find target with hash string 'android-37'"
+    // failure on Codemagic's fresh SDK install. `compileSdkMinor` asks AGP
+    // for the exact, real target "android-37.0" everywhere, closing that gap.
     compileSdk = 37
+    compileSdkMinor = 0
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
