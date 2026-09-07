@@ -249,6 +249,23 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     ref.read(inboxControllerProvider.notifier).refreshQuietly();
   }
 
+  /// Updates the status of the conversation on the backend and updates
+  /// current state and inbox list immediately.
+  Future<void> updateStatus(String status) async {
+    await ref
+        .read(conversationRepositoryProvider)
+        .changeStatus(conversationId, status);
+    final current = state.value;
+    if (current != null) {
+      state = AsyncData(
+        current.copyWith(
+          conversation: current.conversation.copyWith(status: status),
+        ),
+      );
+    }
+    ref.read(inboxControllerProvider.notifier).refreshQuietly();
+  }
+
   /// Send a reply, showing it immediately as pending.
   ///
   /// The optimistic row carries a [Message.localId]; the server's response

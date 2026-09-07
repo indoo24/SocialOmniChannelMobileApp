@@ -289,6 +289,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           ),
           IconButton(
             tooltip: context.l10n.actionsTooltip,
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             icon: const Icon(Icons.more_vert),
             onPressed: () => showConversationActionsSheet(
               context,
@@ -391,10 +394,13 @@ class _FollowUpButton extends ConsumerWidget {
 
     return IconButton(
       tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
       icon: Icon(
         isFollowUp ? Icons.flag_rounded : Icons.flag_outlined,
         color: flagColor,
-        size: 22,
+        size: 20,
       ),
       onPressed: canChange
           ? () => _showFollowUpDialog(context, ref, conversation)
@@ -743,32 +749,53 @@ class _Header extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    StatusBadge(
-                      label: statusLabel,
-                      tone: statusTone,
-                      dense: true,
+                    Flexible(
+                      child: StatusBadge(
+                        label: statusLabel,
+                        tone: statusTone,
+                        dense: true,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 1.5),
-                Row(
-                  children: [
-                    _ChannelPill(provider: conversation.provider as String),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text(
-                        _formatSubtitle(context, conversation),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontSize: 11,
-                          color: theme.textTheme.labelSmall?.color?.withValues(
-                            alpha: 0.75,
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final maxW = constraints.maxWidth;
+                    if (maxW < 75) {
+                      return Row(
+                        children: [
+                          Flexible(
+                            child: _ChannelPill(
+                              provider: conversation.provider as String,
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        Flexible(
+                          child: _ChannelPill(
+                            provider: conversation.provider as String,
                           ),
                         ),
-                      ),
-                    ),
-                  ],
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            _formatSubtitle(context, conversation),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 11,
+                              color: theme.textTheme.labelSmall?.color
+                                  ?.withValues(alpha: 0.75),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -818,12 +845,16 @@ class _ChannelPill extends StatelessWidget {
         children: [
           Icon(icon, size: 10.5, color: color),
           const SizedBox(width: 3),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: color,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -1735,7 +1766,13 @@ class _ComposerState extends ConsumerState<_Composer> {
                                             ),
                                           ),
                                           const SizedBox(width: Space.sm),
-                                          Text(context.l10n.loadingTemplates),
+                                          Expanded(
+                                            child: Text(
+                                              context.l10n.loadingTemplates,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
