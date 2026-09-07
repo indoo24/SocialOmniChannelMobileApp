@@ -1888,4 +1888,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reasonNoSchedule => 'بلا جدول';
+
+  @override
+  String get whatsappWindowClosedTitle => 'انتهت نافذة خدمة عملاء WhatsApp.';
+
+  @override
+  String whatsappWindowClosedDetail(String name) {
+    return 'مضى أكثر من 24 ساعة على آخر رسالة من $name، لذا سترفض Meta أي رسالة نصية حرة. أرسل قالبًا معتمدًا لمتابعة المحادثة.';
+  }
+
+  @override
+  String get conversationClosedNotice =>
+      'هذه المحادثة مغلقة. أعد فتحها قبل الرد.';
+
+  @override
+  String get useTemplateAction => 'إرسال قالب';
+
+  @override
+  String get templateSentSnackbar => 'تم إرسال القالب';
 }

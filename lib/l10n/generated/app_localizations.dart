@@ -3379,6 +3379,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No schedule'**
   String get reasonNoSchedule;
+
+  /// Notice shown in composer when WhatsApp 24-hour customer service messaging window is closed
+  ///
+  /// In en, this message translates to:
+  /// **'The WhatsApp customer-service window has closed.'**
+  String get whatsappWindowClosedTitle;
+
+  /// Detailed explanation of closed WhatsApp window
+  ///
+  /// In en, this message translates to:
+  /// **'More than 24 hours have passed since {name} last wrote, so Meta will reject a free-text message. Send an approved template to continue the conversation.'**
+  String whatsappWindowClosedDetail(String name);
+
+  /// Notice shown in composer when the conversation status is closed
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation is closed. Reopen it before replying.'**
+  String get conversationClosedNotice;
+
+  /// Button to switch to template composer mode
+  ///
+  /// In en, this message translates to:
+  /// **'Send a template'**
+  String get useTemplateAction;
+
+  /// Snackbar shown after successfully sending a template
+  ///
+  /// In en, this message translates to:
+  /// **'Template sent'**
+  String get templateSentSnackbar;
 }
 
 class _AppLocalizationsDelegate

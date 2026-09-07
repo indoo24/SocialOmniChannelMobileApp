@@ -273,7 +273,12 @@ Employee _employee() => const Employee(
   organization: Organization(id: 1, name: 'Acme Retail'),
 );
 
-const _conversationDetail = '''
+String get _conversationDetail {
+  final recentTime = DateTime.now()
+      .subtract(const Duration(minutes: 5))
+      .toUtc()
+      .toIso8601String();
+  return '''
 {
   "id": 42,
   "customer": {
@@ -285,9 +290,11 @@ const _conversationDetail = '''
   },
   "provider": "WHATSAPP",
   "channel_name": "Scenario Sales",
-  "status": "OPEN"
+  "status": "OPEN",
+  "last_customer_message_at": "$recentTime"
 }
 ''';
+}
 
 Future<void> _pumpConversation(
   WidgetTester tester,

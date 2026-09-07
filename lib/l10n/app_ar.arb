@@ -587,5 +587,10 @@
   "reasonNotOnline": "غير متصل",
   "reasonStaleHeartbeat": "لا يمكن الوصول",
   "reasonAtCapacity": "بلغ الحد الأقصى",
-  "reasonNoSchedule": "بلا جدول"
+  "reasonNoSchedule": "بلا جدول",
+  "whatsappWindowClosedTitle": "انتهت نافذة خدمة عملاء WhatsApp.",
+  "whatsappWindowClosedDetail": "مضى أكثر من 24 ساعة على آخر رسالة من {name}، لذا سترفض Meta أي رسالة نصية حرة. أرسل قالبًا معتمدًا لمتابعة المحادثة.",
+  "conversationClosedNotice": "هذه المحادثة مغلقة. أعد فتحها قبل الرد.",
+  "useTemplateAction": "إرسال قالب",
+  "templateSentSnackbar": "تم إرسال القالب"
 }

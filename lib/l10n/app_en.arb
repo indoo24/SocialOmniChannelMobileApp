@@ -864,5 +864,30 @@
   "reasonNotOnline": "Not online",
   "reasonStaleHeartbeat": "Not reachable",
   "reasonAtCapacity": "At capacity",
-  "reasonNoSchedule": "No schedule"
+  "reasonNoSchedule": "No schedule",
+  "whatsappWindowClosedTitle": "The WhatsApp customer-service window has closed.",
+  "@whatsappWindowClosedTitle": {
+    "description": "Notice shown in composer when WhatsApp 24-hour customer service messaging window is closed"
+  },
+  "whatsappWindowClosedDetail": "More than 24 hours have passed since {name} last wrote, so Meta will reject a free-text message. Send an approved template to continue the conversation.",
+  "@whatsappWindowClosedDetail": {
+    "description": "Detailed explanation of closed WhatsApp window",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "conversationClosedNotice": "This conversation is closed. Reopen it before replying.",
+  "@conversationClosedNotice": {
+    "description": "Notice shown in composer when the conversation status is closed"
+  },
+  "useTemplateAction": "Send a template",
+  "@useTemplateAction": {
+    "description": "Button to switch to template composer mode"
+  },
+  "templateSentSnackbar": "Template sent",
+  "@templateSentSnackbar": {
+    "description": "Snackbar shown after successfully sending a template"
+  }
 }

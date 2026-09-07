@@ -130,7 +130,8 @@ void main() {
   testWidgets(
     'Conversation template picker loads real templates from API and excludes hardcoded templates',
     (tester) async {
-      String? sentReplyText;
+      String? sentTemplateName;
+      String? sentTemplateLanguage;
 
       final client = _stubClient((options) {
         if (options.path.contains('/conversations/42/messages/')) {
@@ -139,17 +140,14 @@ void main() {
         if (options.path.contains('/conversations/42/notes/')) {
           return _json('[]', 200);
         }
-        if (options.path.contains('/conversations/42/reply/')) {
+        if (options.path.contains('/conversations/42/send-template/')) {
           final data = options.data as Map<String, dynamic>;
-          sentReplyText = data['text'] as String?;
-          return _json('''{
-            "id": 999,
-            "text": "$sentReplyText",
-            "sender_name": "Agent Smith",
-            "is_outbound": true,
-            "sent_at": "2026-09-04T12:00:00Z",
-            "delivery_status": "SENT"
-          }''', 201);
+          sentTemplateName = data['template_name'] as String?;
+          sentTemplateLanguage = data['language'] as String?;
+          return _json('{"success": true}', 200);
+        }
+        if (options.path.contains('/conversations/42/reply/')) {
+          return _json('{}', 201);
         }
         if (options.path.contains('/conversations/42/')) {
           return _json(_conversationJson, 200);
@@ -229,8 +227,9 @@ void main() {
       await tester.tap(sendButton);
       await tester.pumpAndSettle();
 
-      // Verify that the reply was sent with the template's body text
-      expect(sentReplyText, 'Your request has been confirmed by our team.');
+      // Verify that the template was sent via POST /conversations/{id}/send-template/
+      expect(sentTemplateName, 'scenario_confirmed');
+      expect(sentTemplateLanguage, 'en_US');
     },
   );
 

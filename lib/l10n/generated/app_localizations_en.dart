@@ -1862,4 +1862,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reasonNoSchedule => 'No schedule';
+
+  @override
+  String get whatsappWindowClosedTitle =>
+      'The WhatsApp customer-service window has closed.';
+
+  @override
+  String whatsappWindowClosedDetail(String name) {
+    return 'More than 24 hours have passed since $name last wrote, so Meta will reject a free-text message. Send an approved template to continue the conversation.';
+  }
+
+  @override
+  String get conversationClosedNotice =>
+      'This conversation is closed. Reopen it before replying.';
+
+  @override
+  String get useTemplateAction => 'Send a template';
+
+  @override
+  String get templateSentSnackbar => 'Template sent';
 }
