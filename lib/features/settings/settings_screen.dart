@@ -683,6 +683,13 @@ class _ChannelsTabState extends ConsumerState<_ChannelsTab> {
     });
   }
 
+  static const _supportedCatalogProviders = [
+    'WHATSAPP',
+    'FACEBOOK',
+    'INSTAGRAM',
+    'TIKTOK',
+  ];
+
   @override
   Widget build(BuildContext context) {
     final channels = ref.watch(channelsProvider);
@@ -700,21 +707,6 @@ class _ChannelsTabState extends ConsumerState<_ChannelsTab> {
           onRetry: () => ref.invalidate(channelsProvider),
         ),
         data: (rows) {
-          if (rows.isEmpty) {
-            return ListView(
-              children: [
-                SizedBox(
-                  height: MediaQuery.sizeOf(context).height * 0.5,
-                  child: EmptyState(
-                    icon: Icons.hub_outlined,
-                    title: context.l10n.noChannelsTitle,
-                    message: context.l10n.noChannelsMessage,
-                  ),
-                ),
-              ],
-            );
-          }
-
           final visible = [
             for (final c in rows)
               if (!hidden.contains(c.id)) c,
@@ -731,19 +723,35 @@ class _ChannelsTabState extends ConsumerState<_ChannelsTab> {
             platformGroups.putIfAbsent(key, () => []).add(channel);
           }
 
+          final allProviders = <String>[
+            ..._supportedCatalogProviders,
+            for (final p in platformGroups.keys)
+              if (!_supportedCatalogProviders.contains(p)) p,
+          ];
+
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(Space.lg),
             children: [
-              for (final entry in platformGroups.entries) ...[
-                _PlatformGroupCard(
-                  key: ValueKey('platform_group_${entry.key}'),
-                  provider: entry.key,
-                  channels: entry.value,
-                  isExpanded: !_collapsedProviders.contains(entry.key),
-                  onToggleExpanded: () => _toggleExpanded(entry.key),
-                ),
-                const SizedBox(height: Space.lg),
+              for (final provider in allProviders) ...[
+                if (platformGroups[provider]?.isNotEmpty == true) ...[
+                  _PlatformGroupCard(
+                    key: ValueKey('platform_group_$provider'),
+                    provider: provider,
+                    channels: platformGroups[provider]!,
+                    isExpanded: !_collapsedProviders.contains(provider),
+                    onToggleExpanded: () => _toggleExpanded(provider),
+                  ),
+                  const SizedBox(height: Space.lg),
+                ] else if (!rows.any(
+                  (c) => c.provider.toUpperCase() == provider,
+                )) ...[
+                  _ChannelOnboardingCard(
+                    key: ValueKey('channel_onboarding_$provider'),
+                    provider: provider,
+                  ),
+                  const SizedBox(height: Space.lg),
+                ],
               ],
               if (hiddenRows.isNotEmpty)
                 _HiddenChannelsSection(channels: hiddenRows),
@@ -861,28 +869,14 @@ class _PlatformGroupCardState extends ConsumerState<_PlatformGroupCard> {
   }
 
   String _platformDescription(BuildContext context, String provider) {
-    final isAr = Localizations.localeOf(context).languageCode == 'ar';
     return switch (provider.toUpperCase()) {
-      'WHATSAPP' =>
-        isAr
-            ? 'استقبال والرد على رسائل واتساب المرسلة إلى رقم نشاطك التجاري.'
-            : 'Receive and reply to WhatsApp messages sent to your business number.',
-      'FACEBOOK' =>
-        isAr
-            ? 'استقبال والرد على الرسائل المرسلة إلى صفحتك على فيسبوك.'
-            : 'Receive and reply to messages sent to your Facebook Page.',
-      'INSTAGRAM' =>
-        isAr
-            ? 'استقبال والرد على الرسائل المباشرة عبر صفحة فيسبوك المرتبطة أو تسجيل دخول إنستغرام.'
-            : 'Receive and reply to DMs. Connects either through a linked Facebook Page, or directly with an Instagram Login token.',
-      'TIKTOK' =>
-        isAr
-            ? 'استقبال والرد على الرسائل المباشرة المرسلة إلى حساب تيك توك للأعمال.'
-            : 'Receive and reply to direct messages sent to your TikTok business account.',
+      'WHATSAPP' => context.l10n.channelDescWhatsApp,
+      'FACEBOOK' => context.l10n.channelDescFacebook,
+      'INSTAGRAM' => context.l10n.channelDescInstagram,
+      'TIKTOK' => context.l10n.channelDescTiktok,
       _ =>
-        isAr
-            ? 'إدارة الرسائل والرد عليها من هذه القناة.'
-            : 'Manage and reply to messages from this channel.',
+        widget.channels.firstOrNull?.providerDisplay ??
+            ConversationBadges.providerLabel(context, provider),
     };
   }
 
@@ -1265,6 +1259,282 @@ class _OtherWaysToConnectSection extends StatelessWidget {
                   )
                 : const SizedBox.shrink(),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Onboarding card displayed when a supported channel is not yet connected,
+/// matching the Web UI design and actions.
+class _ChannelOnboardingCard extends ConsumerStatefulWidget {
+  const _ChannelOnboardingCard({required this.provider, super.key});
+
+  final String provider;
+
+  @override
+  ConsumerState<_ChannelOnboardingCard> createState() =>
+      _ChannelOnboardingCardState();
+}
+
+class _ChannelOnboardingCardState
+    extends ConsumerState<_ChannelOnboardingCard> {
+  bool _busy = false;
+  bool _otherWaysExpanded = false;
+
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+      ),
+    );
+  }
+
+  Future<void> _connect(
+    Future<ChannelAuthorizationUrl> Function() fetchUrl,
+  ) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final result = await fetchUrl();
+      final uri = Uri.tryParse(result.url);
+      if (uri == null || !uri.hasScheme) {
+        if (!mounted) return;
+        _showMessage(context.l10n.couldNotOpenBrowserError, isError: true);
+        return;
+      }
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened) {
+        if (!mounted) return;
+        _showMessage(context.l10n.couldNotOpenBrowserError, isError: true);
+        return;
+      }
+      ref.invalidate(channelsProvider);
+    } on ApiException catch (error) {
+      _showMessage(error.message, isError: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  String _platformTitle(BuildContext context, String provider) {
+    return switch (provider.toUpperCase()) {
+      'WHATSAPP' => 'WhatsApp Business',
+      'FACEBOOK' => 'Facebook Messenger',
+      'INSTAGRAM' => 'Instagram Direct',
+      'TIKTOK' => 'TikTok',
+      _ => ConversationBadges.providerLabel(context, provider),
+    };
+  }
+
+  String _platformDescription(BuildContext context, String provider) {
+    return switch (provider.toUpperCase()) {
+      'WHATSAPP' => context.l10n.channelDescWhatsApp,
+      'FACEBOOK' => context.l10n.channelDescFacebook,
+      'INSTAGRAM' => context.l10n.channelDescInstagram,
+      'TIKTOK' => context.l10n.channelDescTiktok,
+      _ => ConversationBadges.providerLabel(context, provider),
+    };
+  }
+
+  Widget? _buildPrimaryAction(BuildContext context, bool canManage) {
+    if (!canManage) return null;
+    final provider = widget.provider.toUpperCase();
+    final repo = ref.read(directoryRepositoryProvider);
+
+    return switch (provider) {
+      'WHATSAPP' => FilledButton.icon(
+        onPressed: _busy
+            ? null
+            : () => _connect(repo.startWhatsAppEmbeddedSignupMobile),
+        icon: const Icon(Icons.link, size: 16),
+        label: Text(context.l10n.connectWhatsAppAction),
+      ),
+      'FACEBOOK' => FilledButton.icon(
+        onPressed: _busy ? null : () => _connect(repo.connectMeta),
+        icon: const Icon(Icons.link, size: 16),
+        label: Text(context.l10n.connectAction),
+      ),
+      'INSTAGRAM' => FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF5B51D8),
+          foregroundColor: Colors.white,
+        ),
+        onPressed: _busy ? null : () => _connect(repo.authorizeInstagram),
+        icon: const Icon(Icons.camera_alt, size: 16),
+        label: Text(context.l10n.connectInstagramAction),
+      ),
+      _ => null,
+    };
+  }
+
+  List<_OtherWayToConnect> _otherWaysToConnect(BuildContext context) {
+    final repo = ref.read(directoryRepositoryProvider);
+    return switch (widget.provider.toUpperCase()) {
+      'WHATSAPP' => [
+        _OtherWayToConnect(
+          icon: Icons.link,
+          label: context.l10n.enterDetailsManuallyAction,
+          hint: context.l10n.viaManualTokenHint,
+          onTap: () => showWhatsAppConnectSheet(context),
+        ),
+      ],
+      'INSTAGRAM' => [
+        _OtherWayToConnect(
+          icon: Icons.link,
+          label: context.l10n.connectAction,
+          hint: context.l10n.legacyViaPageHint,
+          onTap: () => _connect(repo.connectMeta),
+        ),
+        _OtherWayToConnect(
+          icon: Icons.vpn_key_outlined,
+          label: context.l10n.useInstagramTokenAction,
+          onTap: () => showInstagramTokenConnectSheet(context),
+        ),
+      ],
+      _ => const [],
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final canManage = ref.watch(canProvider(Perm.channelManage));
+    final platformColor = ConversationBadges.providerColor(widget.provider);
+    final title = _platformTitle(context, widget.provider);
+    final description = _platformDescription(context, widget.provider);
+    final isComingSoon = widget.provider.toUpperCase() == 'TIKTOK';
+    final primaryAction = _buildPrimaryAction(context, canManage);
+    final otherWays = _otherWaysToConnect(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25)
+            : theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(Radii.md),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(
+            alpha: isDark ? 0.3 : 0.6,
+          ),
+        ),
+      ),
+      padding: const EdgeInsets.all(Space.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_busy) ...[
+            const LinearProgressIndicator(minHeight: 2),
+            const SizedBox(height: Space.sm),
+          ],
+          // Platform Header
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: platformColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(Radii.sm),
+                ),
+                child: Icon(
+                  ConversationBadges.providerIcon(widget.provider),
+                  size: 20,
+                  color: platformColor,
+                ),
+              ),
+              const SizedBox(width: Space.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      description,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: Space.xs),
+              StatusBadge(
+                label: isComingSoon
+                    ? context.l10n.channelStatusComingSoon
+                    : context.l10n.channelStatusNotConnected,
+                tone: BadgeTone.neutral,
+                icon: isComingSoon ? null : Icons.link_off,
+                dense: true,
+              ),
+            ],
+          ),
+
+          if (isComingSoon) ...[
+            const SizedBox(height: Space.md),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: Space.md,
+                vertical: Space.sm,
+              ),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? theme.colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.2,
+                      )
+                    : theme.colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.4,
+                      ),
+                borderRadius: BorderRadius.circular(Radii.sm),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: isDark ? 0.3 : 0.6,
+                  ),
+                ),
+              ),
+              child: Text(
+                context.l10n.tiktokComingSoon,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ] else ...[
+            if (canManage) ...[
+              if (primaryAction != null) ...[
+                const SizedBox(height: Space.md),
+                primaryAction,
+              ],
+              if (otherWays.isNotEmpty) ...[
+                _OtherWaysToConnectSection(
+                  items: otherWays,
+                  isExpanded: _otherWaysExpanded,
+                  onToggleExpanded: () =>
+                      setState(() => _otherWaysExpanded = !_otherWaysExpanded),
+                ),
+              ],
+            ] else ...[
+              const SizedBox(height: Space.md),
+              Text(
+                context.l10n.adminOnlyConnectChannels,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ],
         ],
       ),
     );

@@ -303,6 +303,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateAction => 'Update';
 
   @override
+  String get channelStatusNotConnected => 'Not connected';
+
+  @override
+  String get channelStatusComingSoon => 'Coming soon';
+
+  @override
+  String get connectWhatsAppAction => 'Connect WhatsApp';
+
+  @override
+  String get connectInstagramAction => 'Connect Instagram';
+
+  @override
+  String get enterDetailsManuallyAction => 'Enter details manually';
+
+  @override
+  String get viaManualTokenHint => 'via phone number ID and access token';
+
+  @override
+  String get legacyViaPageHint => 'Legacy — via a linked Facebook Page';
+
+  @override
+  String get tiktokComingSoon => 'TikTok integration will be available soon.';
+
+  @override
+  String get adminOnlyConnectChannels =>
+      'Only an administrator can connect channels.';
+
+  @override
+  String get channelDescWhatsApp =>
+      'Receive and reply to WhatsApp messages sent to your business number.';
+
+  @override
+  String get channelDescFacebook =>
+      'Receive and reply to messages sent to your Facebook Page.';
+
+  @override
+  String get channelDescInstagram =>
+      'Receive and reply to DMs. Connects either through a linked Facebook Page, or directly with an Instagram Login token.';
+
+  @override
+  String get channelDescTiktok =>
+      'Reply to TikTok direct messages from the shared inbox.';
+
+  @override
   String get noConnectionTitle => 'No connection';
 
   @override
