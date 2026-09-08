@@ -1949,4 +1949,62 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get templateSentSnackbar => 'تم إرسال القالب';
+
+  @override
+  String get reassignAfterTitle => 'إعادة توزيع المحادثة عند عدم الرد بعد';
+
+  @override
+  String get reassignAfterHint =>
+      'إذا لم يرد الموظف خلال هذه المدة، سيحاول النظام إعادة توزيع المحادثة على موظف آخر متاح.';
+
+  @override
+  String get reassignAfterRestart => 'يبدأ الوقت من جديد عند كل إعادة توزيع.';
+
+  @override
+  String get reassignAfterRange => 'بين دقيقة واحدة و1440 دقيقة.';
+
+  @override
+  String get reassignAfterUnit => 'دقيقة';
+
+  @override
+  String get reassignSaved => 'تم حفظ مدة إعادة التوزيع';
+
+  @override
+  String get reassignInvalidRangeError =>
+      'يجب أن تكون المدة بين 1 و1440 دقيقة.';
+
+  @override
+  String get stickyOwnershipTitle => 'إبقاء المحادثة مع نفس الموظف';
+
+  @override
+  String get stickyOwnershipHint =>
+      'بمجرد أن يرد الموظف على العميل، تبقى المحادثة معه حتى إذا عاد العميل لاحقًا أو كان الموظف غير متصل أو مشغولًا. عند إيقاف هذا الخيار يمكن إعادة توزيع المحادثة إذا لم يرد الموظف خلال المهلة أعلاه.';
+
+  @override
+  String get stickyOwnershipOn => 'مُفعّل';
+
+  @override
+  String get stickyOwnershipOff => 'متوقف';
+
+  @override
+  String get stickyOwnershipSaved => 'تم حفظ إعداد ملكية المحادثة';
+
+  @override
+  String get maxHopsTitle => 'الحد الأقصى لإعادات التوزيع قبل الرد';
+
+  @override
+  String get maxHopsHint =>
+      'حد وقائي. يُحتسب فقط لإعادات التوزيع التي تتم قبل أن يرد أي موظف على العميل، وعند رد أي موظف يبدأ العد من جديد. وعند بلوغ الحد تتوقف إعادة التوزيع وتبقى المحادثة مع الموظف الحالي.';
+
+  @override
+  String get maxHopsRange => 'بين 1 و20.';
+
+  @override
+  String get maxHopsSaved => 'تم حفظ حد إعادة التوزيع';
+
+  @override
+  String get maxHopsInvalidRangeError => 'يجب أن يكون الحد بين 1 و20.';
+
+  @override
+  String get saveAction => 'حفظ';
 }

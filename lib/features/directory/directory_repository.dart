@@ -491,11 +491,17 @@ class DirectoryRepository {
     bool? isEnabled,
     int? maxOpenChatsPerAgent,
     String? timezone,
+    int? firstResponseSlaSeconds,
+    bool? stickyConversationOwnership,
+    int? escalationMaxHops,
   }) async {
     final body = <String, dynamic>{
       'is_enabled': ?isEnabled,
       'max_open_chats_per_agent': ?maxOpenChatsPerAgent,
       'timezone': ?timezone,
+      'first_response_sla_seconds': ?firstResponseSlaSeconds,
+      'sticky_conversation_ownership': ?stickyConversationOwnership,
+      'escalation_max_hops': ?escalationMaxHops,
     };
     final data = await _api.patch<Map<String, dynamic>>(
       '/routing/policy/',

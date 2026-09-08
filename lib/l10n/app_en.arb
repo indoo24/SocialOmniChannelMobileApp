@@ -902,5 +902,77 @@
   "templateSentSnackbar": "Template sent",
   "@templateSentSnackbar": {
     "description": "Snackbar shown after successfully sending a template"
+  },
+  "reassignAfterTitle": "Reassign unanswered conversation after",
+  "@reassignAfterTitle": {
+    "description": "Title for reassign unanswered conversation timeout setting"
+  },
+  "reassignAfterHint": "If the assigned agent does not reply within this period, OmniChannel will try to reassign the conversation to another available agent.",
+  "@reassignAfterHint": {
+    "description": "Description for reassign unanswered conversation timeout setting"
+  },
+  "reassignAfterRestart": "The timer restarts after each reassignment.",
+  "@reassignAfterRestart": {
+    "description": "Notice that timer restarts after each reassignment"
+  },
+  "reassignAfterRange": "Between 1 and 1440 minutes.",
+  "@reassignAfterRange": {
+    "description": "Allowed range for reassign unanswered conversation in minutes"
+  },
+  "reassignAfterUnit": "minutes",
+  "@reassignAfterUnit": {
+    "description": "Unit label for minutes next to input"
+  },
+  "reassignSaved": "Reassignment time saved",
+  "@reassignSaved": {
+    "description": "Snackbar shown after successfully saving reassignment time"
+  },
+  "reassignInvalidRangeError": "Must be between 1 and 1440 minutes.",
+  "@reassignInvalidRangeError": {
+    "description": "Validation error for reassignment timeout range"
+  },
+  "stickyOwnershipTitle": "Keep conversations with the same employee",
+  "@stickyOwnershipTitle": {
+    "description": "Title for sticky conversation ownership setting"
+  },
+  "stickyOwnershipHint": "Once an employee has answered a customer, the conversation stays with that employee even if the customer returns later, or the employee is offline or busy. Turn this off to let the timeout above reassign a conversation the owner has not answered.",
+  "@stickyOwnershipHint": {
+    "description": "Description for sticky conversation ownership setting"
+  },
+  "stickyOwnershipOn": "On",
+  "@stickyOwnershipOn": {
+    "description": "Label for On state of sticky conversation ownership"
+  },
+  "stickyOwnershipOff": "Off",
+  "@stickyOwnershipOff": {
+    "description": "Label for Off state of sticky conversation ownership"
+  },
+  "stickyOwnershipSaved": "Ownership setting saved",
+  "@stickyOwnershipSaved": {
+    "description": "Snackbar shown after saving sticky conversation ownership"
+  },
+  "maxHopsTitle": "Maximum unanswered reassignments",
+  "@maxHopsTitle": {
+    "description": "Title for maximum unanswered reassignments setting"
+  },
+  "maxHopsHint": "A safety limit. It counts only reassignments made before anyone has answered the customer — once an employee replies, the count starts again. When the limit is reached the conversation stops being passed on and stays with its current employee.",
+  "@maxHopsHint": {
+    "description": "Description for maximum unanswered reassignments setting"
+  },
+  "maxHopsRange": "Between 1 and 20.",
+  "@maxHopsRange": {
+    "description": "Allowed range for maximum unanswered reassignments"
+  },
+  "maxHopsSaved": "Reassignment limit saved",
+  "@maxHopsSaved": {
+    "description": "Snackbar shown after saving maximum unanswered reassignments"
+  },
+  "maxHopsInvalidRangeError": "Must be between 1 and 20.",
+  "@maxHopsInvalidRangeError": {
+    "description": "Validation error for maximum unanswered reassignments range"
+  },
+  "saveAction": "Save",
+  "@saveAction": {
+    "description": "Generic Save button label"
   }
 }
