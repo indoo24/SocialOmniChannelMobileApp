@@ -289,6 +289,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           ),
           IconButton(
             tooltip: context.l10n.actionsTooltip,
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             icon: const Icon(Icons.more_vert),
             onPressed: () => showConversationActionsSheet(
               context,
@@ -391,10 +394,13 @@ class _FollowUpButton extends ConsumerWidget {
 
     return IconButton(
       tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
       icon: Icon(
         isFollowUp ? Icons.flag_rounded : Icons.flag_outlined,
         color: flagColor,
-        size: 22,
+        size: 20,
       ),
       onPressed: canChange
           ? () => _showFollowUpDialog(context, ref, conversation)
@@ -743,32 +749,53 @@ class _Header extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    StatusBadge(
-                      label: statusLabel,
-                      tone: statusTone,
-                      dense: true,
+                    Flexible(
+                      child: StatusBadge(
+                        label: statusLabel,
+                        tone: statusTone,
+                        dense: true,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 1.5),
-                Row(
-                  children: [
-                    _ChannelPill(provider: conversation.provider as String),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text(
-                        _formatSubtitle(context, conversation),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontSize: 11,
-                          color: theme.textTheme.labelSmall?.color?.withValues(
-                            alpha: 0.75,
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final maxW = constraints.maxWidth;
+                    if (maxW < 75) {
+                      return Row(
+                        children: [
+                          Flexible(
+                            child: _ChannelPill(
+                              provider: conversation.provider as String,
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        Flexible(
+                          child: _ChannelPill(
+                            provider: conversation.provider as String,
                           ),
                         ),
-                      ),
-                    ),
-                  ],
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            _formatSubtitle(context, conversation),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 11,
+                              color: theme.textTheme.labelSmall?.color
+                                  ?.withValues(alpha: 0.75),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -818,12 +845,16 @@ class _ChannelPill extends StatelessWidget {
         children: [
           Icon(icon, size: 10.5, color: color),
           const SizedBox(width: 3),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: color,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -1307,6 +1338,8 @@ class _ComposerState extends ConsumerState<_Composer> {
   _ComposerMode _mode = _ComposerMode.reply;
   WhatsAppTemplate? _selectedTemplate;
   bool _savingNote = false;
+  bool _sendingTemplate = false;
+  bool _userToggledMode = false;
 
   /// An image already picked and uploaded, waiting to be sent (or removed).
   /// Voice notes skip this state entirely — recording finishes and sends in
@@ -1356,6 +1389,19 @@ class _ComposerState extends ConsumerState<_Composer> {
     final isWhatsApp = convo != null
         ? (convo.provider.toUpperCase() == 'WHATSAPP')
         : widget.isWhatsApp;
+    final isConversationClosed = convo?.isClosed ?? false;
+    final isMessagingWindowClosed = convo?.isMessagingWindowClosed ?? false;
+
+    // Web useEffect equivalence:
+    // y && t === "reply" && u && n("template")
+    // When WhatsApp messaging window is closed, automatically route the agent
+    // to Template mode unless they explicitly tapped a mode.
+    if (isWhatsApp &&
+        isMessagingWindowClosed &&
+        !_userToggledMode &&
+        _mode == _ComposerMode.reply) {
+      _mode = _ComposerMode.template;
+    }
 
     final currentMode = (!isWhatsApp && _mode == _ComposerMode.template)
         ? _ComposerMode.reply
@@ -1404,7 +1450,10 @@ class _ComposerState extends ConsumerState<_Composer> {
                     icon: Icons.chat_bubble_outline_rounded,
                     active: currentMode == _ComposerMode.reply,
                     activeColor: ScenarioColors.primary,
-                    onTap: () => setState(() => _mode = _ComposerMode.reply),
+                    onTap: () {
+                      _userToggledMode = true;
+                      setState(() => _mode = _ComposerMode.reply);
+                    },
                   ),
                   if (canNote) ...[
                     const SizedBox(width: Space.xs),
@@ -1415,8 +1464,10 @@ class _ComposerState extends ConsumerState<_Composer> {
                       activeColor: isDark
                           ? const Color(0xFFFBBF24)
                           : const Color(0xFFD97706),
-                      onTap: () =>
-                          setState(() => _mode = _ComposerMode.internalNote),
+                      onTap: () {
+                        _userToggledMode = true;
+                        setState(() => _mode = _ComposerMode.internalNote);
+                      },
                     ),
                   ],
                   if (isWhatsApp) ...[
@@ -1428,8 +1479,10 @@ class _ComposerState extends ConsumerState<_Composer> {
                       activeColor: isDark
                           ? const Color(0xFFA5B4FC)
                           : const Color(0xFF4F46E5),
-                      onTap: () =>
-                          setState(() => _mode = _ComposerMode.template),
+                      onTap: () {
+                        _userToggledMode = true;
+                        setState(() => _mode = _ComposerMode.template);
+                      },
                     ),
                   ],
                 ],
@@ -1439,100 +1492,112 @@ class _ComposerState extends ConsumerState<_Composer> {
 
             // Mode Content
             if (currentMode == _ComposerMode.reply) ...[
-              if (_stagedImage != null)
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: ComposerAttachmentPreview(
-                    conversationId: widget.conversationId,
-                    staged: _stagedImage!,
-                    onRemoved: _onImageRemoved,
-                  ),
-                ),
-              if (_isRecording)
-                ComposerVoiceRecorder(
-                  key: _voiceRecorderKey,
-                  conversationId: widget.conversationId,
-                  enabled: !widget.sending,
-                  onStaged: _onVoiceStaged,
-                  onError: _showMessage,
-                  onRecordingChanged: (recording) {
-                    if (mounted) setState(() => _isRecording = recording);
+              if (isConversationClosed)
+                const _ConversationClosedNotice()
+              else if (isMessagingWindowClosed)
+                _WhatsAppWindowClosedCallout(
+                  customerName: convo?.customer.displayName ?? '',
+                  onSwitchToTemplate: () {
+                    _userToggledMode = true;
+                    setState(() => _mode = _ComposerMode.template);
                   },
                 )
-              else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    // Attachment button on the far left
-                    ComposerAttachmentButton(
+              else ...[
+                if (_stagedImage != null)
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: ComposerAttachmentPreview(
                       conversationId: widget.conversationId,
-                      enabled: !widget.sending,
-                      onStaged: _onImageStaged,
-                      onError: _showMessage,
+                      staged: _stagedImage!,
+                      onRemoved: _onImageRemoved,
                     ),
-                    const SizedBox(width: Space.xs),
-                    // Text input in the middle
-                    Expanded(
-                      child: TextField(
-                        key: const ValueKey('composer_reply_input'),
-                        controller: widget.controller,
-                        minLines: 1,
-                        maxLines: 5,
-                        textCapitalization: TextCapitalization.sentences,
-                        keyboardType: TextInputType.multiline,
-                        decoration: InputDecoration(
-                          hintText: context.l10n.writeReplyHint,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: Space.md,
-                            vertical: 10,
+                  ),
+                if (_isRecording)
+                  ComposerVoiceRecorder(
+                    key: _voiceRecorderKey,
+                    conversationId: widget.conversationId,
+                    enabled: !widget.sending,
+                    onStaged: _onVoiceStaged,
+                    onError: _showMessage,
+                    onRecordingChanged: (recording) {
+                      if (mounted) setState(() => _isRecording = recording);
+                    },
+                  )
+                else
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Attachment button on the far left
+                      ComposerAttachmentButton(
+                        conversationId: widget.conversationId,
+                        enabled: !widget.sending,
+                        onStaged: _onImageStaged,
+                        onError: _showMessage,
+                      ),
+                      const SizedBox(width: Space.xs),
+                      // Text input in the middle
+                      Expanded(
+                        child: TextField(
+                          key: const ValueKey('composer_reply_input'),
+                          controller: widget.controller,
+                          minLines: 1,
+                          maxLines: 5,
+                          textCapitalization: TextCapitalization.sentences,
+                          keyboardType: TextInputType.multiline,
+                          decoration: InputDecoration(
+                            hintText: context.l10n.writeReplyHint,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: Space.md,
+                              vertical: 10,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: Space.xs),
-                    // Microphone button immediately before Send
-                    ComposerVoiceRecorder(
-                      key: _voiceRecorderKey,
-                      conversationId: widget.conversationId,
-                      enabled: !widget.sending,
-                      onStaged: _onVoiceStaged,
-                      onError: _showMessage,
-                      onRecordingChanged: (recording) {
-                        if (mounted) setState(() => _isRecording = recording);
-                      },
-                    ),
-                    const SizedBox(width: Space.xs),
-                    // Send button fixed at far right
-                    SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: IconButton.filled(
-                        onPressed: widget.sending
-                            ? null
-                            : () {
-                                final staged = _stagedImage;
-                                if (staged != null) {
-                                  setState(() => _stagedImage = null);
-                                }
-                                widget.onSend(
-                                  attachmentId: staged?.draftId,
-                                  attachmentPreview: staged?.attachment,
-                                );
-                              },
-                        icon: widget.sending
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.send_rounded, size: 20),
+                      const SizedBox(width: Space.xs),
+                      // Microphone button immediately before Send
+                      ComposerVoiceRecorder(
+                        key: _voiceRecorderKey,
+                        conversationId: widget.conversationId,
+                        enabled: !widget.sending,
+                        onStaged: _onVoiceStaged,
+                        onError: _showMessage,
+                        onRecordingChanged: (recording) {
+                          if (mounted) setState(() => _isRecording = recording);
+                        },
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: Space.xs),
+                      // Send button fixed at far right
+                      SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: IconButton.filled(
+                          onPressed: widget.sending
+                              ? null
+                              : () {
+                                  final staged = _stagedImage;
+                                  if (staged != null) {
+                                    setState(() => _stagedImage = null);
+                                  }
+                                  widget.onSend(
+                                    attachmentId: staged?.draftId,
+                                    attachmentPreview: staged?.attachment,
+                                  );
+                                },
+                          icon: widget.sending
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.send_rounded, size: 20),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
             ] else if (currentMode == _ComposerMode.internalNote) ...[
               Column(
                 children: [
@@ -1665,90 +1730,152 @@ class _ComposerState extends ConsumerState<_Composer> {
                 ],
               ),
             ] else if (currentMode == _ComposerMode.template) ...[
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.l10n.approvedTemplate,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+              if (isConversationClosed)
+                const _ConversationClosedNotice()
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.l10n.approvedTemplate,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: Space.xs),
-                  ref
-                      .watch(
-                        conversationTemplatesProvider(widget.conversationId),
-                      )
-                      .when(
-                        loading: () => Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButtonFormField<WhatsAppTemplate>(
-                                isExpanded: true,
-                                items: const [],
-                                onChanged: null,
-                                hint: Row(
-                                  children: [
-                                    const SizedBox(
-                                      width: 14,
-                                      height: 14,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                    const SizedBox(height: Space.xs),
+                    ref
+                        .watch(
+                          conversationTemplatesProvider(widget.conversationId),
+                        )
+                        .when(
+                          loading: () => Row(
+                            children: [
+                              Expanded(
+                                child:
+                                    DropdownButtonFormField<WhatsAppTemplate>(
+                                      isExpanded: true,
+                                      items: const [],
+                                      onChanged: null,
+                                      hint: Row(
+                                        children: [
+                                          const SizedBox(
+                                            width: 14,
+                                            height: 14,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                          const SizedBox(width: Space.sm),
+                                          Expanded(
+                                            child: Text(
+                                              context.l10n.loadingTemplates,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    const SizedBox(width: Space.sm),
-                                    Text(context.l10n.loadingTemplates),
-                                  ],
+                              ),
+                            ],
+                          ),
+                          error: (err, _) => Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  context.l10n.genericErrorFallbackMessage,
+                                  style: TextStyle(
+                                    color: ScenarioColors.danger,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        error: (err, _) => Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                context.l10n.genericErrorFallbackMessage,
-                                style: TextStyle(
-                                  color: ScenarioColors.danger,
-                                  fontSize: 13,
-                                ),
+                              TextButton(
+                                onPressed: () {
+                                  ref
+                                    ..invalidate(
+                                      conversationTemplatesProvider(
+                                        widget.conversationId,
+                                      ),
+                                    )
+                                    ..invalidate(templatesForChannelProvider);
+                                },
+                                child: Text(context.l10n.retryButton),
                               ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                ref
-                                  ..invalidate(
-                                    conversationTemplatesProvider(
-                                      widget.conversationId,
-                                    ),
-                                  )
-                                  ..invalidate(templatesForChannelProvider);
-                              },
-                              child: Text(context.l10n.retryButton),
-                            ),
-                          ],
-                        ),
-                        data: (templates) {
-                          if (templates.isEmpty) {
+                            ],
+                          ),
+                          data: (templates) {
+                            if (templates.isEmpty) {
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    child:
+                                        DropdownButtonFormField<
+                                          WhatsAppTemplate
+                                        >(
+                                          isExpanded: true,
+                                          items: const [],
+                                          onChanged: null,
+                                          hint: Text(
+                                            context.l10n.noTemplatesAvailable,
+                                          ),
+                                        ),
+                                  ),
+                                  const SizedBox(width: Space.xs),
+                                  IconButton(
+                                    tooltip: context.l10n.refreshAction,
+                                    icon: const Icon(Icons.refresh_rounded),
+                                    onPressed: () {
+                                      ref
+                                        ..invalidate(
+                                          conversationTemplatesProvider(
+                                            widget.conversationId,
+                                          ),
+                                        )
+                                        ..invalidate(
+                                          templatesForChannelProvider,
+                                        );
+                                    },
+                                  ),
+                                ],
+                              );
+                            }
+
+                            final validSelection =
+                                templates.any(
+                                  (t) => t.id == _selectedTemplate?.id,
+                                )
+                                ? _selectedTemplate
+                                : null;
+
                             return Row(
                               children: [
                                 Expanded(
-                                  child:
-                                      DropdownButtonFormField<WhatsAppTemplate>(
-                                        isExpanded: true,
-                                        items: const [],
-                                        onChanged: null,
-                                        hint: Text(
-                                          context.l10n.noTemplatesAvailable,
+                                  child: DropdownButtonFormField<WhatsAppTemplate>(
+                                    isExpanded: true,
+                                    initialValue: validSelection,
+                                    hint: Text(context.l10n.chooseTemplate),
+                                    items: [
+                                      for (final t in templates)
+                                        DropdownMenuItem(
+                                          value: t,
+                                          child: Text(
+                                            '${t.name} · ${t.body.isNotEmpty ? t.body : t.language}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
-                                      ),
+                                    ],
+                                    onChanged: (val) =>
+                                        setState(() => _selectedTemplate = val),
+                                  ),
                                 ),
                                 const SizedBox(width: Space.xs),
                                 IconButton(
-                                  tooltip: context.l10n.refreshAction,
+                                  tooltip: 'Reset',
                                   icon: const Icon(Icons.refresh_rounded),
                                   onPressed: () {
+                                    setState(() => _selectedTemplate = null);
                                     ref
                                       ..invalidate(
                                         conversationTemplatesProvider(
@@ -1760,89 +1887,249 @@ class _ComposerState extends ConsumerState<_Composer> {
                                 ),
                               ],
                             );
-                          }
-
-                          final validSelection =
-                              templates.any(
-                                (t) => t.id == _selectedTemplate?.id,
-                              )
-                              ? _selectedTemplate
-                              : null;
-
-                          return Row(
-                            children: [
-                              Expanded(
-                                child: DropdownButtonFormField<WhatsAppTemplate>(
-                                  isExpanded: true,
-                                  initialValue: validSelection,
-                                  hint: Text(context.l10n.chooseTemplate),
-                                  items: [
-                                    for (final t in templates)
-                                      DropdownMenuItem(
-                                        value: t,
-                                        child: Text(
-                                          '${t.name} · ${t.body.isNotEmpty ? t.body : t.language}',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                  ],
-                                  onChanged: (val) =>
-                                      setState(() => _selectedTemplate = val),
-                                ),
-                              ),
-                              const SizedBox(width: Space.xs),
-                              IconButton(
-                                tooltip: 'Reset',
-                                icon: const Icon(Icons.refresh_rounded),
-                                onPressed: () {
-                                  setState(() => _selectedTemplate = null);
-                                  ref
-                                    ..invalidate(
-                                      conversationTemplatesProvider(
-                                        widget.conversationId,
-                                      ),
-                                    )
-                                    ..invalidate(templatesForChannelProvider);
-                                },
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                  const SizedBox(height: Space.sm),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 36),
+                          },
                         ),
-                        onPressed: (_selectedTemplate == null || widget.sending)
-                            ? null
-                            : () async {
-                                final text = _selectedTemplate!.body.isNotEmpty
-                                    ? _selectedTemplate!.body
-                                    : _selectedTemplate!.name;
-                                await ref
-                                    .read(
-                                      conversationControllerProvider(
-                                        widget.conversationId,
-                                      ).notifier,
-                                    )
-                                    .send(text);
-                                setState(() => _selectedTemplate = null);
-                              },
-                        icon: const Icon(Icons.send_rounded, size: 16),
-                        label: Text(context.l10n.sendTemplate),
+                    const SizedBox(height: Space.sm),
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: SizedBox(
+                        height: 36,
+                        child: FilledButton.tonalIcon(
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 36),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: Space.md,
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              inherit: false,
+                            ),
+                          ),
+                          onPressed:
+                              (_selectedTemplate == null ||
+                                  widget.sending ||
+                                  _sendingTemplate ||
+                                  isConversationClosed)
+                              ? null
+                              : () async {
+                                  final template = _selectedTemplate!;
+                                  setState(() => _sendingTemplate = true);
+                                  try {
+                                    await ref
+                                        .read(
+                                          conversationControllerProvider(
+                                            widget.conversationId,
+                                          ).notifier,
+                                        )
+                                        .sendTemplate(template);
+                                    if (mounted) {
+                                      setState(() => _selectedTemplate = null);
+                                    }
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            context.l10n.templateSentSnackbar,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  } on ApiException catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(e.message),
+                                          backgroundColor:
+                                              theme.colorScheme.error,
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(e.toString()),
+                                          backgroundColor:
+                                              theme.colorScheme.error,
+                                        ),
+                                      );
+                                    }
+                                  } finally {
+                                    if (mounted) {
+                                      setState(() => _sendingTemplate = false);
+                                    }
+                                  }
+                                },
+                          icon: _sendingTemplate
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.send_rounded, size: 16),
+                          label: Text(context.l10n.sendTemplate),
+                        ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _WhatsAppWindowClosedCallout extends StatelessWidget {
+  const _WhatsAppWindowClosedCallout({
+    required this.customerName,
+    required this.onSwitchToTemplate,
+  });
+
+  final String customerName;
+  final VoidCallback onSwitchToTemplate;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: Space.xs),
+      padding: const EdgeInsets.all(Space.md),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2E1C0A) : const Color(0xFFFEF3C7),
+        borderRadius: BorderRadius.circular(Radii.md),
+        border: Border.all(
+          color: isDark ? const Color(0xFF78350F) : const Color(0xFFFDE68A),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 20,
+                color: isDark
+                    ? const Color(0xFFFBBF24)
+                    : const Color(0xFFD97706),
+              ),
+              const SizedBox(width: Space.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.l10n.whatsappWindowClosedTitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? const Color(0xFFFEF3C7)
+                            : const Color(0xFF78350F),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      context.l10n.whatsappWindowClosedDetail(customerName),
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.35,
+                        color: isDark
+                            ? const Color(0xFFFDE68A)
+                            : const Color(0xFF92400E),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Space.sm),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: FilledButton.tonalIcon(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 32),
+                backgroundColor: isDark
+                    ? const Color(0xFF78350F)
+                    : const Color(0xFFFDE68A),
+                foregroundColor: isDark
+                    ? const Color(0xFFFEF3C7)
+                    : const Color(0xFF78350F),
+                padding: const EdgeInsets.symmetric(horizontal: Space.md),
+              ),
+              onPressed: onSwitchToTemplate,
+              icon: const Icon(Icons.description_outlined, size: 14),
+              label: Text(
+                context.l10n.useTemplateAction,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ConversationClosedNotice extends StatelessWidget {
+  const _ConversationClosedNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: Space.xs),
+      padding: const EdgeInsets.all(Space.md),
+      decoration: BoxDecoration(
+        color: isDark
+            ? theme.colorScheme.surfaceContainerHighest
+            : const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(Radii.md),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.5),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.lock_outline_rounded,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: Space.sm),
+          Expanded(
+            child: Text(
+              context.l10n.conversationClosedNotice,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

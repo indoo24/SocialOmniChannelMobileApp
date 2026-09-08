@@ -303,6 +303,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateAction => 'Update';
 
   @override
+  String get channelStatusNotConnected => 'Not connected';
+
+  @override
+  String get channelStatusComingSoon => 'Coming soon';
+
+  @override
+  String get connectWhatsAppAction => 'Connect WhatsApp';
+
+  @override
+  String get connectInstagramAction => 'Connect Instagram';
+
+  @override
+  String get enterDetailsManuallyAction => 'Enter details manually';
+
+  @override
+  String get viaManualTokenHint => 'via phone number ID and access token';
+
+  @override
+  String get legacyViaPageHint => 'Legacy — via a linked Facebook Page';
+
+  @override
+  String get tiktokComingSoon => 'TikTok integration will be available soon.';
+
+  @override
+  String get adminOnlyConnectChannels =>
+      'Only an administrator can connect channels.';
+
+  @override
+  String get channelDescWhatsApp =>
+      'Receive and reply to WhatsApp messages sent to your business number.';
+
+  @override
+  String get channelDescFacebook =>
+      'Receive and reply to messages sent to your Facebook Page.';
+
+  @override
+  String get channelDescInstagram =>
+      'Receive and reply to DMs. Connects either through a linked Facebook Page, or directly with an Instagram Login token.';
+
+  @override
+  String get channelDescTiktok =>
+      'Reply to TikTok direct messages from the shared inbox.';
+
+  @override
   String get noConnectionTitle => 'No connection';
 
   @override
@@ -1862,4 +1906,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reasonNoSchedule => 'No schedule';
+
+  @override
+  String get whatsappWindowClosedTitle =>
+      'The WhatsApp customer-service window has closed.';
+
+  @override
+  String whatsappWindowClosedDetail(String name) {
+    return 'More than 24 hours have passed since $name last wrote, so Meta will reject a free-text message. Send an approved template to continue the conversation.';
+  }
+
+  @override
+  String get conversationClosedNotice =>
+      'This conversation is closed. Reopen it before replying.';
+
+  @override
+  String get useTemplateAction => 'Send a template';
+
+  @override
+  String get templateSentSnackbar => 'Template sent';
 }

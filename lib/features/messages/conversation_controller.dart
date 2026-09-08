@@ -10,11 +10,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/message.dart';
+import '../../core/models/template.dart';
 import '../../core/providers.dart';
 import '../../core/realtime/realtime_bridge.dart';
 import '../../core/realtime/realtime_logger.dart';
 import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
+import '../templates/templates_providers.dart';
 
 class ConversationState {
   const ConversationState({
@@ -247,6 +249,23 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     ref.read(inboxControllerProvider.notifier).refreshQuietly();
   }
 
+  /// Updates the status of the conversation on the backend and updates
+  /// current state and inbox list immediately.
+  Future<void> updateStatus(String status) async {
+    await ref
+        .read(conversationRepositoryProvider)
+        .changeStatus(conversationId, status);
+    final current = state.value;
+    if (current != null) {
+      state = AsyncData(
+        current.copyWith(
+          conversation: current.conversation.copyWith(status: status),
+        ),
+      );
+    }
+    ref.read(inboxControllerProvider.notifier).refreshQuietly();
+  }
+
   /// Send a reply, showing it immediately as pending.
   ///
   /// The optimistic row carries a [Message.localId]; the server's response
@@ -328,6 +347,11 @@ class ConversationController extends AsyncNotifier<ConversationState> {
           deliveryError: error.message,
         ),
       );
+      if (error.message.toLowerCase().contains('window') ||
+          error.message.toLowerCase().contains('whatsapp') ||
+          error.message.toLowerCase().contains('closed')) {
+        _refreshConversationDetail();
+      }
       rethrow;
     } catch (error, stack) {
       // Anything other than ApiException — a malformed response body, a
@@ -356,6 +380,42 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       );
       rethrow;
     }
+  }
+
+  /// Sends an approved WhatsApp template into this conversation.
+  ///
+  /// Calls `POST /api/conversations/{id}/send-template/`. This is the
+  /// only permitted way to message a customer after the WhatsApp 24-hour
+  /// service window closes.
+  Future<void> sendTemplate(
+    WhatsAppTemplate template, {
+    List<String> parameters = const [],
+  }) async {
+    final current = state.value;
+    if (current == null) return;
+
+    final repo = ref.read(templatesRepositoryProvider);
+    await repo.sendConversationTemplate(
+      current.conversation.id,
+      templateName: template.name,
+      language: template.language,
+      parameters: parameters,
+    );
+
+    // Refresh messages and conversation state to show the template message
+    await refreshFromServer();
+  }
+
+  Future<void> _refreshConversationDetail() async {
+    try {
+      final updated = await ref
+          .read(conversationRepositoryProvider)
+          .detail(conversationId);
+      final current = state.value;
+      if (current != null) {
+        state = AsyncData(current.copyWith(conversation: updated));
+      }
+    } catch (_) {}
   }
 
   /// Retry a failed send.
@@ -559,7 +619,17 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       );
     }
 
-    state = AsyncData(current.copyWith(messages: mergedMessages));
+    Conversation updatedConvo = current.conversation;
+    if (message.direction.toUpperCase() == 'INBOUND' ||
+        message.senderType.toUpperCase() == 'CUSTOMER') {
+      updatedConvo = updatedConvo.copyWith(
+        lastCustomerMessageAt: message.sentAt,
+      );
+    }
+
+    state = AsyncData(
+      current.copyWith(conversation: updatedConvo, messages: mergedMessages),
+    );
 
     RealtimeLogger.log(
       'STATE',
@@ -620,6 +690,10 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _isRefreshing = true;
     try {
       final repository = ref.read(conversationRepositoryProvider);
+      Conversation? freshConvo;
+      try {
+        freshConvo = await repository.detail(current.conversation.id);
+      } catch (_) {}
       final serverPage = await repository.messages(current.conversation.id);
 
       // Re-read state rather than reusing the pre-await `current` snapshot.
@@ -704,6 +778,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
       state = AsyncData(
         latest.copyWith(
+          conversation: freshConvo ?? latest.conversation,
           messages: finalMessages,
           hasMore: latest.hasMore || serverPage.hasMore,
         ),

@@ -614,6 +614,84 @@ abstract class AppLocalizations {
   /// **'Update'**
   String get updateAction;
 
+  /// No description provided for @channelStatusNotConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected'**
+  String get channelStatusNotConnected;
+
+  /// No description provided for @channelStatusComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get channelStatusComingSoon;
+
+  /// No description provided for @connectWhatsAppAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect WhatsApp'**
+  String get connectWhatsAppAction;
+
+  /// No description provided for @connectInstagramAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect Instagram'**
+  String get connectInstagramAction;
+
+  /// No description provided for @enterDetailsManuallyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter details manually'**
+  String get enterDetailsManuallyAction;
+
+  /// No description provided for @viaManualTokenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'via phone number ID and access token'**
+  String get viaManualTokenHint;
+
+  /// No description provided for @legacyViaPageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Legacy — via a linked Facebook Page'**
+  String get legacyViaPageHint;
+
+  /// No description provided for @tiktokComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok integration will be available soon.'**
+  String get tiktokComingSoon;
+
+  /// No description provided for @adminOnlyConnectChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Only an administrator can connect channels.'**
+  String get adminOnlyConnectChannels;
+
+  /// No description provided for @channelDescWhatsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive and reply to WhatsApp messages sent to your business number.'**
+  String get channelDescWhatsApp;
+
+  /// No description provided for @channelDescFacebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive and reply to messages sent to your Facebook Page.'**
+  String get channelDescFacebook;
+
+  /// No description provided for @channelDescInstagram.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive and reply to DMs. Connects either through a linked Facebook Page, or directly with an Instagram Login token.'**
+  String get channelDescInstagram;
+
+  /// No description provided for @channelDescTiktok.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply to TikTok direct messages from the shared inbox.'**
+  String get channelDescTiktok;
+
   /// No description provided for @noConnectionTitle.
   ///
   /// In en, this message translates to:
@@ -3379,6 +3457,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No schedule'**
   String get reasonNoSchedule;
+
+  /// Notice shown in composer when WhatsApp 24-hour customer service messaging window is closed
+  ///
+  /// In en, this message translates to:
+  /// **'The WhatsApp customer-service window has closed.'**
+  String get whatsappWindowClosedTitle;
+
+  /// Detailed explanation of closed WhatsApp window
+  ///
+  /// In en, this message translates to:
+  /// **'More than 24 hours have passed since {name} last wrote, so Meta will reject a free-text message. Send an approved template to continue the conversation.'**
+  String whatsappWindowClosedDetail(String name);
+
+  /// Notice shown in composer when the conversation status is closed
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation is closed. Reopen it before replying.'**
+  String get conversationClosedNotice;
+
+  /// Button to switch to template composer mode
+  ///
+  /// In en, this message translates to:
+  /// **'Send a template'**
+  String get useTemplateAction;
+
+  /// Snackbar shown after successfully sending a template
+  ///
+  /// In en, this message translates to:
+  /// **'Template sent'**
+  String get templateSentSnackbar;
 }
 
 class _AppLocalizationsDelegate

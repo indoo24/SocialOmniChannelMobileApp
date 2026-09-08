@@ -180,6 +180,20 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
           ),
 
         // ------------------------------------------------------------
+        // TOP RESOLVED ACTION BUTTON
+        // ------------------------------------------------------------
+        _SheetResolveButton(
+          conversation: conversation,
+          canChange: canChangeStatus && conversation != null,
+          busy: _busy,
+          onResolve: () => _run(
+            () => repository.changeStatus(widget.conversationId, 'RESOLVED'),
+            context.l10n.statusUpdatedMessage,
+          ),
+        ),
+        const SizedBox(height: Space.lg),
+
+        // ------------------------------------------------------------
         // 1. CUSTOMER DETAILS SECTION
         // ------------------------------------------------------------
         _SectionCard(
@@ -1580,4 +1594,114 @@ class _Label extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// Prominent "Resolved" action button displayed at the top of the actions bottom sheet,
+/// styled with the Web green resolve tokens.
+class _SheetResolveButton extends StatelessWidget {
+  const _SheetResolveButton({
+    required this.conversation,
+    required this.canChange,
+    required this.busy,
+    required this.onResolve,
+  });
+
+  final Conversation? conversation;
+  final bool canChange;
+  final bool busy;
+  final VoidCallback onResolve;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isResolved = conversation?.status.toUpperCase() == 'RESOLVED';
+
+    final Color backgroundColor = isDark
+        ? const Color(0xFF065F46).withValues(alpha: isResolved ? 0.35 : 0.20)
+        : (isResolved ? const Color(0xFFD1FAE5) : const Color(0xFFECFDF5));
+
+    final Color borderColor = isDark
+        ? const Color(0xFF059669)
+        : const Color(0xFF6EE7B7);
+
+    final Color foregroundColor = isDark
+        ? const Color(0xFF6EE7B7)
+        : const Color(0xFF065F46);
+
+    final bool isEnabled = canChange && !busy && !isResolved;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: const Key('conversation_resolve_button'),
+        borderRadius: BorderRadius.circular(Radii.md),
+        onTap: isEnabled
+            ? onResolve
+            : (isResolved
+                ? () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(context.l10n.statusUpdatedMessage),
+                      ),
+                    );
+                  }
+                : null),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Space.md,
+            vertical: 12.0,
+          ),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(Radii.md),
+            border: Border.all(color: borderColor, width: 1.0),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (busy)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: foregroundColor,
+                  ),
+                )
+              else
+                Icon(
+                  isResolved
+                      ? Icons.check_circle_rounded
+                      : Icons.check_rounded,
+                  size: 18,
+                  color: foregroundColor,
+                ),
+              const SizedBox(width: Space.sm),
+              Text(
+                context.l10n.statusResolved,
+                style: TextStyle(
+                  color: foregroundColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              if (isResolved) ...[
+                const SizedBox(width: Space.xs),
+                Text(
+                  '✓',
+                  style: TextStyle(
+                    color: foregroundColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

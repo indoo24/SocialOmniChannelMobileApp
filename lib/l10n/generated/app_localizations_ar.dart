@@ -304,6 +304,49 @@ class AppLocalizationsAr extends AppLocalizations {
   String get updateAction => 'تحديث';
 
   @override
+  String get channelStatusNotConnected => 'غير متصل';
+
+  @override
+  String get channelStatusComingSoon => 'قريبًا';
+
+  @override
+  String get connectWhatsAppAction => 'ربط WhatsApp';
+
+  @override
+  String get connectInstagramAction => 'ربط Instagram';
+
+  @override
+  String get enterDetailsManuallyAction => 'إدخال البيانات يدويًا';
+
+  @override
+  String get viaManualTokenHint => 'عبر معرّف رقم الهاتف ورمز الوصول';
+
+  @override
+  String get legacyViaPageHint => 'الطريقة القديمة — عبر صفحة Facebook مرتبطة';
+
+  @override
+  String get tiktokComingSoon => 'نعمل على إتاحة تكامل TikTok قريبًا.';
+
+  @override
+  String get adminOnlyConnectChannels => 'لا يمكن ربط القنوات إلا لمدير.';
+
+  @override
+  String get channelDescWhatsApp =>
+      'استقبال والرد على رسائل واتساب المرسلة إلى رقم نشاطك التجاري.';
+
+  @override
+  String get channelDescFacebook =>
+      'استقبال والرد على الرسائل المرسلة إلى صفحتك على فيسبوك.';
+
+  @override
+  String get channelDescInstagram =>
+      'استقبال والرد على الرسائل المباشرة عبر صفحة فيسبوك المرتبطة أو تسجيل دخول إنستغرام.';
+
+  @override
+  String get channelDescTiktok =>
+      'الرد على الرسائل المباشرة في TikTok من صندوق الوارد المشترك.';
+
+  @override
   String get noConnectionTitle => 'لا يوجد اتصال';
 
   @override
@@ -1888,4 +1931,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reasonNoSchedule => 'بلا جدول';
+
+  @override
+  String get whatsappWindowClosedTitle => 'انتهت نافذة خدمة عملاء WhatsApp.';
+
+  @override
+  String whatsappWindowClosedDetail(String name) {
+    return 'مضى أكثر من 24 ساعة على آخر رسالة من $name، لذا سترفض Meta أي رسالة نصية حرة. أرسل قالبًا معتمدًا لمتابعة المحادثة.';
+  }
+
+  @override
+  String get conversationClosedNotice =>
+      'هذه المحادثة مغلقة. أعد فتحها قبل الرد.';
+
+  @override
+  String get useTemplateAction => 'إرسال قالب';
+
+  @override
+  String get templateSentSnackbar => 'تم إرسال القالب';
 }

@@ -97,6 +97,19 @@
   "channelTokenUpdatedSnackbar": "تم تحديث رمز الوصول.",
   "connectAction": "ربط",
   "updateAction": "تحديث",
+  "channelStatusNotConnected": "غير متصل",
+  "channelStatusComingSoon": "قريبًا",
+  "connectWhatsAppAction": "ربط WhatsApp",
+  "connectInstagramAction": "ربط Instagram",
+  "enterDetailsManuallyAction": "إدخال البيانات يدويًا",
+  "viaManualTokenHint": "عبر معرّف رقم الهاتف ورمز الوصول",
+  "legacyViaPageHint": "الطريقة القديمة — عبر صفحة Facebook مرتبطة",
+  "tiktokComingSoon": "نعمل على إتاحة تكامل TikTok قريبًا.",
+  "adminOnlyConnectChannels": "لا يمكن ربط القنوات إلا لمدير.",
+  "channelDescWhatsApp": "استقبال والرد على رسائل واتساب المرسلة إلى رقم نشاطك التجاري.",
+  "channelDescFacebook": "استقبال والرد على الرسائل المرسلة إلى صفحتك على فيسبوك.",
+  "channelDescInstagram": "استقبال والرد على الرسائل المباشرة عبر صفحة فيسبوك المرتبطة أو تسجيل دخول إنستغرام.",
+  "channelDescTiktok": "الرد على الرسائل المباشرة في TikTok من صندوق الوارد المشترك.",
 
   "noConnectionTitle": "لا يوجد اتصال",
   "genericErrorTitle": "حدث خطأ ما",
@@ -587,5 +600,10 @@
   "reasonNotOnline": "غير متصل",
   "reasonStaleHeartbeat": "لا يمكن الوصول",
   "reasonAtCapacity": "بلغ الحد الأقصى",
-  "reasonNoSchedule": "بلا جدول"
+  "reasonNoSchedule": "بلا جدول",
+  "whatsappWindowClosedTitle": "انتهت نافذة خدمة عملاء WhatsApp.",
+  "whatsappWindowClosedDetail": "مضى أكثر من 24 ساعة على آخر رسالة من {name}، لذا سترفض Meta أي رسالة نصية حرة. أرسل قالبًا معتمدًا لمتابعة المحادثة.",
+  "conversationClosedNotice": "هذه المحادثة مغلقة. أعد فتحها قبل الرد.",
+  "useTemplateAction": "إرسال قالب",
+  "templateSentSnackbar": "تم إرسال القالب"
 }
