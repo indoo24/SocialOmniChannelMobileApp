@@ -3487,6 +3487,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Template sent'**
   String get templateSentSnackbar;
+
+  /// Title for reassign unanswered conversation timeout setting
+  ///
+  /// In en, this message translates to:
+  /// **'Reassign unanswered conversation after'**
+  String get reassignAfterTitle;
+
+  /// Description for reassign unanswered conversation timeout setting
+  ///
+  /// In en, this message translates to:
+  /// **'If the assigned agent does not reply within this period, OmniChannel will try to reassign the conversation to another available agent.'**
+  String get reassignAfterHint;
+
+  /// Notice that timer restarts after each reassignment
+  ///
+  /// In en, this message translates to:
+  /// **'The timer restarts after each reassignment.'**
+  String get reassignAfterRestart;
+
+  /// Allowed range for reassign unanswered conversation in minutes
+  ///
+  /// In en, this message translates to:
+  /// **'Between 1 and 1440 minutes.'**
+  String get reassignAfterRange;
+
+  /// Unit label for minutes next to input
+  ///
+  /// In en, this message translates to:
+  /// **'minutes'**
+  String get reassignAfterUnit;
+
+  /// Snackbar shown after successfully saving reassignment time
+  ///
+  /// In en, this message translates to:
+  /// **'Reassignment time saved'**
+  String get reassignSaved;
+
+  /// Validation error for reassignment timeout range
+  ///
+  /// In en, this message translates to:
+  /// **'Must be between 1 and 1440 minutes.'**
+  String get reassignInvalidRangeError;
+
+  /// Title for sticky conversation ownership setting
+  ///
+  /// In en, this message translates to:
+  /// **'Keep conversations with the same employee'**
+  String get stickyOwnershipTitle;
+
+  /// Description for sticky conversation ownership setting
+  ///
+  /// In en, this message translates to:
+  /// **'Once an employee has answered a customer, the conversation stays with that employee even if the customer returns later, or the employee is offline or busy. Turn this off to let the timeout above reassign a conversation the owner has not answered.'**
+  String get stickyOwnershipHint;
+
+  /// Label for On state of sticky conversation ownership
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get stickyOwnershipOn;
+
+  /// Label for Off state of sticky conversation ownership
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get stickyOwnershipOff;
+
+  /// Snackbar shown after saving sticky conversation ownership
+  ///
+  /// In en, this message translates to:
+  /// **'Ownership setting saved'**
+  String get stickyOwnershipSaved;
+
+  /// Title for maximum unanswered reassignments setting
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum unanswered reassignments'**
+  String get maxHopsTitle;
+
+  /// Description for maximum unanswered reassignments setting
+  ///
+  /// In en, this message translates to:
+  /// **'A safety limit. It counts only reassignments made before anyone has answered the customer — once an employee replies, the count starts again. When the limit is reached the conversation stops being passed on and stays with its current employee.'**
+  String get maxHopsHint;
+
+  /// Allowed range for maximum unanswered reassignments
+  ///
+  /// In en, this message translates to:
+  /// **'Between 1 and 20.'**
+  String get maxHopsRange;
+
+  /// Snackbar shown after saving maximum unanswered reassignments
+  ///
+  /// In en, this message translates to:
+  /// **'Reassignment limit saved'**
+  String get maxHopsSaved;
+
+  /// Validation error for maximum unanswered reassignments range
+  ///
+  /// In en, this message translates to:
+  /// **'Must be between 1 and 20.'**
+  String get maxHopsInvalidRangeError;
+
+  /// Generic Save button label
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get saveAction;
 }
 
 class _AppLocalizationsDelegate

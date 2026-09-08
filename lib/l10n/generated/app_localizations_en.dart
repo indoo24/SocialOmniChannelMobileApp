@@ -1925,4 +1925,63 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get templateSentSnackbar => 'Template sent';
+
+  @override
+  String get reassignAfterTitle => 'Reassign unanswered conversation after';
+
+  @override
+  String get reassignAfterHint =>
+      'If the assigned agent does not reply within this period, OmniChannel will try to reassign the conversation to another available agent.';
+
+  @override
+  String get reassignAfterRestart =>
+      'The timer restarts after each reassignment.';
+
+  @override
+  String get reassignAfterRange => 'Between 1 and 1440 minutes.';
+
+  @override
+  String get reassignAfterUnit => 'minutes';
+
+  @override
+  String get reassignSaved => 'Reassignment time saved';
+
+  @override
+  String get reassignInvalidRangeError => 'Must be between 1 and 1440 minutes.';
+
+  @override
+  String get stickyOwnershipTitle =>
+      'Keep conversations with the same employee';
+
+  @override
+  String get stickyOwnershipHint =>
+      'Once an employee has answered a customer, the conversation stays with that employee even if the customer returns later, or the employee is offline or busy. Turn this off to let the timeout above reassign a conversation the owner has not answered.';
+
+  @override
+  String get stickyOwnershipOn => 'On';
+
+  @override
+  String get stickyOwnershipOff => 'Off';
+
+  @override
+  String get stickyOwnershipSaved => 'Ownership setting saved';
+
+  @override
+  String get maxHopsTitle => 'Maximum unanswered reassignments';
+
+  @override
+  String get maxHopsHint =>
+      'A safety limit. It counts only reassignments made before anyone has answered the customer — once an employee replies, the count starts again. When the limit is reached the conversation stops being passed on and stays with its current employee.';
+
+  @override
+  String get maxHopsRange => 'Between 1 and 20.';
+
+  @override
+  String get maxHopsSaved => 'Reassignment limit saved';
+
+  @override
+  String get maxHopsInvalidRangeError => 'Must be between 1 and 20.';
+
+  @override
+  String get saveAction => 'Save';
 }
