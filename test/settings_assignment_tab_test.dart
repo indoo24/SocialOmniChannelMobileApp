@@ -84,7 +84,10 @@ const _defaultPolicyJson = '''
   "is_enabled": true,
   "max_open_chats_per_agent": 200,
   "timezone": "Africa/Cairo",
-  "heartbeat_max_seconds": 0
+  "heartbeat_max_seconds": 0,
+  "first_response_sla_seconds": 300,
+  "sticky_conversation_ownership": false,
+  "escalation_max_hops": 3
 }
 ''';
 
@@ -117,12 +120,18 @@ void main() {
         'max_open_chats_per_agent': 150,
         'timezone': 'Asia/Riyadh',
         'heartbeat_max_seconds': 30,
+        'first_response_sla_seconds': 600,
+        'sticky_conversation_ownership': true,
+        'escalation_max_hops': 10,
       });
 
       expect(policy.isEnabled, isFalse);
       expect(policy.maxOpenChatsPerAgent, 150);
       expect(policy.timezone, 'Asia/Riyadh');
       expect(policy.heartbeatMaxSeconds, 30);
+      expect(policy.firstResponseSlaSeconds, 600);
+      expect(policy.stickyConversationOwnership, isTrue);
+      expect(policy.escalationMaxHops, 10);
     });
 
     test('falls back to sensible defaults on empty map', () {
@@ -132,6 +141,9 @@ void main() {
       expect(policy.maxOpenChatsPerAgent, 200);
       expect(policy.timezone, 'UTC');
       expect(policy.heartbeatMaxSeconds, 0);
+      expect(policy.firstResponseSlaSeconds, 300);
+      expect(policy.stickyConversationOwnership, isFalse);
+      expect(policy.escalationMaxHops, 3);
     });
   });
 
@@ -229,6 +241,27 @@ void main() {
       expect(find.text('Default chat capacity'), findsOneWidget);
       expect(find.widgetWithText(TextField, '200'), findsOneWidget);
       expect(find.text('Save capacity'), findsOneWidget);
+
+      expect(
+        find.text('Reassign unanswered conversation after'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('reassign_input')), findsOneWidget);
+      expect(find.widgetWithText(TextField, '5'), findsOneWidget);
+      expect(find.text('minutes'), findsOneWidget);
+      expect(find.text('Between 1 and 1440 minutes.'), findsOneWidget);
+
+      expect(
+        find.text('Keep conversations with the same employee'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('sticky_on_button')), findsOneWidget);
+      expect(find.byKey(const ValueKey('sticky_off_button')), findsOneWidget);
+
+      expect(find.text('Maximum unanswered reassignments'), findsOneWidget);
+      expect(find.byKey(const ValueKey('max_hops_input')), findsOneWidget);
+      expect(find.widgetWithText(TextField, '3'), findsOneWidget);
+      expect(find.text('Between 1 and 20.'), findsOneWidget);
 
       expect(find.text('Time zone'), findsOneWidget);
       expect(find.text('Africa/Cairo'), findsOneWidget);
@@ -516,8 +549,455 @@ void main() {
       expect(find.text('نشط'), findsOneWidget);
       expect(find.text('سعة المحادثات الافتراضية'), findsOneWidget);
       expect(find.text('حفظ السعة'), findsOneWidget);
+      expect(
+        find.text('إعادة توزيع المحادثة عند عدم الرد بعد'),
+        findsOneWidget,
+      );
+      expect(find.text('إبقاء المحادثة مع نفس الموظف'), findsOneWidget);
+      expect(find.text('الحد الأقصى لإعادات التوزيع قبل الرد'), findsOneWidget);
       expect(find.text('المنطقة الزمنية'), findsOneWidget);
       expect(find.text('حفظ المنطقة الزمنية'), findsOneWidget);
+    });
+  });
+
+  group('SettingsScreen — Assignment tab reassignment and ownership', () {
+    testWidgets(
+      'saving reassign minutes sends PATCH with first_response_sla_seconds in seconds',
+      (tester) async {
+        tester.view.devicePixelRatio = 1.0;
+        tester.view.physicalSize = const Size(800, 1600);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'PATCH' &&
+              options.path.contains('/routing/policy/')) {
+            return _json('''
+{
+  "is_enabled": true,
+  "max_open_chats_per_agent": 200,
+  "timezone": "Africa/Cairo",
+  "heartbeat_max_seconds": 0,
+  "first_response_sla_seconds": 900,
+  "sticky_conversation_ownership": false,
+  "escalation_max_hops": 3
+}
+''', 200);
+          }
+          if (options.path.contains('/routing/policy/')) {
+            return _json(_defaultPolicyJson, 200);
+          }
+          return _json('{"results": []}', 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await tester.pumpWidget(_settingsHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Assignment'));
+        await tester.pumpAndSettle();
+
+        final input = find.byKey(const ValueKey('reassign_input'));
+        expect(input, findsOneWidget);
+
+        await tester.enterText(input, '15');
+        await tester.pumpAndSettle();
+
+        final saveBtn = find.byKey(const ValueKey('reassign_save_button'));
+        expect(tester.widget<FilledButton>(saveBtn).enabled, isTrue);
+
+        await tester.tap(saveBtn);
+        await tester.pumpAndSettle();
+
+        final patchReq = adapter.received.firstWhere(
+          (r) => r.method == 'PATCH' && r.path.contains('/routing/policy/'),
+        );
+        expect(patchReq.data, {'first_response_sla_seconds': 900});
+        expect(find.text('Reassignment time saved'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'reassign minutes rejects values below 1 or above 1440 locally',
+      (tester) async {
+        tester.view.devicePixelRatio = 1.0;
+        tester.view.physicalSize = const Size(800, 1600);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final adapter = _StubAdapter((options) {
+          if (options.path.contains('/routing/policy/')) {
+            return _json(_defaultPolicyJson, 200);
+          }
+          return _json('{"results": []}', 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await tester.pumpWidget(_settingsHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Assignment'));
+        await tester.pumpAndSettle();
+
+        final input = find.byKey(const ValueKey('reassign_input'));
+        final saveBtn = find.byKey(const ValueKey('reassign_save_button'));
+
+        // Below 1 (e.g. 0)
+        await tester.enterText(input, '0');
+        await tester.pumpAndSettle();
+        await tester.tap(saveBtn);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Must be between 1 and 1440 minutes.'),
+          findsOneWidget,
+        );
+        expect(adapter.received.any((r) => r.method == 'PATCH'), isFalse);
+
+        // Above 1440 (e.g. 1500)
+        await tester.enterText(input, '1500');
+        await tester.pumpAndSettle();
+        await tester.tap(saveBtn);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Must be between 1 and 1440 minutes.'),
+          findsOneWidget,
+        );
+        expect(adapter.received.any((r) => r.method == 'PATCH'), isFalse);
+      },
+    );
+
+    testWidgets('reassign minutes handles 400 API error gracefully', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(800, 1600);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final adapter = _StubAdapter((options) {
+        if (options.method == 'PATCH' &&
+            options.path.contains('/routing/policy/')) {
+          return _json(
+            '{"error": {"code": "invalid", "message": "Invalid SLA seconds.", "details": {}}}',
+            400,
+          );
+        }
+        if (options.path.contains('/routing/policy/')) {
+          return _json(_defaultPolicyJson, 200);
+        }
+        return _json('{"results": []}', 200);
+      });
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await tester.pumpWidget(_settingsHarness(apiClient: client));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Assignment'));
+      await tester.pumpAndSettle();
+
+      final input = find.byKey(const ValueKey('reassign_input'));
+      await tester.enterText(input, '20');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('reassign_save_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Invalid SLA seconds.'), findsAtLeastNWidgets(1));
+    });
+
+    testWidgets(
+      'toggling sticky conversation ownership sends PATCH with boolean',
+      (tester) async {
+        tester.view.devicePixelRatio = 1.0;
+        tester.view.physicalSize = const Size(800, 1600);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'PATCH' &&
+              options.path.contains('/routing/policy/')) {
+            return _json('''
+{
+  "is_enabled": true,
+  "max_open_chats_per_agent": 200,
+  "timezone": "Africa/Cairo",
+  "heartbeat_max_seconds": 0,
+  "first_response_sla_seconds": 300,
+  "sticky_conversation_ownership": true,
+  "escalation_max_hops": 3
+}
+''', 200);
+          }
+          if (options.path.contains('/routing/policy/')) {
+            return _json(_defaultPolicyJson, 200);
+          }
+          return _json('{"results": []}', 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await tester.pumpWidget(_settingsHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Assignment'));
+        await tester.pumpAndSettle();
+
+        // Initially false (Off)
+        final onBtn = find.byKey(const ValueKey('sticky_on_button'));
+        final offBtn = find.byKey(const ValueKey('sticky_off_button'));
+
+        expect(onBtn, findsOneWidget);
+        expect(offBtn, findsOneWidget);
+
+        // Tap On
+        await tester.tap(onBtn);
+        await tester.pumpAndSettle();
+
+        final patchReq = adapter.received.firstWhere(
+          (r) => r.method == 'PATCH' && r.path.contains('/routing/policy/'),
+        );
+        expect(patchReq.data, {'sticky_conversation_ownership': true});
+        expect(find.text('Ownership setting saved'), findsOneWidget);
+      },
+    );
+
+    testWidgets('sticky conversation ownership handles API error gracefully', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(800, 1600);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final adapter = _StubAdapter((options) {
+        if (options.method == 'PATCH' &&
+            options.path.contains('/routing/policy/')) {
+          return _json(
+            '{"error": {"code": "invalid", "message": "Failed to update ownership.", "details": {}}}',
+            400,
+          );
+        }
+        if (options.path.contains('/routing/policy/')) {
+          return _json(_defaultPolicyJson, 200);
+        }
+        return _json('{"results": []}', 200);
+      });
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await tester.pumpWidget(_settingsHarness(apiClient: client));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Assignment'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('sticky_on_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Failed to update ownership.'), findsOneWidget);
+    });
+
+    testWidgets('saving max hops sends PATCH with escalation_max_hops', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(800, 1600);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final adapter = _StubAdapter((options) {
+        if (options.method == 'PATCH' &&
+            options.path.contains('/routing/policy/')) {
+          return _json('''
+{
+  "is_enabled": true,
+  "max_open_chats_per_agent": 200,
+  "timezone": "Africa/Cairo",
+  "heartbeat_max_seconds": 0,
+  "first_response_sla_seconds": 300,
+  "sticky_conversation_ownership": false,
+  "escalation_max_hops": 7
+}
+''', 200);
+        }
+        if (options.path.contains('/routing/policy/')) {
+          return _json(_defaultPolicyJson, 200);
+        }
+        return _json('{"results": []}', 200);
+      });
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await tester.pumpWidget(_settingsHarness(apiClient: client));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Assignment'));
+      await tester.pumpAndSettle();
+
+      final input = find.byKey(const ValueKey('max_hops_input'));
+      await tester.enterText(input, '7');
+      await tester.pumpAndSettle();
+
+      final saveBtn = find.byKey(const ValueKey('max_hops_save_button'));
+      expect(tester.widget<FilledButton>(saveBtn).enabled, isTrue);
+
+      await tester.tap(saveBtn);
+      await tester.pumpAndSettle();
+
+      final patchReq = adapter.received.firstWhere(
+        (r) => r.method == 'PATCH' && r.path.contains('/routing/policy/'),
+      );
+      expect(patchReq.data, {'escalation_max_hops': 7});
+      expect(find.text('Reassignment limit saved'), findsOneWidget);
+    });
+
+    testWidgets('max hops rejects values below 1 or above 20 locally', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(800, 1600);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final adapter = _StubAdapter((options) {
+        if (options.path.contains('/routing/policy/')) {
+          return _json(_defaultPolicyJson, 200);
+        }
+        return _json('{"results": []}', 200);
+      });
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await tester.pumpWidget(_settingsHarness(apiClient: client));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Assignment'));
+      await tester.pumpAndSettle();
+
+      final input = find.byKey(const ValueKey('max_hops_input'));
+      final saveBtn = find.byKey(const ValueKey('max_hops_save_button'));
+
+      // Below 1 (0)
+      await tester.enterText(input, '0');
+      await tester.pumpAndSettle();
+      await tester.tap(saveBtn);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Must be between 1 and 20.'), findsOneWidget);
+      expect(adapter.received.any((r) => r.method == 'PATCH'), isFalse);
+
+      // Above 20 (25)
+      await tester.enterText(input, '25');
+      await tester.pumpAndSettle();
+      await tester.tap(saveBtn);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Must be between 1 and 20.'), findsOneWidget);
+      expect(adapter.received.any((r) => r.method == 'PATCH'), isFalse);
+    });
+
+    testWidgets(
+      'when automatic assignment is disabled, reassignment controls are disabled',
+      (tester) async {
+        tester.view.devicePixelRatio = 1.0;
+        tester.view.physicalSize = const Size(800, 1600);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        const disabledPolicyJson = '''
+{
+  "is_enabled": false,
+  "max_open_chats_per_agent": 200,
+  "timezone": "Africa/Cairo",
+  "heartbeat_max_seconds": 0,
+  "first_response_sla_seconds": 300,
+  "sticky_conversation_ownership": false,
+  "escalation_max_hops": 3
+}
+''';
+
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = _StubAdapter((options) {
+          if (options.path.contains('/routing/policy/')) {
+            return _json(disabledPolicyJson, 200);
+          }
+          return _json('{"results": []}', 200);
+        });
+
+        await tester.pumpWidget(_settingsHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Assignment'));
+        await tester.pumpAndSettle();
+
+        final reassignField = tester.widget<TextField>(
+          find.byKey(const ValueKey('reassign_input')),
+        );
+        expect(reassignField.enabled, isFalse);
+
+        final onBtn = tester.widget<FilledButton>(
+          find.byKey(const ValueKey('sticky_on_button')),
+        );
+        expect(onBtn.enabled, isFalse);
+
+        final offBtn = tester.widget<FilledButton>(
+          find.byKey(const ValueKey('sticky_off_button')),
+        );
+        expect(offBtn.enabled, isFalse);
+
+        final maxHopsField = tester.widget<TextField>(
+          find.byKey(const ValueKey('max_hops_input')),
+        );
+        expect(maxHopsField.enabled, isFalse);
+      },
+    );
+
+    testWidgets('renders on 320px narrow mobile screen without overflow', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(320, 1600);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter((options) {
+        if (options.path.contains('/routing/policy/')) {
+          return _json(_defaultPolicyJson, 200);
+        }
+        return _json('{"results": []}', 200);
+      });
+
+      await tester.pumpWidget(_settingsHarness(apiClient: client));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Assignment'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
     });
   });
 }

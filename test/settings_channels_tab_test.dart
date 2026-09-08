@@ -261,18 +261,45 @@ Future<void> _pumpChannelsTab(
 
 void main() {
   group('SettingsScreen — Channels tab rendering & platform grouping', () {
-    testWidgets('shows the empty state when no channels are connected', (
-      tester,
-    ) async {
-      final client = ApiClient.create(cookieJar: CookieJar());
-      client.raw.httpClientAdapter = _StubAdapter(
-        (_) => _json(_channelsPage(const []), 200),
-      );
+    testWidgets(
+      'renders onboarding cards for all supported channels when zero channels are connected',
+      (tester) async {
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = _StubAdapter(
+          (_) => _json(_channelsPage(const []), 200),
+        );
 
-      await _pumpChannelsTab(tester, apiClient: client);
+        await _pumpChannelsTab(tester, apiClient: client);
 
-      expect(find.text('No channels connected'), findsOneWidget);
-    });
+        // Blank empty state is NOT rendered
+        expect(find.text('No channels connected'), findsNothing);
+
+        // All 4 supported channels are rendered in catalog order
+        expect(find.text('WhatsApp Business'), findsOneWidget);
+        expect(find.text('Facebook Messenger'), findsOneWidget);
+        expect(find.text('Instagram Direct'), findsOneWidget);
+        expect(find.text('TikTok'), findsOneWidget);
+
+        // Status badges: 3 "Not connected" and 1 "Coming soon"
+        expect(find.text('Not connected'), findsNWidgets(3));
+        expect(find.text('Coming soon'), findsOneWidget);
+
+        // Primary connect buttons
+        expect(find.text('Connect WhatsApp'), findsOneWidget);
+        expect(find.text('Connect'), findsWidgets);
+        expect(find.text('Connect Instagram'), findsOneWidget);
+
+        // TikTok has the explanatory banner and no connect button
+        expect(
+          find.text('TikTok integration will be available soon.'),
+          findsOneWidget,
+        );
+        expect(
+          find.widgetWithText(FilledButton, 'Connect TikTok'),
+          findsNothing,
+        );
+      },
+    );
 
     testWidgets('renders connected channels with status and identifier', (
       tester,
@@ -318,6 +345,9 @@ void main() {
         expect(find.text('Support line'), findsOneWidget);
         expect(find.text('Sales line'), findsOneWidget);
 
+        // Token days remaining display
+        expect(find.text('Access token: expires in 43 days'), findsOneWidget);
+
         // Exactly ONE parent platform card for Facebook Messenger
         expect(find.text('Facebook Messenger'), findsOneWidget);
         // Both Facebook pages rendered inside
@@ -325,13 +355,10 @@ void main() {
         expect(find.text('Gado Tex جادو تكس'), findsOneWidget);
 
         // Exactly ONE parent platform card for TikTok
-        await tester.drag(find.byType(ListView), const Offset(0, -500));
+        await tester.drag(find.byType(ListView), const Offset(0, -1200));
         await tester.pumpAndSettle();
         expect(find.text('TikTok'), findsOneWidget);
         expect(find.text('Acme TikTok'), findsOneWidget);
-
-        // Token days remaining display
-        expect(find.text('Access token: expires in 43 days'), findsOneWidget);
 
         // NO 3-dot overflow menu is present anywhere
         expect(find.byIcon(Icons.more_vert), findsNothing);
@@ -1424,10 +1451,17 @@ void main() {
 
         await _pumpChannelsTab(tester, apiClient: client);
 
-        expect(find.text('Other ways to connect'), findsOneWidget);
+        final whatsappCard = find.byKey(
+          const ValueKey('platform_group_WHATSAPP'),
+        );
+        final otherWays = find.descendant(
+          of: whatsappCard,
+          matching: find.text('Other ways to connect'),
+        );
+        expect(otherWays, findsOneWidget);
         expect(find.text('Add another number'), findsNothing);
 
-        await tester.tap(find.text('Other ways to connect'));
+        await tester.tap(otherWays);
         await tester.pumpAndSettle();
 
         expect(find.text('Add another number'), findsOneWidget);
@@ -1471,7 +1505,14 @@ void main() {
 
       await _pumpChannelsTab(tester, apiClient: client);
 
-      await tester.tap(find.text('Other ways to connect'));
+      final whatsappCard = find.byKey(
+        const ValueKey('platform_group_WHATSAPP'),
+      );
+      final otherWays = find.descendant(
+        of: whatsappCard,
+        matching: find.text('Other ways to connect'),
+      );
+      await tester.tap(otherWays);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Add another number'));
       await tester.pumpAndSettle();
@@ -1491,7 +1532,12 @@ void main() {
         find.widgetWithText(TextField, 'Access token'),
         'brand-new-token',
       );
-      await tester.tap(find.text('Connect'));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DraggableScrollableSheet),
+          matching: find.text('Connect'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       final connectReq = adapter.received.firstWhere(
@@ -1516,12 +1562,24 @@ void main() {
 
       await _pumpChannelsTab(tester, apiClient: client);
 
-      await tester.tap(find.text('Other ways to connect'));
+      final whatsappCard = find.byKey(
+        const ValueKey('platform_group_WHATSAPP'),
+      );
+      final otherWays = find.descendant(
+        of: whatsappCard,
+        matching: find.text('Other ways to connect'),
+      );
+      await tester.tap(otherWays);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Add another number'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Connect'));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DraggableScrollableSheet),
+          matching: find.text('Connect'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('This field is required.'), findsOneWidget);
@@ -1554,7 +1612,12 @@ void main() {
 
         await _pumpChannelsTab(tester, apiClient: client);
 
-        await tester.tap(find.text('Other ways to connect'));
+        final igCard = find.byKey(const ValueKey('platform_group_INSTAGRAM'));
+        final otherWays = find.descendant(
+          of: igCard,
+          matching: find.text('Other ways to connect'),
+        );
+        await tester.tap(otherWays);
         await tester.pumpAndSettle();
         await tester.tap(find.text('Reconnect'));
         await tester.pumpAndSettle();
@@ -1591,7 +1654,12 @@ void main() {
 
       await _pumpChannelsTab(tester, apiClient: client);
 
-      await tester.tap(find.text('Other ways to connect'));
+      final igCard = find.byKey(const ValueKey('platform_group_INSTAGRAM'));
+      final otherWays = find.descendant(
+        of: igCard,
+        matching: find.text('Other ways to connect'),
+      );
+      await tester.tap(otherWays);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Use Instagram token'));
       await tester.pumpAndSettle();
@@ -1602,7 +1670,12 @@ void main() {
         find.widgetWithText(TextField, 'Instagram access token'),
         'ig-legacy-token',
       );
-      await tester.tap(find.text('Connect'));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DraggableScrollableSheet),
+          matching: find.text('Connect'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       final connectReq = adapter.received.firstWhere(
@@ -1624,12 +1697,22 @@ void main() {
 
       await _pumpChannelsTab(tester, apiClient: client);
 
-      await tester.tap(find.text('Other ways to connect'));
+      final igCard = find.byKey(const ValueKey('platform_group_INSTAGRAM'));
+      final otherWays = find.descendant(
+        of: igCard,
+        matching: find.text('Other ways to connect'),
+      );
+      await tester.tap(otherWays);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Use Instagram token'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Connect'));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DraggableScrollableSheet),
+          matching: find.text('Connect'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('This field is required.'), findsOneWidget);
@@ -1657,7 +1740,12 @@ void main() {
 
       await _pumpChannelsTab(tester, apiClient: client);
 
-      await tester.tap(find.text('Other ways to connect'));
+      final igCard = find.byKey(const ValueKey('platform_group_INSTAGRAM'));
+      final otherWays = find.descendant(
+        of: igCard,
+        matching: find.text('Other ways to connect'),
+      );
+      await tester.tap(otherWays);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Use Instagram token'));
       await tester.pumpAndSettle();
@@ -1665,7 +1753,12 @@ void main() {
         find.widgetWithText(TextField, 'Instagram access token'),
         'bad-token',
       );
-      await tester.tap(find.text('Connect'));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DraggableScrollableSheet),
+          matching: find.text('Connect'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Meta rejected it.'), findsOneWidget);
@@ -1686,13 +1779,17 @@ void main() {
           ),
         );
 
-        await _pumpChannelsTab(tester, apiClient: client);
+        await _pumpChannelsTab(
+          tester,
+          apiClient: client,
+          size: const Size(390, 2400),
+        );
 
         // Expand every collapsible "Other ways to connect" section present.
         for (final finder in tester.widgetList(
           find.text('Other ways to connect'),
         )) {
-          await tester.tap(find.byWidget(finder));
+          await tester.tap(find.byWidget(finder), warnIfMissed: false);
         }
         await tester.pumpAndSettle();
 
@@ -1710,7 +1807,395 @@ void main() {
 
       await _pumpChannelsTab(tester, apiClient: client);
 
-      expect(find.text('Other ways to connect'), findsNothing);
+      final fbCard = find.byKey(const ValueKey('platform_group_FACEBOOK'));
+      expect(
+        find.descendant(
+          of: fbCard,
+          matching: find.text('Other ways to connect'),
+        ),
+        findsNothing,
+      );
     });
+  });
+
+  group('SettingsScreen — Channels tab: Channel Onboarding & Mixed States', () {
+    testWidgets(
+      'WhatsApp onboarding card primary button calls startWhatsAppEmbeddedSignupMobile',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path ==
+                  '/integrations/whatsapp/embedded-signup/mobile/start/') {
+            return _json(
+              '{"authorization_url": "https://facebook.com/v19.0/dialog/oauth?wa=1"}',
+              200,
+            );
+          }
+          return _json(_channelsPage(const []), 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final fakeLauncher = _FakeUrlLauncher();
+        final previousLauncher = UrlLauncherPlatform.instance;
+        UrlLauncherPlatform.instance = fakeLauncher;
+        addTearDown(() => UrlLauncherPlatform.instance = previousLauncher);
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        await tester.tap(find.text('Connect WhatsApp'));
+        await tester.pumpAndSettle();
+
+        expect(
+          adapter.received.any(
+            (r) =>
+                r.method == 'POST' &&
+                r.path ==
+                    '/integrations/whatsapp/embedded-signup/mobile/start/',
+          ),
+          isTrue,
+        );
+        expect(fakeLauncher.launchedUrls, [
+          'https://facebook.com/v19.0/dialog/oauth?wa=1',
+        ]);
+      },
+    );
+
+    testWidgets(
+      'WhatsApp onboarding card Other ways to connect expands and opens manual connect sheet',
+      (tester) async {
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = _StubAdapter(
+          (_) => _json(_channelsPage(const []), 200),
+        );
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        final whatsappCard = find.byKey(
+          const ValueKey('channel_onboarding_WHATSAPP'),
+        );
+        expect(whatsappCard, findsOneWidget);
+
+        final otherWays = find.descendant(
+          of: whatsappCard,
+          matching: find.text('Other ways to connect'),
+        );
+        expect(otherWays, findsOneWidget);
+        await tester.tap(otherWays);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Enter details manually'), findsOneWidget);
+        expect(
+          find.text('via phone number ID and access token'),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text('Enter details manually'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Add a WhatsApp number'), findsOneWidget);
+        expect(
+          find.widgetWithText(TextField, 'Phone number ID'),
+          findsOneWidget,
+        );
+        expect(find.widgetWithText(TextField, 'Access token'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Facebook Messenger onboarding card connects via Meta OAuth and has no Other ways to connect',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path == '/integrations/meta/connect/') {
+            return _json(
+              '{"authorization_url": "https://facebook.com/dialog/oauth?meta=1"}',
+              200,
+            );
+          }
+          return _json(_channelsPage(const []), 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final fakeLauncher = _FakeUrlLauncher();
+        final previousLauncher = UrlLauncherPlatform.instance;
+        UrlLauncherPlatform.instance = fakeLauncher;
+        addTearDown(() => UrlLauncherPlatform.instance = previousLauncher);
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        final fbCard = find.byKey(
+          const ValueKey('channel_onboarding_FACEBOOK'),
+        );
+        expect(fbCard, findsOneWidget);
+
+        expect(
+          find.descendant(
+            of: fbCard,
+            matching: find.text('Other ways to connect'),
+          ),
+          findsNothing,
+        );
+
+        final connectBtn = find.descendant(
+          of: fbCard,
+          matching: find.widgetWithText(FilledButton, 'Connect'),
+        );
+        expect(connectBtn, findsOneWidget);
+        await tester.tap(connectBtn);
+        await tester.pumpAndSettle();
+
+        expect(
+          adapter.received.any(
+            (r) =>
+                r.method == 'POST' && r.path == '/integrations/meta/connect/',
+          ),
+          isTrue,
+        );
+        expect(fakeLauncher.launchedUrls, [
+          'https://facebook.com/dialog/oauth?meta=1',
+        ]);
+      },
+    );
+
+    testWidgets(
+      'Instagram Direct onboarding card connects via authorizeInstagram and exposes Other ways to connect',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path == '/integrations/instagram/authorize/') {
+            return _json(
+              '{"authorization_url": "https://instagram.com/oauth/authorize?ig=1"}',
+              200,
+            );
+          }
+          if (options.method == 'POST' &&
+              options.path == '/integrations/meta/connect/') {
+            return _json(
+              '{"authorization_url": "https://facebook.com/dialog/oauth?meta=1"}',
+              200,
+            );
+          }
+          return _json(_channelsPage(const []), 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final fakeLauncher = _FakeUrlLauncher();
+        final previousLauncher = UrlLauncherPlatform.instance;
+        UrlLauncherPlatform.instance = fakeLauncher;
+        addTearDown(() => UrlLauncherPlatform.instance = previousLauncher);
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        final igCard = find.byKey(
+          const ValueKey('channel_onboarding_INSTAGRAM'),
+        );
+        expect(igCard, findsOneWidget);
+
+        await tester.tap(find.text('Connect Instagram'));
+        await tester.pumpAndSettle();
+
+        expect(
+          adapter.received.any(
+            (r) =>
+                r.method == 'POST' &&
+                r.path == '/integrations/instagram/authorize/',
+          ),
+          isTrue,
+        );
+        expect(fakeLauncher.launchedUrls, [
+          'https://instagram.com/oauth/authorize?ig=1',
+        ]);
+
+        final otherWays = find.descendant(
+          of: igCard,
+          matching: find.text('Other ways to connect'),
+        );
+        expect(otherWays, findsOneWidget);
+        await tester.tap(otherWays);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Legacy — via a linked Facebook Page'),
+          findsOneWidget,
+        );
+        expect(find.text('Use Instagram token'), findsOneWidget);
+
+        final legacyConnect = find.descendant(
+          of: igCard,
+          matching: find.widgetWithText(InkWell, 'Connect'),
+        );
+        await tester.tap(legacyConnect.first);
+        await tester.pumpAndSettle();
+
+        expect(
+          adapter.received.any(
+            (r) =>
+                r.method == 'POST' && r.path == '/integrations/meta/connect/',
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    testWidgets(
+      'TikTok onboarding card is non-interactive with Coming soon banner',
+      (tester) async {
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = _StubAdapter(
+          (_) => _json(_channelsPage(const []), 200),
+        );
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        final tiktokCard = find.byKey(
+          const ValueKey('channel_onboarding_TIKTOK'),
+        );
+        expect(tiktokCard, findsOneWidget);
+
+        expect(
+          find.descendant(of: tiktokCard, matching: find.text('Coming soon')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: tiktokCard,
+            matching: find.text('TikTok integration will be available soon.'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: tiktokCard, matching: find.byType(FilledButton)),
+          findsNothing,
+        );
+        expect(
+          find.descendant(
+            of: tiktokCard,
+            matching: find.byType(OutlinedButton),
+          ),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'Mixed state: connected WhatsApp renders connected card, unconnected Messenger & Instagram render onboarding cards',
+      (tester) async {
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = _StubAdapter(
+          (_) => _json(_channelsPage([_whatsappChannel]), 200),
+        );
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        // WhatsApp is connected
+        expect(
+          find.byKey(const ValueKey('platform_group_WHATSAPP')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('channel_onboarding_WHATSAPP')),
+          findsNothing,
+        );
+        expect(find.text('Support line'), findsOneWidget);
+        expect(find.text('Connect another number'), findsOneWidget);
+
+        // Facebook Messenger is unconnected
+        expect(
+          find.byKey(const ValueKey('platform_group_FACEBOOK')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('channel_onboarding_FACEBOOK')),
+          findsOneWidget,
+        );
+
+        // Instagram is unconnected
+        expect(
+          find.byKey(const ValueKey('platform_group_INSTAGRAM')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('channel_onboarding_INSTAGRAM')),
+          findsOneWidget,
+        );
+        expect(find.text('Connect Instagram'), findsOneWidget);
+
+        // TikTok is coming soon
+        expect(
+          find.byKey(const ValueKey('channel_onboarding_TIKTOK')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'Permission gating: viewer role without channel.manage sees admin-only note and no connect buttons',
+      (tester) async {
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = _StubAdapter(
+          (_) => _json(_channelsPage(const []), 200),
+        );
+
+        await _pumpChannelsTab(
+          tester,
+          apiClient: client,
+          employee: _viewerEmployee,
+        );
+
+        expect(
+          find.text('Only an administrator can connect channels.'),
+          findsNWidgets(3),
+        );
+        expect(find.text('Connect WhatsApp'), findsNothing);
+        expect(find.text('Connect Instagram'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'Arabic (RTL) renders onboarding cards with correct Arabic translations',
+      (tester) async {
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = _StubAdapter(
+          (_) => _json(_channelsPage(const []), 200),
+        );
+
+        await _pumpChannelsTab(
+          tester,
+          apiClient: client,
+          locale: const Locale('ar'),
+        );
+
+        expect(find.text('غير متصل'), findsNWidgets(3));
+        expect(find.text('قريبًا'), findsOneWidget);
+        expect(find.text('ربط WhatsApp'), findsOneWidget);
+        expect(find.text('ربط Instagram'), findsOneWidget);
+        expect(
+          find.text('نعمل على إتاحة تكامل TikTok قريبًا.'),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'Zero connected channels on 320px narrow screen has no overflow',
+      (tester) async {
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = _StubAdapter(
+          (_) => _json(_channelsPage(const []), 200),
+        );
+
+        await _pumpChannelsTab(
+          tester,
+          apiClient: client,
+          size: const Size(320, 1600),
+        );
+
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 }

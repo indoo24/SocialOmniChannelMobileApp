@@ -303,6 +303,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateAction => 'Update';
 
   @override
+  String get channelStatusNotConnected => 'Not connected';
+
+  @override
+  String get channelStatusComingSoon => 'Coming soon';
+
+  @override
+  String get connectWhatsAppAction => 'Connect WhatsApp';
+
+  @override
+  String get connectInstagramAction => 'Connect Instagram';
+
+  @override
+  String get enterDetailsManuallyAction => 'Enter details manually';
+
+  @override
+  String get viaManualTokenHint => 'via phone number ID and access token';
+
+  @override
+  String get legacyViaPageHint => 'Legacy — via a linked Facebook Page';
+
+  @override
+  String get tiktokComingSoon => 'TikTok integration will be available soon.';
+
+  @override
+  String get adminOnlyConnectChannels =>
+      'Only an administrator can connect channels.';
+
+  @override
+  String get channelDescWhatsApp =>
+      'Receive and reply to WhatsApp messages sent to your business number.';
+
+  @override
+  String get channelDescFacebook =>
+      'Receive and reply to messages sent to your Facebook Page.';
+
+  @override
+  String get channelDescInstagram =>
+      'Receive and reply to DMs. Connects either through a linked Facebook Page, or directly with an Instagram Login token.';
+
+  @override
+  String get channelDescTiktok =>
+      'Reply to TikTok direct messages from the shared inbox.';
+
+  @override
   String get noConnectionTitle => 'No connection';
 
   @override
@@ -1862,4 +1906,82 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reasonNoSchedule => 'No schedule';
+
+  @override
+  String get whatsappWindowClosedTitle =>
+      'The WhatsApp customer-service window has closed.';
+
+  @override
+  String whatsappWindowClosedDetail(String name) {
+    return 'More than 24 hours have passed since $name last wrote, so Meta will reject a free-text message. Send an approved template to continue the conversation.';
+  }
+
+  @override
+  String get conversationClosedNotice =>
+      'This conversation is closed. Reopen it before replying.';
+
+  @override
+  String get useTemplateAction => 'Send a template';
+
+  @override
+  String get templateSentSnackbar => 'Template sent';
+
+  @override
+  String get reassignAfterTitle => 'Reassign unanswered conversation after';
+
+  @override
+  String get reassignAfterHint =>
+      'If the assigned agent does not reply within this period, OmniChannel will try to reassign the conversation to another available agent.';
+
+  @override
+  String get reassignAfterRestart =>
+      'The timer restarts after each reassignment.';
+
+  @override
+  String get reassignAfterRange => 'Between 1 and 1440 minutes.';
+
+  @override
+  String get reassignAfterUnit => 'minutes';
+
+  @override
+  String get reassignSaved => 'Reassignment time saved';
+
+  @override
+  String get reassignInvalidRangeError => 'Must be between 1 and 1440 minutes.';
+
+  @override
+  String get stickyOwnershipTitle =>
+      'Keep conversations with the same employee';
+
+  @override
+  String get stickyOwnershipHint =>
+      'Once an employee has answered a customer, the conversation stays with that employee even if the customer returns later, or the employee is offline or busy. Turn this off to let the timeout above reassign a conversation the owner has not answered.';
+
+  @override
+  String get stickyOwnershipOn => 'On';
+
+  @override
+  String get stickyOwnershipOff => 'Off';
+
+  @override
+  String get stickyOwnershipSaved => 'Ownership setting saved';
+
+  @override
+  String get maxHopsTitle => 'Maximum unanswered reassignments';
+
+  @override
+  String get maxHopsHint =>
+      'A safety limit. It counts only reassignments made before anyone has answered the customer — once an employee replies, the count starts again. When the limit is reached the conversation stops being passed on and stays with its current employee.';
+
+  @override
+  String get maxHopsRange => 'Between 1 and 20.';
+
+  @override
+  String get maxHopsSaved => 'Reassignment limit saved';
+
+  @override
+  String get maxHopsInvalidRangeError => 'Must be between 1 and 20.';
+
+  @override
+  String get saveAction => 'Save';
 }

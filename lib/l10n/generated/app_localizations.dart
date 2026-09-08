@@ -614,6 +614,84 @@ abstract class AppLocalizations {
   /// **'Update'**
   String get updateAction;
 
+  /// No description provided for @channelStatusNotConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected'**
+  String get channelStatusNotConnected;
+
+  /// No description provided for @channelStatusComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get channelStatusComingSoon;
+
+  /// No description provided for @connectWhatsAppAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect WhatsApp'**
+  String get connectWhatsAppAction;
+
+  /// No description provided for @connectInstagramAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect Instagram'**
+  String get connectInstagramAction;
+
+  /// No description provided for @enterDetailsManuallyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter details manually'**
+  String get enterDetailsManuallyAction;
+
+  /// No description provided for @viaManualTokenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'via phone number ID and access token'**
+  String get viaManualTokenHint;
+
+  /// No description provided for @legacyViaPageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Legacy — via a linked Facebook Page'**
+  String get legacyViaPageHint;
+
+  /// No description provided for @tiktokComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok integration will be available soon.'**
+  String get tiktokComingSoon;
+
+  /// No description provided for @adminOnlyConnectChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Only an administrator can connect channels.'**
+  String get adminOnlyConnectChannels;
+
+  /// No description provided for @channelDescWhatsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive and reply to WhatsApp messages sent to your business number.'**
+  String get channelDescWhatsApp;
+
+  /// No description provided for @channelDescFacebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive and reply to messages sent to your Facebook Page.'**
+  String get channelDescFacebook;
+
+  /// No description provided for @channelDescInstagram.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive and reply to DMs. Connects either through a linked Facebook Page, or directly with an Instagram Login token.'**
+  String get channelDescInstagram;
+
+  /// No description provided for @channelDescTiktok.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply to TikTok direct messages from the shared inbox.'**
+  String get channelDescTiktok;
+
   /// No description provided for @noConnectionTitle.
   ///
   /// In en, this message translates to:
@@ -3379,6 +3457,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No schedule'**
   String get reasonNoSchedule;
+
+  /// Notice shown in composer when WhatsApp 24-hour customer service messaging window is closed
+  ///
+  /// In en, this message translates to:
+  /// **'The WhatsApp customer-service window has closed.'**
+  String get whatsappWindowClosedTitle;
+
+  /// Detailed explanation of closed WhatsApp window
+  ///
+  /// In en, this message translates to:
+  /// **'More than 24 hours have passed since {name} last wrote, so Meta will reject a free-text message. Send an approved template to continue the conversation.'**
+  String whatsappWindowClosedDetail(String name);
+
+  /// Notice shown in composer when the conversation status is closed
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation is closed. Reopen it before replying.'**
+  String get conversationClosedNotice;
+
+  /// Button to switch to template composer mode
+  ///
+  /// In en, this message translates to:
+  /// **'Send a template'**
+  String get useTemplateAction;
+
+  /// Snackbar shown after successfully sending a template
+  ///
+  /// In en, this message translates to:
+  /// **'Template sent'**
+  String get templateSentSnackbar;
+
+  /// Title for reassign unanswered conversation timeout setting
+  ///
+  /// In en, this message translates to:
+  /// **'Reassign unanswered conversation after'**
+  String get reassignAfterTitle;
+
+  /// Description for reassign unanswered conversation timeout setting
+  ///
+  /// In en, this message translates to:
+  /// **'If the assigned agent does not reply within this period, OmniChannel will try to reassign the conversation to another available agent.'**
+  String get reassignAfterHint;
+
+  /// Notice that timer restarts after each reassignment
+  ///
+  /// In en, this message translates to:
+  /// **'The timer restarts after each reassignment.'**
+  String get reassignAfterRestart;
+
+  /// Allowed range for reassign unanswered conversation in minutes
+  ///
+  /// In en, this message translates to:
+  /// **'Between 1 and 1440 minutes.'**
+  String get reassignAfterRange;
+
+  /// Unit label for minutes next to input
+  ///
+  /// In en, this message translates to:
+  /// **'minutes'**
+  String get reassignAfterUnit;
+
+  /// Snackbar shown after successfully saving reassignment time
+  ///
+  /// In en, this message translates to:
+  /// **'Reassignment time saved'**
+  String get reassignSaved;
+
+  /// Validation error for reassignment timeout range
+  ///
+  /// In en, this message translates to:
+  /// **'Must be between 1 and 1440 minutes.'**
+  String get reassignInvalidRangeError;
+
+  /// Title for sticky conversation ownership setting
+  ///
+  /// In en, this message translates to:
+  /// **'Keep conversations with the same employee'**
+  String get stickyOwnershipTitle;
+
+  /// Description for sticky conversation ownership setting
+  ///
+  /// In en, this message translates to:
+  /// **'Once an employee has answered a customer, the conversation stays with that employee even if the customer returns later, or the employee is offline or busy. Turn this off to let the timeout above reassign a conversation the owner has not answered.'**
+  String get stickyOwnershipHint;
+
+  /// Label for On state of sticky conversation ownership
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get stickyOwnershipOn;
+
+  /// Label for Off state of sticky conversation ownership
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get stickyOwnershipOff;
+
+  /// Snackbar shown after saving sticky conversation ownership
+  ///
+  /// In en, this message translates to:
+  /// **'Ownership setting saved'**
+  String get stickyOwnershipSaved;
+
+  /// Title for maximum unanswered reassignments setting
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum unanswered reassignments'**
+  String get maxHopsTitle;
+
+  /// Description for maximum unanswered reassignments setting
+  ///
+  /// In en, this message translates to:
+  /// **'A safety limit. It counts only reassignments made before anyone has answered the customer — once an employee replies, the count starts again. When the limit is reached the conversation stops being passed on and stays with its current employee.'**
+  String get maxHopsHint;
+
+  /// Allowed range for maximum unanswered reassignments
+  ///
+  /// In en, this message translates to:
+  /// **'Between 1 and 20.'**
+  String get maxHopsRange;
+
+  /// Snackbar shown after saving maximum unanswered reassignments
+  ///
+  /// In en, this message translates to:
+  /// **'Reassignment limit saved'**
+  String get maxHopsSaved;
+
+  /// Validation error for maximum unanswered reassignments range
+  ///
+  /// In en, this message translates to:
+  /// **'Must be between 1 and 20.'**
+  String get maxHopsInvalidRangeError;
+
+  /// Generic Save button label
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get saveAction;
 }
 
 class _AppLocalizationsDelegate

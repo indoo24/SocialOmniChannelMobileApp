@@ -304,6 +304,49 @@ class AppLocalizationsAr extends AppLocalizations {
   String get updateAction => 'تحديث';
 
   @override
+  String get channelStatusNotConnected => 'غير متصل';
+
+  @override
+  String get channelStatusComingSoon => 'قريبًا';
+
+  @override
+  String get connectWhatsAppAction => 'ربط WhatsApp';
+
+  @override
+  String get connectInstagramAction => 'ربط Instagram';
+
+  @override
+  String get enterDetailsManuallyAction => 'إدخال البيانات يدويًا';
+
+  @override
+  String get viaManualTokenHint => 'عبر معرّف رقم الهاتف ورمز الوصول';
+
+  @override
+  String get legacyViaPageHint => 'الطريقة القديمة — عبر صفحة Facebook مرتبطة';
+
+  @override
+  String get tiktokComingSoon => 'نعمل على إتاحة تكامل TikTok قريبًا.';
+
+  @override
+  String get adminOnlyConnectChannels => 'لا يمكن ربط القنوات إلا لمدير.';
+
+  @override
+  String get channelDescWhatsApp =>
+      'استقبال والرد على رسائل واتساب المرسلة إلى رقم نشاطك التجاري.';
+
+  @override
+  String get channelDescFacebook =>
+      'استقبال والرد على الرسائل المرسلة إلى صفحتك على فيسبوك.';
+
+  @override
+  String get channelDescInstagram =>
+      'استقبال والرد على الرسائل المباشرة عبر صفحة فيسبوك المرتبطة أو تسجيل دخول إنستغرام.';
+
+  @override
+  String get channelDescTiktok =>
+      'الرد على الرسائل المباشرة في TikTok من صندوق الوارد المشترك.';
+
+  @override
   String get noConnectionTitle => 'لا يوجد اتصال';
 
   @override
@@ -1888,4 +1931,80 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reasonNoSchedule => 'بلا جدول';
+
+  @override
+  String get whatsappWindowClosedTitle => 'انتهت نافذة خدمة عملاء WhatsApp.';
+
+  @override
+  String whatsappWindowClosedDetail(String name) {
+    return 'مضى أكثر من 24 ساعة على آخر رسالة من $name، لذا سترفض Meta أي رسالة نصية حرة. أرسل قالبًا معتمدًا لمتابعة المحادثة.';
+  }
+
+  @override
+  String get conversationClosedNotice =>
+      'هذه المحادثة مغلقة. أعد فتحها قبل الرد.';
+
+  @override
+  String get useTemplateAction => 'إرسال قالب';
+
+  @override
+  String get templateSentSnackbar => 'تم إرسال القالب';
+
+  @override
+  String get reassignAfterTitle => 'إعادة توزيع المحادثة عند عدم الرد بعد';
+
+  @override
+  String get reassignAfterHint =>
+      'إذا لم يرد الموظف خلال هذه المدة، سيحاول النظام إعادة توزيع المحادثة على موظف آخر متاح.';
+
+  @override
+  String get reassignAfterRestart => 'يبدأ الوقت من جديد عند كل إعادة توزيع.';
+
+  @override
+  String get reassignAfterRange => 'بين دقيقة واحدة و1440 دقيقة.';
+
+  @override
+  String get reassignAfterUnit => 'دقيقة';
+
+  @override
+  String get reassignSaved => 'تم حفظ مدة إعادة التوزيع';
+
+  @override
+  String get reassignInvalidRangeError =>
+      'يجب أن تكون المدة بين 1 و1440 دقيقة.';
+
+  @override
+  String get stickyOwnershipTitle => 'إبقاء المحادثة مع نفس الموظف';
+
+  @override
+  String get stickyOwnershipHint =>
+      'بمجرد أن يرد الموظف على العميل، تبقى المحادثة معه حتى إذا عاد العميل لاحقًا أو كان الموظف غير متصل أو مشغولًا. عند إيقاف هذا الخيار يمكن إعادة توزيع المحادثة إذا لم يرد الموظف خلال المهلة أعلاه.';
+
+  @override
+  String get stickyOwnershipOn => 'مُفعّل';
+
+  @override
+  String get stickyOwnershipOff => 'متوقف';
+
+  @override
+  String get stickyOwnershipSaved => 'تم حفظ إعداد ملكية المحادثة';
+
+  @override
+  String get maxHopsTitle => 'الحد الأقصى لإعادات التوزيع قبل الرد';
+
+  @override
+  String get maxHopsHint =>
+      'حد وقائي. يُحتسب فقط لإعادات التوزيع التي تتم قبل أن يرد أي موظف على العميل، وعند رد أي موظف يبدأ العد من جديد. وعند بلوغ الحد تتوقف إعادة التوزيع وتبقى المحادثة مع الموظف الحالي.';
+
+  @override
+  String get maxHopsRange => 'بين 1 و20.';
+
+  @override
+  String get maxHopsSaved => 'تم حفظ حد إعادة التوزيع';
+
+  @override
+  String get maxHopsInvalidRangeError => 'يجب أن يكون الحد بين 1 و20.';
+
+  @override
+  String get saveAction => 'حفظ';
 }

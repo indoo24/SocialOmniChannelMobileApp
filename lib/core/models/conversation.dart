@@ -123,6 +123,7 @@ class Conversation {
     this.intelligence,
     this.lastMessagePreview = '',
     this.lastMessageAt,
+    this.lastCustomerMessageAt,
     this.startedAt,
     this.subject = '',
     this.isFollowUp = false,
@@ -145,6 +146,7 @@ class Conversation {
   final int messageCount;
   final String lastMessagePreview;
   final DateTime? lastMessageAt;
+  final DateTime? lastCustomerMessageAt;
   final DateTime? startedAt;
   final IntelligenceBrief? intelligence;
   final String subject;
@@ -174,6 +176,7 @@ class Conversation {
     messageCount: JsonSafe.asInt(json['message_count']),
     lastMessagePreview: JsonSafe.asString(json['last_message_preview']),
     lastMessageAt: _parseDate(json['last_message_at']),
+    lastCustomerMessageAt: _parseDate(json['last_customer_message_at']),
     startedAt: _parseDate(json['started_at']),
     intelligence: json['intelligence'] is Map
         ? IntelligenceBrief.fromJson(JsonSafe.asMap(json['intelligence']))
@@ -187,6 +190,26 @@ class Conversation {
 
   bool get isUnassigned => assignedTo == null;
   bool get hasUnread => unreadCount > 0;
+  bool get isClosed => status.toUpperCase() == 'CLOSED';
+
+  /// Whether WhatsApp's 24-hour customer service messaging window has expired.
+  ///
+  /// Replicates the Web implementation (`inbox-xhnnac5D.js`):
+  /// ```javascript
+  /// const C = s.provider === "WHATSAPP";
+  /// const y = C ? (s.last_customer_message_at ? Date.now() - new Date(s.last_customer_message_at).getTime() > 1440 * 60 * 1e3 : true) : false;
+  /// ```
+  bool get isMessagingWindowClosed {
+    if (provider.toUpperCase() != 'WHATSAPP') return false;
+    if (lastCustomerMessageAt == null) return true;
+    final nowUtc = DateTime.now().toUtc();
+    final lastMsgUtc = lastCustomerMessageAt!.toUtc();
+    return nowUtc.difference(lastMsgUtc).inMilliseconds > 24 * 60 * 60 * 1000;
+  }
+
+  /// Free-text replies are permitted only when the conversation is not closed
+  /// and the WhatsApp messaging window (if WhatsApp) is still open.
+  bool get canReplyFreeText => !isClosed && !isMessagingWindowClosed;
 
   bool isOwnedBy(int employeeId) => assignedTo?.id == employeeId;
 
@@ -196,6 +219,8 @@ class Conversation {
     String? priority,
     EmployeeBrief? assignedTo,
     ConversationCategory? category,
+    DateTime? lastCustomerMessageAt,
+    bool clearLastCustomerMessageAt = false,
     bool? isFollowUp,
     DateTime? followUpDate,
     bool clearFollowUpDate = false,
@@ -217,6 +242,9 @@ class Conversation {
     intelligence: intelligence,
     lastMessagePreview: lastMessagePreview,
     lastMessageAt: lastMessageAt,
+    lastCustomerMessageAt: clearLastCustomerMessageAt
+        ? null
+        : (lastCustomerMessageAt ?? this.lastCustomerMessageAt),
     startedAt: startedAt,
     subject: subject,
     isFollowUp: isFollowUp ?? this.isFollowUp,
