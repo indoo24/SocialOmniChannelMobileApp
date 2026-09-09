@@ -794,6 +794,52 @@
   "notConfirmedBadge": "Not confirmed",
   "anEmployeeLabel": "An employee",
 
+  "intelligenceDisclaimer": "Generated from conversation text by {version}. Treat this as a suggestion — verify before acting.",
+  "@intelligenceDisclaimer": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "intelligenceTheAnalyzer": "the analyzer",
+  "showSignalsBehindScore": "Show the {count} signals behind this score",
+  "@showSignalsBehindScore": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "hideSignalsBehindScore": "Hide the {count} signals behind this score",
+  "@hideSignalsBehindScore": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "scoreOverriddenDetail": "Set to {score} by {name} on {when}. The analyzer scores this {autoScore}.",
+  "@scoreOverriddenDetail": {
+    "placeholders": {
+      "score": {"type": "int"},
+      "name": {"type": "String"},
+      "when": {"type": "String"},
+      "autoScore": {"type": "int"}
+    }
+  },
+  "autoScoreAction": "Auto",
+  "metaScoreAction": "Meta",
+  "returnToAutoScoreTooltip": "Return to the analyzer's score of {score}",
+  "@returnToAutoScoreTooltip": {
+    "placeholders": {
+      "score": {"type": "int"}
+    }
+  },
+  "sendStageToMetaTooltip": "Report stage conversion to Meta",
+  "purchaseStatusLabel": "Purchase status",
+  "confidenceFieldLabel": "Confidence",
+  "sentimentFieldLabel": "Sentiment",
+  "intentFieldLabel": "Intent",
+  "urgencyFieldLabel": "Urgency",
+  "noneValue": "None",
+  "noBuyingSignalsMessage": "No buying signals detected yet",
+  "recommendedNextActionTitle": "Recommended next action",
+
   "templatesTitle": "Message templates",
   "templatesSubtitle": "Pre-approved WhatsApp messages you can send outside the 24-hour window.",
   "wabaAccountLabel": "WhatsApp Business account",

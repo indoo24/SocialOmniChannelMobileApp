@@ -1730,6 +1730,72 @@ class AppLocalizationsEn extends AppLocalizations {
   String get anEmployeeLabel => 'An employee';
 
   @override
+  String intelligenceDisclaimer(String version) {
+    return 'Generated from conversation text by $version. Treat this as a suggestion — verify before acting.';
+  }
+
+  @override
+  String get intelligenceTheAnalyzer => 'the analyzer';
+
+  @override
+  String showSignalsBehindScore(int count) {
+    return 'Show the $count signals behind this score';
+  }
+
+  @override
+  String hideSignalsBehindScore(int count) {
+    return 'Hide the $count signals behind this score';
+  }
+
+  @override
+  String scoreOverriddenDetail(
+    int score,
+    String name,
+    String when,
+    int autoScore,
+  ) {
+    return 'Set to $score by $name on $when. The analyzer scores this $autoScore.';
+  }
+
+  @override
+  String get autoScoreAction => 'Auto';
+
+  @override
+  String get metaScoreAction => 'Meta';
+
+  @override
+  String returnToAutoScoreTooltip(int score) {
+    return 'Return to the analyzer\'s score of $score';
+  }
+
+  @override
+  String get sendStageToMetaTooltip => 'Report stage conversion to Meta';
+
+  @override
+  String get purchaseStatusLabel => 'Purchase status';
+
+  @override
+  String get confidenceFieldLabel => 'Confidence';
+
+  @override
+  String get sentimentFieldLabel => 'Sentiment';
+
+  @override
+  String get intentFieldLabel => 'Intent';
+
+  @override
+  String get urgencyFieldLabel => 'Urgency';
+
+  @override
+  String get noneValue => 'None';
+
+  @override
+  String get noBuyingSignalsMessage => 'No buying signals detected yet';
+
+  @override
+  String get recommendedNextActionTitle => 'Recommended next action';
+
+  @override
   String get templatesTitle => 'Message templates';
 
   @override

@@ -3170,6 +3170,113 @@ abstract class AppLocalizations {
   /// **'An employee'**
   String get anEmployeeLabel;
 
+  /// No description provided for @intelligenceDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated from conversation text by {version}. Treat this as a suggestion — verify before acting.'**
+  String intelligenceDisclaimer(String version);
+
+  /// No description provided for @intelligenceTheAnalyzer.
+  ///
+  /// In en, this message translates to:
+  /// **'the analyzer'**
+  String get intelligenceTheAnalyzer;
+
+  /// No description provided for @showSignalsBehindScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the {count} signals behind this score'**
+  String showSignalsBehindScore(int count);
+
+  /// No description provided for @hideSignalsBehindScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide the {count} signals behind this score'**
+  String hideSignalsBehindScore(int count);
+
+  /// No description provided for @scoreOverriddenDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Set to {score} by {name} on {when}. The analyzer scores this {autoScore}.'**
+  String scoreOverriddenDetail(
+    int score,
+    String name,
+    String when,
+    int autoScore,
+  );
+
+  /// No description provided for @autoScoreAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get autoScoreAction;
+
+  /// No description provided for @metaScoreAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Meta'**
+  String get metaScoreAction;
+
+  /// No description provided for @returnToAutoScoreTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Return to the analyzer\'s score of {score}'**
+  String returnToAutoScoreTooltip(int score);
+
+  /// No description provided for @sendStageToMetaTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Report stage conversion to Meta'**
+  String get sendStageToMetaTooltip;
+
+  /// No description provided for @purchaseStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase status'**
+  String get purchaseStatusLabel;
+
+  /// No description provided for @confidenceFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confidence'**
+  String get confidenceFieldLabel;
+
+  /// No description provided for @sentimentFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sentiment'**
+  String get sentimentFieldLabel;
+
+  /// No description provided for @intentFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Intent'**
+  String get intentFieldLabel;
+
+  /// No description provided for @urgencyFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Urgency'**
+  String get urgencyFieldLabel;
+
+  /// No description provided for @noneValue.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get noneValue;
+
+  /// No description provided for @noBuyingSignalsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No buying signals detected yet'**
+  String get noBuyingSignalsMessage;
+
+  /// No description provided for @recommendedNextActionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended next action'**
+  String get recommendedNextActionTitle;
+
   /// No description provided for @templatesTitle.
   ///
   /// In en, this message translates to:

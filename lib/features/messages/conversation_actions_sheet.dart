@@ -10,7 +10,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/employee.dart';
-import '../../core/models/intelligence.dart';
 import '../../core/models/performance.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
@@ -25,6 +24,7 @@ import '../directory/directory_providers.dart';
 import 'conversation_controller.dart';
 import 'conversation_history_sheet.dart';
 import 'conversion_sheet.dart';
+import 'customer_intelligence_section.dart';
 import 'intelligence_providers.dart';
 import 'notes_sheet.dart';
 import '../orders/order_and_fact_dialogs.dart';
@@ -229,8 +229,8 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
         // 2. INTELLIGENCE SECTION
         // ------------------------------------------------------------
         _SectionCard(
-          title: context.l10n.intelligenceSectionTitle,
-          icon: Icons.insights_outlined,
+          title: context.l10n.customerIntelligenceSectionTitle,
+          icon: Icons.auto_awesome,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -284,7 +284,19 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                     busy: _analyzing,
                     onRun: _runAnalyzer,
                   )
-                : _IntelligenceView(intelligence: data),
+                : CustomerIntelligenceView(
+                    conversationId: widget.conversationId,
+                    intelligence: data,
+                    showHeader: false,
+                    onChanged: () {
+                      ref.invalidate(
+                        conversationIntelligenceProvider(widget.conversationId),
+                      );
+                      ref.invalidate(
+                        conversationControllerProvider(widget.conversationId),
+                      );
+                    },
+                  ),
           ),
         ),
         const SizedBox(height: Space.lg),
@@ -893,273 +905,6 @@ class _KeyValueRow extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 2. INTELLIGENCE VIEW
-// ---------------------------------------------------------------------------
-class _IntelligenceView extends StatelessWidget {
-  const _IntelligenceView({required this.intelligence});
-
-  final ConversationIntelligence intelligence;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final intel = intelligence;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (intel.needsHumanReview)
-          Container(
-            margin: const EdgeInsets.only(bottom: Space.sm),
-            padding: const EdgeInsets.all(Space.sm),
-            decoration: BoxDecoration(
-              color: ScenarioColors.warning.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(Radii.sm),
-              border: Border.all(
-                color: ScenarioColors.warning.withValues(alpha: 0.35),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  color: ScenarioColors.warning,
-                  size: 18,
-                ),
-                const SizedBox(width: Space.sm),
-                Expanded(
-                  child: Text(
-                    intel.reviewReason.isNotEmpty
-                        ? intel.reviewReason
-                        : context.l10n.reviewBannerDefaultReason,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: ScenarioColors.warning,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-        // Badges Wrap
-        Wrap(
-          spacing: Space.xs,
-          runSpacing: Space.xs,
-          children: [
-            StatusBadge(
-              label: humanizeEnum(intel.stage),
-              tone: BadgeTone.info,
-              dense: true,
-            ),
-            StatusBadge(
-              label: humanizeEnum(intel.purchaseStatus),
-              tone: intel.purchaseStatus.toUpperCase() == 'CONFIRMED'
-                  ? BadgeTone.success
-                  : BadgeTone.neutral,
-              dense: true,
-            ),
-            if (intel.sentiment.isNotEmpty)
-              StatusBadge(
-                label: humanizeEnum(intel.sentiment),
-                tone: intel.sentiment.toLowerCase() == 'positive'
-                    ? BadgeTone.success
-                    : (intel.sentiment.toLowerCase() == 'negative'
-                          ? BadgeTone.danger
-                          : BadgeTone.neutral),
-                dense: true,
-              ),
-            if (intel.urgency.isNotEmpty && intel.urgency != 'none')
-              StatusBadge(
-                label: '${intel.urgency} urgency',
-                tone: intel.urgency.toLowerCase() == 'high'
-                    ? BadgeTone.danger
-                    : BadgeTone.warning,
-                dense: true,
-              ),
-          ],
-        ),
-        const SizedBox(height: Space.md),
-
-        // Lead score card
-        Container(
-          padding: const EdgeInsets.all(Space.sm),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.5,
-            ),
-            borderRadius: BorderRadius.circular(Radii.sm),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: intel.leadScore >= 70
-                      ? ScenarioColors.success
-                      : (intel.leadScore >= 40
-                            ? ScenarioColors.warning
-                            : theme.colorScheme.primary),
-                  borderRadius: BorderRadius.circular(Radii.sm),
-                ),
-                child: Text(
-                  '${intel.leadScore}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(width: Space.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.l10n.leadScoreFieldLabel,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      intel.isLeadScoreOverridden
-                          ? context.l10n.setByEmployeeLabel(
-                              intel.leadScoreOverriddenByName.isNotEmpty
-                                  ? intel.leadScoreOverriddenByName
-                                  : context.l10n.anEmployeeLabel,
-                            )
-                          : context.l10n.aiGeneratedLabel,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // AI Summary
-        if (intel.summary.isNotEmpty) ...[
-          const SizedBox(height: Space.sm),
-          Text(
-            context.l10n.intelligenceSummaryLabel,
-            style: theme.textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(intel.summary, style: theme.textTheme.bodySmall),
-        ],
-
-        // Next best action
-        if (intel.nextBestAction.isNotEmpty) ...[
-          const SizedBox(height: Space.sm),
-          Container(
-            padding: const EdgeInsets.all(Space.sm),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(Radii.sm),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.auto_awesome,
-                  size: 16,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: Space.xs),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.l10n.suggestedNextStepLabel,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        intel.nextBestAction,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-
-        // Signals / Objections
-        if (intel.interestedProducts.isNotEmpty) ...[
-          const SizedBox(height: Space.sm),
-          Text(
-            context.l10n.interestedInLabel,
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: [
-              for (final p in intel.interestedProducts)
-                StatusBadge(label: p, dense: true),
-            ],
-          ),
-        ],
-        if (intel.buyingSignals.isNotEmpty) ...[
-          const SizedBox(height: Space.sm),
-          Text(
-            context.l10n.buyingSignalsLabel,
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: [
-              for (final s in intel.buyingSignals)
-                StatusBadge(label: s, tone: BadgeTone.success, dense: true),
-            ],
-          ),
-        ],
-        if (intel.objections.isNotEmpty) ...[
-          const SizedBox(height: Space.sm),
-          Text(
-            context.l10n.objectionsLabel,
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: [
-              for (final o in intel.objections)
-                StatusBadge(label: o, tone: BadgeTone.danger, dense: true),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-}
-
 class _NotAnalyzedYet extends StatelessWidget {
   const _NotAnalyzedYet({
     required this.canRefresh,
@@ -1638,14 +1383,14 @@ class _SheetResolveButton extends StatelessWidget {
         onTap: isEnabled
             ? onResolve
             : (isResolved
-                ? () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(context.l10n.statusUpdatedMessage),
-                      ),
-                    );
-                  }
-                : null),
+                  ? () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(context.l10n.statusUpdatedMessage),
+                        ),
+                      );
+                    }
+                  : null),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(
@@ -1671,9 +1416,7 @@ class _SheetResolveButton extends StatelessWidget {
                 )
               else
                 Icon(
-                  isResolved
-                      ? Icons.check_circle_rounded
-                      : Icons.check_rounded,
+                  isResolved ? Icons.check_circle_rounded : Icons.check_rounded,
                   size: 18,
                   color: foregroundColor,
                 ),

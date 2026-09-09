@@ -1750,6 +1750,72 @@ class AppLocalizationsAr extends AppLocalizations {
   String get anEmployeeLabel => 'أحد الموظفين';
 
   @override
+  String intelligenceDisclaimer(String version) {
+    return 'مستخلصة من نص المحادثة بواسطة $version. تعامل معها كاقتراح — تحقّق قبل التصرّف.';
+  }
+
+  @override
+  String get intelligenceTheAnalyzer => 'المحلّل';
+
+  @override
+  String showSignalsBehindScore(int count) {
+    return 'عرض الـ $count إشارات وراء هذه الدرجة';
+  }
+
+  @override
+  String hideSignalsBehindScore(int count) {
+    return 'إخفاء الـ $count إشارات وراء هذه الدرجة';
+  }
+
+  @override
+  String scoreOverriddenDetail(
+    int score,
+    String name,
+    String when,
+    int autoScore,
+  ) {
+    return 'ضُبطت على $score بواسطة $name في $when. يعطيها المحلّل $autoScore.';
+  }
+
+  @override
+  String get autoScoreAction => 'تلقائي';
+
+  @override
+  String get metaScoreAction => 'Meta';
+
+  @override
+  String returnToAutoScoreTooltip(int score) {
+    return 'العودة إلى درجة المحلّل البالغة $score';
+  }
+
+  @override
+  String get sendStageToMetaTooltip => 'إرسال تحويل المرحلة إلى Meta';
+
+  @override
+  String get purchaseStatusLabel => 'حالة الشراء';
+
+  @override
+  String get confidenceFieldLabel => 'درجة الثقة';
+
+  @override
+  String get sentimentFieldLabel => 'الانطباع';
+
+  @override
+  String get intentFieldLabel => 'النية';
+
+  @override
+  String get urgencyFieldLabel => 'درجة الإلحاح';
+
+  @override
+  String get noneValue => 'لا يوجد';
+
+  @override
+  String get noBuyingSignalsMessage => 'لم يتم رصد إشارات شراء بعد';
+
+  @override
+  String get recommendedNextActionTitle => 'الإجراء التالي المقترح';
+
+  @override
   String get templatesTitle => 'قوالب الرسائل';
 
   @override
