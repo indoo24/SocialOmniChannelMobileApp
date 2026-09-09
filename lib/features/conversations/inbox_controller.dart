@@ -54,6 +54,20 @@ List<int>? computeAllowedChannelConnections(
   return allowedIds..sort();
 }
 
+/// The 5 primary quick filters permanently visible in the Inbox header,
+/// mirroring Web behavior (`jn = ["all", "mine", "unassigned", "unread", "open"]`).
+enum InboxQuickFilter { all, mine, unassigned, unread, open }
+
+extension ConversationFiltersQuickFilterX on ConversationFilters {
+  InboxQuickFilter get activeQuickFilter {
+    if (unread) return InboxQuickFilter.unread;
+    if (unassigned) return InboxQuickFilter.unassigned;
+    if (assignedToMe) return InboxQuickFilter.mine;
+    if (status == 'OPEN') return InboxQuickFilter.open;
+    return InboxQuickFilter.all;
+  }
+}
+
 final inboxFiltersProvider =
     NotifierProvider<InboxFiltersController, ConversationFilters>(
       InboxFiltersController.new,
@@ -64,6 +78,46 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
   ConversationFilters build() => const ConversationFilters();
 
   void update(ConversationFilters filters) => state = filters;
+
+  void selectQuickFilter(InboxQuickFilter filter) {
+    switch (filter) {
+      case InboxQuickFilter.all:
+        state = state.copyWith(
+          assignedToMe: false,
+          unassigned: false,
+          unread: false,
+          clearStatus: state.status == 'OPEN',
+        );
+      case InboxQuickFilter.mine:
+        state = state.copyWith(
+          assignedToMe: true,
+          unassigned: false,
+          unread: false,
+          clearStatus: state.status == 'OPEN',
+        );
+      case InboxQuickFilter.unassigned:
+        state = state.copyWith(
+          assignedToMe: false,
+          unassigned: true,
+          unread: false,
+          clearStatus: state.status == 'OPEN',
+        );
+      case InboxQuickFilter.unread:
+        state = state.copyWith(
+          assignedToMe: false,
+          unassigned: false,
+          unread: true,
+          clearStatus: state.status == 'OPEN',
+        );
+      case InboxQuickFilter.open:
+        state = state.copyWith(
+          assignedToMe: false,
+          unassigned: false,
+          unread: false,
+          status: 'OPEN',
+        );
+    }
+  }
 
   void selectAccount(
     String provider,

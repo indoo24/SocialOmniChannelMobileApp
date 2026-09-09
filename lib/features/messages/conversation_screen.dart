@@ -30,6 +30,7 @@ import '../../core/models/template.dart';
 import 'composer_attachment.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
+import 'conversation_resolve_button.dart';
 import 'message_bubble.dart';
 import 'notes_controller.dart';
 
@@ -202,6 +203,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final canChangeCategory = ref.watch(
       canProvider(Perm.conversationChangeCategory),
     );
+    final canChangeStatus = ref.watch(
+      canProvider(Perm.conversationChangeStatus),
+    );
 
     async.whenData((state) {
       final convoIdStr = widget.conversationId.toString();
@@ -274,6 +278,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           orElse: () => Text(context.l10n.conversationFallbackTitle),
         ),
         actions: [
+          async.maybeWhen(
+            data: (state) => ConversationResolveButton(
+              conversation: state.conversation,
+              canChange: canChangeStatus,
+            ),
+            orElse: () => const SizedBox.shrink(),
+          ),
           async.maybeWhen(
             data: (state) => _FollowUpButton(
               conversation: state.conversation,
@@ -696,10 +707,6 @@ class _Header extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final (statusLabel, statusTone) = ConversationBadges.status(
-      context,
-      conversation.status as String,
-    );
 
     final inboxState = ref.watch(inboxControllerProvider).value;
     final groups = inboxState?.groups ?? const [];
@@ -735,28 +742,14 @@ class _Header extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        conversation.customer.displayName as String,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: StatusBadge(
-                        label: statusLabel,
-                        tone: statusTone,
-                        dense: true,
-                      ),
-                    ),
-                  ],
+                Text(
+                  conversation.customer.displayName as String,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 1.5),
                 LayoutBuilder(

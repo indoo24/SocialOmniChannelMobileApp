@@ -67,40 +67,6 @@ class _FiltersSheet extends ConsumerWidget {
             ),
             const SizedBox(height: Space.md),
 
-            _SectionLabel(context.l10n.assignmentSection),
-            Wrap(
-              spacing: Space.sm,
-              children: [
-                FilterChip(
-                  label: Text(context.l10n.assignedToMeFilter),
-                  selected: filters.assignedToMe,
-                  onSelected: (selected) => controller.update(
-                    filters.copyWith(
-                      assignedToMe: selected,
-                      unassigned: selected ? false : filters.unassigned,
-                    ),
-                  ),
-                ),
-                FilterChip(
-                  label: Text(context.l10n.unassignedFilter),
-                  selected: filters.unassigned,
-                  onSelected: (selected) => controller.update(
-                    filters.copyWith(
-                      unassigned: selected,
-                      assignedToMe: selected ? false : filters.assignedToMe,
-                    ),
-                  ),
-                ),
-                FilterChip(
-                  label: Text(context.l10n.unreadFilter),
-                  selected: filters.unread,
-                  onSelected: (selected) =>
-                      controller.update(filters.copyWith(unread: selected)),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: Space.lg),
             _SectionLabel(context.l10n.statusSection),
             _ChoiceRow(
               options: _statuses,

@@ -238,6 +238,9 @@
 
   "filtersTitle": "Filters",
   "clearAll": "Clear all",
+  "allFilter": "All",
+  "mineFilter": "Mine",
+  "openFilter": "Open",
   "assignmentSection": "Assignment",
   "assignedToMeFilter": "Assigned to me",
   "unassignedFilter": "Unassigned",
@@ -1231,5 +1234,36 @@
     "placeholders": {
       "provider": {"type": "String"}
     }
+  },
+  "setAvailabilityTitle": "Set availability",
+  "@setAvailabilityTitle": {
+    "description": "Section title in user menu for setting availability"
+  },
+  "availabilityChanged": "You are now {status}.",
+  "@availabilityChanged": {
+    "description": "Snackbar notification after changing availability",
+    "placeholders": {
+      "status": {"type": "String"}
+    }
+  },
+  "availabilityFailed": "Could not update availability",
+  "@availabilityFailed": {
+    "description": "Snackbar notification when changing availability fails"
+  },
+  "userAccountMenuTooltip": "User account",
+  "@userAccountMenuTooltip": {
+    "description": "Tooltip for user account menu button"
+  },
+  "resolveConversationTooltip": "Resolve conversation",
+  "@resolveConversationTooltip": {
+    "description": "Tooltip for unresolved conversation checkmark button"
+  },
+  "conversationResolvedTooltip": "Conversation resolved",
+  "@conversationResolvedTooltip": {
+    "description": "Tooltip for resolved conversation double-check button"
+  },
+  "statusUpdateFailedMessage": "Couldn't update status. Please try again.",
+  "@statusUpdateFailedMessage": {
+    "description": "Snackbar notification when updating conversation status fails"
   }
 }

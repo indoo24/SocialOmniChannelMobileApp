@@ -505,6 +505,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clearAll => 'Clear all';
 
   @override
+  String get allFilter => 'All';
+
+  @override
+  String get mineFilter => 'Mine';
+
+  @override
+  String get openFilter => 'Open';
+
+  @override
   String get assignmentSection => 'Assignment';
 
   @override
@@ -2224,4 +2233,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String accountFilterFor(String provider) {
     return '$provider account';
   }
+
+  @override
+  String get setAvailabilityTitle => 'Set availability';
+
+  @override
+  String availabilityChanged(String status) {
+    return 'You are now $status.';
+  }
+
+  @override
+  String get availabilityFailed => 'Could not update availability';
+
+  @override
+  String get userAccountMenuTooltip => 'User account';
+
+  @override
+  String get resolveConversationTooltip => 'Resolve conversation';
+
+  @override
+  String get conversationResolvedTooltip => 'Conversation resolved';
+
+  @override
+  String get statusUpdateFailedMessage =>
+      'Couldn\'t update status. Please try again.';
 }

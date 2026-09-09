@@ -601,7 +601,9 @@ void main() {
 
       // Verify the query sent contains search, status, and channel_connections
       final req = adapter.received.lastWhere(
-        (r) => r.uri.path.contains('/conversations/'),
+        (r) =>
+            r.uri.path.contains('/conversations/') &&
+            !r.uri.path.contains('/counts/'),
       );
       expect(req.uri.queryParameters['search'], equals('Customer'));
       expect(req.uri.queryParameters['status'], equals('OPEN'));

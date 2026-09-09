@@ -992,6 +992,24 @@ abstract class AppLocalizations {
   /// **'Clear all'**
   String get clearAll;
 
+  /// No description provided for @allFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allFilter;
+
+  /// No description provided for @mineFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Mine'**
+  String get mineFilter;
+
+  /// No description provided for @openFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get openFilter;
+
   /// No description provided for @assignmentSection.
   ///
   /// In en, this message translates to:
@@ -4014,6 +4032,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{provider} account'**
   String accountFilterFor(String provider);
+
+  /// Section title in user menu for setting availability
+  ///
+  /// In en, this message translates to:
+  /// **'Set availability'**
+  String get setAvailabilityTitle;
+
+  /// Snackbar notification after changing availability
+  ///
+  /// In en, this message translates to:
+  /// **'You are now {status}.'**
+  String availabilityChanged(String status);
+
+  /// Snackbar notification when changing availability fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update availability'**
+  String get availabilityFailed;
+
+  /// Tooltip for user account menu button
+  ///
+  /// In en, this message translates to:
+  /// **'User account'**
+  String get userAccountMenuTooltip;
+
+  /// Tooltip for unresolved conversation checkmark button
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve conversation'**
+  String get resolveConversationTooltip;
+
+  /// Tooltip for resolved conversation double-check button
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation resolved'**
+  String get conversationResolvedTooltip;
+
+  /// Snackbar notification when updating conversation status fails
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update status. Please try again.'**
+  String get statusUpdateFailedMessage;
 }
 
 class _AppLocalizationsDelegate

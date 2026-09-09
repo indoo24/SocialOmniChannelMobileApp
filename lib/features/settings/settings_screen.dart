@@ -25,8 +25,10 @@ import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/app_drawer.dart';
 import '../../core/widgets/states.dart';
+import '../../core/widgets/user_account_menu.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
+import '../notifications/notification_bell_button.dart';
 import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
 import '../messages/conversation_controller.dart';
@@ -60,6 +62,11 @@ class SettingsScreen extends ConsumerWidget {
         drawer: const AppDrawer(),
         appBar: AppBar(
           title: Text(context.l10n.settingsTitle),
+          actions: [
+            const NotificationBellButton(),
+            const UserAccountMenuButton(),
+            const SizedBox(width: Space.xs),
+          ],
           bottom: TabBar(
             tabs: [for (final (label, _) in tabs) Tab(text: label)],
           ),
@@ -168,30 +175,6 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                 ],
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: Space.xl),
-
-        Text(
-          context.l10n.availabilitySectionTitle,
-          style: theme.textTheme.labelSmall?.copyWith(
-            letterSpacing: 0.6,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: Space.sm),
-        Text(context.l10n.availabilityHint, style: theme.textTheme.bodySmall),
-        const SizedBox(height: Space.md),
-        Wrap(
-          spacing: Space.sm,
-          runSpacing: Space.sm,
-          children: [
-            for (final value in _availabilities)
-              ChoiceChip(
-                label: Text(_label(context, value)),
-                selected: employee.availability == value,
-                onSelected: _busy ? null : (_) => _setAvailability(value),
-              ),
           ],
         ),
 

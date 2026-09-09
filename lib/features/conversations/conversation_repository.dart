@@ -109,6 +109,14 @@ class ConversationFilters {
       unassigned ||
       unread;
 
+  /// Whether any advanced/secondary filter from the filter sheet is active.
+  /// Primary quick filters (All/Mine/Unassigned/Unread/Open) are represented
+  /// in the persistent quick filter row on the inbox screen.
+  bool get hasAdvancedFilters =>
+      priority != null ||
+      provider != null ||
+      (status != null && status != 'OPEN');
+
   bool get isEmpty =>
       status == null &&
       priority == null &&

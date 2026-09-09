@@ -268,18 +268,22 @@ void main() {
       );
     }
 
-    testWidgets('Unread filter chip exists in the filters sheet', (
-      tester,
-    ) async {
-      await tester.pumpWidget(createInboxApp());
-      await tester.pumpAndSettle();
+    testWidgets(
+      'Unread and Unassigned quick filter pills exist on the inbox screen',
+      (tester) async {
+        await tester.pumpWidget(createInboxApp());
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.tune));
-      await tester.pumpAndSettle();
-
-      expect(find.widgetWithText(FilterChip, 'Unread'), findsOneWidget);
-      expect(find.widgetWithText(FilterChip, 'Unassigned'), findsOneWidget);
-    });
+        expect(find.byKey(const Key('quick_filter_unread')), findsOneWidget);
+        expect(
+          find.byKey(const Key('quick_filter_unassigned')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('quick_filter_all')), findsOneWidget);
+        expect(find.byKey(const Key('quick_filter_mine')), findsOneWidget);
+        expect(find.byKey(const Key('quick_filter_open')), findsOneWidget);
+      },
+    );
 
     testWidgets('selecting Unread shows only unread conversations', (
       tester,
@@ -292,13 +296,7 @@ void main() {
       expect(find.text('Read Unassigned'), findsOneWidget);
       expect(find.text('Read Assigned'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.tune));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilterChip, 'Unread'));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Show results'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Show results'));
+      await tester.tap(find.byKey(const Key('quick_filter_unread')));
       await tester.pumpAndSettle();
 
       expect(find.text('Unread Unassigned'), findsOneWidget);
@@ -307,7 +305,9 @@ void main() {
       expect(find.text('Read Assigned'), findsNothing);
 
       final lastConvoReq = adapter.received.lastWhere(
-        (r) => r.uri.path.contains('/conversations/'),
+        (r) =>
+            r.uri.path.contains('/conversations/') &&
+            !r.uri.path.contains('/counts/'),
       );
       expect(lastConvoReq.uri.queryParameters['unread'], equals('true'));
       expect(lastConvoReq.uri.queryParameters['page'], equals('1'));
@@ -319,24 +319,12 @@ void main() {
         await tester.pumpWidget(createInboxApp());
         await tester.pumpAndSettle();
 
-        await tester.tap(find.byIcon(Icons.tune));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(FilterChip, 'Unread'));
-        await tester.pumpAndSettle();
-        await tester.ensureVisible(find.text('Show results'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Show results'));
+        await tester.tap(find.byKey(const Key('quick_filter_unread')));
         await tester.pumpAndSettle();
 
         expect(find.text('Read Unassigned'), findsNothing);
 
-        await tester.tap(find.byIcon(Icons.tune));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(FilterChip, 'Unread'));
-        await tester.pumpAndSettle();
-        await tester.ensureVisible(find.text('Show results'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Show results'));
+        await tester.tap(find.byKey(const Key('quick_filter_all')));
         await tester.pumpAndSettle();
 
         expect(find.text('Unread Unassigned'), findsOneWidget);
@@ -352,13 +340,7 @@ void main() {
         await tester.pumpWidget(createInboxApp());
         await tester.pumpAndSettle();
 
-        await tester.tap(find.byIcon(Icons.tune));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(FilterChip, 'Unassigned'));
-        await tester.pumpAndSettle();
-        await tester.ensureVisible(find.text('Show results'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Show results'));
+        await tester.tap(find.byKey(const Key('quick_filter_unassigned')));
         await tester.pumpAndSettle();
 
         // Only genuinely unassigned conversations remain.
@@ -369,7 +351,9 @@ void main() {
         expect(find.text('Read Assigned'), findsNothing);
 
         final lastConvoReq = adapter.received.lastWhere(
-          (r) => r.uri.path.contains('/conversations/'),
+          (r) =>
+              r.uri.path.contains('/conversations/') &&
+              !r.uri.path.contains('/counts/'),
         );
         expect(lastConvoReq.uri.queryParameters['view'], equals('unassigned'));
         expect(
@@ -379,19 +363,18 @@ void main() {
       },
     );
 
-    testWidgets('Unread + Unassigned combine (AND semantics)', (tester) async {
+    testWidgets('Unread + Unassigned combine via filter update', (
+      tester,
+    ) async {
       await tester.pumpWidget(createInboxApp());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.tune));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilterChip, 'Unread'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilterChip, 'Unassigned'));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Show results'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Show results'));
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(InboxScreen)),
+      );
+      container
+          .read(inboxFiltersProvider.notifier)
+          .update(const ConversationFilters(unread: true, unassigned: true));
       await tester.pumpAndSettle();
 
       // Only the one conversation satisfying BOTH conditions.
@@ -401,39 +384,49 @@ void main() {
       expect(find.text('Read Assigned'), findsNothing);
 
       final lastConvoReq = adapter.received.lastWhere(
-        (r) => r.uri.path.contains('/conversations/'),
+        (r) =>
+            r.uri.path.contains('/conversations/') &&
+            !r.uri.path.contains('/counts/'),
       );
       expect(lastConvoReq.uri.queryParameters['unread'], equals('true'));
       expect(lastConvoReq.uri.queryParameters['view'], equals('unassigned'));
     });
 
-    testWidgets('Unassigned and "Assigned to me" remain mutually exclusive', (
-      tester,
-    ) async {
-      await tester.pumpWidget(createInboxApp());
-      await tester.pumpAndSettle();
+    testWidgets(
+      'Unassigned and "Mine" remain mutually exclusive in quick filters',
+      (tester) async {
+        await tester.pumpWidget(createInboxApp());
+        await tester.pumpAndSettle();
 
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(InboxScreen)),
-      );
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(InboxScreen)),
+        );
 
-      await tester.tap(find.byIcon(Icons.tune));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilterChip, 'Assigned to me'));
-      await tester.pumpAndSettle();
-      expect(container.read(inboxFiltersProvider).assignedToMe, isTrue);
+        await tester.tap(find.byKey(const Key('quick_filter_mine')));
+        await tester.pumpAndSettle();
+        expect(container.read(inboxFiltersProvider).assignedToMe, isTrue);
 
-      await tester.tap(find.widgetWithText(FilterChip, 'Unassigned'));
-      await tester.pumpAndSettle();
-      expect(container.read(inboxFiltersProvider).unassigned, isTrue);
-      expect(container.read(inboxFiltersProvider).assignedToMe, isFalse);
+        await tester.tap(find.byKey(const Key('quick_filter_unassigned')));
+        await tester.pumpAndSettle();
+        expect(container.read(inboxFiltersProvider).unassigned, isTrue);
+        expect(container.read(inboxFiltersProvider).assignedToMe, isFalse);
 
-      // Unread is untouched by this exclusivity — it is orthogonal.
-      await tester.tap(find.widgetWithText(FilterChip, 'Unread'));
-      await tester.pumpAndSettle();
-      expect(container.read(inboxFiltersProvider).unread, isTrue);
-      expect(container.read(inboxFiltersProvider).unassigned, isTrue);
-    });
+        await tester.tap(find.byKey(const Key('quick_filter_mine')));
+        await tester.pumpAndSettle();
+        expect(container.read(inboxFiltersProvider).assignedToMe, isTrue);
+        expect(container.read(inboxFiltersProvider).unassigned, isFalse);
+
+        // Unread is untouched by this exclusivity — it can be combined orthogonally.
+        container
+            .read(inboxFiltersProvider.notifier)
+            .update(
+              container.read(inboxFiltersProvider).copyWith(unread: true),
+            );
+        await tester.pumpAndSettle();
+        expect(container.read(inboxFiltersProvider).unread, isTrue);
+        expect(container.read(inboxFiltersProvider).assignedToMe, isTrue);
+      },
+    );
 
     testWidgets('Clear all resets Unread and Unassigned together', (
       tester,
@@ -474,7 +467,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final lastConvoReq = adapter.received.lastWhere(
-        (r) => r.uri.path.contains('/conversations/'),
+        (r) =>
+            r.uri.path.contains('/conversations/') &&
+            !r.uri.path.contains('/counts/'),
       );
       expect(lastConvoReq.uri.queryParameters['unread'], equals('true'));
       expect(lastConvoReq.uri.queryParameters['search'], equals('Ahmed'));
@@ -498,7 +493,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final lastConvoReq = adapter.received.lastWhere(
-        (r) => r.uri.path.contains('/conversations/'),
+        (r) =>
+            r.uri.path.contains('/conversations/') &&
+            !r.uri.path.contains('/counts/'),
       );
       expect(lastConvoReq.uri.queryParameters['unread'], equals('true'));
       expect(
@@ -530,7 +527,9 @@ void main() {
         expect(refreshedState.nextPage, equals(2));
 
         final lastConvoReq = adapter.received.lastWhere(
-          (r) => r.uri.path.contains('/conversations/'),
+          (r) =>
+              r.uri.path.contains('/conversations/') &&
+              !r.uri.path.contains('/counts/'),
         );
         expect(lastConvoReq.uri.queryParameters['page'], equals('1'));
       },
@@ -563,13 +562,7 @@ void main() {
       await tester.pumpWidget(createInboxApp());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.tune));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilterChip, 'Unread'));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Show results'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Show results'));
+      await tester.tap(find.byKey(const Key('quick_filter_unread')));
       await tester.pumpAndSettle();
 
       expect(find.text('Nothing matches those filters'), findsOneWidget);
@@ -584,9 +577,6 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(createInboxApp(locale: const Locale('ar')));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byIcon(Icons.tune));
       await tester.pumpAndSettle();
 
       expect(find.text('غير مقروءة'), findsOneWidget);
@@ -617,7 +607,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.tune));
       await tester.pumpAndSettle();
 
-      expect(find.text('Unread'), findsOneWidget);
+      expect(find.text('Filters'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -638,7 +628,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Unread'), findsOneWidget);
+      expect(find.text('Filters'), findsOneWidget);
     });
   });
 }

@@ -17,6 +17,7 @@ import '../../l10n/l10n_extensions.dart';
 import '../realtime/realtime_client.dart';
 import '../theme/tokens.dart';
 import 'app_drawer.dart';
+import 'user_account_menu.dart';
 
 class SectionScaffold extends StatelessWidget {
   const SectionScaffold({
@@ -48,7 +49,12 @@ class SectionScaffold extends StatelessWidget {
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: titleWidget ?? Text(title, overflow: TextOverflow.ellipsis),
-        actions: [...?actions, const NotificationBellButton()],
+        actions: [
+          ...?actions,
+          const NotificationBellButton(),
+          const UserAccountMenuButton(),
+          const SizedBox(width: Space.xs),
+        ],
         bottom: const ConnectionBanner(),
       ),
       body: content,

@@ -1378,7 +1378,7 @@ class _SheetResolveButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        key: const Key('conversation_resolve_button'),
+        key: const Key('conversation_actions_sheet_resolve_button'),
         borderRadius: BorderRadius.circular(Radii.md),
         onTap: isEnabled
             ? onResolve

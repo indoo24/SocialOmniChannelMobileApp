@@ -23,6 +23,7 @@ import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
+import '../../core/widgets/user_account_menu.dart';
 import '../../core/utils/formatting.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
@@ -30,6 +31,7 @@ import '../notifications/notification_bell_button.dart';
 import 'customer_conversation_group_sheet.dart';
 import 'inbox_controller.dart';
 import 'inbox_filters_sheet.dart';
+import 'inbox_quick_filter_bar.dart';
 import 'platform_account_filter_bar.dart';
 
 class InboxScreen extends ConsumerStatefulWidget {
@@ -107,17 +109,9 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               }
             },
           ),
-          _FilterButton(active: filters.hasSheetFilters),
+          _FilterButton(active: filters.hasAdvancedFilters),
           const NotificationBellButton(),
-          IconButton(
-            tooltip: context.l10n.settingsTitle,
-            icon: InitialsAvatar(
-              initials: employee?.initials ?? '',
-              imageUrl: employee?.avatarUrl ?? '',
-              size: 28,
-            ),
-            onPressed: () => context.go(Routes.settings),
-          ),
+          const UserAccountMenuButton(),
           const SizedBox(width: Space.xs),
         ],
         bottom: const ConnectionBanner(),
@@ -125,6 +119,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
       body: Column(
         children: [
           const PlatformAccountFilterBar(),
+          const InboxQuickFilterBar(),
           Expanded(
             child: RefreshIndicator(
               onRefresh: () =>

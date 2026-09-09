@@ -168,6 +168,9 @@
 
   "filtersTitle": "الفلاتر",
   "clearAll": "مسح الكل",
+  "allFilter": "الكل",
+  "mineFilter": "لي",
+  "openFilter": "مفتوحة",
   "assignmentSection": "الإسناد",
   "assignedToMeFilter": "مُسندة إليّ",
   "unassignedFilter": "غير مُسندة",
@@ -691,5 +694,12 @@
   "whatsappOptionNewDesc": "أضف رقماً غير موجود على WhatsApp بعد، أو رقماً أنت مستعد لنقله. ستؤكده برمز من Meta.",
   "whatsappOptionNewButton": "إعداد رقم جديد",
   "allAccountsFilter": "كل الحسابات",
-  "accountFilterFor": "حساب {provider}"
+  "accountFilterFor": "حساب {provider}",
+  "setAvailabilityTitle": "تحديد الحالة",
+  "availabilityChanged": "أنت الآن {status}.",
+  "availabilityFailed": "تعذر تحديث الحالة",
+  "userAccountMenuTooltip": "حساب المستخدم",
+  "resolveConversationTooltip": "حل المحادثة",
+  "conversationResolvedTooltip": "المحادثة محلولة",
+  "statusUpdateFailedMessage": "تعذر تحديث الحالة. يرجى المحاولة مرة أخرى."
 }

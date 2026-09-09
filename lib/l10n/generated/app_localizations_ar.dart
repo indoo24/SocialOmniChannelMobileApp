@@ -505,6 +505,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get clearAll => 'مسح الكل';
 
   @override
+  String get allFilter => 'الكل';
+
+  @override
+  String get mineFilter => 'لي';
+
+  @override
+  String get openFilter => 'مفتوحة';
+
+  @override
   String get assignmentSection => 'الإسناد';
 
   @override
@@ -2247,4 +2256,28 @@ class AppLocalizationsAr extends AppLocalizations {
   String accountFilterFor(String provider) {
     return 'حساب $provider';
   }
+
+  @override
+  String get setAvailabilityTitle => 'تحديد الحالة';
+
+  @override
+  String availabilityChanged(String status) {
+    return 'أنت الآن $status.';
+  }
+
+  @override
+  String get availabilityFailed => 'تعذر تحديث الحالة';
+
+  @override
+  String get userAccountMenuTooltip => 'حساب المستخدم';
+
+  @override
+  String get resolveConversationTooltip => 'حل المحادثة';
+
+  @override
+  String get conversationResolvedTooltip => 'المحادثة محلولة';
+
+  @override
+  String get statusUpdateFailedMessage =>
+      'تعذر تحديث الحالة. يرجى المحاولة مرة أخرى.';
 }
