@@ -3595,6 +3595,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save'**
   String get saveAction;
+
+  /// Section title for employee automatic allocation
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic allocation'**
+  String get automaticAllocationTitle;
+
+  /// Description explaining how automatic allocation settings are used
+  ///
+  /// In en, this message translates to:
+  /// **'Used by the routing engine to decide whether this person can receive a new conversation right now.'**
+  String get automaticAllocationDescription;
+
+  /// Label for the chat capacity input field
+  ///
+  /// In en, this message translates to:
+  /// **'Chat capacity'**
+  String get chatCapacityFieldTitle;
+
+  /// Placeholder text when chat capacity uses the organization default
+  ///
+  /// In en, this message translates to:
+  /// **'Organization default'**
+  String get chatCapacityOrgDefaultPlaceholder;
+
+  /// Explanation text below the chat capacity field
+  ///
+  /// In en, this message translates to:
+  /// **'How many open conversations this person may hold at once. Leave empty to follow the organization default, so a later change to that default still reaches them. Zero means they receive nothing.'**
+  String get chatCapacityFieldDescription;
+
+  /// Error when chat capacity is outside the allowed 0-200 range
+  ///
+  /// In en, this message translates to:
+  /// **'Capacity must be between 0 and 200.'**
+  String get chatCapacityInvalidRangeError;
+
+  /// Heading for the working hours section
+  ///
+  /// In en, this message translates to:
+  /// **'Working hours'**
+  String get workingHoursTitle;
+
+  /// Helper note showing the timezone for working hours
+  ///
+  /// In en, this message translates to:
+  /// **'Working hours are interpreted in: {timezone}'**
+  String workingHoursTimezoneHelper(String timezone);
+
+  /// Status text indicating an employee is not working on a day
+  ///
+  /// In en, this message translates to:
+  /// **'Not working'**
+  String get dayNotWorking;
+
+  /// Warning shown when no working hours are configured for an employee
+  ///
+  /// In en, this message translates to:
+  /// **'No hours set — this employee will not receive automatically assigned conversations. That is deliberate: unset never means always available.'**
+  String get noWorkingHoursWarning;
+
+  /// Monday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Monday'**
+  String get weekdayMonday;
+
+  /// Tuesday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Tuesday'**
+  String get weekdayTuesday;
+
+  /// Wednesday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Wednesday'**
+  String get weekdayWednesday;
+
+  /// Thursday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Thursday'**
+  String get weekdayThursday;
+
+  /// Friday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Friday'**
+  String get weekdayFriday;
+
+  /// Saturday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Saturday'**
+  String get weekdaySaturday;
+
+  /// Sunday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Sunday'**
+  String get weekdaySunday;
+
+  /// Title for working hours interval editor
+  ///
+  /// In en, this message translates to:
+  /// **'Edit working hours'**
+  String get editWorkingHoursTitle;
+
+  /// Button to add a working interval
+  ///
+  /// In en, this message translates to:
+  /// **'Add interval'**
+  String get addIntervalAction;
+
+  /// Label for interval start time
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get startTimeLabel;
+
+  /// Label for interval end time
+  ///
+  /// In en, this message translates to:
+  /// **'End'**
+  String get endTimeLabel;
+
+  /// Validation error when interval start time is not before end time
+  ///
+  /// In en, this message translates to:
+  /// **'Start time must be before end time'**
+  String get invalidIntervalStartBeforeEnd;
+
+  /// Validation error when intervals on the same day overlap
+  ///
+  /// In en, this message translates to:
+  /// **'Intervals cannot overlap'**
+  String get overlappingIntervalsError;
+
+  /// Validation error for invalid time format
+  ///
+  /// In en, this message translates to:
+  /// **'Time must be in HH:MM format'**
+  String get invalidTimeFormatError;
+
+  /// Action to clear all hours for a weekday
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all hours'**
+  String get clearDayHoursAction;
 }
 
 class _AppLocalizationsDelegate

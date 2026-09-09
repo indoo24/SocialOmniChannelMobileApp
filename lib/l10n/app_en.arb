@@ -974,5 +974,110 @@
   "saveAction": "Save",
   "@saveAction": {
     "description": "Generic Save button label"
+  },
+  "automaticAllocationTitle": "Automatic allocation",
+  "@automaticAllocationTitle": {
+    "description": "Section title for employee automatic allocation"
+  },
+  "automaticAllocationDescription": "Used by the routing engine to decide whether this person can receive a new conversation right now.",
+  "@automaticAllocationDescription": {
+    "description": "Description explaining how automatic allocation settings are used"
+  },
+  "chatCapacityFieldTitle": "Chat capacity",
+  "@chatCapacityFieldTitle": {
+    "description": "Label for the chat capacity input field"
+  },
+  "chatCapacityOrgDefaultPlaceholder": "Organization default",
+  "@chatCapacityOrgDefaultPlaceholder": {
+    "description": "Placeholder text when chat capacity uses the organization default"
+  },
+  "chatCapacityFieldDescription": "How many open conversations this person may hold at once. Leave empty to follow the organization default, so a later change to that default still reaches them. Zero means they receive nothing.",
+  "@chatCapacityFieldDescription": {
+    "description": "Explanation text below the chat capacity field"
+  },
+  "chatCapacityInvalidRangeError": "Capacity must be between 0 and 200.",
+  "@chatCapacityInvalidRangeError": {
+    "description": "Error when chat capacity is outside the allowed 0-200 range"
+  },
+  "workingHoursTitle": "Working hours",
+  "@workingHoursTitle": {
+    "description": "Heading for the working hours section"
+  },
+  "workingHoursTimezoneHelper": "Working hours are interpreted in: {timezone}",
+  "@workingHoursTimezoneHelper": {
+    "description": "Helper note showing the timezone for working hours",
+    "placeholders": {
+      "timezone": {
+        "type": "String"
+      }
+    }
+  },
+  "dayNotWorking": "Not working",
+  "@dayNotWorking": {
+    "description": "Status text indicating an employee is not working on a day"
+  },
+  "noWorkingHoursWarning": "No hours set — this employee will not receive automatically assigned conversations. That is deliberate: unset never means always available.",
+  "@noWorkingHoursWarning": {
+    "description": "Warning shown when no working hours are configured for an employee"
+  },
+  "weekdayMonday": "Monday",
+  "@weekdayMonday": {
+    "description": "Monday weekday name"
+  },
+  "weekdayTuesday": "Tuesday",
+  "@weekdayTuesday": {
+    "description": "Tuesday weekday name"
+  },
+  "weekdayWednesday": "Wednesday",
+  "@weekdayWednesday": {
+    "description": "Wednesday weekday name"
+  },
+  "weekdayThursday": "Thursday",
+  "@weekdayThursday": {
+    "description": "Thursday weekday name"
+  },
+  "weekdayFriday": "Friday",
+  "@weekdayFriday": {
+    "description": "Friday weekday name"
+  },
+  "weekdaySaturday": "Saturday",
+  "@weekdaySaturday": {
+    "description": "Saturday weekday name"
+  },
+  "weekdaySunday": "Sunday",
+  "@weekdaySunday": {
+    "description": "Sunday weekday name"
+  },
+  "editWorkingHoursTitle": "Edit working hours",
+  "@editWorkingHoursTitle": {
+    "description": "Title for working hours interval editor"
+  },
+  "addIntervalAction": "Add interval",
+  "@addIntervalAction": {
+    "description": "Button to add a working interval"
+  },
+  "startTimeLabel": "Start",
+  "@startTimeLabel": {
+    "description": "Label for interval start time"
+  },
+  "endTimeLabel": "End",
+  "@endTimeLabel": {
+    "description": "Label for interval end time"
+  },
+  "invalidIntervalStartBeforeEnd": "Start time must be before end time",
+  "@invalidIntervalStartBeforeEnd": {
+    "description": "Validation error when interval start time is not before end time"
+  },
+  "overlappingIntervalsError": "Intervals cannot overlap",
+  "@overlappingIntervalsError": {
+    "description": "Validation error when intervals on the same day overlap"
+  },
+  "invalidTimeFormatError": "Time must be in HH:MM format",
+  "@invalidTimeFormatError": {
+    "description": "Validation error for invalid time format"
+  },
+  "clearDayHoursAction": "Clear all hours",
+  "@clearDayHoursAction": {
+    "description": "Action to clear all hours for a weekday"
   }
 }

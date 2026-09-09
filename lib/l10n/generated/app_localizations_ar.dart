@@ -2000,11 +2000,92 @@ class AppLocalizationsAr extends AppLocalizations {
   String get maxHopsRange => 'بين 1 و20.';
 
   @override
-  String get maxHopsSaved => 'تم حفظ حد إعادة التوزيع';
+  String get maxHopsSaved => 'Reassignment limit saved';
 
   @override
-  String get maxHopsInvalidRangeError => 'يجب أن يكون الحد بين 1 و20.';
+  String get maxHopsInvalidRangeError => 'Must be between 1 and 20.';
 
   @override
   String get saveAction => 'حفظ';
+
+  @override
+  String get automaticAllocationTitle => 'التوزيع التلقائي';
+
+  @override
+  String get automaticAllocationDescription =>
+      'يُستخدم بواسطة محرك التوجيه لتحديد ما إذا كان هذا الشخص يمكنه استقبال محادثة جديدة الآن.';
+
+  @override
+  String get chatCapacityFieldTitle => 'سعة المحادثات';
+
+  @override
+  String get chatCapacityOrgDefaultPlaceholder => 'الافتراضي للمؤسسة';
+
+  @override
+  String get chatCapacityFieldDescription =>
+      'عدد المحادثات المفتوحة التي يمكن لهذا الشخص الاحتفاظ بها في وقت واحد. اتركه فارغاً لاتباع الإعداد الافتراضي للمؤسسة، حتى يصل إليه أي تغيير لاحق في هذا الإعداد. الصفر يعني عدم استلام أي شيء.';
+
+  @override
+  String get chatCapacityInvalidRangeError => 'يجب أن تكون السعة بين 0 و200.';
+
+  @override
+  String get workingHoursTitle => 'ساعات العمل';
+
+  @override
+  String workingHoursTimezoneHelper(String timezone) {
+    return 'تُفسر ساعات العمل بتوقيت: $timezone';
+  }
+
+  @override
+  String get dayNotWorking => 'لا يعمل';
+
+  @override
+  String get noWorkingHoursWarning =>
+      'لم يتم تعيين ساعات عمل — لن يتلقى هذا الموظف محادثات مخصصة تلقائياً. هذا مقصود: غير محدد لا يعني متاحاً دائماً.';
+
+  @override
+  String get weekdayMonday => 'الإثنين';
+
+  @override
+  String get weekdayTuesday => 'الثلاثاء';
+
+  @override
+  String get weekdayWednesday => 'الأربعاء';
+
+  @override
+  String get weekdayThursday => 'الخميس';
+
+  @override
+  String get weekdayFriday => 'الجمعة';
+
+  @override
+  String get weekdaySaturday => 'السبت';
+
+  @override
+  String get weekdaySunday => 'الأحد';
+
+  @override
+  String get editWorkingHoursTitle => 'تعديل ساعات العمل';
+
+  @override
+  String get addIntervalAction => 'إضافة فترة عمل';
+
+  @override
+  String get startTimeLabel => 'البدء';
+
+  @override
+  String get endTimeLabel => 'الانتهاء';
+
+  @override
+  String get invalidIntervalStartBeforeEnd =>
+      'يجب أن يكون وقت البدء قبل وقت الانتهاء';
+
+  @override
+  String get overlappingIntervalsError => 'لا يمكن أن تتداخل فترات العمل';
+
+  @override
+  String get invalidTimeFormatError => 'يجب أن يكون الوقت بصيغة HH:MM';
+
+  @override
+  String get clearDayHoursAction => 'مسح ساعات اليوم';
 }

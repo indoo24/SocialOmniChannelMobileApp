@@ -1984,4 +1984,86 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get saveAction => 'Save';
+
+  @override
+  String get automaticAllocationTitle => 'Automatic allocation';
+
+  @override
+  String get automaticAllocationDescription =>
+      'Used by the routing engine to decide whether this person can receive a new conversation right now.';
+
+  @override
+  String get chatCapacityFieldTitle => 'Chat capacity';
+
+  @override
+  String get chatCapacityOrgDefaultPlaceholder => 'Organization default';
+
+  @override
+  String get chatCapacityFieldDescription =>
+      'How many open conversations this person may hold at once. Leave empty to follow the organization default, so a later change to that default still reaches them. Zero means they receive nothing.';
+
+  @override
+  String get chatCapacityInvalidRangeError =>
+      'Capacity must be between 0 and 200.';
+
+  @override
+  String get workingHoursTitle => 'Working hours';
+
+  @override
+  String workingHoursTimezoneHelper(String timezone) {
+    return 'Working hours are interpreted in: $timezone';
+  }
+
+  @override
+  String get dayNotWorking => 'Not working';
+
+  @override
+  String get noWorkingHoursWarning =>
+      'No hours set — this employee will not receive automatically assigned conversations. That is deliberate: unset never means always available.';
+
+  @override
+  String get weekdayMonday => 'Monday';
+
+  @override
+  String get weekdayTuesday => 'Tuesday';
+
+  @override
+  String get weekdayWednesday => 'Wednesday';
+
+  @override
+  String get weekdayThursday => 'Thursday';
+
+  @override
+  String get weekdayFriday => 'Friday';
+
+  @override
+  String get weekdaySaturday => 'Saturday';
+
+  @override
+  String get weekdaySunday => 'Sunday';
+
+  @override
+  String get editWorkingHoursTitle => 'Edit working hours';
+
+  @override
+  String get addIntervalAction => 'Add interval';
+
+  @override
+  String get startTimeLabel => 'Start';
+
+  @override
+  String get endTimeLabel => 'End';
+
+  @override
+  String get invalidIntervalStartBeforeEnd =>
+      'Start time must be before end time';
+
+  @override
+  String get overlappingIntervalsError => 'Intervals cannot overlap';
+
+  @override
+  String get invalidTimeFormatError => 'Time must be in HH:MM format';
+
+  @override
+  String get clearDayHoursAction => 'Clear all hours';
 }
