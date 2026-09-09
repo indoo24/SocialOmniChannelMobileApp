@@ -19,6 +19,7 @@ import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
+import '../conversations/customer_conversation_group_sheet.dart';
 import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
 import 'conversation_controller.dart';
@@ -680,7 +681,7 @@ class _SectionCardState extends State<_SectionCard> {
 // ---------------------------------------------------------------------------
 // 1. CUSTOMER DETAILS VIEW
 // ---------------------------------------------------------------------------
-class _CustomerDetailsView extends StatelessWidget {
+class _CustomerDetailsView extends ConsumerWidget {
   const _CustomerDetailsView({
     required this.conversation,
     this.facts = const [],
@@ -690,10 +691,21 @@ class _CustomerDetailsView extends StatelessWidget {
   final List<CustomerFact> facts;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final customer = conversation.customer;
     final recordedFacts = facts.where((f) => !f.needsReview).toList();
+
+    final inboxState = ref.watch(inboxControllerProvider).value;
+    final groups = inboxState?.groups ?? const [];
+    final matchingGroup = groups
+        .where(
+          (g) =>
+              customer.id > 0 &&
+              g.customer.id == customer.id &&
+              g.isMultiConversation,
+        )
+        .firstOrNull;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -862,6 +874,72 @@ class _CustomerDetailsView extends StatelessWidget {
                 ),
               ),
             ),
+        ],
+
+        if (matchingGroup != null) ...[
+          const SizedBox(height: Space.md),
+          const Divider(height: 1),
+          const SizedBox(height: Space.sm),
+          Material(
+            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(Radii.md),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(Radii.md),
+              onTap: () {
+                Navigator.of(context).pop();
+                CustomerConversationGroupSheet.show(
+                  context,
+                  group: matchingGroup,
+                  currentConversationId: conversation.id,
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Space.md,
+                  vertical: Space.sm + 2,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.forum_outlined,
+                      size: 20,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: Space.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.l10n.whatsappConversationsGroupTitle,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            context.l10n.groupedConversationsCount(
+                              matchingGroup.conversations.length,
+                            ),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ],
     );

@@ -240,16 +240,14 @@ void main() {
         expect(find.byIcon(Icons.flag_outlined), findsOneWidget);
         // 2. Assignee avatar is shown
         expect(find.text('JD'), findsOneWidget);
-        // 3. 3-dot Actions button is shown
-        expect(find.byIcon(Icons.more_vert), findsOneWidget);
+        // 3. 3-dot Actions button is removed
+        expect(find.byIcon(Icons.more_vert), findsNothing);
 
-        // Verify order: Flag position < Assignee position < 3-dot Actions position
+        // Verify order: Flag position < Assignee position
         final flagOffset = tester.getCenter(find.byIcon(Icons.flag_outlined));
         final assigneeOffset = tester.getCenter(find.text('JD'));
-        final actionsOffset = tester.getCenter(find.byIcon(Icons.more_vert));
 
         expect(flagOffset.dx, lessThan(assigneeOffset.dx));
-        expect(assigneeOffset.dx, lessThan(actionsOffset.dx));
       },
     );
 

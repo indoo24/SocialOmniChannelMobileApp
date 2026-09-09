@@ -23,7 +23,6 @@ import '../../core/realtime/realtime_bridge.dart';
 import '../../core/realtime/realtime_logger.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
-import '../conversations/customer_conversation_group_sheet.dart';
 import '../conversations/inbox_controller.dart';
 import '../templates/templates_providers.dart';
 import '../../core/models/template.dart';
@@ -298,17 +297,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 : const SizedBox.shrink(),
             orElse: () => const SizedBox.shrink(),
           ),
-          IconButton(
-            tooltip: context.l10n.actionsTooltip,
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-            icon: const Icon(Icons.more_vert),
-            onPressed: () => showConversationActionsSheet(
-              context,
-              conversationId: widget.conversationId,
-            ),
-          ),
+          const SizedBox(width: Space.xs),
         ],
       ),
       body: async.when(
@@ -699,101 +688,94 @@ class _ScrollToBottomButton extends StatelessWidget {
   }
 }
 
-class _Header extends ConsumerWidget {
+class _Header extends StatelessWidget {
   const _Header({required this.conversation});
 
   final dynamic conversation;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final inboxState = ref.watch(inboxControllerProvider).value;
-    final groups = inboxState?.groups ?? const [];
-    final matchingGroup = groups
-        .where(
-          (g) =>
-              g.customer.id > 0 &&
-              g.customer.id == conversation.customer.id &&
-              g.isMultiConversation,
-        )
-        .firstOrNull;
-
-    return InkWell(
-      onTap: matchingGroup != null
-          ? () => CustomerConversationGroupSheet.show(
-              context,
-              group: matchingGroup,
-              currentConversationId: conversation.id as int?,
-            )
-          : null,
-      borderRadius: BorderRadius.circular(Radii.md),
-      child: Row(
-        children: [
-          InitialsAvatar(
-            initials: conversation.customer.initials as String,
-            imageUrl: conversation.customer.avatarUrl as String,
-            size: 36,
-            provider: conversation.provider as String,
-          ),
-          const SizedBox(width: Space.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  conversation.customer.displayName as String,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 1.5),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final maxW = constraints.maxWidth;
-                    if (maxW < 75) {
-                      return Row(
-                        children: [
-                          Flexible(
-                            child: _ChannelPill(
-                              provider: conversation.provider as String,
+    return Tooltip(
+      message: context.l10n.customerDetailsTitle,
+      child: InkWell(
+        key: const Key('conversation_header_customer_area'),
+        onTap: () => showConversationActionsSheet(
+          context,
+          conversationId: conversation.id as int,
+        ),
+        borderRadius: BorderRadius.circular(Radii.md),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Row(
+            children: [
+              InitialsAvatar(
+                initials: conversation.customer.initials as String,
+                imageUrl: conversation.customer.avatarUrl as String,
+                size: 36,
+                provider: conversation.provider as String,
+              ),
+              const SizedBox(width: Space.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      conversation.customer.displayName as String,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 1.5),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final maxW = constraints.maxWidth;
+                        if (maxW < 75) {
+                          return Row(
+                            children: [
+                              Flexible(
+                                child: _ChannelPill(
+                                  provider: conversation.provider as String,
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Flexible(
+                              child: _ChannelPill(
+                                provider: conversation.provider as String,
+                              ),
                             ),
-                          ),
-                        ],
-                      );
-                    }
-                    return Row(
-                      children: [
-                        Flexible(
-                          child: _ChannelPill(
-                            provider: conversation.provider as String,
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            _formatSubtitle(context, conversation),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontSize: 11,
-                              color: theme.textTheme.labelSmall?.color
-                                  ?.withValues(alpha: 0.75),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                _formatSubtitle(context, conversation),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontSize: 11,
+                                  color: theme.textTheme.labelSmall?.color
+                                      ?.withValues(alpha: 0.75),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+                          ],
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

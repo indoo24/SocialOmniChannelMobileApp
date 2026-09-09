@@ -226,7 +226,7 @@ void main() {
       expect(find.text('sarah@example.com'), findsOneWidget);
 
       // 2. Intelligence DATA is rendered
-      expect(find.text('Intelligence'), findsOneWidget);
+      expect(find.text('Customer intelligence'), findsOneWidget);
       expect(find.text('85'), findsOneWidget);
       expect(
         find.text('Customer interested in buying 2 units of Widget Pro.'),
@@ -317,7 +317,7 @@ void main() {
   );
 
   testWidgets(
-    'ConversationScreen AppBar 3-dot button opens comprehensive actions sheet with data',
+    'ConversationScreen customer header area opens comprehensive actions sheet with data',
     (tester) async {
       final client = _clientFor();
 
@@ -336,17 +336,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 3-dot actions button exists
-      expect(find.byIcon(Icons.more_vert), findsOneWidget);
+      // 3-dot actions button is removed
+      expect(find.byIcon(Icons.more_vert), findsNothing);
 
-      // Tapping 3-dot actions button opens comprehensive sheet
-      await tester.tap(find.byIcon(Icons.more_vert));
+      // Tapping customer header area opens comprehensive sheet
+      final customerArea = find.byKey(
+        const Key('conversation_header_customer_area'),
+      );
+      expect(customerArea, findsOneWidget);
+      await tester.tap(customerArea);
       await tester.pumpAndSettle();
 
       // Verify data sections are rendered
       expect(find.text('Customer details'), findsOneWidget);
       expect(find.text('Sarah Connor'), findsNWidgets(2));
-      expect(find.text('Intelligence'), findsOneWidget);
+      expect(find.text('Customer intelligence'), findsOneWidget);
 
       await tester.scrollUntilVisible(
         find.text('Orders'),

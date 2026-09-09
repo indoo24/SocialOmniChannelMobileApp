@@ -173,10 +173,10 @@ void main() {
           findsNothing,
         );
 
-        // 4. Other header actions (Follow Up flag, Assignee avatar, More menu) are intact
+        // 4. Other header actions (Follow Up flag, Assignee avatar) are intact; 3-dot menu is removed
         expect(find.byIcon(Icons.flag_outlined), findsOneWidget);
         expect(find.text('JD'), findsOneWidget);
-        expect(find.byIcon(Icons.more_vert), findsOneWidget);
+        expect(find.byIcon(Icons.more_vert), findsNothing);
 
         // 5. Tooltip is "Resolve conversation"
         final tooltip = tester.widget<Tooltip>(
@@ -570,11 +570,11 @@ void main() {
 
         expect(tester.takeException(), isNull);
 
-        // Header actions are cleanly spaced
+        // Header actions are cleanly spaced without 3-dot menu
         expect(find.byType(ConversationResolveButton), findsOneWidget);
         expect(find.byIcon(Icons.flag_rounded), findsOneWidget);
         expect(find.text('JD'), findsOneWidget);
-        expect(find.byIcon(Icons.more_vert), findsOneWidget);
+        expect(find.byIcon(Icons.more_vert), findsNothing);
       },
     );
   });
