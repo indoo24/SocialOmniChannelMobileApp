@@ -55,10 +55,10 @@ class _FiltersSheet extends ConsumerWidget {
                   style: theme.textTheme.titleLarge,
                 ),
                 const Spacer(),
-                if (!filters.isEmpty)
+                if (filters.hasSheetFilters)
                   TextButton(
                     onPressed: () {
-                      controller.clear();
+                      controller.clearSheetFilters();
                       Navigator.of(context).pop();
                     },
                     child: Text(context.l10n.clearAll),

@@ -121,6 +121,20 @@
       "channel": {"type": "String"}
     }
   },
+  "deleteChannelAction": "Delete",
+  "deleteChannelDialogTitle": "Delete {channel}?",
+  "@deleteChannelDialogTitle": {
+    "placeholders": {
+      "channel": {"type": "String"}
+    }
+  },
+  "deleteChannelDialogBody": "This will permanently remove the disconnected account from your connected channels.",
+  "channelDeletedSnackbar": "{channel} removed.",
+  "@channelDeletedSnackbar": {
+    "placeholders": {
+      "channel": {"type": "String"}
+    }
+  },
   "openingBrowserMessage": "Opening browser…",
   "couldNotOpenBrowserError": "Couldn't open the browser for this connection.",
   "manageFromWebOnlyAction": "Manage from web",
@@ -1131,5 +1145,44 @@
   "dateFilterTitle": "Date range",
   "@dateFilterTitle": {
     "description": "Title for the date filter sheet"
+  },
+  "connectWhatsAppSubtitle": "You will finish signing in on Meta's own page. Nothing to copy or paste.",
+  "@connectWhatsAppSubtitle": {
+    "description": "Subtitle for Connect WhatsApp modal"
+  },
+  "whatsappOptionExistingTitle": "I already use this number in WhatsApp Business",
+  "@whatsappOptionExistingTitle": {
+    "description": "Title for existing WhatsApp number option"
+  },
+  "whatsappOptionExistingDesc": "Keep using the WhatsApp Business app on your phone exactly as you do now. Messages will appear here as well, and the chat history comes across.",
+  "@whatsappOptionExistingDesc": {
+    "description": "Description for existing WhatsApp number option"
+  },
+  "whatsappOptionExistingButton": "Use my existing number",
+  "@whatsappOptionExistingButton": {
+    "description": "Button text for existing WhatsApp number option"
+  },
+  "whatsappOptionNewTitle": "I want to set up a new number",
+  "@whatsappOptionNewTitle": {
+    "description": "Title for new WhatsApp number option"
+  },
+  "whatsappOptionNewDesc": "Add a number that is not on WhatsApp yet, or one you are ready to move over. You will confirm it with a code from Meta.",
+  "@whatsappOptionNewDesc": {
+    "description": "Description for new WhatsApp number option"
+  },
+  "whatsappOptionNewButton": "Set up a new number",
+  "@whatsappOptionNewButton": {
+    "description": "Button text for new WhatsApp number option"
+  },
+  "allAccountsFilter": "All accounts",
+  "@allAccountsFilter": {
+    "description": "Label for selecting all accounts in the platform account filter"
+  },
+  "accountFilterFor": "{provider} account",
+  "@accountFilterFor": {
+    "description": "Accessibility label for platform account filter button",
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
   }
 }

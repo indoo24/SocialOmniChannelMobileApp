@@ -224,6 +224,23 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get deleteChannelAction => 'حذف';
+
+  @override
+  String deleteChannelDialogTitle(String channel) {
+    return 'حذف $channel؟';
+  }
+
+  @override
+  String get deleteChannelDialogBody =>
+      'سيؤدي هذا إلى إزالة الحساب غير المتصل نهائياً من قنواتك المتصلة.';
+
+  @override
+  String channelDeletedSnackbar(String channel) {
+    return 'تمت إزالة $channel.';
+  }
+
+  @override
   String get openingBrowserMessage => 'جارٍ فتح المتصفح…';
 
   @override
@@ -2128,4 +2145,37 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get dateFilterTitle => 'نطاق التاريخ';
+
+  @override
+  String get connectWhatsAppSubtitle =>
+      'ستكمل تسجيل الدخول على صفحة Meta الخاصة. لا حاجة لنسخ أو لصق أي شيء.';
+
+  @override
+  String get whatsappOptionExistingTitle =>
+      'أستخدم هذا الرقم بالفعل في WhatsApp Business';
+
+  @override
+  String get whatsappOptionExistingDesc =>
+      'استمر في استخدام تطبيق WhatsApp Business على هاتفك كما تفعل الآن تماماً. ستظهر الرسائل هنا أيضاً، وسيتم نقل سجل المحادثات.';
+
+  @override
+  String get whatsappOptionExistingButton => 'استخدام رقمي الحالي';
+
+  @override
+  String get whatsappOptionNewTitle => 'أريد إعداد رقم جديد';
+
+  @override
+  String get whatsappOptionNewDesc =>
+      'أضف رقماً غير موجود على WhatsApp بعد، أو رقماً أنت مستعد لنقله. ستؤكده برمز من Meta.';
+
+  @override
+  String get whatsappOptionNewButton => 'إعداد رقم جديد';
+
+  @override
+  String get allAccountsFilter => 'كل الحسابات';
+
+  @override
+  String accountFilterFor(String provider) {
+    return 'حساب $provider';
+  }
 }

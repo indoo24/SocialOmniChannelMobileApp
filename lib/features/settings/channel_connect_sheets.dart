@@ -40,6 +40,143 @@ import '../../l10n/l10n_extensions.dart';
 import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
 
+/// Opens the "Connect WhatsApp" selection sheet where the user chooses between:
+/// 1. Coexistence mode ("I already use this number in WhatsApp Business" -> `coexistence`)
+/// 2. Cloud API mode ("I want to set up a new number" -> `cloud_api`)
+///
+/// Returns the chosen mode string, or `null` if the sheet was dismissed without a choice.
+Future<String?> showWhatsAppModeSelectionSheet(BuildContext context) {
+  return showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
+    builder: (context) => const _WhatsAppModeSelectionSheet(),
+  );
+}
+
+class _WhatsAppModeSelectionSheet extends StatelessWidget {
+  const _WhatsAppModeSelectionSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(
+        left: Space.lg,
+        right: Space.lg,
+        bottom: Space.xl,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            context.l10n.connectWhatsAppAction,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: Space.xs),
+          Text(
+            context.l10n.connectWhatsAppSubtitle,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: Space.lg),
+          _buildOptionCard(
+            context,
+            title: context.l10n.whatsappOptionExistingTitle,
+            description: context.l10n.whatsappOptionExistingDesc,
+            buttonText: context.l10n.whatsappOptionExistingButton,
+            isPrimary: true,
+            onPressed: () => Navigator.of(context).pop('coexistence'),
+          ),
+          const SizedBox(height: Space.md),
+          _buildOptionCard(
+            context,
+            title: context.l10n.whatsappOptionNewTitle,
+            description: context.l10n.whatsappOptionNewDesc,
+            buttonText: context.l10n.whatsappOptionNewButton,
+            isPrimary: false,
+            onPressed: () => Navigator.of(context).pop('cloud_api'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptionCard(
+    BuildContext context, {
+    required String title,
+    required String description,
+    required String buttonText,
+    required bool isPrimary,
+    required VoidCallback onPressed,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(Radii.md),
+        child: Container(
+          padding: const EdgeInsets.all(Space.md),
+          decoration: BoxDecoration(
+            color: isDark
+                ? theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.25,
+                  )
+                : theme.colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(Radii.md),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(
+                alpha: isDark ? 0.3 : 0.6,
+              ),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: Space.xs),
+              Text(
+                description,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: Space.md),
+              SizedBox(
+                width: double.infinity,
+                child: isPrimary
+                    ? FilledButton(
+                        onPressed: onPressed,
+                        child: Text(buttonText),
+                      )
+                    : OutlinedButton(
+                        onPressed: onPressed,
+                        child: Text(buttonText),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Opens the "Add another number" / "Update token" sheet for WhatsApp.
 ///
 /// [existing] `null` means a blank add-new-number form. Passing a channel

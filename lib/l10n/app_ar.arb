@@ -71,6 +71,10 @@
   "disconnectChannelDialogTitle": "قطع الاتصال بـ {channel}؟",
   "disconnectChannelDialogBody": "سيؤدي هذا إلى إزالة بيانات الاعتماد المخزّنة. يبقى سجل المحادثات، لكن لا يمكن إرسال أو استقبال رسائل جديدة على هذه القناة حتى تتم إعادة ربطها.",
   "channelDisconnectedSnackbar": "تم قطع الاتصال بـ {channel}.",
+  "deleteChannelAction": "حذف",
+  "deleteChannelDialogTitle": "حذف {channel}؟",
+  "deleteChannelDialogBody": "سيؤدي هذا إلى إزالة الحساب غير المتصل نهائياً من قنواتك المتصلة.",
+  "channelDeletedSnackbar": "تمت إزالة {channel}.",
   "openingBrowserMessage": "جارٍ فتح المتصفح…",
   "couldNotOpenBrowserError": "تعذّر فتح المتصفح لإتمام هذا الربط.",
   "manageFromWebOnlyAction": "إدارة من تطبيق الويب",
@@ -659,5 +663,14 @@
   "dateFilterInvalidRange": "نطاق تاريخ غير صالح",
   "dateFilterRangeExceedsLimit": "لا يمكن أن يتجاوز النطاق 366 يوماً",
   "dateFilterPlaceholder": "شهر/يوم/سنة",
-  "dateFilterTitle": "نطاق التاريخ"
+  "dateFilterTitle": "نطاق التاريخ",
+  "connectWhatsAppSubtitle": "ستكمل تسجيل الدخول على صفحة Meta الخاصة. لا حاجة لنسخ أو لصق أي شيء.",
+  "whatsappOptionExistingTitle": "أستخدم هذا الرقم بالفعل في WhatsApp Business",
+  "whatsappOptionExistingDesc": "استمر في استخدام تطبيق WhatsApp Business على هاتفك كما تفعل الآن تماماً. ستظهر الرسائل هنا أيضاً، وسيتم نقل سجل المحادثات.",
+  "whatsappOptionExistingButton": "استخدام رقمي الحالي",
+  "whatsappOptionNewTitle": "أريد إعداد رقم جديد",
+  "whatsappOptionNewDesc": "أضف رقماً غير موجود على WhatsApp بعد، أو رقماً أنت مستعد لنقله. ستؤكده برمز من Meta.",
+  "whatsappOptionNewButton": "إعداد رقم جديد",
+  "allAccountsFilter": "كل الحسابات",
+  "accountFilterFor": "حساب {provider}"
 }

@@ -464,6 +464,30 @@ abstract class AppLocalizations {
   /// **'{channel} disconnected.'**
   String channelDisconnectedSnackbar(String channel);
 
+  /// No description provided for @deleteChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteChannelAction;
+
+  /// No description provided for @deleteChannelDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {channel}?'**
+  String deleteChannelDialogTitle(String channel);
+
+  /// No description provided for @deleteChannelDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently remove the disconnected account from your connected channels.'**
+  String get deleteChannelDialogBody;
+
+  /// No description provided for @channelDeletedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{channel} removed.'**
+  String channelDeletedSnackbar(String channel);
+
   /// No description provided for @openingBrowserMessage.
   ///
   /// In en, this message translates to:
@@ -3823,6 +3847,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Date range'**
   String get dateFilterTitle;
+
+  /// Subtitle for Connect WhatsApp modal
+  ///
+  /// In en, this message translates to:
+  /// **'You will finish signing in on Meta\'s own page. Nothing to copy or paste.'**
+  String get connectWhatsAppSubtitle;
+
+  /// Title for existing WhatsApp number option
+  ///
+  /// In en, this message translates to:
+  /// **'I already use this number in WhatsApp Business'**
+  String get whatsappOptionExistingTitle;
+
+  /// Description for existing WhatsApp number option
+  ///
+  /// In en, this message translates to:
+  /// **'Keep using the WhatsApp Business app on your phone exactly as you do now. Messages will appear here as well, and the chat history comes across.'**
+  String get whatsappOptionExistingDesc;
+
+  /// Button text for existing WhatsApp number option
+  ///
+  /// In en, this message translates to:
+  /// **'Use my existing number'**
+  String get whatsappOptionExistingButton;
+
+  /// Title for new WhatsApp number option
+  ///
+  /// In en, this message translates to:
+  /// **'I want to set up a new number'**
+  String get whatsappOptionNewTitle;
+
+  /// Description for new WhatsApp number option
+  ///
+  /// In en, this message translates to:
+  /// **'Add a number that is not on WhatsApp yet, or one you are ready to move over. You will confirm it with a code from Meta.'**
+  String get whatsappOptionNewDesc;
+
+  /// Button text for new WhatsApp number option
+  ///
+  /// In en, this message translates to:
+  /// **'Set up a new number'**
+  String get whatsappOptionNewButton;
+
+  /// Label for selecting all accounts in the platform account filter
+  ///
+  /// In en, this message translates to:
+  /// **'All accounts'**
+  String get allAccountsFilter;
+
+  /// Accessibility label for platform account filter button
+  ///
+  /// In en, this message translates to:
+  /// **'{provider} account'**
+  String accountFilterFor(String provider);
 }
 
 class _AppLocalizationsDelegate

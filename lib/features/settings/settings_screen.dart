@@ -906,7 +906,13 @@ class _PlatformGroupCardState extends ConsumerState<_PlatformGroupCard> {
       'WHATSAPP' => OutlinedButton.icon(
         onPressed: _busy
             ? null
-            : () => _connectAnother(repo.startWhatsAppEmbeddedSignupMobile),
+            : () async {
+                final mode = await showWhatsAppModeSelectionSheet(context);
+                if (mode == null || !context.mounted) return;
+                _connectAnother(
+                  () => repo.startWhatsAppEmbeddedSignupMobile(mode: mode),
+                );
+              },
         icon: const Icon(Icons.link, size: 16),
         label: Text(context.l10n.connectAnotherNumberAction),
       ),
@@ -1693,6 +1699,64 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
     }
   }
 
+  Future<void> _delete() async {
+    final channel = widget.channel;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          dialogContext.l10n.deleteChannelDialogTitle(
+            channel.displayName.isEmpty
+                ? ConversationBadges.providerLabel(
+                    dialogContext,
+                    channel.provider,
+                  )
+                : channel.displayName,
+          ),
+        ),
+        content: Text(dialogContext.l10n.deleteChannelDialogBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(dialogContext.l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(dialogContext.l10n.deleteChannelAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    await _run(() async {
+      final repository = ref.read(directoryRepositoryProvider);
+      await repository.deleteChannel(channel.id);
+    });
+
+    ref.read(inboxControllerProvider.notifier).refreshQuietly();
+    ref.invalidate(conversationCountsProvider);
+    final active = ref.read(activeConversationProvider);
+    if (active != null) {
+      ref
+          .read(conversationControllerProvider(active).notifier)
+          .refreshFromServer();
+    }
+
+    if (mounted) {
+      _showMessage(
+        context.l10n.channelDeletedSnackbar(
+          channel.displayName.isEmpty
+              ? ConversationBadges.providerLabel(context, channel.provider)
+              : channel.displayName,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1973,26 +2037,49 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
     );
 
     if (canManage) {
-      buttons.add(
-        OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(
-            visualDensity: VisualDensity.compact,
-            minimumSize: Size.zero,
-            foregroundColor: theme.colorScheme.error,
-            side: BorderSide(
-              color: theme.colorScheme.error.withValues(alpha: 0.5),
+      if (channel.status == 'DISCONNECTED') {
+        buttons.add(
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              minimumSize: Size.zero,
+              foregroundColor: theme.colorScheme.error,
+              side: BorderSide(
+                color: theme.colorScheme.error.withValues(alpha: 0.5),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            onPressed: _busy ? null : _delete,
+            icon: const Icon(Icons.delete_outline, size: 14),
+            label: Text(
+              context.l10n.deleteChannelAction,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          onPressed: _busy ? null : _disconnect,
-          icon: const Icon(Icons.link_off, size: 14),
-          label: Text(
-            context.l10n.disconnectChannelAction,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+        );
+      } else {
+        buttons.add(
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              minimumSize: Size.zero,
+              foregroundColor: theme.colorScheme.error,
+              side: BorderSide(
+                color: theme.colorScheme.error.withValues(alpha: 0.5),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            ),
+            onPressed: _busy ? null : _disconnect,
+            icon: const Icon(Icons.link_off, size: 14),
+            label: Text(
+              context.l10n.disconnectChannelAction,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
 
     // 2-column rows: pairs of 2 take 50% each; an odd final button spans full width

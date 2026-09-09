@@ -27,6 +27,8 @@ class ConversationFilters {
     this.assignedToMe = false,
     this.unassigned = false,
     this.search = '',
+    this.selectedAccounts = const {},
+    this.channelConnections,
   });
 
   final String? status;
@@ -35,6 +37,13 @@ class ConversationFilters {
   final bool assignedToMe;
   final bool unassigned;
   final String search;
+
+  /// Map of uppercase provider (e.g. 'FACEBOOK', 'INSTAGRAM') to selected channel ID.
+  /// A value of `null` represents "All accounts" for that provider.
+  final Map<String, int?> selectedAccounts;
+
+  /// Explicit channel connection IDs to filter by on the server (`channel_connections` query parameter).
+  final List<int>? channelConnections;
 
   Map<String, dynamic> toQuery(int page, int? currentEmployeeId) {
     final query = <String, dynamic>{'page': page};
@@ -46,6 +55,11 @@ class ConversationFilters {
       query['assigned_to'] = currentEmployeeId;
     }
     if (unassigned) query['assigned_to__isnull'] = true;
+    if (channelConnections != null) {
+      query['channel_connections'] = channelConnections!.isEmpty
+          ? '0'
+          : channelConnections!.join(',');
+    }
     return query;
   }
 
@@ -56,9 +70,12 @@ class ConversationFilters {
     bool? assignedToMe,
     bool? unassigned,
     String? search,
+    Map<String, int?>? selectedAccounts,
+    List<int>? channelConnections,
     bool clearStatus = false,
     bool clearPriority = false,
     bool clearProvider = false,
+    bool clearChannelConnections = false,
   }) => ConversationFilters(
     status: clearStatus ? null : (status ?? this.status),
     priority: clearPriority ? null : (priority ?? this.priority),
@@ -66,7 +83,21 @@ class ConversationFilters {
     assignedToMe: assignedToMe ?? this.assignedToMe,
     unassigned: unassigned ?? this.unassigned,
     search: search ?? this.search,
+    selectedAccounts: selectedAccounts ?? this.selectedAccounts,
+    channelConnections: clearChannelConnections
+        ? null
+        : (channelConnections ?? this.channelConnections),
   );
+
+  bool get hasActiveAccountFilter =>
+      selectedAccounts.values.any((id) => id != null);
+
+  bool get hasSheetFilters =>
+      status != null ||
+      priority != null ||
+      provider != null ||
+      assignedToMe ||
+      unassigned;
 
   bool get isEmpty =>
       status == null &&
@@ -74,7 +105,55 @@ class ConversationFilters {
       provider == null &&
       !assignedToMe &&
       !unassigned &&
-      search.trim().isEmpty;
+      search.trim().isEmpty &&
+      !hasActiveAccountFilter;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ConversationFilters &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          priority == other.priority &&
+          provider == other.provider &&
+          assignedToMe == other.assignedToMe &&
+          unassigned == other.unassigned &&
+          search == other.search &&
+          _mapEquals(selectedAccounts, other.selectedAccounts) &&
+          _listEquals(channelConnections, other.channelConnections);
+
+  @override
+  int get hashCode => Object.hash(
+    status,
+    priority,
+    provider,
+    assignedToMe,
+    unassigned,
+    search,
+    Object.hashAll(
+      selectedAccounts.entries.map((e) => Object.hash(e.key, e.value)),
+    ),
+    channelConnections == null ? null : Object.hashAll(channelConnections!),
+  );
+
+  static bool _mapEquals(Map<String, int?> a, Map<String, int?> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (!b.containsKey(key) || b[key] != a[key]) return false;
+    }
+    return true;
+  }
+
+  static bool _listEquals(List<int>? a, List<int>? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null) return a == b;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 }
 
 class ConversationRepository {
@@ -111,8 +190,15 @@ class ConversationRepository {
     return Conversation.fromJson(data);
   }
 
-  Future<Map<String, int>> counts() async {
-    final data = await _api.get<Map<String, dynamic>>('/conversations/counts/');
+  Future<Map<String, int>> counts({List<int>? channelConnections}) async {
+    final query = <String, dynamic>{};
+    if (channelConnections != null && channelConnections.isNotEmpty) {
+      query['channel_connections'] = channelConnections.join(',');
+    }
+    final data = await _api.get<Map<String, dynamic>>(
+      '/conversations/counts/',
+      query: query.isNotEmpty ? query : null,
+    );
     return data.map(
       (key, value) => MapEntry(key, (value as num?)?.toInt() ?? 0),
     );

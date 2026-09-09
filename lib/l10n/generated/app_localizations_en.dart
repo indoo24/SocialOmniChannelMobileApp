@@ -221,6 +221,23 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get deleteChannelAction => 'Delete';
+
+  @override
+  String deleteChannelDialogTitle(String channel) {
+    return 'Delete $channel?';
+  }
+
+  @override
+  String get deleteChannelDialogBody =>
+      'This will permanently remove the disconnected account from your connected channels.';
+
+  @override
+  String channelDeletedSnackbar(String channel) {
+    return '$channel removed.';
+  }
+
+  @override
   String get openingBrowserMessage => 'Opening browser…';
 
   @override
@@ -2105,4 +2122,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dateFilterTitle => 'Date range';
+
+  @override
+  String get connectWhatsAppSubtitle =>
+      'You will finish signing in on Meta\'s own page. Nothing to copy or paste.';
+
+  @override
+  String get whatsappOptionExistingTitle =>
+      'I already use this number in WhatsApp Business';
+
+  @override
+  String get whatsappOptionExistingDesc =>
+      'Keep using the WhatsApp Business app on your phone exactly as you do now. Messages will appear here as well, and the chat history comes across.';
+
+  @override
+  String get whatsappOptionExistingButton => 'Use my existing number';
+
+  @override
+  String get whatsappOptionNewTitle => 'I want to set up a new number';
+
+  @override
+  String get whatsappOptionNewDesc =>
+      'Add a number that is not on WhatsApp yet, or one you are ready to move over. You will confirm it with a code from Meta.';
+
+  @override
+  String get whatsappOptionNewButton => 'Set up a new number';
+
+  @override
+  String get allAccountsFilter => 'All accounts';
+
+  @override
+  String accountFilterFor(String provider) {
+    return '$provider account';
+  }
 }
