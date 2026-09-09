@@ -26,6 +26,7 @@ class ConversationFilters {
     this.provider,
     this.assignedToMe = false,
     this.unassigned = false,
+    this.unread = false,
     this.search = '',
     this.selectedAccounts = const {},
     this.channelConnections,
@@ -36,6 +37,7 @@ class ConversationFilters {
   final String? provider;
   final bool assignedToMe;
   final bool unassigned;
+  final bool unread;
   final String search;
 
   /// Map of uppercase provider (e.g. 'FACEBOOK', 'INSTAGRAM') to selected channel ID.
@@ -54,7 +56,12 @@ class ConversationFilters {
     if (assignedToMe && currentEmployeeId != null) {
       query['assigned_to'] = currentEmployeeId;
     }
-    if (unassigned) query['assigned_to__isnull'] = true;
+    // `view` is the backend's named-bucket filter (matches the
+    // `ConversationCounts` badge names: all/mine/unassigned/unread/...).
+    // There is no separate boolean/`__isnull` param for this — `assigned_to`
+    // only accepts a specific employee id.
+    if (unassigned) query['view'] = 'unassigned';
+    if (unread) query['unread'] = true;
     if (channelConnections != null) {
       query['channel_connections'] = channelConnections!.isEmpty
           ? '0'
@@ -69,6 +76,7 @@ class ConversationFilters {
     String? provider,
     bool? assignedToMe,
     bool? unassigned,
+    bool? unread,
     String? search,
     Map<String, int?>? selectedAccounts,
     List<int>? channelConnections,
@@ -82,6 +90,7 @@ class ConversationFilters {
     provider: clearProvider ? null : (provider ?? this.provider),
     assignedToMe: assignedToMe ?? this.assignedToMe,
     unassigned: unassigned ?? this.unassigned,
+    unread: unread ?? this.unread,
     search: search ?? this.search,
     selectedAccounts: selectedAccounts ?? this.selectedAccounts,
     channelConnections: clearChannelConnections
@@ -97,7 +106,8 @@ class ConversationFilters {
       priority != null ||
       provider != null ||
       assignedToMe ||
-      unassigned;
+      unassigned ||
+      unread;
 
   bool get isEmpty =>
       status == null &&
@@ -105,6 +115,7 @@ class ConversationFilters {
       provider == null &&
       !assignedToMe &&
       !unassigned &&
+      !unread &&
       search.trim().isEmpty &&
       !hasActiveAccountFilter;
 
@@ -118,6 +129,7 @@ class ConversationFilters {
           provider == other.provider &&
           assignedToMe == other.assignedToMe &&
           unassigned == other.unassigned &&
+          unread == other.unread &&
           search == other.search &&
           _mapEquals(selectedAccounts, other.selectedAccounts) &&
           _listEquals(channelConnections, other.channelConnections);
@@ -129,6 +141,7 @@ class ConversationFilters {
     provider,
     assignedToMe,
     unassigned,
+    unread,
     search,
     Object.hashAll(
       selectedAccounts.entries.map((e) => Object.hash(e.key, e.value)),

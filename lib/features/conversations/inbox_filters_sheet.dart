@@ -91,6 +91,12 @@ class _FiltersSheet extends ConsumerWidget {
                     ),
                   ),
                 ),
+                FilterChip(
+                  label: Text(context.l10n.unreadFilter),
+                  selected: filters.unread,
+                  onSelected: (selected) =>
+                      controller.update(filters.copyWith(unread: selected)),
+                ),
               ],
             ),
 

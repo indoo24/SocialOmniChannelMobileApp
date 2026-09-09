@@ -1010,6 +1010,12 @@ abstract class AppLocalizations {
   /// **'Unassigned'**
   String get unassignedFilter;
 
+  /// No description provided for @unreadFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get unreadFilter;
+
   /// No description provided for @statusSection.
   ///
   /// In en, this message translates to:

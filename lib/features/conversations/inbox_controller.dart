@@ -92,6 +92,7 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
       clearProvider: true,
       assignedToMe: false,
       unassigned: false,
+      unread: false,
     );
   }
 

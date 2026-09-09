@@ -241,6 +241,7 @@
   "assignmentSection": "Assignment",
   "assignedToMeFilter": "Assigned to me",
   "unassignedFilter": "Unassigned",
+  "unreadFilter": "Unread",
   "statusSection": "Status",
   "prioritySection": "Priority",
   "categorySection": "Category",

@@ -514,6 +514,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get unassignedFilter => 'غير مُسندة';
 
   @override
+  String get unreadFilter => 'غير مقروءة';
+
+  @override
   String get statusSection => 'الحالة';
 
   @override

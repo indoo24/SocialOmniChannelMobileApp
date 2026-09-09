@@ -514,6 +514,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unassignedFilter => 'Unassigned';
 
   @override
+  String get unreadFilter => 'Unread';
+
+  @override
   String get statusSection => 'Status';
 
   @override
