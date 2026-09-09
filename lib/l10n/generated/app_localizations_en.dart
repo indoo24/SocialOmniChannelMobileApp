@@ -2066,4 +2066,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clearDayHoursAction => 'Clear all hours';
+
+  @override
+  String get dateFilterToday => 'Today';
+
+  @override
+  String get dateFilterLast7Days => 'Last 7 days';
+
+  @override
+  String get dateFilterLast30Days => 'Last 30 days';
+
+  @override
+  String get dateFilterThisMonth => 'This month';
+
+  @override
+  String get dateFilterLastMonth => 'Last month';
+
+  @override
+  String get dateFilterCustomRange => 'Custom range';
+
+  @override
+  String get dateFilterFrom => 'From';
+
+  @override
+  String get dateFilterTo => 'To';
+
+  @override
+  String get dateFilterApply => 'Apply';
+
+  @override
+  String get dateFilterInvalidRange => 'Invalid date range';
+
+  @override
+  String get dateFilterRangeExceedsLimit => 'Date range cannot exceed 366 days';
+
+  @override
+  String get dateFilterPlaceholder => 'mm/dd/yyyy';
+
+  @override
+  String get dateFilterTitle => 'Date range';
 }

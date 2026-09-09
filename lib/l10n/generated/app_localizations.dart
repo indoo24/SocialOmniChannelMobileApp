@@ -3745,6 +3745,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear all hours'**
   String get clearDayHoursAction;
+
+  /// Preset date filter for today
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get dateFilterToday;
+
+  /// Preset date filter for last 7 days
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get dateFilterLast7Days;
+
+  /// Preset date filter for last 30 days
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get dateFilterLast30Days;
+
+  /// Preset date filter for this month
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get dateFilterThisMonth;
+
+  /// Preset date filter for last month
+  ///
+  /// In en, this message translates to:
+  /// **'Last month'**
+  String get dateFilterLastMonth;
+
+  /// Custom date range filter option
+  ///
+  /// In en, this message translates to:
+  /// **'Custom range'**
+  String get dateFilterCustomRange;
+
+  /// Label for custom date range start date
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get dateFilterFrom;
+
+  /// Label for custom date range end date
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get dateFilterTo;
+
+  /// Button to apply custom date filter
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get dateFilterApply;
+
+  /// Error when from date is after to date
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid date range'**
+  String get dateFilterInvalidRange;
+
+  /// Error when custom date range exceeds 366 days
+  ///
+  /// In en, this message translates to:
+  /// **'Date range cannot exceed 366 days'**
+  String get dateFilterRangeExceedsLimit;
+
+  /// Placeholder format for date input
+  ///
+  /// In en, this message translates to:
+  /// **'mm/dd/yyyy'**
+  String get dateFilterPlaceholder;
+
+  /// Title for the date filter sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Date range'**
+  String get dateFilterTitle;
 }
 
 class _AppLocalizationsDelegate

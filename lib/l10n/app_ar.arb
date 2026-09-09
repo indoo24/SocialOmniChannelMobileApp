@@ -646,5 +646,18 @@
   "invalidIntervalStartBeforeEnd": "يجب أن يكون وقت البدء قبل وقت الانتهاء",
   "overlappingIntervalsError": "لا يمكن أن تتداخل فترات العمل",
   "invalidTimeFormatError": "يجب أن يكون الوقت بصيغة HH:MM",
-  "clearDayHoursAction": "مسح ساعات اليوم"
+  "clearDayHoursAction": "مسح ساعات اليوم",
+  "dateFilterToday": "اليوم",
+  "dateFilterLast7Days": "آخر 7 أيام",
+  "dateFilterLast30Days": "آخر 30 يوماً",
+  "dateFilterThisMonth": "هذا الشهر",
+  "dateFilterLastMonth": "الشهر الماضي",
+  "dateFilterCustomRange": "نطاق مخصص",
+  "dateFilterFrom": "من",
+  "dateFilterTo": "إلى",
+  "dateFilterApply": "تطبيق",
+  "dateFilterInvalidRange": "نطاق تاريخ غير صالح",
+  "dateFilterRangeExceedsLimit": "لا يمكن أن يتجاوز النطاق 366 يوماً",
+  "dateFilterPlaceholder": "شهر/يوم/سنة",
+  "dateFilterTitle": "نطاق التاريخ"
 }

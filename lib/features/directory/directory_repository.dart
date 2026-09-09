@@ -359,8 +359,22 @@ class DirectoryRepository {
     return JsonSafe.parseList(data, ConversationCategory.fromJson);
   }
 
-  Future<DashboardSummary> dashboard() async {
-    final data = await _api.get<Map<String, dynamic>>('/dashboard/');
+  Future<DashboardSummary> dashboard({
+    String? preset,
+    String? from,
+    String? to,
+  }) async {
+    final query = <String, dynamic>{};
+    if (from != null && to != null) {
+      query['from'] = from;
+      query['to'] = to;
+    } else if (preset != null && preset.isNotEmpty) {
+      query['preset'] = preset;
+    }
+    final data = await _api.get<Map<String, dynamic>>(
+      '/dashboard/',
+      query: query.isEmpty ? null : query,
+    );
     return DashboardSummary.fromJson(data);
   }
 

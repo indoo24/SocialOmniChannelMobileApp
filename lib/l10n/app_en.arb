@@ -1079,5 +1079,57 @@
   "clearDayHoursAction": "Clear all hours",
   "@clearDayHoursAction": {
     "description": "Action to clear all hours for a weekday"
+  },
+  "dateFilterToday": "Today",
+  "@dateFilterToday": {
+    "description": "Preset date filter for today"
+  },
+  "dateFilterLast7Days": "Last 7 days",
+  "@dateFilterLast7Days": {
+    "description": "Preset date filter for last 7 days"
+  },
+  "dateFilterLast30Days": "Last 30 days",
+  "@dateFilterLast30Days": {
+    "description": "Preset date filter for last 30 days"
+  },
+  "dateFilterThisMonth": "This month",
+  "@dateFilterThisMonth": {
+    "description": "Preset date filter for this month"
+  },
+  "dateFilterLastMonth": "Last month",
+  "@dateFilterLastMonth": {
+    "description": "Preset date filter for last month"
+  },
+  "dateFilterCustomRange": "Custom range",
+  "@dateFilterCustomRange": {
+    "description": "Custom date range filter option"
+  },
+  "dateFilterFrom": "From",
+  "@dateFilterFrom": {
+    "description": "Label for custom date range start date"
+  },
+  "dateFilterTo": "To",
+  "@dateFilterTo": {
+    "description": "Label for custom date range end date"
+  },
+  "dateFilterApply": "Apply",
+  "@dateFilterApply": {
+    "description": "Button to apply custom date filter"
+  },
+  "dateFilterInvalidRange": "Invalid date range",
+  "@dateFilterInvalidRange": {
+    "description": "Error when from date is after to date"
+  },
+  "dateFilterRangeExceedsLimit": "Date range cannot exceed 366 days",
+  "@dateFilterRangeExceedsLimit": {
+    "description": "Error when custom date range exceeds 366 days"
+  },
+  "dateFilterPlaceholder": "mm/dd/yyyy",
+  "@dateFilterPlaceholder": {
+    "description": "Placeholder format for date input"
+  },
+  "dateFilterTitle": "Date range",
+  "@dateFilterTitle": {
+    "description": "Title for the date filter sheet"
   }
 }

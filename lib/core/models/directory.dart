@@ -381,7 +381,9 @@ class ConversationMetrics {
       newCount: at('new'),
       unassigned: at('unassigned'),
       waiting: at('waiting'),
-      resolvedToday: at('resolved_today'),
+      resolvedToday: json['resolved'] != null
+          ? at('resolved')
+          : at('resolved_today'),
       unread: at('unread'),
       mineOpen: at('mine_open'),
     );
@@ -466,16 +468,46 @@ class TeamMetrics {
   );
 }
 
+class DashboardPeriod {
+  const DashboardPeriod({
+    required this.preset,
+    required this.startAt,
+    required this.endAt,
+    required this.timezone,
+    required this.from,
+    required this.to,
+  });
+
+  final String preset;
+  final String startAt;
+  final String endAt;
+  final String timezone;
+  final String from;
+  final String to;
+
+  factory DashboardPeriod.fromJson(Map<String, dynamic> json) =>
+      DashboardPeriod(
+        preset: JsonSafe.asString(json['preset']),
+        startAt: JsonSafe.asString(json['start_at']),
+        endAt: JsonSafe.asString(json['end_at']),
+        timezone: JsonSafe.asString(json['timezone']),
+        from: JsonSafe.asString(json['from']),
+        to: JsonSafe.asString(json['to']),
+      );
+}
+
 class DashboardSummary {
   const DashboardSummary({
     required this.conversations,
     required this.intelligence,
+    this.period,
     this.team,
     this.recentConversations = const [],
   });
 
   final ConversationMetrics conversations;
   final IntelligenceMetrics intelligence;
+  final DashboardPeriod? period;
 
   /// Organization-wide staffing. **Null** when the caller lacks
   /// `analytics.view` — the backend omits the block rather than zeroing it, so
@@ -493,6 +525,9 @@ class DashboardSummary {
         intelligence: IntelligenceMetrics.fromJson(
           JsonSafe.asMap(json['intelligence']),
         ),
+        period: json['period'] is Map
+            ? DashboardPeriod.fromJson(JsonSafe.asMap(json['period']))
+            : null,
         team: json['team'] is Map
             ? TeamMetrics.fromJson(JsonSafe.asMap(json['team']))
             : null,

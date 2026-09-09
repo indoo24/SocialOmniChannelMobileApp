@@ -15,9 +15,17 @@ import '../../core/models/performance.dart';
 import '../../core/models/routing_policy.dart';
 import '../../core/providers.dart';
 import '../authentication/auth_controller.dart';
+import '../dashboard/dashboard_date_filter_state.dart';
 
 final dashboardProvider = FutureProvider<DashboardSummary>((ref) {
-  return ref.watch(directoryRepositoryProvider).dashboard();
+  final filter = ref.watch(dashboardDateFilterProvider);
+  return ref
+      .watch(directoryRepositoryProvider)
+      .dashboard(
+        preset: filter.preset?.apiValue,
+        from: filter.fromApiString,
+        to: filter.toApiString,
+      );
 });
 
 final routingPolicyProvider = FutureProvider<RoutingPolicy>((ref) {

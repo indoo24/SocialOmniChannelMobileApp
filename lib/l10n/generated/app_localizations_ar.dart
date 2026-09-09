@@ -2088,4 +2088,44 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get clearDayHoursAction => 'مسح ساعات اليوم';
+
+  @override
+  String get dateFilterToday => 'اليوم';
+
+  @override
+  String get dateFilterLast7Days => 'آخر 7 أيام';
+
+  @override
+  String get dateFilterLast30Days => 'آخر 30 يوماً';
+
+  @override
+  String get dateFilterThisMonth => 'هذا الشهر';
+
+  @override
+  String get dateFilterLastMonth => 'الشهر الماضي';
+
+  @override
+  String get dateFilterCustomRange => 'نطاق مخصص';
+
+  @override
+  String get dateFilterFrom => 'من';
+
+  @override
+  String get dateFilterTo => 'إلى';
+
+  @override
+  String get dateFilterApply => 'تطبيق';
+
+  @override
+  String get dateFilterInvalidRange => 'نطاق تاريخ غير صالح';
+
+  @override
+  String get dateFilterRangeExceedsLimit =>
+      'لا يمكن أن يتجاوز النطاق 366 يوماً';
+
+  @override
+  String get dateFilterPlaceholder => 'شهر/يوم/سنة';
+
+  @override
+  String get dateFilterTitle => 'نطاق التاريخ';
 }
