@@ -34,8 +34,6 @@ import '../directory/directory_providers.dart';
 import '../messages/conversation_controller.dart';
 import 'channel_connect_sheets.dart';
 
-const _availabilities = ['ONLINE', 'AWAY', 'BREAK', 'OFFLINE'];
-
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -80,11 +78,12 @@ class SettingsScreen extends ConsumerWidget {
 // --------------------------------------------------------------------------- //
 // Profile
 // --------------------------------------------------------------------------- //
-/// Identity, availability and sign-out.
+/// Identity and sign-out.
 ///
-/// Availability is first because it is one of the three gates the routing
-/// engine uses to hand out work, so an agent going on break needs it to hand —
-/// not buried below a form they rarely touch.
+/// Setting your own availability used to live here, but it is one of the three
+/// gates the routing engine uses to hand out work — an agent going on break
+/// needs it to hand, not buried in a settings tab they rarely open. It now sits
+/// in the account menu (`user_account_menu.dart`), reachable from anywhere.
 class ProfileTab extends ConsumerStatefulWidget {
   const ProfileTab({super.key});
 
@@ -93,23 +92,6 @@ class ProfileTab extends ConsumerStatefulWidget {
 }
 
 class _ProfileTabState extends ConsumerState<ProfileTab> {
-  bool _busy = false;
-
-  Future<void> _setAvailability(String value) async {
-    setState(() => _busy = true);
-    try {
-      await ref.read(authControllerProvider.notifier).setAvailability(value);
-    } on ApiException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.message)));
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
   Future<void> _logout() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -224,14 +206,6 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
       ],
     );
   }
-
-  static String _label(BuildContext context, String value) => switch (value) {
-    'ONLINE' => context.l10n.availabilityOnline,
-    'AWAY' => context.l10n.availabilityAway,
-    'BREAK' => context.l10n.availabilityOnBreak,
-    'OFFLINE' => context.l10n.availabilityOffline,
-    _ => value,
-  };
 }
 
 class _ProfileDetailsSection extends ConsumerStatefulWidget {
