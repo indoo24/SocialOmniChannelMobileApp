@@ -112,6 +112,77 @@ void main() {
       expect(DirectoryEmployee.fromJson({'id': 1}).maxOpenChats, isNull);
     });
 
+    test('parses working_hours windows and work_schedule', () {
+      final employee = DirectoryEmployee.fromJson({
+        'id': 1,
+        'effective_capacity': 5,
+        'working_hours': [
+          {
+            'weekday': 0,
+            'start_time': '09:00',
+            'end_time': '17:00',
+            'crosses_midnight': false,
+          },
+          {
+            'weekday': 1,
+            'start_time': '10:00',
+            'end_time': '18:00',
+            'crosses_midnight': false,
+          },
+        ],
+        'work_schedule': {
+          'id': 42,
+          'name': 'Cairo Standard',
+          'is_personal': true,
+          'timezone': 'Africa/Cairo',
+        },
+      });
+
+      expect(employee.effectiveCapacity, 5);
+      expect(employee.workingHours.length, 2);
+      expect(employee.workingHours[0].weekday, 0);
+      expect(employee.workingHours[0].startTime, '09:00');
+      expect(employee.workingHours[0].endTime, '17:00');
+      expect(employee.workingHours[0].crossesMidnight, false);
+      expect(employee.workSchedule?.id, 42);
+      expect(employee.workSchedule?.name, 'Cairo Standard');
+      expect(employee.workSchedule?.isPersonal, true);
+      expect(employee.workSchedule?.timezone, 'Africa/Cairo');
+    });
+
+    test('WorkingHoursWindow toJson and overlap detection', () {
+      const window1 = WorkingHoursWindow(
+        weekday: 0,
+        startTime: '09:00',
+        endTime: '13:00',
+      );
+      const window2 = WorkingHoursWindow(
+        weekday: 0,
+        startTime: '12:00',
+        endTime: '17:00',
+      );
+      const window3 = WorkingHoursWindow(
+        weekday: 0,
+        startTime: '14:00',
+        endTime: '18:00',
+      );
+      const windowOtherDay = WorkingHoursWindow(
+        weekday: 1,
+        startTime: '09:00',
+        endTime: '13:00',
+      );
+
+      expect(window1.toJson(), {
+        'weekday': 0,
+        'start_time': '09:00',
+        'end_time': '13:00',
+        'crosses_midnight': false,
+      });
+      expect(window1.overlapsWith(window2), isTrue);
+      expect(window1.overlapsWith(window3), isFalse);
+      expect(window1.overlapsWith(windowOtherDay), isFalse);
+    });
+
     test('a malformed teams entry is dropped rather than throwing', () {
       final employee = DirectoryEmployee.fromJson({
         'id': 1,

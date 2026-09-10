@@ -354,6 +354,35 @@ void main() {
     });
   });
 
+  group('DirectoryRepository.deleteChannel', () {
+    test('DELETEs to /channels/{id}/', () async {
+      RequestOptions? captured;
+      final repository = _repositoryReturning((options) {
+        captured = options;
+        return _json('', 204);
+      });
+
+      await repository.deleteChannel(5);
+
+      expect(captured!.method, 'DELETE');
+      expect(captured!.path, '/channels/5/');
+    });
+
+    test(
+      'a 409 conflict when channel is still connected throws ApiException',
+      () async {
+        final repository = _repositoryReturning(
+          (_) => _json(
+            '{"error": {"code": "conflict", "message": "The channel is still connected. Disconnect it first.", "details": {}}}',
+            409,
+          ),
+        );
+
+        expect(() => repository.deleteChannel(5), throwsA(isA<Exception>()));
+      },
+    );
+  });
+
   group('DirectoryRepository.checkWhatsAppStatus', () {
     test('POSTs to the WhatsApp check-status path', () async {
       RequestOptions? captured;
@@ -379,7 +408,7 @@ void main() {
 
   group('DirectoryRepository — connect-another authorization URLs', () {
     test(
-      'startWhatsAppEmbeddedSignupMobile POSTs to the mobile/start path',
+      'startWhatsAppEmbeddedSignupMobile POSTs to the mobile/start path with mode',
       () async {
         RequestOptions? captured;
         final repository = _repositoryReturning((options) {
@@ -397,7 +426,11 @@ void main() {
           captured!.path,
           '/integrations/whatsapp/embedded-signup/mobile/start/',
         );
+        expect(captured!.data, {'mode': 'cloud_api'});
         expect(result.url, 'https://business.facebook.com/wa/signup?x=1');
+
+        await repository.startWhatsAppEmbeddedSignupMobile(mode: 'coexistence');
+        expect(captured!.data, {'mode': 'coexistence'});
       },
     );
 

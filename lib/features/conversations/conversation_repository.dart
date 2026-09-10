@@ -26,7 +26,10 @@ class ConversationFilters {
     this.provider,
     this.assignedToMe = false,
     this.unassigned = false,
+    this.unread = false,
     this.search = '',
+    this.selectedAccounts = const {},
+    this.channelConnections,
   });
 
   final String? status;
@@ -34,7 +37,15 @@ class ConversationFilters {
   final String? provider;
   final bool assignedToMe;
   final bool unassigned;
+  final bool unread;
   final String search;
+
+  /// Map of uppercase provider (e.g. 'FACEBOOK', 'INSTAGRAM') to selected channel ID.
+  /// A value of `null` represents "All accounts" for that provider.
+  final Map<String, int?> selectedAccounts;
+
+  /// Explicit channel connection IDs to filter by on the server (`channel_connections` query parameter).
+  final List<int>? channelConnections;
 
   Map<String, dynamic> toQuery(int page, int? currentEmployeeId) {
     final query = <String, dynamic>{'page': page};
@@ -45,7 +56,17 @@ class ConversationFilters {
     if (assignedToMe && currentEmployeeId != null) {
       query['assigned_to'] = currentEmployeeId;
     }
-    if (unassigned) query['assigned_to__isnull'] = true;
+    // `view` is the backend's named-bucket filter (matches the
+    // `ConversationCounts` badge names: all/mine/unassigned/unread/...).
+    // There is no separate boolean/`__isnull` param for this — `assigned_to`
+    // only accepts a specific employee id.
+    if (unassigned) query['view'] = 'unassigned';
+    if (unread) query['unread'] = true;
+    if (channelConnections != null) {
+      query['channel_connections'] = channelConnections!.isEmpty
+          ? '0'
+          : channelConnections!.join(',');
+    }
     return query;
   }
 
@@ -55,18 +76,46 @@ class ConversationFilters {
     String? provider,
     bool? assignedToMe,
     bool? unassigned,
+    bool? unread,
     String? search,
+    Map<String, int?>? selectedAccounts,
+    List<int>? channelConnections,
     bool clearStatus = false,
     bool clearPriority = false,
     bool clearProvider = false,
+    bool clearChannelConnections = false,
   }) => ConversationFilters(
     status: clearStatus ? null : (status ?? this.status),
     priority: clearPriority ? null : (priority ?? this.priority),
     provider: clearProvider ? null : (provider ?? this.provider),
     assignedToMe: assignedToMe ?? this.assignedToMe,
     unassigned: unassigned ?? this.unassigned,
+    unread: unread ?? this.unread,
     search: search ?? this.search,
+    selectedAccounts: selectedAccounts ?? this.selectedAccounts,
+    channelConnections: clearChannelConnections
+        ? null
+        : (channelConnections ?? this.channelConnections),
   );
+
+  bool get hasActiveAccountFilter =>
+      selectedAccounts.values.any((id) => id != null);
+
+  bool get hasSheetFilters =>
+      status != null ||
+      priority != null ||
+      provider != null ||
+      assignedToMe ||
+      unassigned ||
+      unread;
+
+  /// Whether any advanced/secondary filter from the filter sheet is active.
+  /// Primary quick filters (All/Mine/Unassigned/Unread/Open) are represented
+  /// in the persistent quick filter row on the inbox screen.
+  bool get hasAdvancedFilters =>
+      priority != null ||
+      provider != null ||
+      (status != null && status != 'OPEN');
 
   bool get isEmpty =>
       status == null &&
@@ -74,7 +123,58 @@ class ConversationFilters {
       provider == null &&
       !assignedToMe &&
       !unassigned &&
-      search.trim().isEmpty;
+      !unread &&
+      search.trim().isEmpty &&
+      !hasActiveAccountFilter;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ConversationFilters &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          priority == other.priority &&
+          provider == other.provider &&
+          assignedToMe == other.assignedToMe &&
+          unassigned == other.unassigned &&
+          unread == other.unread &&
+          search == other.search &&
+          _mapEquals(selectedAccounts, other.selectedAccounts) &&
+          _listEquals(channelConnections, other.channelConnections);
+
+  @override
+  int get hashCode => Object.hash(
+    status,
+    priority,
+    provider,
+    assignedToMe,
+    unassigned,
+    unread,
+    search,
+    Object.hashAll(
+      selectedAccounts.entries.map((e) => Object.hash(e.key, e.value)),
+    ),
+    channelConnections == null ? null : Object.hashAll(channelConnections!),
+  );
+
+  static bool _mapEquals(Map<String, int?> a, Map<String, int?> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (!b.containsKey(key) || b[key] != a[key]) return false;
+    }
+    return true;
+  }
+
+  static bool _listEquals(List<int>? a, List<int>? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null) return a == b;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 }
 
 class ConversationRepository {
@@ -111,8 +211,15 @@ class ConversationRepository {
     return Conversation.fromJson(data);
   }
 
-  Future<Map<String, int>> counts() async {
-    final data = await _api.get<Map<String, dynamic>>('/conversations/counts/');
+  Future<Map<String, int>> counts({List<int>? channelConnections}) async {
+    final query = <String, dynamic>{};
+    if (channelConnections != null && channelConnections.isNotEmpty) {
+      query['channel_connections'] = channelConnections.join(',');
+    }
+    final data = await _api.get<Map<String, dynamic>>(
+      '/conversations/counts/',
+      query: query.isNotEmpty ? query : null,
+    );
     return data.map(
       (key, value) => MapEntry(key, (value as num?)?.toInt() ?? 0),
     );
@@ -245,22 +352,49 @@ class ConversationRepository {
       _api.post<dynamic>('/conversations/$conversationId/read/');
 
   /// Assignment. The backend decides whether this is legal — the app only asks.
-  Future<void> assign(
+  ///
+  /// The endpoint distinguishes three states per field, and its own schema
+  /// spells the distinction out: *"`assignee_id=null` unassigns; omitting it
+  /// leaves the assignee alone."* So:
+  ///
+  ///  * [assigneeId] set        → give the thread to that employee
+  ///  * [releaseAssignee] true  → send an explicit `null`, releasing it back
+  ///                              to the queue
+  ///  * neither                 → key omitted, assignee untouched
+  ///
+  /// [releaseAssignee] is a separate flag rather than "pass null to
+  /// [assigneeId]" because a null-aware map entry cannot express the
+  /// difference: `'assignee_id': ?null` drops the key entirely, which the
+  /// backend reads as "leave it alone" — silently turning a release into a
+  /// no-op.
+  ///
+  /// Returns the conversation as the server now holds it, so callers apply
+  /// the confirmed assignment rather than guessing at it.
+  Future<Conversation> assign(
     int conversationId, {
     int? assigneeId,
+    bool releaseAssignee = false,
     int? teamId,
+    bool releaseTeam = false,
     String note = '',
-  }) => _api.post<dynamic>(
-    '/conversations/$conversationId/assign/',
-    body: {
-      // Null-aware map entries: an omitted key means "leave unchanged",
-      // which is exactly how the backend reads a missing field. Sending
-      // an explicit null would unassign instead.
-      'assignee_id': ?assigneeId,
-      'team_id': ?teamId,
-      if (note.isNotEmpty) 'note': note,
-    },
-  );
+  }) async {
+    assert(
+      !(releaseAssignee && assigneeId != null),
+      'Pass an assigneeId or releaseAssignee, not both.',
+    );
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/assign/',
+      body: {
+        if (releaseAssignee)
+          'assignee_id': null
+        else
+          'assignee_id': ?assigneeId,
+        if (releaseTeam) 'team_id': null else 'team_id': ?teamId,
+        if (note.isNotEmpty) 'note': note,
+      },
+    );
+    return Conversation.fromJson(data);
+  }
 
   Future<void> changeStatus(int conversationId, String status) =>
       _api.post<dynamic>(

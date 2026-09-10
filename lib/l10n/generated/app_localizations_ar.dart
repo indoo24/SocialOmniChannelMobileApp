@@ -224,6 +224,23 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get deleteChannelAction => 'حذف';
+
+  @override
+  String deleteChannelDialogTitle(String channel) {
+    return 'حذف $channel؟';
+  }
+
+  @override
+  String get deleteChannelDialogBody =>
+      'سيؤدي هذا إلى إزالة الحساب غير المتصل نهائياً من قنواتك المتصلة.';
+
+  @override
+  String channelDeletedSnackbar(String channel) {
+    return 'تمت إزالة $channel.';
+  }
+
+  @override
   String get openingBrowserMessage => 'جارٍ فتح المتصفح…';
 
   @override
@@ -488,6 +505,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get clearAll => 'مسح الكل';
 
   @override
+  String get allFilter => 'الكل';
+
+  @override
+  String get mineFilter => 'لي';
+
+  @override
+  String get openFilter => 'مفتوحة';
+
+  @override
   String get assignmentSection => 'الإسناد';
 
   @override
@@ -495,6 +521,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get unassignedFilter => 'غير مُسندة';
+
+  @override
+  String get unreadFilter => 'غير مقروءة';
 
   @override
   String get statusSection => 'الحالة';
@@ -570,6 +599,32 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get unassignedMessage => 'تم إلغاء الإسناد';
+
+  @override
+  String get assignAction => 'إسناد';
+
+  @override
+  String get assignSheetTitle => 'إسناد';
+
+  @override
+  String get releaseToQueueAction => 'إرجاع إلى قائمة الانتظار';
+
+  @override
+  String get releasedToQueueMessage => 'تم الإرجاع إلى قائمة الانتظار';
+
+  @override
+  String get assignSearchEmployeeHint => 'بحث عن موظف…';
+
+  @override
+  String assignedToEmployeeMessage(String name) {
+    return 'تم الإسناد إلى $name';
+  }
+
+  @override
+  String get assignNoEmployeesFound => 'لا يوجد موظفون';
+
+  @override
+  String get assignCurrentAssigneeLabel => 'المسؤول الحالي';
 
   @override
   String get statusUpdatedMessage => 'تم تحديث الحالة';
@@ -1733,6 +1788,72 @@ class AppLocalizationsAr extends AppLocalizations {
   String get anEmployeeLabel => 'أحد الموظفين';
 
   @override
+  String intelligenceDisclaimer(String version) {
+    return 'مستخلصة من نص المحادثة بواسطة $version. تعامل معها كاقتراح — تحقّق قبل التصرّف.';
+  }
+
+  @override
+  String get intelligenceTheAnalyzer => 'المحلّل';
+
+  @override
+  String showSignalsBehindScore(int count) {
+    return 'عرض الـ $count إشارات وراء هذه الدرجة';
+  }
+
+  @override
+  String hideSignalsBehindScore(int count) {
+    return 'إخفاء الـ $count إشارات وراء هذه الدرجة';
+  }
+
+  @override
+  String scoreOverriddenDetail(
+    int score,
+    String name,
+    String when,
+    int autoScore,
+  ) {
+    return 'ضُبطت على $score بواسطة $name في $when. يعطيها المحلّل $autoScore.';
+  }
+
+  @override
+  String get autoScoreAction => 'تلقائي';
+
+  @override
+  String get metaScoreAction => 'Meta';
+
+  @override
+  String returnToAutoScoreTooltip(int score) {
+    return 'العودة إلى درجة المحلّل البالغة $score';
+  }
+
+  @override
+  String get sendStageToMetaTooltip => 'إرسال تحويل المرحلة إلى Meta';
+
+  @override
+  String get purchaseStatusLabel => 'حالة الشراء';
+
+  @override
+  String get confidenceFieldLabel => 'درجة الثقة';
+
+  @override
+  String get sentimentFieldLabel => 'الانطباع';
+
+  @override
+  String get intentFieldLabel => 'النية';
+
+  @override
+  String get urgencyFieldLabel => 'درجة الإلحاح';
+
+  @override
+  String get noneValue => 'لا يوجد';
+
+  @override
+  String get noBuyingSignalsMessage => 'لم يتم رصد إشارات شراء بعد';
+
+  @override
+  String get recommendedNextActionTitle => 'الإجراء التالي المقترح';
+
+  @override
   String get templatesTitle => 'قوالب الرسائل';
 
   @override
@@ -2000,11 +2121,189 @@ class AppLocalizationsAr extends AppLocalizations {
   String get maxHopsRange => 'بين 1 و20.';
 
   @override
-  String get maxHopsSaved => 'تم حفظ حد إعادة التوزيع';
+  String get maxHopsSaved => 'Reassignment limit saved';
 
   @override
-  String get maxHopsInvalidRangeError => 'يجب أن يكون الحد بين 1 و20.';
+  String get maxHopsInvalidRangeError => 'Must be between 1 and 20.';
 
   @override
   String get saveAction => 'حفظ';
+
+  @override
+  String get automaticAllocationTitle => 'التوزيع التلقائي';
+
+  @override
+  String get automaticAllocationDescription =>
+      'يُستخدم بواسطة محرك التوجيه لتحديد ما إذا كان هذا الشخص يمكنه استقبال محادثة جديدة الآن.';
+
+  @override
+  String get chatCapacityFieldTitle => 'سعة المحادثات';
+
+  @override
+  String get chatCapacityOrgDefaultPlaceholder => 'الافتراضي للمؤسسة';
+
+  @override
+  String get chatCapacityFieldDescription =>
+      'عدد المحادثات المفتوحة التي يمكن لهذا الشخص الاحتفاظ بها في وقت واحد. اتركه فارغاً لاتباع الإعداد الافتراضي للمؤسسة، حتى يصل إليه أي تغيير لاحق في هذا الإعداد. الصفر يعني عدم استلام أي شيء.';
+
+  @override
+  String get chatCapacityInvalidRangeError => 'يجب أن تكون السعة بين 0 و200.';
+
+  @override
+  String get workingHoursTitle => 'ساعات العمل';
+
+  @override
+  String workingHoursTimezoneHelper(String timezone) {
+    return 'تُفسر ساعات العمل بتوقيت: $timezone';
+  }
+
+  @override
+  String get dayNotWorking => 'لا يعمل';
+
+  @override
+  String get noWorkingHoursWarning =>
+      'لم يتم تعيين ساعات عمل — لن يتلقى هذا الموظف محادثات مخصصة تلقائياً. هذا مقصود: غير محدد لا يعني متاحاً دائماً.';
+
+  @override
+  String get weekdayMonday => 'الإثنين';
+
+  @override
+  String get weekdayTuesday => 'الثلاثاء';
+
+  @override
+  String get weekdayWednesday => 'الأربعاء';
+
+  @override
+  String get weekdayThursday => 'الخميس';
+
+  @override
+  String get weekdayFriday => 'الجمعة';
+
+  @override
+  String get weekdaySaturday => 'السبت';
+
+  @override
+  String get weekdaySunday => 'الأحد';
+
+  @override
+  String get editWorkingHoursTitle => 'تعديل ساعات العمل';
+
+  @override
+  String get addIntervalAction => 'إضافة فترة عمل';
+
+  @override
+  String get startTimeLabel => 'البدء';
+
+  @override
+  String get endTimeLabel => 'الانتهاء';
+
+  @override
+  String get invalidIntervalStartBeforeEnd =>
+      'يجب أن يكون وقت البدء قبل وقت الانتهاء';
+
+  @override
+  String get overlappingIntervalsError => 'لا يمكن أن تتداخل فترات العمل';
+
+  @override
+  String get invalidTimeFormatError => 'يجب أن يكون الوقت بصيغة HH:MM';
+
+  @override
+  String get clearDayHoursAction => 'مسح ساعات اليوم';
+
+  @override
+  String get dateFilterToday => 'اليوم';
+
+  @override
+  String get dateFilterLast7Days => 'آخر 7 أيام';
+
+  @override
+  String get dateFilterLast30Days => 'آخر 30 يوماً';
+
+  @override
+  String get dateFilterThisMonth => 'هذا الشهر';
+
+  @override
+  String get dateFilterLastMonth => 'الشهر الماضي';
+
+  @override
+  String get dateFilterCustomRange => 'نطاق مخصص';
+
+  @override
+  String get dateFilterFrom => 'من';
+
+  @override
+  String get dateFilterTo => 'إلى';
+
+  @override
+  String get dateFilterApply => 'تطبيق';
+
+  @override
+  String get dateFilterInvalidRange => 'نطاق تاريخ غير صالح';
+
+  @override
+  String get dateFilterRangeExceedsLimit =>
+      'لا يمكن أن يتجاوز النطاق 366 يوماً';
+
+  @override
+  String get dateFilterPlaceholder => 'شهر/يوم/سنة';
+
+  @override
+  String get dateFilterTitle => 'نطاق التاريخ';
+
+  @override
+  String get connectWhatsAppSubtitle =>
+      'ستكمل تسجيل الدخول على صفحة Meta الخاصة. لا حاجة لنسخ أو لصق أي شيء.';
+
+  @override
+  String get whatsappOptionExistingTitle =>
+      'أستخدم هذا الرقم بالفعل في WhatsApp Business';
+
+  @override
+  String get whatsappOptionExistingDesc =>
+      'استمر في استخدام تطبيق WhatsApp Business على هاتفك كما تفعل الآن تماماً. ستظهر الرسائل هنا أيضاً، وسيتم نقل سجل المحادثات.';
+
+  @override
+  String get whatsappOptionExistingButton => 'استخدام رقمي الحالي';
+
+  @override
+  String get whatsappOptionNewTitle => 'أريد إعداد رقم جديد';
+
+  @override
+  String get whatsappOptionNewDesc =>
+      'أضف رقماً غير موجود على WhatsApp بعد، أو رقماً أنت مستعد لنقله. ستؤكده برمز من Meta.';
+
+  @override
+  String get whatsappOptionNewButton => 'إعداد رقم جديد';
+
+  @override
+  String get allAccountsFilter => 'كل الحسابات';
+
+  @override
+  String accountFilterFor(String provider) {
+    return 'حساب $provider';
+  }
+
+  @override
+  String get setAvailabilityTitle => 'تحديد الحالة';
+
+  @override
+  String availabilityChanged(String status) {
+    return 'أنت الآن $status.';
+  }
+
+  @override
+  String get availabilityFailed => 'تعذر تحديث الحالة';
+
+  @override
+  String get userAccountMenuTooltip => 'حساب المستخدم';
+
+  @override
+  String get resolveConversationTooltip => 'حل المحادثة';
+
+  @override
+  String get conversationResolvedTooltip => 'المحادثة محلولة';
+
+  @override
+  String get statusUpdateFailedMessage =>
+      'تعذر تحديث الحالة. يرجى المحاولة مرة أخرى.';
 }

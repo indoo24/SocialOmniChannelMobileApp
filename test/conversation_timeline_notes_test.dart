@@ -138,7 +138,7 @@ void main() {
       // Check header details
       expect(find.text('Sarah Connor'), findsOneWidget);
       expect(find.text('WhatsApp'), findsOneWidget);
-      expect(find.text('Open'), findsOneWidget);
+      expect(find.textContaining('Scenario Sales'), findsOneWidget);
 
       // Check customer message bubble
       expect(

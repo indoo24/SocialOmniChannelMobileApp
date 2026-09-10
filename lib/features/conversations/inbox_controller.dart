@@ -16,6 +16,58 @@ import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
 import 'conversation_repository.dart';
 
+/// Computes allowed channel IDs across all platforms, matching Web's `pn(selection, connections)`.
+List<int>? computeAllowedChannelConnections(
+  Map<String, int?> selectedAccounts,
+  List<ChannelConnection>? channels,
+) {
+  if (channels == null || channels.isEmpty) return null;
+  final hasSpecificSelection = selectedAccounts.values.any((id) => id != null);
+  if (!hasSpecificSelection) return null;
+
+  final activeChannels = channels.where(
+    (c) => c.isActive && c.isConnected && !c.isMuted,
+  );
+  final allowedIds = <int>[];
+
+  final byProvider = <String, List<ChannelConnection>>{};
+  for (final c in activeChannels) {
+    (byProvider[c.provider.toUpperCase()] ??= []).add(c);
+  }
+
+  for (final entry in byProvider.entries) {
+    final provider = entry.key;
+    final providerChannels = entry.value;
+    final selectedId = selectedAccounts[provider];
+
+    if (selectedId == null) {
+      // "All accounts" for this provider: all its channels are allowed
+      allowedIds.addAll(providerChannels.map((c) => c.id));
+    } else {
+      // Specific account selected: only include that channel if active
+      if (providerChannels.any((c) => c.id == selectedId)) {
+        allowedIds.add(selectedId);
+      }
+    }
+  }
+
+  return allowedIds..sort();
+}
+
+/// The 5 primary quick filters permanently visible in the Inbox header,
+/// mirroring Web behavior (`jn = ["all", "mine", "unassigned", "unread", "open"]`).
+enum InboxQuickFilter { all, mine, unassigned, unread, open }
+
+extension ConversationFiltersQuickFilterX on ConversationFilters {
+  InboxQuickFilter get activeQuickFilter {
+    if (unread) return InboxQuickFilter.unread;
+    if (unassigned) return InboxQuickFilter.unassigned;
+    if (assignedToMe) return InboxQuickFilter.mine;
+    if (status == 'OPEN') return InboxQuickFilter.open;
+    return InboxQuickFilter.all;
+  }
+}
+
 final inboxFiltersProvider =
     NotifierProvider<InboxFiltersController, ConversationFilters>(
       InboxFiltersController.new,
@@ -26,6 +78,78 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
   ConversationFilters build() => const ConversationFilters();
 
   void update(ConversationFilters filters) => state = filters;
+
+  void selectQuickFilter(InboxQuickFilter filter) {
+    switch (filter) {
+      case InboxQuickFilter.all:
+        state = state.copyWith(
+          assignedToMe: false,
+          unassigned: false,
+          unread: false,
+          clearStatus: state.status == 'OPEN',
+        );
+      case InboxQuickFilter.mine:
+        state = state.copyWith(
+          assignedToMe: true,
+          unassigned: false,
+          unread: false,
+          clearStatus: state.status == 'OPEN',
+        );
+      case InboxQuickFilter.unassigned:
+        state = state.copyWith(
+          assignedToMe: false,
+          unassigned: true,
+          unread: false,
+          clearStatus: state.status == 'OPEN',
+        );
+      case InboxQuickFilter.unread:
+        state = state.copyWith(
+          assignedToMe: false,
+          unassigned: false,
+          unread: true,
+          clearStatus: state.status == 'OPEN',
+        );
+      case InboxQuickFilter.open:
+        state = state.copyWith(
+          assignedToMe: false,
+          unassigned: false,
+          unread: false,
+          status: 'OPEN',
+        );
+    }
+  }
+
+  void selectAccount(
+    String provider,
+    int? channelId,
+    List<ChannelConnection>? channels,
+  ) {
+    final key = provider.toUpperCase();
+    final updated = Map<String, int?>.from(state.selectedAccounts);
+    if (channelId == null) {
+      updated.remove(key);
+    } else {
+      updated[key] = channelId;
+    }
+    final allowed = computeAllowedChannelConnections(updated, channels);
+    state = state.copyWith(
+      selectedAccounts: updated,
+      channelConnections: allowed,
+      clearChannelConnections: allowed == null,
+    );
+  }
+
+  void clearSheetFilters() {
+    state = state.copyWith(
+      clearStatus: true,
+      clearPriority: true,
+      clearProvider: true,
+      assignedToMe: false,
+      unassigned: false,
+      unread: false,
+    );
+  }
+
   void clear() => state = const ConversationFilters();
 }
 
@@ -89,9 +213,44 @@ class InboxController extends AsyncNotifier<InboxState> {
       final channels = next.value;
       final current = state.value;
       if (current != null && channels != null && channels.isNotEmpty) {
+        final currentFilters = ref.read(inboxFiltersProvider);
+        if (currentFilters.hasActiveAccountFilter) {
+          final activeIds = channels
+              .where((c) => c.isActive && c.isConnected && !c.isMuted)
+              .map((c) => c.id)
+              .toSet();
+          bool needsReconcile = false;
+          final updatedAccounts = Map<String, int?>.from(
+            currentFilters.selectedAccounts,
+          );
+          for (final entry in currentFilters.selectedAccounts.entries) {
+            if (entry.value != null && !activeIds.contains(entry.value)) {
+              updatedAccounts.remove(entry.key);
+              needsReconcile = true;
+            }
+          }
+          if (needsReconcile) {
+            final allowed = computeAllowedChannelConnections(
+              updatedAccounts,
+              channels,
+            );
+            ref
+                .read(inboxFiltersProvider.notifier)
+                .update(
+                  currentFilters.copyWith(
+                    selectedAccounts: updatedAccounts,
+                    channelConnections: allowed,
+                    clearChannelConnections: allowed == null,
+                  ),
+                );
+            return;
+          }
+        }
+
         final filtered = _filterByActiveChannels(
           current.conversations,
           channels,
+          selectedAccounts: currentFilters.selectedAccounts,
         );
         state = AsyncData(current.copyWith(conversations: filtered));
       }
@@ -110,7 +269,11 @@ class InboxController extends AsyncNotifier<InboxState> {
         current.conversations.isNotEmpty &&
         channels != null &&
         channels.isNotEmpty) {
-      final filtered = _filterByActiveChannels(current.conversations, channels);
+      final filtered = _filterByActiveChannels(
+        current.conversations,
+        channels,
+        selectedAccounts: filters.selectedAccounts,
+      );
       return current.copyWith(conversations: filtered);
     }
 
@@ -120,8 +283,9 @@ class InboxController extends AsyncNotifier<InboxState> {
 
   static List<Conversation> _filterByActiveChannels(
     List<Conversation> conversations,
-    List<ChannelConnection>? channels,
-  ) {
+    List<ChannelConnection>? channels, {
+    Map<String, int?> selectedAccounts = const {},
+  }) {
     if (channels == null || channels.isEmpty) return conversations;
     final activeIds = channels
         .where((c) => c.isActive && c.isConnected && !c.isMuted)
@@ -129,7 +293,12 @@ class InboxController extends AsyncNotifier<InboxState> {
         .toSet();
     return conversations.where((c) {
       if (c.channelId == null) return true;
-      return activeIds.contains(c.channelId);
+      if (!activeIds.contains(c.channelId)) return false;
+      final selectedForProvider = selectedAccounts[c.provider.toUpperCase()];
+      if (selectedForProvider != null && c.channelId != selectedForProvider) {
+        return false;
+      }
+      return true;
     }).toList();
   }
 
@@ -146,7 +315,11 @@ class InboxController extends AsyncNotifier<InboxState> {
         );
 
     final effectiveChannels = channels ?? ref.read(channelsProvider).value;
-    final filtered = _filterByActiveChannels(page.results, effectiveChannels);
+    final filtered = _filterByActiveChannels(
+      page.results,
+      effectiveChannels,
+      selectedAccounts: filters.selectedAccounts,
+    );
 
     return InboxState(
       conversations: filtered,
@@ -179,16 +352,21 @@ class InboxController extends AsyncNotifier<InboxState> {
     state = AsyncData(current.copyWith(isLoadingMore: true));
 
     try {
+      final filters = ref.read(inboxFiltersProvider);
       final page = await ref
           .read(conversationRepositoryProvider)
           .list(
-            filters: ref.read(inboxFiltersProvider),
+            filters: filters,
             page: current.nextPage,
             currentEmployeeId: ref.read(currentEmployeeProvider)?.id,
           );
 
       final channels = ref.read(channelsProvider).value;
-      final filteredResults = _filterByActiveChannels(page.results, channels);
+      final filteredResults = _filterByActiveChannels(
+        page.results,
+        channels,
+        selectedAccounts: filters.selectedAccounts,
+      );
 
       // De-duplicate on id: a conversation can move between pages while the
       // agent is scrolling, and a repeated row is a visible bug.
@@ -246,5 +424,8 @@ final inboxControllerProvider =
     AsyncNotifierProvider<InboxController, InboxState>(InboxController.new);
 
 final conversationCountsProvider = FutureProvider<Map<String, int>>((ref) {
-  return ref.watch(conversationRepositoryProvider).counts();
+  final filters = ref.watch(inboxFiltersProvider);
+  return ref
+      .watch(conversationRepositoryProvider)
+      .counts(channelConnections: filters.channelConnections);
 });

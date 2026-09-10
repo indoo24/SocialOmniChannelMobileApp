@@ -1,7 +1,7 @@
 name: scenario_mobile
 description: "Scenario — omnichannel customer service. Mobile client for the same backend the web app uses."
 publish_to: 'none'
-version: 1.0.2+3
+version: 1.0.3+4
 
 environment:
   sdk: ^3.12.0
@@ -108,6 +108,16 @@ flutter:
   generate: true
   assets:
     - assets/images/
+  fonts:
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo-Regular.ttf
+        - asset: assets/fonts/Cairo-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Cairo-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Cairo-Bold.ttf
+          weight: 700
 
 # Regenerate with `dart run flutter_launcher_icons` after changing the
 # source image. Legacy icon set only (no adaptive_icon_* keys), matching

@@ -117,7 +117,7 @@ class PresenceDot extends StatelessWidget {
     final color = switch (availability) {
       'ONLINE' => ScenarioColors.success,
       'AWAY' => ScenarioColors.warning,
-      'BREAK' => ScenarioColors.warning,
+      'BREAK' => const Color(0xFF8B5CF6),
       _ => Theme.of(context).colorScheme.outline,
     };
 

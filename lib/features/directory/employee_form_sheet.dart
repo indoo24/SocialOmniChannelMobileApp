@@ -20,6 +20,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
@@ -28,7 +29,9 @@ import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../authentication/auth_controller.dart';
 import 'directory_providers.dart';
+import 'working_hours_editor_sheet.dart';
 
 const _roles = ['AGENT', 'TEAM_LEADER', 'SUPERVISOR', 'QA', 'ADMIN'];
 const _availabilities = ['ONLINE', 'AWAY', 'BREAK', 'OFFLINE'];
@@ -103,6 +106,7 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
   late String _availability = widget.existing?.availability ?? 'OFFLINE';
   late bool _isActive = widget.existing?.isActive ?? true;
   final Set<int> _teamIds = {};
+  late final List<WorkingHoursWindow> _workingHours;
 
   bool _submitting = false;
   String? _error;
@@ -116,6 +120,9 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
     _initialFirstName = parts.isEmpty ? '' : parts.first;
     _initialLastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
     _teamIds.addAll(widget.existing?.teamIds ?? const []);
+    _workingHours = List<WorkingHoursWindow>.from(
+      widget.existing?.workingHours ?? const [],
+    );
     super.initState();
   }
 
@@ -130,6 +137,25 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
     _password.dispose();
     _maxOpenChats.dispose();
     super.dispose();
+  }
+
+  Future<void> _editWorkingHours(int weekday, String timezone) async {
+    final updated = await showWorkingHoursEditorSheet(
+      context,
+      weekday: weekday,
+      currentWindows: _workingHours,
+      timezone: timezone,
+    );
+    if (updated != null) {
+      setState(() {
+        _workingHours.removeWhere((w) => w.weekday == weekday);
+        _workingHours.addAll(updated);
+        _workingHours.sort((a, b) {
+          final c = a.weekday.compareTo(b.weekday);
+          return c != 0 ? c : a.startMinutes.compareTo(b.startMinutes);
+        });
+      });
+    }
   }
 
   Future<void> _submit() async {
@@ -147,6 +173,17 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
       return;
     }
 
+    final rawCapacity = _maxOpenChats.text.trim();
+    int? maxOpenChats;
+    if (rawCapacity.isNotEmpty) {
+      final parsed = int.tryParse(rawCapacity);
+      if (parsed == null || parsed < 0 || parsed > 200) {
+        setState(() => _error = context.l10n.chatCapacityInvalidRangeError);
+        return;
+      }
+      maxOpenChats = parsed;
+    }
+
     final repository = ref.read(directoryRepositoryProvider);
 
     setState(() {
@@ -155,10 +192,13 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
     });
     try {
       if (widget.isEdit) {
-        await repository.updateEmployee(widget.existing!.id, _diff());
+        await repository.updateEmployee(
+          widget.existing!.id,
+          _diff(maxOpenChats),
+        );
       } else {
         await repository.createEmployee(
-          _addPayload(email, firstName, lastName),
+          _addPayload(email, firstName, lastName, maxOpenChats),
         );
       }
       // Guarded together — see conversation_actions_sheet.dart's
@@ -194,6 +234,7 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
     String email,
     String firstName,
     String lastName,
+    int? maxOpenChats,
   ) {
     final body = <String, dynamic>{
       'email': email,
@@ -210,12 +251,14 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
     }
     if (_phone.text.trim().isNotEmpty) body['phone'] = _phone.text.trim();
     if (_title.text.trim().isNotEmpty) body['title'] = _title.text.trim();
-    final maxOpenChats = int.tryParse(_maxOpenChats.text.trim());
     if (maxOpenChats != null) body['max_open_chats'] = maxOpenChats;
+    if (_workingHours.isNotEmpty) {
+      body['working_hours'] = _workingHours.map((w) => w.toJson()).toList();
+    }
     return body;
   }
 
-  Map<String, dynamic> _diff() {
+  Map<String, dynamic> _diff(int? maxOpenChats) {
     final existing = widget.existing!;
     final fields = <String, dynamic>{};
 
@@ -242,9 +285,17 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
       fields['team_ids'] = _teamIds.toList();
     }
 
-    final maxOpenChats = int.tryParse(_maxOpenChats.text.trim());
-    if (maxOpenChats != existing.maxOpenChats) {
-      if (maxOpenChats != null) fields['max_open_chats'] = maxOpenChats;
+    final rawCapacity = _maxOpenChats.text.trim();
+    if (rawCapacity.isEmpty) {
+      if (existing.maxOpenChats != null) {
+        fields['max_open_chats'] = null;
+      }
+    } else if (maxOpenChats != existing.maxOpenChats) {
+      fields['max_open_chats'] = maxOpenChats;
+    }
+
+    if (!_areWorkingHoursEqual(_workingHours, existing.workingHours)) {
+      fields['working_hours'] = _workingHours.map((w) => w.toJson()).toList();
     }
 
     // Never sent unless the administrator actually typed a new one — see
@@ -255,6 +306,27 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
     return fields;
   }
 
+  static bool _areWorkingHoursEqual(
+    List<WorkingHoursWindow> a,
+    List<WorkingHoursWindow> b,
+  ) {
+    if (a.length != b.length) return false;
+    final sortedA = List<WorkingHoursWindow>.from(a)
+      ..sort((x, y) {
+        final c = x.weekday.compareTo(y.weekday);
+        return c != 0 ? c : x.startMinutes.compareTo(y.startMinutes);
+      });
+    final sortedB = List<WorkingHoursWindow>.from(b)
+      ..sort((x, y) {
+        final c = x.weekday.compareTo(y.weekday);
+        return c != 0 ? c : x.startMinutes.compareTo(y.startMinutes);
+      });
+    for (int i = 0; i < sortedA.length; i++) {
+      if (sortedA[i] != sortedB[i]) return false;
+    }
+    return true;
+  }
+
   static bool _setEquals(Set<int> a, Set<int> b) =>
       a.length == b.length && a.containsAll(b);
 
@@ -262,6 +334,17 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final teams = ref.watch(teamsProvider);
+
+    final policyAsync = ref.watch(routingPolicyProvider);
+    final currentEmp = ref.watch(currentEmployeeProvider);
+    final orgTimezone =
+        policyAsync.value?.timezone ??
+        currentEmp?.organization?.timezone ??
+        'UTC';
+    final timezone =
+        (widget.existing?.workSchedule?.timezone.isNotEmpty ?? false)
+        ? widget.existing!.workSchedule!.timezone
+        : orgTimezone;
 
     return ListView(
       controller: widget.scrollController,
@@ -359,13 +442,12 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
             labelText: context.l10n.avatarUrlFieldLabel,
           ),
         ),
-        const SizedBox(height: Space.md),
-        TextField(
+        const SizedBox(height: Space.lg),
+        _AutomaticAllocationCard(
           controller: _maxOpenChats,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: context.l10n.maxOpenChatsFieldLabel,
-          ),
+          workingHours: _workingHours,
+          timezone: timezone,
+          onEditDay: (day) => _editWorkingHours(day, timezone),
         ),
         const SizedBox(height: Space.md),
         TextField(
@@ -449,4 +531,209 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
         'BREAK' => context.l10n.availabilityOnBreak,
         _ => context.l10n.availabilityOffline,
       };
+}
+
+class _AutomaticAllocationCard extends StatelessWidget {
+  const _AutomaticAllocationCard({
+    required this.controller,
+    required this.workingHours,
+    required this.timezone,
+    required this.onEditDay,
+  });
+
+  final TextEditingController controller;
+  final List<WorkingHoursWindow> workingHours;
+  final String timezone;
+  final ValueChanged<int> onEditDay;
+
+  String _weekdayLabel(BuildContext context, int day) => switch (day) {
+    0 => context.l10n.weekdayMonday,
+    1 => context.l10n.weekdayTuesday,
+    2 => context.l10n.weekdayWednesday,
+    3 => context.l10n.weekdayThursday,
+    4 => context.l10n.weekdayFriday,
+    5 => context.l10n.weekdaySaturday,
+    _ => context.l10n.weekdaySunday,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(Radii.lg),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+        ),
+      ),
+      padding: const EdgeInsets.all(Space.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.l10n.automaticAllocationTitle,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: Space.xs),
+          Text(
+            context.l10n.automaticAllocationDescription,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: Space.lg),
+          Text(
+            context.l10n.chatCapacityFieldTitle,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: Space.xs),
+          TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              hintText: context.l10n.chatCapacityOrgDefaultPlaceholder,
+            ),
+          ),
+          const SizedBox(height: Space.xs),
+          Text(
+            context.l10n.chatCapacityFieldDescription,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: Space.lg),
+          Text(
+            context.l10n.workingHoursTitle,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: Space.xs),
+          Text(
+            context.l10n.workingHoursTimezoneHelper(timezone),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: Space.md),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(Radii.md),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+              ),
+            ),
+            child: Column(
+              children: [
+                for (int day = 0; day < 7; day++) ...[
+                  if (day > 0)
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                  _DayWorkingHoursRow(
+                    dayName: _weekdayLabel(context, day),
+                    windows: workingHours
+                        .where((w) => w.weekday == day)
+                        .toList(),
+                    onEdit: () => onEditDay(day),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (workingHours.isEmpty) ...[
+            const SizedBox(height: Space.md),
+            Text(
+              context.l10n.noWorkingHoursWarning,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: const Color(0xFFB45309),
+                height: 1.4,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DayWorkingHoursRow extends StatelessWidget {
+  const _DayWorkingHoursRow({
+    required this.dayName,
+    required this.windows,
+    required this.onEdit,
+  });
+
+  final String dayName;
+  final List<WorkingHoursWindow> windows;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasHours = windows.isNotEmpty;
+
+    return InkWell(
+      onTap: onEdit,
+      borderRadius: BorderRadius.circular(Radii.md),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Space.md,
+          vertical: Space.sm,
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 100,
+              child: Text(
+                dayName,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Expanded(
+              child: hasHours
+                  ? Text(
+                      windows
+                          .map((w) => '${w.startTime} — ${w.endTime}')
+                          .join('\n'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w400,
+                      ),
+                    )
+                  : Text(
+                      context.l10n.dayNotWorking,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+            ),
+            IconButton(
+              icon: Icon(
+                hasHours ? Icons.edit_outlined : Icons.add,
+                size: 20,
+                color: hasHours
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+              onPressed: onEdit,
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

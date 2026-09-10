@@ -17,6 +17,7 @@ import '../../app/navigation.dart';
 import '../../features/authentication/auth_controller.dart';
 import '../../features/conversations/inbox_controller.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../models/employee.dart';
 import '../theme/tokens.dart';
 import 'avatar.dart';
 
@@ -236,23 +237,21 @@ class _UnreadBadge extends StatelessWidget {
 /// Who is signed in, and their availability.
 ///
 /// Availability sits here rather than only in Settings because it is one of the
-/// three gates the routing engine gives work on, so an agent going on break
-/// needs it one tap from anywhere.
+/// Who is signed in, and their availability.
+///
+/// Tapping this section displays the user's profile information in a
+/// clean modal bottom sheet rather than navigating to Settings.
 class _AccountFooter extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final employee = ref.watch(currentEmployeeProvider);
     if (employee == null) return const SizedBox.shrink();
 
-    final isRtl = Directionality.of(context) == TextDirection.rtl;
-
     return Tooltip(
-      message: context.l10n.navSettings,
+      message: employee.fullName,
       child: InkWell(
-        onTap: () {
-          Navigator.of(context).pop();
-          context.go('/settings');
-        },
+        key: const Key('drawer_profile_footer'),
+        onTap: () => _showProfileInfo(context, employee),
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: Space.lg,
@@ -307,15 +306,20 @@ class _AccountFooter extends ConsumerWidget {
                   ],
                 ),
               ),
-              Icon(
-                isRtl ? Icons.chevron_left : Icons.chevron_right,
-                size: 18,
-                color: ScenarioColors.sidebarForeground.withValues(alpha: 0.5),
-              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  static void _showProfileInfo(BuildContext context, Employee employee) {
+    showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _UserProfileSheet(employee: employee),
     );
   }
 
@@ -334,4 +338,274 @@ class _AccountFooter extends ConsumerWidget {
         'BREAK' => context.l10n.availabilityOnBreak,
         _ => context.l10n.availabilityOffline,
       };
+}
+
+/// Clean modal bottom sheet displaying the authenticated user's profile details.
+class _UserProfileSheet extends StatelessWidget {
+  const _UserProfileSheet({required this.employee});
+
+  final Employee employee;
+
+  @override
+  Widget build(BuildContext context) {
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: ScenarioColors.sidebar,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(Radii.lg),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.45),
+            blurRadius: 20,
+            offset: const Offset(0, -6),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            Space.lg,
+            Space.sm,
+            Space.lg,
+            Space.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: Space.md),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(Radii.pill),
+                  ),
+                ),
+              ),
+
+              // Title bar with close affordance
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    context.l10n.tabProfile,
+                    style: TextStyle(
+                      color: ScenarioColors.sidebarForeground.withValues(
+                        alpha: 0.65,
+                      ),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    color: ScenarioColors.sidebarForeground.withValues(
+                      alpha: 0.7,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Space.sm),
+
+              // Header: Avatar with PresenceDot, Name, Role badge
+              Row(
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      InitialsAvatar(
+                        initials: employee.initials,
+                        imageUrl: employee.avatarUrl,
+                        size: 46,
+                      ),
+                      Positioned(
+                        right: isRtl ? null : 0,
+                        left: isRtl ? 0 : null,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(1.5),
+                          decoration: BoxDecoration(
+                            color: ScenarioColors.sidebar,
+                            shape: BoxShape.circle,
+                          ),
+                          child: PresenceDot(
+                            availability: employee.availability,
+                            size: 9,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: Space.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          employee.fullName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: Space.xs),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: ScenarioColors.sidebarAccent,
+                            borderRadius: BorderRadius.circular(Radii.sm),
+                          ),
+                          child: Text(
+                            _AccountFooter._roleLabel(context, employee.role),
+                            style: TextStyle(
+                              color: ScenarioColors.sidebarForeground,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: Space.md),
+              const Divider(height: 1, color: Colors.white12),
+              const SizedBox(height: Space.md),
+
+              // Details section
+              _ProfileDetailRow(
+                icon: Icons.email_outlined,
+                label: context.l10n.emailLabel,
+                value: employee.email,
+              ),
+              const SizedBox(height: Space.sm),
+              _ProfileDetailRow(
+                icon: Icons.circle,
+                iconSize: 10,
+                iconColor: _availabilityColor(employee.availability),
+                label: context.l10n.statusSection,
+                value: _AccountFooter._availabilityLabel(
+                  context,
+                  employee.availability,
+                ),
+              ),
+              if (employee.organization != null &&
+                  employee.organization!.name.isNotEmpty) ...[
+                const SizedBox(height: Space.sm),
+                _ProfileDetailRow(
+                  icon: Icons.business_outlined,
+                  label: context.l10n.organizationLabel,
+                  value: employee.organization!.name,
+                ),
+              ],
+              if (employee.phone.isNotEmpty) ...[
+                const SizedBox(height: Space.sm),
+                _ProfileDetailRow(
+                  icon: Icons.phone_outlined,
+                  label: context.l10n.phoneFieldLabel,
+                  value: employee.phone,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Color _availabilityColor(String availability) =>
+      switch (availability) {
+        'ONLINE' => ScenarioColors.success,
+        'AWAY' => ScenarioColors.warning,
+        'BREAK' => const Color(0xFF8B5CF6),
+        _ => ScenarioColors.sidebarForeground.withValues(alpha: 0.4),
+      };
+}
+
+class _ProfileDetailRow extends StatelessWidget {
+  const _ProfileDetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.iconSize = 18,
+    this.iconColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final double iconSize;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.md,
+        vertical: Space.sm + 2,
+      ),
+      decoration: BoxDecoration(
+        color: ScenarioColors.sidebarAccent.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(Radii.md),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: iconSize,
+            color:
+                iconColor ??
+                ScenarioColors.sidebarForeground.withValues(alpha: 0.7),
+          ),
+          const SizedBox(width: Space.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: ScenarioColors.sidebarForeground.withValues(
+                      alpha: 0.55,
+                    ),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

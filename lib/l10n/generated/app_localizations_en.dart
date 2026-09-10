@@ -221,6 +221,23 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get deleteChannelAction => 'Delete';
+
+  @override
+  String deleteChannelDialogTitle(String channel) {
+    return 'Delete $channel?';
+  }
+
+  @override
+  String get deleteChannelDialogBody =>
+      'This will permanently remove the disconnected account from your connected channels.';
+
+  @override
+  String channelDeletedSnackbar(String channel) {
+    return '$channel removed.';
+  }
+
+  @override
   String get openingBrowserMessage => 'Opening browser…';
 
   @override
@@ -488,6 +505,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clearAll => 'Clear all';
 
   @override
+  String get allFilter => 'All';
+
+  @override
+  String get mineFilter => 'Mine';
+
+  @override
+  String get openFilter => 'Open';
+
+  @override
   String get assignmentSection => 'Assignment';
 
   @override
@@ -495,6 +521,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unassignedFilter => 'Unassigned';
+
+  @override
+  String get unreadFilter => 'Unread';
 
   @override
   String get statusSection => 'Status';
@@ -570,6 +599,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unassignedMessage => 'Unassigned';
+
+  @override
+  String get assignAction => 'Assign';
+
+  @override
+  String get assignSheetTitle => 'Assign';
+
+  @override
+  String get releaseToQueueAction => 'Release to the queue';
+
+  @override
+  String get releasedToQueueMessage => 'Released to the queue';
+
+  @override
+  String get assignSearchEmployeeHint => 'Search employee…';
+
+  @override
+  String assignedToEmployeeMessage(String name) {
+    return 'Assigned to $name';
+  }
+
+  @override
+  String get assignNoEmployeesFound => 'No employees found';
+
+  @override
+  String get assignCurrentAssigneeLabel => 'Current assignee';
 
   @override
   String get statusUpdatedMessage => 'Status updated';
@@ -1713,6 +1768,72 @@ class AppLocalizationsEn extends AppLocalizations {
   String get anEmployeeLabel => 'An employee';
 
   @override
+  String intelligenceDisclaimer(String version) {
+    return 'Generated from conversation text by $version. Treat this as a suggestion — verify before acting.';
+  }
+
+  @override
+  String get intelligenceTheAnalyzer => 'the analyzer';
+
+  @override
+  String showSignalsBehindScore(int count) {
+    return 'Show the $count signals behind this score';
+  }
+
+  @override
+  String hideSignalsBehindScore(int count) {
+    return 'Hide the $count signals behind this score';
+  }
+
+  @override
+  String scoreOverriddenDetail(
+    int score,
+    String name,
+    String when,
+    int autoScore,
+  ) {
+    return 'Set to $score by $name on $when. The analyzer scores this $autoScore.';
+  }
+
+  @override
+  String get autoScoreAction => 'Auto';
+
+  @override
+  String get metaScoreAction => 'Meta';
+
+  @override
+  String returnToAutoScoreTooltip(int score) {
+    return 'Return to the analyzer\'s score of $score';
+  }
+
+  @override
+  String get sendStageToMetaTooltip => 'Report stage conversion to Meta';
+
+  @override
+  String get purchaseStatusLabel => 'Purchase status';
+
+  @override
+  String get confidenceFieldLabel => 'Confidence';
+
+  @override
+  String get sentimentFieldLabel => 'Sentiment';
+
+  @override
+  String get intentFieldLabel => 'Intent';
+
+  @override
+  String get urgencyFieldLabel => 'Urgency';
+
+  @override
+  String get noneValue => 'None';
+
+  @override
+  String get noBuyingSignalsMessage => 'No buying signals detected yet';
+
+  @override
+  String get recommendedNextActionTitle => 'Recommended next action';
+
+  @override
   String get templatesTitle => 'Message templates';
 
   @override
@@ -1984,4 +2105,182 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get saveAction => 'Save';
+
+  @override
+  String get automaticAllocationTitle => 'Automatic allocation';
+
+  @override
+  String get automaticAllocationDescription =>
+      'Used by the routing engine to decide whether this person can receive a new conversation right now.';
+
+  @override
+  String get chatCapacityFieldTitle => 'Chat capacity';
+
+  @override
+  String get chatCapacityOrgDefaultPlaceholder => 'Organization default';
+
+  @override
+  String get chatCapacityFieldDescription =>
+      'How many open conversations this person may hold at once. Leave empty to follow the organization default, so a later change to that default still reaches them. Zero means they receive nothing.';
+
+  @override
+  String get chatCapacityInvalidRangeError =>
+      'Capacity must be between 0 and 200.';
+
+  @override
+  String get workingHoursTitle => 'Working hours';
+
+  @override
+  String workingHoursTimezoneHelper(String timezone) {
+    return 'Working hours are interpreted in: $timezone';
+  }
+
+  @override
+  String get dayNotWorking => 'Not working';
+
+  @override
+  String get noWorkingHoursWarning =>
+      'No hours set — this employee will not receive automatically assigned conversations. That is deliberate: unset never means always available.';
+
+  @override
+  String get weekdayMonday => 'Monday';
+
+  @override
+  String get weekdayTuesday => 'Tuesday';
+
+  @override
+  String get weekdayWednesday => 'Wednesday';
+
+  @override
+  String get weekdayThursday => 'Thursday';
+
+  @override
+  String get weekdayFriday => 'Friday';
+
+  @override
+  String get weekdaySaturday => 'Saturday';
+
+  @override
+  String get weekdaySunday => 'Sunday';
+
+  @override
+  String get editWorkingHoursTitle => 'Edit working hours';
+
+  @override
+  String get addIntervalAction => 'Add interval';
+
+  @override
+  String get startTimeLabel => 'Start';
+
+  @override
+  String get endTimeLabel => 'End';
+
+  @override
+  String get invalidIntervalStartBeforeEnd =>
+      'Start time must be before end time';
+
+  @override
+  String get overlappingIntervalsError => 'Intervals cannot overlap';
+
+  @override
+  String get invalidTimeFormatError => 'Time must be in HH:MM format';
+
+  @override
+  String get clearDayHoursAction => 'Clear all hours';
+
+  @override
+  String get dateFilterToday => 'Today';
+
+  @override
+  String get dateFilterLast7Days => 'Last 7 days';
+
+  @override
+  String get dateFilterLast30Days => 'Last 30 days';
+
+  @override
+  String get dateFilterThisMonth => 'This month';
+
+  @override
+  String get dateFilterLastMonth => 'Last month';
+
+  @override
+  String get dateFilterCustomRange => 'Custom range';
+
+  @override
+  String get dateFilterFrom => 'From';
+
+  @override
+  String get dateFilterTo => 'To';
+
+  @override
+  String get dateFilterApply => 'Apply';
+
+  @override
+  String get dateFilterInvalidRange => 'Invalid date range';
+
+  @override
+  String get dateFilterRangeExceedsLimit => 'Date range cannot exceed 366 days';
+
+  @override
+  String get dateFilterPlaceholder => 'mm/dd/yyyy';
+
+  @override
+  String get dateFilterTitle => 'Date range';
+
+  @override
+  String get connectWhatsAppSubtitle =>
+      'You will finish signing in on Meta\'s own page. Nothing to copy or paste.';
+
+  @override
+  String get whatsappOptionExistingTitle =>
+      'I already use this number in WhatsApp Business';
+
+  @override
+  String get whatsappOptionExistingDesc =>
+      'Keep using the WhatsApp Business app on your phone exactly as you do now. Messages will appear here as well, and the chat history comes across.';
+
+  @override
+  String get whatsappOptionExistingButton => 'Use my existing number';
+
+  @override
+  String get whatsappOptionNewTitle => 'I want to set up a new number';
+
+  @override
+  String get whatsappOptionNewDesc =>
+      'Add a number that is not on WhatsApp yet, or one you are ready to move over. You will confirm it with a code from Meta.';
+
+  @override
+  String get whatsappOptionNewButton => 'Set up a new number';
+
+  @override
+  String get allAccountsFilter => 'All accounts';
+
+  @override
+  String accountFilterFor(String provider) {
+    return '$provider account';
+  }
+
+  @override
+  String get setAvailabilityTitle => 'Set availability';
+
+  @override
+  String availabilityChanged(String status) {
+    return 'You are now $status.';
+  }
+
+  @override
+  String get availabilityFailed => 'Could not update availability';
+
+  @override
+  String get userAccountMenuTooltip => 'User account';
+
+  @override
+  String get resolveConversationTooltip => 'Resolve conversation';
+
+  @override
+  String get conversationResolvedTooltip => 'Conversation resolved';
+
+  @override
+  String get statusUpdateFailedMessage =>
+      'Couldn\'t update status. Please try again.';
 }

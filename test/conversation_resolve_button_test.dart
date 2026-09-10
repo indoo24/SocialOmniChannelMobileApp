@@ -12,6 +12,7 @@ import 'package:scenario_mobile/core/models/employee.dart';
 import 'package:scenario_mobile/core/providers.dart';
 import 'package:scenario_mobile/core/theme/app_theme.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
+import 'package:scenario_mobile/features/messages/conversation_resolve_button.dart';
 import 'package:scenario_mobile/features/messages/conversation_screen.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
@@ -105,9 +106,9 @@ Widget _buildHarness({
 }
 
 void main() {
-  group('ConversationScreen Resolved Button in Actions Bottom Sheet', () {
+  group('Header ConversationResolveButton', () {
     testWidgets(
-      'Resolved button is removed from header and displayed at the top of the Actions sheet',
+      'Button is in the AppBar header next to Follow Up, with mint background and checkmark icon',
       (tester) async {
         final client = _stubClient((options) {
           if (options.path.contains('/conversations/42/messages/')) {
@@ -140,40 +141,56 @@ void main() {
         await tester.pumpWidget(_buildHarness(client: client));
         await tester.pumpAndSettle();
 
-        // 1. Resolved button is NOT in the header AppBar (freeing up huge space)
+        // 1. Located inside the AppBar
+        final resolveBtnInHeader = find.descendant(
+          of: find.byType(AppBar),
+          matching: find.byType(ConversationResolveButton),
+        );
+        expect(resolveBtnInHeader, findsOneWidget);
+
+        // 2. Unresolved state has single checkmark icon and NO "Resolved" text
         expect(
           find.descendant(
-            of: find.byType(AppBar),
-            matching: find.byKey(const Key('conversation_resolve_button')),
-          ),
-          findsNothing,
-        );
-
-        // 2. Open Actions bottom sheet via 3-dots button in header
-        final actionsBtn = find.byIcon(Icons.more_vert);
-        expect(actionsBtn, findsOneWidget);
-        await tester.tap(actionsBtn);
-        await tester.pumpAndSettle();
-
-        // 3. Now the Resolved button is visible at the top of the actions sheet
-        final resolveBtn = find.byKey(const Key('conversation_resolve_button'));
-        expect(resolveBtn, findsOneWidget);
-        expect(
-          find.descendant(of: resolveBtn, matching: find.text('Resolved')),
-          findsOneWidget,
-        );
-        expect(
-          find.descendant(
-            of: resolveBtn,
+            of: resolveBtnInHeader,
             matching: find.byIcon(Icons.check_rounded),
           ),
           findsOneWidget,
         );
+        expect(
+          find.descendant(
+            of: resolveBtnInHeader,
+            matching: find.text('Resolved'),
+          ),
+          findsNothing,
+        );
+
+        // 3. Customer name does not display "Resolved" text badge
+        expect(
+          find.descendant(
+            of: find.byType(AppBar),
+            matching: find.text('Resolved'),
+          ),
+          findsNothing,
+        );
+
+        // 4. Other header actions (Follow Up flag, Assignee avatar) are intact; 3-dot menu is removed
+        expect(find.byIcon(Icons.flag_outlined), findsOneWidget);
+        expect(find.text('JD'), findsOneWidget);
+        expect(find.byIcon(Icons.more_vert), findsNothing);
+
+        // 5. Tooltip is "Resolve conversation"
+        final tooltip = tester.widget<Tooltip>(
+          find.descendant(
+            of: resolveBtnInHeader,
+            matching: find.byType(Tooltip),
+          ),
+        );
+        expect(tooltip.message, equals('Resolve conversation'));
       },
     );
 
     testWidgets(
-      'Tapping Resolved button calls existing resolve API with status: RESOLVED and updates status',
+      'Tapping button triggers resolve API, plays animation, and updates to dark green double-check',
       (tester) async {
         RequestOptions? capturedStatusRequest;
         String currentStatus = 'OPEN';
@@ -198,6 +215,11 @@ void main() {
                   "display_name": "Sarah Connor",
                   "initials": "SC"
                 },
+                "assigned_to": {
+                  "id": 2,
+                  "full_name": "John Doe",
+                  "initials": "JD"
+                },
                 "provider": "WHATSAPP",
                 "status": "$currentStatus",
                 "is_follow_up": false
@@ -209,22 +231,13 @@ void main() {
         await tester.pumpWidget(_buildHarness(client: client));
         await tester.pumpAndSettle();
 
-        // Initially status badge in header is Open
-        expect(
-          find.descendant(
-            of: find.byType(AppBar),
-            matching: find.text('Open'),
-          ),
-          findsOneWidget,
-        );
-
-        // Open Actions bottom sheet
-        await tester.tap(find.byIcon(Icons.more_vert));
-        await tester.pumpAndSettle();
-
-        // Tap Resolved button at top of sheet
         final resolveBtn = find.byKey(const Key('conversation_resolve_button'));
+        expect(resolveBtn, findsOneWidget);
+
+        // Tap the button
         await tester.tap(resolveBtn);
+        // Step through animation
+        await tester.pump(const Duration(milliseconds: 150));
         await tester.pumpAndSettle();
 
         // Verify API was called
@@ -241,26 +254,22 @@ void main() {
             : (rawData as Map).cast<String, dynamic>();
         expect(data['status'], equals('RESOLVED'));
 
-        // Bottom sheet was dismissed and header status is updated to Resolved
-        expect(
+        // Success state: double checkmark icon is now shown
+        expect(find.byIcon(Icons.done_all_rounded), findsOneWidget);
+
+        // Tooltip is updated to "Conversation resolved"
+        final tooltip = tester.widget<Tooltip>(
           find.descendant(
-            of: find.byType(AppBar),
-            matching: find.text('Open'),
+            of: find.byType(ConversationResolveButton),
+            matching: find.byType(Tooltip),
           ),
-          findsNothing,
         );
-        expect(
-          find.descendant(
-            of: find.byType(AppBar),
-            matching: find.text('Resolved'),
-          ),
-          findsOneWidget,
-        );
+        expect(tooltip.message, equals('Conversation resolved'));
       },
     );
 
     testWidgets(
-      'Loading state shows spinner while request is in flight',
+      'Prevents duplicate API calls while resolve request is in progress',
       (tester) async {
         int statusCallCount = 0;
         final completer = Completer<ResponseBody>();
@@ -295,44 +304,79 @@ void main() {
         await tester.pumpWidget(_buildHarness(client: client));
         await tester.pumpAndSettle();
 
-        // Open Actions bottom sheet
-        await tester.tap(find.byIcon(Icons.more_vert));
-        await tester.pumpAndSettle();
-
         final resolveBtn = find.byKey(const Key('conversation_resolve_button'));
 
-        // 1st tap
+        // Tap once
         await tester.tap(resolveBtn);
-        await tester.pump(
-          const Duration(milliseconds: 50),
-        ); // Trigger onTap and enter loading state
-
-        // Expect 1 call so far
+        await tester.pump(const Duration(milliseconds: 50));
         expect(statusCallCount, equals(1));
 
-        // Loading spinner is rendered inside the button
-        expect(
-          find.descendant(
-            of: resolveBtn,
-            matching: find.byType(CircularProgressIndicator),
-          ),
-          findsOneWidget,
-        );
+        // Tap again while in flight
+        await tester.tap(resolveBtn);
+        await tester.pump(const Duration(milliseconds: 50));
+        // Still only 1 call
+        expect(statusCallCount, equals(1));
 
-        // Complete the request
+        // Complete request
         completer.complete(_json('{"status": "RESOLVED"}', 200));
         await tester.pumpAndSettle();
 
-        // Bottom sheet closed upon success
-        expect(
-          find.byKey(const Key('conversation_resolve_button')),
-          findsNothing,
-        );
+        expect(find.byIcon(Icons.done_all_rounded), findsOneWidget);
       },
     );
 
     testWidgets(
-      'Failed response keeps the existing conversation status and displays error message',
+      'When already resolved initially, renders dark green double-check immediately',
+      (tester) async {
+        final client = _stubClient((options) {
+          if (options.path.contains('/conversations/42/messages/')) {
+            return _json('{"results": []}', 200);
+          }
+          if (options.path.contains('/conversations/42/notes/')) {
+            return _json('[]', 200);
+          }
+          if (options.path.contains('/conversations/42/')) {
+            return _json('''{
+                "id": 42,
+                "customer": {
+                  "id": 7,
+                  "display_name": "Sarah Connor",
+                  "initials": "SC"
+                },
+                "provider": "WHATSAPP",
+                "status": "RESOLVED",
+                "is_follow_up": false
+              }''', 200);
+          }
+          return _json('{}', 200);
+        });
+
+        await tester.pumpWidget(_buildHarness(client: client));
+        await tester.pumpAndSettle();
+
+        final resolveBtn = find.descendant(
+          of: find.byType(AppBar),
+          matching: find.byType(ConversationResolveButton),
+        );
+        expect(resolveBtn, findsOneWidget);
+        // Double checkmark immediately visible
+        expect(
+          find.descendant(
+            of: resolveBtn,
+            matching: find.byIcon(Icons.done_all_rounded),
+          ),
+          findsOneWidget,
+        );
+        // Tooltip is resolved
+        final tooltip = tester.widget<Tooltip>(
+          find.descendant(of: resolveBtn, matching: find.byType(Tooltip)),
+        );
+        expect(tooltip.message, equals('Conversation resolved'));
+      },
+    );
+
+    testWidgets(
+      'API failure rolls back animation to unresolved state and shows error message',
       (tester) async {
         final client = _stubClient((options) {
           if (options.path.contains('/conversations/42/status/')) {
@@ -366,20 +410,6 @@ void main() {
         await tester.pumpWidget(_buildHarness(client: client));
         await tester.pumpAndSettle();
 
-        // Initially status badge in header is Open
-        expect(
-          find.descendant(
-            of: find.byType(AppBar),
-            matching: find.text('Open'),
-          ),
-          findsOneWidget,
-        );
-
-        // Open Actions bottom sheet
-        await tester.tap(find.byIcon(Icons.more_vert));
-        await tester.pumpAndSettle();
-
-        // Tap Resolved button
         final resolveBtn = find.byKey(const Key('conversation_resolve_button'));
         await tester.tap(resolveBtn);
         await tester.pumpAndSettle();
@@ -390,19 +420,14 @@ void main() {
           findsOneWidget,
         );
 
-        // Header status badge remains OPEN
-        expect(
-          find.descendant(
-            of: find.byType(AppBar),
-            matching: find.text('Open'),
-          ),
-          findsOneWidget,
-        );
+        // Button rolled back to single checkmark
+        expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.done_all_rounded), findsNothing);
       },
     );
 
     testWidgets(
-      'User without conversation.change_status cannot trigger resolve API call',
+      'User without conversation.change_status permission cannot resolve',
       (tester) async {
         int statusCallCount = 0;
 
@@ -441,31 +466,18 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Open Actions bottom sheet
-        await tester.tap(find.byIcon(Icons.more_vert));
-        await tester.pumpAndSettle();
-
         final resolveBtn = find.byKey(const Key('conversation_resolve_button'));
-        expect(resolveBtn, findsOneWidget);
-
-        // Tap Resolved button
         await tester.tap(resolveBtn);
         await tester.pumpAndSettle();
 
         // API should not be called
         expect(statusCallCount, equals(0));
-        // Status in header remains OPEN
-        expect(
-          find.descendant(
-            of: find.byType(AppBar),
-            matching: find.text('Open'),
-          ),
-          findsOneWidget,
-        );
+        // Still shows single checkmark
+        expect(find.byIcon(Icons.check_rounded), findsOneWidget);
       },
     );
 
-    testWidgets('RTL (Arabic) displays localized text and respects layout', (
+    testWidgets('RTL (Arabic) displays localized tooltip and respects layout', (
       tester,
     ) async {
       final client = _stubClient((options) {
@@ -496,17 +508,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Open Actions bottom sheet
-      await tester.tap(find.byIcon(Icons.more_vert));
-      await tester.pumpAndSettle();
-
-      // Localized Arabic text "تم الحل"
-      final resolveBtn = find.byKey(const Key('conversation_resolve_button'));
-      expect(resolveBtn, findsOneWidget);
-      expect(
-        find.descendant(of: resolveBtn, matching: find.text('تم الحل')),
-        findsOneWidget,
+      final resolveBtn = find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byType(ConversationResolveButton),
       );
+      expect(resolveBtn, findsOneWidget);
+
+      final tooltip = tester.widget<Tooltip>(
+        find.descendant(of: resolveBtn, matching: find.byType(Tooltip)),
+      );
+      expect(tooltip.message, equals('حل المحادثة'));
     });
 
     testWidgets(
@@ -539,7 +550,7 @@ void main() {
                   "initials": "JD"
                 },
                 "provider": "WHATSAPP",
-                "status": "WAITING_CUSTOMER",
+                "status": "OPEN",
                 "is_follow_up": true
               }''', 200);
           }
@@ -559,20 +570,11 @@ void main() {
 
         expect(tester.takeException(), isNull);
 
-        // Header actions are cleanly spaced
+        // Header actions are cleanly spaced without 3-dot menu
+        expect(find.byType(ConversationResolveButton), findsOneWidget);
         expect(find.byIcon(Icons.flag_rounded), findsOneWidget);
         expect(find.text('JD'), findsOneWidget);
-        expect(find.byIcon(Icons.more_vert), findsOneWidget);
-
-        // Open actions sheet and verify it also renders without exception
-        await tester.tap(find.byIcon(Icons.more_vert));
-        await tester.pumpAndSettle();
-
-        expect(tester.takeException(), isNull);
-        expect(
-          find.byKey(const Key('conversation_resolve_button')),
-          findsOneWidget,
-        );
+        expect(find.byIcon(Icons.more_vert), findsNothing);
       },
     );
   });

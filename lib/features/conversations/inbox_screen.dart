@@ -23,6 +23,7 @@ import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
+import '../../core/widgets/user_account_menu.dart';
 import '../../core/utils/formatting.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
@@ -30,6 +31,8 @@ import '../notifications/notification_bell_button.dart';
 import 'customer_conversation_group_sheet.dart';
 import 'inbox_controller.dart';
 import 'inbox_filters_sheet.dart';
+import 'inbox_quick_filter_bar.dart';
+import 'platform_account_filter_bar.dart';
 
 class InboxScreen extends ConsumerStatefulWidget {
   const InboxScreen({super.key});
@@ -106,111 +109,116 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               }
             },
           ),
-          _FilterButton(active: !filters.isEmpty),
+          _FilterButton(active: filters.hasAdvancedFilters),
           const NotificationBellButton(),
-          IconButton(
-            tooltip: context.l10n.settingsTitle,
-            icon: InitialsAvatar(
-              initials: employee?.initials ?? '',
-              imageUrl: employee?.avatarUrl ?? '',
-              size: 28,
-            ),
-            onPressed: () => context.go(Routes.settings),
-          ),
+          const UserAccountMenuButton(),
           const SizedBox(width: Space.xs),
         ],
         bottom: const ConnectionBanner(),
       ),
-      body: RefreshIndicator(
-        onRefresh: () => ref.read(inboxControllerProvider.notifier).refresh(),
-        child: inbox.when(
-          loading: () => ListView.separated(
-            itemCount: 8,
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (_, _) => const ConversationSkeleton(),
-          ),
-          error: (error, _) => ListView(
-            children: [
-              SizedBox(
-                height: MediaQuery.sizeOf(context).height * 0.6,
-                child: ErrorStateView(
-                  error: error,
-                  onRetry: () =>
-                      ref.read(inboxControllerProvider.notifier).refresh(),
+      body: Column(
+        children: [
+          const PlatformAccountFilterBar(),
+          const InboxQuickFilterBar(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () =>
+                  ref.read(inboxControllerProvider.notifier).refresh(),
+              child: inbox.when(
+                loading: () => ListView.separated(
+                  itemCount: 8,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (_, _) => const ConversationSkeleton(),
                 ),
-              ),
-            ],
-          ),
-          data: (state) {
-            if (state.isEmpty) {
-              return ListView(
-                children: [
-                  SizedBox(
-                    height: MediaQuery.sizeOf(context).height * 0.6,
-                    child: EmptyState(
-                      title: filters.isEmpty
-                          ? context.l10n.noConversationsTitle
-                          : context.l10n.noFilterMatchesTitle,
-                      message: filters.isEmpty
-                          ? context.l10n.noConversationsMessage
-                          : context.l10n.noFilterMatchesMessage,
-                      action: filters.isEmpty
-                          ? null
-                          : OutlinedButton(
-                              onPressed: () => ref
-                                  .read(inboxFiltersProvider.notifier)
-                                  .clear(),
-                              child: Text(context.l10n.clearFiltersButton),
-                            ),
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            final groups = state.groups;
-
-            return ListView.separated(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: groups.length + (state.hasMore ? 1 : 0),
-              separatorBuilder: (_, _) => const Divider(height: 1, indent: 68),
-              itemBuilder: (context, index) {
-                if (index >= groups.length) {
-                  return const Padding(
-                    padding: EdgeInsets.all(Space.lg),
-                    child: Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                error: (error, _) => ListView(
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.sizeOf(context).height * 0.6,
+                      child: ErrorStateView(
+                        error: error,
+                        onRetry: () => ref
+                            .read(inboxControllerProvider.notifier)
+                            .refresh(),
                       ),
                     ),
-                  );
-                }
+                  ],
+                ),
+                data: (state) {
+                  if (state.isEmpty) {
+                    return ListView(
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.sizeOf(context).height * 0.6,
+                          child: EmptyState(
+                            title: filters.isEmpty
+                                ? context.l10n.noConversationsTitle
+                                : context.l10n.noFilterMatchesTitle,
+                            message: filters.isEmpty
+                                ? context.l10n.noConversationsMessage
+                                : context.l10n.noFilterMatchesMessage,
+                            action: filters.isEmpty
+                                ? null
+                                : OutlinedButton(
+                                    onPressed: () => ref
+                                        .read(inboxFiltersProvider.notifier)
+                                        .clear(),
+                                    child: Text(
+                                      context.l10n.clearFiltersButton,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
 
-                final group = groups[index];
-                if (group.isMultiConversation) {
-                  return ConversationGroupRow(
-                    group: group,
-                    onTap: () => CustomerConversationGroupSheet.show(
-                      context,
-                      group: group,
-                    ),
-                  );
-                }
+                  final groups = state.groups;
 
-                final conversation = group.primaryConversation;
-                return ConversationRow(
-                  conversation: conversation,
-                  currentEmployeeId: employee?.id,
-                  onTap: () =>
-                      context.push(Routes.conversation(conversation.id)),
-                );
-              },
-            );
-          },
-        ),
+                  return ListView.separated(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: groups.length + (state.hasMore ? 1 : 0),
+                    separatorBuilder: (_, _) =>
+                        const Divider(height: 1, indent: 68),
+                    itemBuilder: (context, index) {
+                      if (index >= groups.length) {
+                        return const Padding(
+                          padding: EdgeInsets.all(Space.lg),
+                          child: Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        );
+                      }
+
+                      final group = groups[index];
+                      if (group.isMultiConversation) {
+                        return ConversationGroupRow(
+                          group: group,
+                          onTap: () => CustomerConversationGroupSheet.show(
+                            context,
+                            group: group,
+                          ),
+                        );
+                      }
+
+                      final conversation = group.primaryConversation;
+                      return ConversationRow(
+                        conversation: conversation,
+                        currentEmployeeId: employee?.id,
+                        onTap: () =>
+                            context.push(Routes.conversation(conversation.id)),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
