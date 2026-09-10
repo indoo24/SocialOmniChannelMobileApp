@@ -24,6 +24,7 @@ import '../authentication/auth_controller.dart';
 import '../conversations/inbox_screen.dart';
 import '../directory/directory_providers.dart';
 import '../performance/performance_card.dart';
+import 'dashboard_date_filter_sheet.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -36,6 +37,7 @@ class DashboardScreen extends ConsumerWidget {
 
     return SectionScaffold(
       title: context.l10n.dashboardGreeting(firstName),
+      actions: const [DashboardDateFilterButton()],
       onRefresh: () async {
         ref.invalidate(dashboardProvider);
         await ref.read(dashboardProvider.future);
@@ -200,14 +202,16 @@ class _MetricGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final columns = MediaQuery.sizeOf(context).width >= 720 ? 4 : 2;
+    final width = MediaQuery.sizeOf(context).width;
+    final columns = width >= 720 ? 4 : 2;
+    final ratio = width < 360 ? 1.2 : 1.45;
     return GridView.count(
       crossAxisCount: columns,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: Space.md,
       mainAxisSpacing: Space.md,
-      childAspectRatio: 1.45,
+      childAspectRatio: ratio,
       children: tiles,
     );
   }

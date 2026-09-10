@@ -31,6 +31,7 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/conversations/inbox_controller.dart';
+import '../../features/dashboard/dashboard_date_filter_state.dart';
 import '../../features/directory/directory_providers.dart';
 import '../../features/messages/conversation_controller.dart';
 import '../logging/app_log.dart';
@@ -63,6 +64,7 @@ void clearSessionScopedState(Ref ref) {
   // Directory, reporting and settings reads. Each holds customer or employee
   // records for the previous agent's visibility scope.
   ref.invalidate(dashboardProvider);
+  ref.invalidate(dashboardDateFilterProvider);
   ref.invalidate(channelVolumeProvider);
   ref.invalidate(teamsProvider);
   ref.invalidate(channelsProvider);

@@ -211,6 +211,57 @@ const _tiktokChannel = '''
 }
 ''';
 
+const _disconnectedWhatsappChannel = '''
+{
+  "id": 5,
+  "provider": "WHATSAPP",
+  "provider_display": "WhatsApp Business",
+  "display_name": "Support line",
+  "external_account_id": "1234567890",
+  "status": "DISCONNECTED",
+  "is_active": false,
+  "status_detail": "",
+  "conversation_count": 12,
+  "is_muted": false,
+  "has_credentials": false,
+  "is_operational": false
+}
+''';
+
+const _disconnectedInstagramChannel = '''
+{
+  "id": 7,
+  "provider": "INSTAGRAM",
+  "provider_display": "Instagram",
+  "display_name": "Acme Shop",
+  "external_account_id": "17800000000000000",
+  "status": "DISCONNECTED",
+  "is_active": false,
+  "status_detail": "",
+  "conversation_count": 4,
+  "is_muted": false,
+  "has_credentials": false,
+  "is_operational": false
+}
+''';
+
+const _disconnectedFacebookChannel = '''
+{
+  "id": 10,
+  "provider": "FACEBOOK",
+  "provider_display": "Facebook Messenger",
+  "display_name": "Gadiat - جاديات",
+  "external_account_id": "102174258212607",
+  "status": "DISCONNECTED",
+  "is_active": false,
+  "status_detail": "",
+  "conversation_count": 1,
+  "is_muted": false,
+  "has_credentials": false,
+  "is_operational": false
+}
+''';
+
 Widget _settingsHarness({
   required ApiClient apiClient,
   Employee? employee,
@@ -718,6 +769,379 @@ void main() {
         findsOneWidget,
       );
     });
+    testWidgets('connected channels show Disconnect and do NOT show Delete', (
+      tester,
+    ) async {
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter(
+        (_) => _json(_channelsPage([_whatsappChannel]), 200),
+      );
+
+      await _pumpChannelsTab(tester, apiClient: client);
+
+      expect(find.text('Disconnect'), findsOneWidget);
+      expect(find.text('Delete'), findsNothing);
+    });
+
+    testWidgets(
+      'successful disconnect transitions the action button to Delete',
+      (tester) async {
+        late final _StubAdapter adapter;
+        bool disconnected = false;
+        adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path.contains('/disconnect/')) {
+            disconnected = true;
+            return _json('{"status": "DISCONNECTED", "detail": "ok"}', 200);
+          }
+          if (options.method == 'GET' && options.path == '/channels/') {
+            return _json(
+              _channelsPage([
+                disconnected ? _disconnectedWhatsappChannel : _whatsappChannel,
+              ]),
+              200,
+            );
+          }
+          return _json('{}', 404);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        expect(find.text('Disconnect'), findsOneWidget);
+        expect(find.text('Delete'), findsNothing);
+
+        await tester.tap(find.text('Disconnect'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Disconnect').last);
+        await tester.pumpAndSettle();
+
+        // Now the button has transitioned from Disconnect to Delete!
+        expect(find.text('Delete'), findsOneWidget);
+        expect(find.text('Disconnect'), findsNothing);
+        expect(find.text('Disconnected'), findsWidgets);
+      },
+    );
+  });
+
+  group('SettingsScreen — Channels tab: Delete', () {
+    testWidgets('disconnected WhatsApp shows Delete and not Disconnect', (
+      tester,
+    ) async {
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter(
+        (_) => _json(_channelsPage([_disconnectedWhatsappChannel]), 200),
+      );
+
+      await _pumpChannelsTab(tester, apiClient: client);
+
+      expect(find.text('Delete'), findsOneWidget);
+      expect(find.text('Disconnect'), findsNothing);
+    });
+
+    testWidgets('shows confirmation dialog before deleting', (tester) async {
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter(
+        (_) => _json(_channelsPage([_disconnectedWhatsappChannel]), 200),
+      );
+
+      await _pumpChannelsTab(tester, apiClient: client);
+
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Delete Support line?'), findsOneWidget);
+      expect(
+        find.text(
+          'This will permanently remove the disconnected account from your connected channels.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(
+        find.text('Delete'),
+        findsNWidgets(2),
+      ); // Card button + dialog confirm button
+    });
+
+    testWidgets('cancelling delete dialog sends no DELETE request', (
+      tester,
+    ) async {
+      final adapter = _StubAdapter(
+        (_) => _json(_channelsPage([_disconnectedWhatsappChannel]), 200),
+      );
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await _pumpChannelsTab(tester, apiClient: client);
+
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(adapter.received.any((r) => r.method == 'DELETE'), isFalse);
+      expect(find.text('Delete'), findsOneWidget); // Still visible
+    });
+
+    testWidgets(
+      'confirming delete calls DELETE /api/channels/{id}/ and removes channel from list',
+      (tester) async {
+        late final _StubAdapter adapter;
+        bool deleted = false;
+        adapter = _StubAdapter((options) {
+          if (options.method == 'DELETE' && options.path == '/channels/5/') {
+            deleted = true;
+            return _json('', 204);
+          }
+          if (options.method == 'GET' && options.path == '/channels/') {
+            return _json(
+              _channelsPage(
+                deleted ? const [] : [_disconnectedWhatsappChannel],
+              ),
+              200,
+            );
+          }
+          return _json('{}', 404);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        expect(find.text('Support line'), findsOneWidget);
+
+        await tester.tap(find.text('Delete'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Delete').last);
+        await tester.pumpAndSettle();
+
+        expect(
+          adapter.received.any(
+            (r) => r.method == 'DELETE' && r.path == '/channels/5/',
+          ),
+          isTrue,
+        );
+        expect(find.text('Support line removed.'), findsOneWidget);
+        // Since it was the only WhatsApp channel, it transitions back to onboarding card
+        expect(find.text('Support line'), findsNothing);
+        expect(find.text('Connect WhatsApp'), findsOneWidget);
+      },
+    );
+
+    testWidgets('failed delete shows error and keeps account visible', (
+      tester,
+    ) async {
+      final adapter = _StubAdapter((options) {
+        if (options.method == 'DELETE' && options.path == '/channels/5/') {
+          return _json(
+            '{"error": {"code": "server_error", "message": "Could not delete channel.", "details": {}}}',
+            500,
+          );
+        }
+        return _json(_channelsPage([_disconnectedWhatsappChannel]), 200);
+      });
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await _pumpChannelsTab(tester, apiClient: client);
+
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Delete').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Could not delete channel.'), findsOneWidget);
+      expect(find.text('Support line'), findsOneWidget);
+      expect(find.text('Delete'), findsOneWidget);
+    });
+
+    testWidgets('deletes Instagram channel via DELETE /api/channels/{id}/', (
+      tester,
+    ) async {
+      final adapter = _StubAdapter((options) {
+        if (options.method == 'DELETE' && options.path == '/channels/7/') {
+          return _json('', 204);
+        }
+        return _json(_channelsPage([_disconnectedInstagramChannel]), 200);
+      });
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await _pumpChannelsTab(tester, apiClient: client);
+
+      expect(find.text('Acme Shop'), findsOneWidget);
+      expect(find.text('Delete'), findsOneWidget);
+
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Delete Acme Shop?'), findsOneWidget);
+      await tester.tap(find.text('Delete').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        adapter.received.any(
+          (r) => r.method == 'DELETE' && r.path == '/channels/7/',
+        ),
+        isTrue,
+      );
+      expect(find.text('Acme Shop removed.'), findsOneWidget);
+    });
+
+    testWidgets(
+      'deletes Facebook Messenger channel via DELETE /api/channels/{id}/',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'DELETE' && options.path == '/channels/10/') {
+            return _json('', 204);
+          }
+          return _json(_channelsPage([_disconnectedFacebookChannel]), 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        expect(find.text('Gadiat - جاديات'), findsOneWidget);
+        expect(find.text('Delete'), findsOneWidget);
+
+        await tester.tap(find.text('Delete'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Delete Gadiat - جاديات?'), findsOneWidget);
+        await tester.tap(find.text('Delete').last);
+        await tester.pumpAndSettle();
+
+        expect(
+          adapter.received.any(
+            (r) => r.method == 'DELETE' && r.path == '/channels/10/',
+          ),
+          isTrue,
+        );
+        expect(find.text('Gadiat - جاديات removed.'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'multiple WhatsApp accounts: deleting one disconnected account only removes that specific account',
+      (tester) async {
+        late final _StubAdapter adapter;
+        bool deleted6 = false;
+        adapter = _StubAdapter((options) {
+          if (options.method == 'DELETE' && options.path == '/channels/6/') {
+            deleted6 = true;
+            return _json('', 204);
+          }
+          if (options.method == 'GET' && options.path == '/channels/') {
+            final second = _whatsappChannel2.replaceFirst(
+              '"status": "CONNECTED"',
+              '"status": "DISCONNECTED"',
+            );
+            return _json(
+              _channelsPage([
+                _whatsappChannel, // Connected #5
+                if (!deleted6) second, // Disconnected #6
+              ]),
+              200,
+            );
+          }
+          return _json('{}', 404);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        expect(find.text('Support line'), findsOneWidget);
+        expect(find.text('Sales line'), findsOneWidget);
+
+        // First account (#5) is CONNECTED -> Disconnect button
+        expect(find.text('Disconnect'), findsOneWidget);
+        // Second account (#6) is DISCONNECTED -> Delete button
+        expect(find.text('Delete'), findsOneWidget);
+
+        // Tap Delete on second account
+        await tester.tap(find.text('Delete'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Delete Sales line?'), findsOneWidget);
+        await tester.tap(find.text('Delete').last);
+        await tester.pumpAndSettle();
+
+        expect(
+          adapter.received.any(
+            (r) => r.method == 'DELETE' && r.path == '/channels/6/',
+          ),
+          isTrue,
+        );
+        expect(
+          adapter.received.any(
+            (r) => r.method == 'DELETE' && r.path == '/channels/5/',
+          ),
+          isFalse,
+        );
+
+        // Only Sales line was removed; Support line is still connected and visible!
+        expect(find.text('Sales line'), findsNothing);
+        expect(find.text('Support line'), findsOneWidget);
+        expect(find.text('Disconnect'), findsOneWidget);
+      },
+    );
+
+    testWidgets('permission gating: viewer role cannot see Delete button', (
+      tester,
+    ) async {
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter(
+        (_) => _json(_channelsPage([_disconnectedWhatsappChannel]), 200),
+      );
+
+      await _pumpChannelsTab(
+        tester,
+        apiClient: client,
+        employee: _viewerEmployee,
+      );
+
+      expect(find.text('Support line'), findsOneWidget);
+      expect(find.text('Delete'), findsNothing);
+      expect(find.text('Disconnect'), findsNothing);
+    });
+
+    testWidgets(
+      'delete confirmation dialog in Arabic RTL on 320px narrow screen has no overflow',
+      (tester) async {
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = _StubAdapter(
+          (_) => _json(_channelsPage([_disconnectedWhatsappChannel]), 200),
+        );
+
+        await _pumpChannelsTab(
+          tester,
+          apiClient: client,
+          locale: const Locale('ar'),
+          size: const Size(320, 800),
+        );
+
+        expect(find.text('حذف'), findsOneWidget);
+        await tester.tap(find.text('حذف'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('حذف Support line؟'), findsOneWidget);
+        expect(
+          find.text(
+            'سيؤدي هذا إلى إزالة الحساب غير المتصل نهائياً من قنواتك المتصلة.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('إلغاء'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 
   group('SettingsScreen — Channels tab: WhatsApp check-status', () {
@@ -769,45 +1193,193 @@ void main() {
   });
 
   group('SettingsScreen — Channels tab: Connect another (Platform Actions)', () {
-    testWidgets('WhatsApp card calls the mobile embedded-signup start endpoint', (
-      tester,
-    ) async {
-      final adapter = _StubAdapter((options) {
-        if (options.method == 'POST' &&
-            options.path.contains('/embedded-signup/mobile/start/')) {
-          return _json(
-            '{"authorization_url": "https://business.facebook.com/wa/signup?x=1"}',
-            200,
-          );
-        }
-        return _json(_channelsPage([_whatsappChannel]), 200);
-      });
-      final client = ApiClient.create(cookieJar: CookieJar());
-      client.raw.httpClientAdapter = adapter;
+    testWidgets(
+      'WhatsApp card "Connect another number" opens selection modal and does NOT call start endpoint before selection',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path.contains('/embedded-signup/mobile/start/')) {
+            return _json(
+              '{"authorization_url": "https://business.facebook.com/wa/signup?x=1"}',
+              200,
+            );
+          }
+          return _json(_channelsPage([_whatsappChannel]), 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
 
-      final fakeLauncher = _FakeUrlLauncher();
-      final previousLauncher = UrlLauncherPlatform.instance;
-      UrlLauncherPlatform.instance = fakeLauncher;
-      addTearDown(() => UrlLauncherPlatform.instance = previousLauncher);
+        await _pumpChannelsTab(tester, apiClient: client);
 
-      await _pumpChannelsTab(tester, apiClient: client);
+        expect(find.text('Connect another number'), findsOneWidget);
+        await tester.tap(find.text('Connect another number'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Connect another number'), findsOneWidget);
-      await tester.tap(find.text('Connect another number'));
-      await tester.pumpAndSettle();
+        // Modal elements are shown
+        expect(find.text('Connect WhatsApp'), findsOneWidget);
+        expect(
+          find.text(
+            "You will finish signing in on Meta's own page. Nothing to copy or paste.",
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.text('I already use this number in WhatsApp Business'),
+          findsOneWidget,
+        );
+        expect(
+          find.text(
+            'Keep using the WhatsApp Business app on your phone exactly as you do now. Messages will appear here as well, and the chat history comes across.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Use my existing number'), findsOneWidget);
+        expect(find.text('I want to set up a new number'), findsOneWidget);
+        expect(
+          find.text(
+            'Add a number that is not on WhatsApp yet, or one you are ready to move over. You will confirm it with a code from Meta.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Set up a new number'), findsOneWidget);
 
-      expect(
-        adapter.received.any(
+        // Before selection, no start call is made
+        expect(
+          adapter.received.any(
+            (r) =>
+                r.method == 'POST' &&
+                r.path ==
+                    '/integrations/whatsapp/embedded-signup/mobile/start/',
+          ),
+          isFalse,
+        );
+
+        // Dismiss modal
+        final navigator = Navigator.of(
+          tester.element(find.text('Connect WhatsApp')),
+        );
+        navigator.pop();
+        await tester.pumpAndSettle();
+
+        // Still no call made
+        expect(
+          adapter.received.any(
+            (r) =>
+                r.method == 'POST' &&
+                r.path ==
+                    '/integrations/whatsapp/embedded-signup/mobile/start/',
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    testWidgets(
+      'WhatsApp card "Connect another number" -> "Use my existing number" calls start with coexistence mode',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path.contains('/embedded-signup/mobile/start/')) {
+            return _json(
+              '{"authorization_url": "https://business.facebook.com/wa/signup?x=coexistence"}',
+              200,
+            );
+          }
+          return _json(_channelsPage([_whatsappChannel]), 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final fakeLauncher = _FakeUrlLauncher();
+        final previousLauncher = UrlLauncherPlatform.instance;
+        UrlLauncherPlatform.instance = fakeLauncher;
+        addTearDown(() => UrlLauncherPlatform.instance = previousLauncher);
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        await tester.tap(find.text('Connect another number'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Use my existing number'));
+        await tester.pumpAndSettle();
+
+        final request = adapter.received.firstWhere(
           (r) =>
               r.method == 'POST' &&
               r.path == '/integrations/whatsapp/embedded-signup/mobile/start/',
-        ),
-        isTrue,
-      );
-      expect(fakeLauncher.launchedUrls, [
-        'https://business.facebook.com/wa/signup?x=1',
-      ]);
-    });
+        );
+        expect(request.data, {'mode': 'coexistence'});
+        expect(fakeLauncher.launchedUrls, [
+          'https://business.facebook.com/wa/signup?x=coexistence',
+        ]);
+      },
+    );
+
+    testWidgets(
+      'WhatsApp card "Connect another number" -> "Set up a new number" calls start with cloud_api mode',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path.contains('/embedded-signup/mobile/start/')) {
+            return _json(
+              '{"authorization_url": "https://business.facebook.com/wa/signup?x=cloud"}',
+              200,
+            );
+          }
+          return _json(_channelsPage([_whatsappChannel]), 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final fakeLauncher = _FakeUrlLauncher();
+        final previousLauncher = UrlLauncherPlatform.instance;
+        UrlLauncherPlatform.instance = fakeLauncher;
+        addTearDown(() => UrlLauncherPlatform.instance = previousLauncher);
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        await tester.tap(find.text('Connect another number'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Set up a new number'));
+        await tester.pumpAndSettle();
+
+        final request = adapter.received.firstWhere(
+          (r) =>
+              r.method == 'POST' &&
+              r.path == '/integrations/whatsapp/embedded-signup/mobile/start/',
+        );
+        expect(request.data, {'mode': 'cloud_api'});
+        expect(fakeLauncher.launchedUrls, [
+          'https://business.facebook.com/wa/signup?x=cloud',
+        ]);
+      },
+    );
+
+    testWidgets(
+      'WhatsApp card "Connect another number" shows API error correctly after option selected',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path.contains('/embedded-signup/mobile/start/')) {
+            return _json('{"detail": "Meta configuration error."}', 400);
+          }
+          return _json(_channelsPage([_whatsappChannel]), 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        await tester.tap(find.text('Connect another number'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Use my existing number'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Meta configuration error.'), findsOneWidget);
+      },
+    );
 
     testWidgets('Instagram card calls the Instagram authorize endpoint', (
       tester,
@@ -1197,6 +1769,8 @@ void main() {
       // Platform action is still tappable and triggers OAuth flow
       expect(find.text('Connect another number'), findsOneWidget);
       await tester.tap(find.text('Connect another number'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Use my existing number'));
       await tester.pumpAndSettle();
 
       expect(
@@ -2194,6 +2768,37 @@ void main() {
           size: const Size(320, 1600),
         );
 
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'WhatsApp connect mode selection modal on 320px narrow screen in Arabic RTL has no overflow',
+      (tester) async {
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = _StubAdapter(
+          (_) => _json(_channelsPage([_whatsappChannel]), 200),
+        );
+
+        await _pumpChannelsTab(
+          tester,
+          apiClient: client,
+          locale: const Locale('ar'),
+          size: const Size(320, 800),
+        );
+
+        expect(find.text('ربط رقم آخر'), findsOneWidget);
+        await tester.tap(find.text('ربط رقم آخر'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('ربط WhatsApp'), findsOneWidget);
+        expect(
+          find.text('أستخدم هذا الرقم بالفعل في WhatsApp Business'),
+          findsOneWidget,
+        );
+        expect(find.text('استخدام رقمي الحالي'), findsOneWidget);
+        expect(find.text('أريد إعداد رقم جديد'), findsOneWidget);
+        expect(find.text('إعداد رقم جديد'), findsOneWidget);
         expect(tester.takeException(), isNull);
       },
     );

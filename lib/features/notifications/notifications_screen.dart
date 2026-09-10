@@ -11,6 +11,7 @@ import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
+import '../../core/widgets/user_account_menu.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'notifications_controller.dart';
 
@@ -81,6 +82,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 foregroundColor: ScenarioColors.primary,
               ),
             ),
+          const UserAccountMenuButton(),
           const SizedBox(width: Space.xs),
         ],
       ),

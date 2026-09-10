@@ -118,8 +118,8 @@ void main() {
       // Verify localized role in footer
       expect(find.text('Admin'), findsOneWidget);
 
-      // Verify LTR chevron points right
-      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      // Verify chevron is removed from footer
+      expect(find.byIcon(Icons.chevron_right), findsNothing);
       expect(find.byIcon(Icons.chevron_left), findsNothing);
     });
 
@@ -167,8 +167,8 @@ void main() {
       // Verify unread badge count
       expect(find.text('7'), findsOneWidget);
 
-      // Verify RTL chevron points left
-      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+      // Verify chevron is removed from footer in RTL as well
+      expect(find.byIcon(Icons.chevron_left), findsNothing);
       expect(find.byIcon(Icons.chevron_right), findsNothing);
     });
 
@@ -255,5 +255,92 @@ void main() {
       // Verify Team Leader role is localized
       expect(find.text('قائد فريق'), findsOneWidget);
     });
+
+    testWidgets(
+      'tapping profile footer opens user profile sheet and does not navigate to settings',
+      (tester) async {
+        final admin = _testEmployee(
+          role: 'ADMIN',
+          permissions: const {
+            Perm.employeeView,
+            Perm.teamView,
+            Perm.customerView,
+            Perm.analyticsView,
+            Perm.channelView,
+          },
+        );
+
+        await tester.pumpWidget(_buildDrawerHarness(employee: admin));
+        await tester.pumpAndSettle();
+
+        // Open drawer
+        final scaffoldState = tester.state<ScaffoldState>(
+          find.byType(Scaffold),
+        );
+        scaffoldState.openDrawer();
+        await tester.pumpAndSettle();
+
+        // Tap the profile section at the bottom of the drawer
+        final profileFooter = find.byKey(const Key('drawer_profile_footer'));
+        expect(profileFooter, findsOneWidget);
+        await tester.tap(profileFooter);
+        await tester.pumpAndSettle();
+
+        // Must NOT navigate to Settings
+        expect(find.text('Settings View'), findsNothing);
+        expect(find.text('Inbox View'), findsOneWidget);
+
+        // Shows user profile sheet with authenticated details
+        expect(find.text('test@example.com'), findsOneWidget);
+        expect(find.text('Test Employee'), findsAtLeast(1));
+        expect(find.text('Admin'), findsAtLeast(1));
+        expect(find.text('Scenario Tech'), findsNWidgets(2));
+        expect(find.text('Online'), findsOneWidget);
+
+        // Close profile sheet via close button
+        final closeBtn = find.byIcon(Icons.close);
+        expect(closeBtn, findsOneWidget);
+        await tester.tap(closeBtn);
+        await tester.pumpAndSettle();
+
+        // Profile sheet is dismissed
+        expect(find.text('test@example.com'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'tapping dedicated Settings drawer item still navigates to Settings',
+      (tester) async {
+        final admin = _testEmployee(
+          role: 'ADMIN',
+          permissions: const {
+            Perm.employeeView,
+            Perm.teamView,
+            Perm.customerView,
+            Perm.analyticsView,
+            Perm.channelView,
+          },
+        );
+
+        await tester.pumpWidget(_buildDrawerHarness(employee: admin));
+        await tester.pumpAndSettle();
+
+        // Open drawer
+        final scaffoldState = tester.state<ScaffoldState>(
+          find.byType(Scaffold),
+        );
+        scaffoldState.openDrawer();
+        await tester.pumpAndSettle();
+
+        // Tap dedicated Settings drawer section tile
+        final settingsTile = find.text('Settings');
+        expect(settingsTile, findsOneWidget);
+        await tester.tap(settingsTile);
+        await tester.pumpAndSettle();
+
+        // Successfully navigated to Settings
+        expect(find.text('Settings View'), findsOneWidget);
+      },
+    );
   });
 }

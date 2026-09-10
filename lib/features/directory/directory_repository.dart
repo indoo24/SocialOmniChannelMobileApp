@@ -224,6 +224,15 @@ class DirectoryRepository {
     return ChannelTestResult.fromJson(data);
   }
 
+  /// Permanently removes a disconnected channel.
+  ///
+  /// Requires `channel.manage`. The channel must already be disconnected
+  /// (`status == 'DISCONNECTED'`). Conversations are preserved server-side
+  /// (erased if empty, archived otherwise).
+  Future<void> deleteChannel(int channelId) async {
+    await _api.delete<dynamic>('/channels/$channelId/');
+  }
+
   // ------------------------------------------------------- integrations
   // Disconnect destroys the stored credential; the connection row and every
   // conversation it carried survive, deactivated. `channel.manage` server-side
@@ -300,9 +309,16 @@ class DirectoryRepository {
   /// rather than opening a popup — the mobile-shaped counterpart of the
   /// web popup flow. Returns the URL to open in a browser; Meta redirects
   /// back to `/integrations/meta/callback/` server-side.
-  Future<ChannelAuthorizationUrl> startWhatsAppEmbeddedSignupMobile() async {
+  ///
+  /// [mode] determines the onboarding flow: `cloud_api` (registering a new
+  /// number or moving one to Cloud API) or `coexistence` (keeping the existing
+  /// WhatsApp Business mobile app and transferring history).
+  Future<ChannelAuthorizationUrl> startWhatsAppEmbeddedSignupMobile({
+    String mode = 'cloud_api',
+  }) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/integrations/whatsapp/embedded-signup/mobile/start/',
+      body: {'mode': mode},
     );
     return ChannelAuthorizationUrl.fromJson(data);
   }
@@ -359,8 +375,22 @@ class DirectoryRepository {
     return JsonSafe.parseList(data, ConversationCategory.fromJson);
   }
 
-  Future<DashboardSummary> dashboard() async {
-    final data = await _api.get<Map<String, dynamic>>('/dashboard/');
+  Future<DashboardSummary> dashboard({
+    String? preset,
+    String? from,
+    String? to,
+  }) async {
+    final query = <String, dynamic>{};
+    if (from != null && to != null) {
+      query['from'] = from;
+      query['to'] = to;
+    } else if (preset != null && preset.isNotEmpty) {
+      query['preset'] = preset;
+    }
+    final data = await _api.get<Map<String, dynamic>>(
+      '/dashboard/',
+      query: query.isEmpty ? null : query,
+    );
     return DashboardSummary.fromJson(data);
   }
 

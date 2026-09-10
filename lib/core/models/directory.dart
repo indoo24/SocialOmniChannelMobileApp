@@ -381,7 +381,9 @@ class ConversationMetrics {
       newCount: at('new'),
       unassigned: at('unassigned'),
       waiting: at('waiting'),
-      resolvedToday: at('resolved_today'),
+      resolvedToday: json['resolved'] != null
+          ? at('resolved')
+          : at('resolved_today'),
       unread: at('unread'),
       mineOpen: at('mine_open'),
     );
@@ -466,16 +468,46 @@ class TeamMetrics {
   );
 }
 
+class DashboardPeriod {
+  const DashboardPeriod({
+    required this.preset,
+    required this.startAt,
+    required this.endAt,
+    required this.timezone,
+    required this.from,
+    required this.to,
+  });
+
+  final String preset;
+  final String startAt;
+  final String endAt;
+  final String timezone;
+  final String from;
+  final String to;
+
+  factory DashboardPeriod.fromJson(Map<String, dynamic> json) =>
+      DashboardPeriod(
+        preset: JsonSafe.asString(json['preset']),
+        startAt: JsonSafe.asString(json['start_at']),
+        endAt: JsonSafe.asString(json['end_at']),
+        timezone: JsonSafe.asString(json['timezone']),
+        from: JsonSafe.asString(json['from']),
+        to: JsonSafe.asString(json['to']),
+      );
+}
+
 class DashboardSummary {
   const DashboardSummary({
     required this.conversations,
     required this.intelligence,
+    this.period,
     this.team,
     this.recentConversations = const [],
   });
 
   final ConversationMetrics conversations;
   final IntelligenceMetrics intelligence;
+  final DashboardPeriod? period;
 
   /// Organization-wide staffing. **Null** when the caller lacks
   /// `analytics.view` — the backend omits the block rather than zeroing it, so
@@ -493,6 +525,9 @@ class DashboardSummary {
         intelligence: IntelligenceMetrics.fromJson(
           JsonSafe.asMap(json['intelligence']),
         ),
+        period: json['period'] is Map
+            ? DashboardPeriod.fromJson(JsonSafe.asMap(json['period']))
+            : null,
         team: json['team'] is Map
             ? TeamMetrics.fromJson(JsonSafe.asMap(json['team']))
             : null,
@@ -524,6 +559,102 @@ class ChannelVolume {
   );
 }
 
+/// An individual working interval within an employee's schedule.
+///
+/// Matches `WorkingHoursWindow` in the OpenAPI schema.
+/// `weekday` is 0-indexed where 0 = Monday, 6 = Sunday.
+class WorkingHoursWindow {
+  const WorkingHoursWindow({
+    required this.weekday,
+    required this.startTime,
+    required this.endTime,
+    this.crossesMidnight = false,
+  });
+
+  final int weekday;
+  final String startTime;
+  final String endTime;
+  final bool crossesMidnight;
+
+  factory WorkingHoursWindow.fromJson(Map<String, dynamic> json) =>
+      WorkingHoursWindow(
+        weekday: JsonSafe.asInt(json['weekday']),
+        startTime: JsonSafe.asString(json['start_time']),
+        endTime: JsonSafe.asString(json['end_time']),
+        crossesMidnight: JsonSafe.asBool(json['crosses_midnight']),
+      );
+
+  Map<String, dynamic> toJson() => {
+    'weekday': weekday,
+    'start_time': startTime,
+    'end_time': endTime,
+    'crosses_midnight': crossesMidnight,
+  };
+
+  int get startMinutes {
+    final parts = startTime.split(':');
+    if (parts.length < 2) return 0;
+    return (int.tryParse(parts[0]) ?? 0) * 60 + (int.tryParse(parts[1]) ?? 0);
+  }
+
+  int get endMinutes {
+    final parts = endTime.split(':');
+    if (parts.length < 2) return 0;
+    return (int.tryParse(parts[0]) ?? 0) * 60 + (int.tryParse(parts[1]) ?? 0);
+  }
+
+  /// Whether this window overlaps with [other] on the same weekday.
+  bool overlapsWith(WorkingHoursWindow other) {
+    if (weekday != other.weekday) return false;
+    return startMinutes < other.endMinutes && endMinutes > other.startMinutes;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WorkingHoursWindow &&
+          runtimeType == other.runtimeType &&
+          weekday == other.weekday &&
+          startTime == other.startTime &&
+          endTime == other.endTime &&
+          crossesMidnight == other.crossesMidnight;
+
+  @override
+  int get hashCode => Object.hash(weekday, startTime, endTime, crossesMidnight);
+}
+
+/// Brief representation of the schedule an employee follows.
+///
+/// Matches `WorkScheduleBrief` in the OpenAPI schema.
+class WorkScheduleBrief {
+  const WorkScheduleBrief({
+    required this.id,
+    required this.name,
+    required this.isPersonal,
+    required this.timezone,
+  });
+
+  final int id;
+  final String name;
+  final bool isPersonal;
+  final String timezone;
+
+  factory WorkScheduleBrief.fromJson(Map<String, dynamic> json) =>
+      WorkScheduleBrief(
+        id: JsonSafe.asInt(json['id']),
+        name: JsonSafe.asString(json['name']),
+        isPersonal: JsonSafe.asBool(json['is_personal']),
+        timezone: JsonSafe.asString(json['timezone']),
+      );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'is_personal': isPersonal,
+    'timezone': timezone,
+  };
+}
+
 /// A directory employee row. Richer than [EmployeeBrief], which only carries
 /// what an assignment chip needs.
 class DirectoryEmployee {
@@ -542,6 +673,11 @@ class DirectoryEmployee {
     this.title = '',
     this.phone = '',
     this.maxOpenChats,
+    this.effectiveCapacity,
+    this.workingHours = const [],
+    this.workSchedule,
+    this.routingBlocker = '',
+    this.isRoutingReady = true,
   });
 
   final int id;
@@ -565,30 +701,63 @@ class DirectoryEmployee {
   /// unusual) capacity value.
   final int? maxOpenChats;
 
-  factory DirectoryEmployee.fromJson(Map<String, dynamic> json) =>
-      DirectoryEmployee(
-        id: JsonSafe.asInt(json['id'], fallback: -1),
-        fullName: JsonSafe.asString(json['full_name']),
-        initials: JsonSafe.asString(json['initials']),
-        email: JsonSafe.asString(json['email']),
-        role: JsonSafe.asString(json['role'], fallback: 'AGENT'),
-        roleDisplay: JsonSafe.asString(json['role_display']),
-        availability: JsonSafe.asString(
-          json['availability'],
-          fallback: 'OFFLINE',
-        ),
-        isActive: JsonSafe.asBool(json['is_active'], fallback: true),
-        teamNames: JsonSafe.asObjectList(json['teams'])
-            .map((t) => t is Map ? JsonSafe.asString(t['name']) : '')
-            .where((n) => n.isNotEmpty)
-            .toList(),
-        teamIds: JsonSafe.asObjectList(json['teams'])
-            .map((t) => t is Map ? JsonSafe.asIntOrNull(t['id']) : null)
-            .whereType<int>()
-            .toList(),
-        avatarUrl: JsonSafe.asString(json['avatar_url']),
-        title: JsonSafe.asString(json['title']),
-        phone: JsonSafe.asString(json['phone']),
-        maxOpenChats: JsonSafe.asIntOrNull(json['max_open_chats']),
-      );
+  /// Capacity actually applied by routing: override, else org default.
+  final int? effectiveCapacity;
+
+  /// Active working intervals by weekday (0 = Monday .. 6 = Sunday).
+  final List<WorkingHoursWindow> workingHours;
+
+  /// Schedule metadata including timezone if configured.
+  final WorkScheduleBrief? workSchedule;
+
+  final String routingBlocker;
+  final bool isRoutingReady;
+
+  factory DirectoryEmployee.fromJson(
+    Map<String, dynamic> json,
+  ) => DirectoryEmployee(
+    id: JsonSafe.asInt(json['id'], fallback: -1),
+    fullName: JsonSafe.asString(json['full_name']),
+    initials: JsonSafe.asString(json['initials']),
+    email: JsonSafe.asString(json['email']),
+    role: JsonSafe.asString(json['role'], fallback: 'AGENT'),
+    roleDisplay: JsonSafe.asString(json['role_display']),
+    availability: JsonSafe.asString(json['availability'], fallback: 'OFFLINE'),
+    isActive: JsonSafe.asBool(json['is_active'], fallback: true),
+    teamNames: JsonSafe.asObjectList(json['teams'])
+        .map((t) => t is Map ? JsonSafe.asString(t['name']) : '')
+        .where((n) => n.isNotEmpty)
+        .toList(),
+    teamIds: JsonSafe.asObjectList(json['teams'])
+        .map((t) => t is Map ? JsonSafe.asIntOrNull(t['id']) : null)
+        .whereType<int>()
+        .toList(),
+    avatarUrl: JsonSafe.asString(json['avatar_url']),
+    title: JsonSafe.asString(json['title']),
+    phone: JsonSafe.asString(json['phone']),
+    maxOpenChats: JsonSafe.asIntOrNull(json['max_open_chats']),
+    effectiveCapacity: JsonSafe.asIntOrNull(json['effective_capacity']),
+    workingHours: JsonSafe.asObjectList(json['working_hours'])
+        .map((item) {
+          if (item is Map<String, dynamic>) {
+            return WorkingHoursWindow.fromJson(item);
+          } else if (item is Map) {
+            return WorkingHoursWindow.fromJson(JsonSafe.asMap(item));
+          }
+          return null;
+        })
+        .whereType<WorkingHoursWindow>()
+        .toList(),
+    workSchedule: json['work_schedule'] is Map<String, dynamic>
+        ? WorkScheduleBrief.fromJson(
+            json['work_schedule'] as Map<String, dynamic>,
+          )
+        : (json['work_schedule'] is Map
+              ? WorkScheduleBrief.fromJson(
+                  JsonSafe.asMap(json['work_schedule']),
+                )
+              : null),
+    routingBlocker: JsonSafe.asString(json['routing_blocker']),
+    isRoutingReady: JsonSafe.asBool(json['is_routing_ready'], fallback: true),
+  );
 }

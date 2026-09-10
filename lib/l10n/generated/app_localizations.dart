@@ -464,6 +464,30 @@ abstract class AppLocalizations {
   /// **'{channel} disconnected.'**
   String channelDisconnectedSnackbar(String channel);
 
+  /// No description provided for @deleteChannelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteChannelAction;
+
+  /// No description provided for @deleteChannelDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {channel}?'**
+  String deleteChannelDialogTitle(String channel);
+
+  /// No description provided for @deleteChannelDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently remove the disconnected account from your connected channels.'**
+  String get deleteChannelDialogBody;
+
+  /// No description provided for @channelDeletedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{channel} removed.'**
+  String channelDeletedSnackbar(String channel);
+
   /// No description provided for @openingBrowserMessage.
   ///
   /// In en, this message translates to:
@@ -968,6 +992,24 @@ abstract class AppLocalizations {
   /// **'Clear all'**
   String get clearAll;
 
+  /// No description provided for @allFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allFilter;
+
+  /// No description provided for @mineFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Mine'**
+  String get mineFilter;
+
+  /// No description provided for @openFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get openFilter;
+
   /// No description provided for @assignmentSection.
   ///
   /// In en, this message translates to:
@@ -985,6 +1027,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unassigned'**
   String get unassignedFilter;
+
+  /// No description provided for @unreadFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get unreadFilter;
 
   /// No description provided for @statusSection.
   ///
@@ -1135,6 +1183,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unassigned'**
   String get unassignedMessage;
+
+  /// No description provided for @assignAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign'**
+  String get assignAction;
+
+  /// No description provided for @assignSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign'**
+  String get assignSheetTitle;
+
+  /// No description provided for @releaseToQueueAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Release to the queue'**
+  String get releaseToQueueAction;
+
+  /// No description provided for @releasedToQueueMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Released to the queue'**
+  String get releasedToQueueMessage;
+
+  /// No description provided for @assignSearchEmployeeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search employee…'**
+  String get assignSearchEmployeeHint;
+
+  /// No description provided for @assignedToEmployeeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned to {name}'**
+  String assignedToEmployeeMessage(String name);
+
+  /// No description provided for @assignNoEmployeesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No employees found'**
+  String get assignNoEmployeesFound;
+
+  /// No description provided for @assignCurrentAssigneeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current assignee'**
+  String get assignCurrentAssigneeLabel;
 
   /// No description provided for @statusUpdatedMessage.
   ///
@@ -3146,6 +3242,113 @@ abstract class AppLocalizations {
   /// **'An employee'**
   String get anEmployeeLabel;
 
+  /// No description provided for @intelligenceDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated from conversation text by {version}. Treat this as a suggestion — verify before acting.'**
+  String intelligenceDisclaimer(String version);
+
+  /// No description provided for @intelligenceTheAnalyzer.
+  ///
+  /// In en, this message translates to:
+  /// **'the analyzer'**
+  String get intelligenceTheAnalyzer;
+
+  /// No description provided for @showSignalsBehindScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the {count} signals behind this score'**
+  String showSignalsBehindScore(int count);
+
+  /// No description provided for @hideSignalsBehindScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide the {count} signals behind this score'**
+  String hideSignalsBehindScore(int count);
+
+  /// No description provided for @scoreOverriddenDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Set to {score} by {name} on {when}. The analyzer scores this {autoScore}.'**
+  String scoreOverriddenDetail(
+    int score,
+    String name,
+    String when,
+    int autoScore,
+  );
+
+  /// No description provided for @autoScoreAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get autoScoreAction;
+
+  /// No description provided for @metaScoreAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Meta'**
+  String get metaScoreAction;
+
+  /// No description provided for @returnToAutoScoreTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Return to the analyzer\'s score of {score}'**
+  String returnToAutoScoreTooltip(int score);
+
+  /// No description provided for @sendStageToMetaTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Report stage conversion to Meta'**
+  String get sendStageToMetaTooltip;
+
+  /// No description provided for @purchaseStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase status'**
+  String get purchaseStatusLabel;
+
+  /// No description provided for @confidenceFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confidence'**
+  String get confidenceFieldLabel;
+
+  /// No description provided for @sentimentFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sentiment'**
+  String get sentimentFieldLabel;
+
+  /// No description provided for @intentFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Intent'**
+  String get intentFieldLabel;
+
+  /// No description provided for @urgencyFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Urgency'**
+  String get urgencyFieldLabel;
+
+  /// No description provided for @noneValue.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get noneValue;
+
+  /// No description provided for @noBuyingSignalsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No buying signals detected yet'**
+  String get noBuyingSignalsMessage;
+
+  /// No description provided for @recommendedNextActionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended next action'**
+  String get recommendedNextActionTitle;
+
   /// No description provided for @templatesTitle.
   ///
   /// In en, this message translates to:
@@ -3595,6 +3798,330 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save'**
   String get saveAction;
+
+  /// Section title for employee automatic allocation
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic allocation'**
+  String get automaticAllocationTitle;
+
+  /// Description explaining how automatic allocation settings are used
+  ///
+  /// In en, this message translates to:
+  /// **'Used by the routing engine to decide whether this person can receive a new conversation right now.'**
+  String get automaticAllocationDescription;
+
+  /// Label for the chat capacity input field
+  ///
+  /// In en, this message translates to:
+  /// **'Chat capacity'**
+  String get chatCapacityFieldTitle;
+
+  /// Placeholder text when chat capacity uses the organization default
+  ///
+  /// In en, this message translates to:
+  /// **'Organization default'**
+  String get chatCapacityOrgDefaultPlaceholder;
+
+  /// Explanation text below the chat capacity field
+  ///
+  /// In en, this message translates to:
+  /// **'How many open conversations this person may hold at once. Leave empty to follow the organization default, so a later change to that default still reaches them. Zero means they receive nothing.'**
+  String get chatCapacityFieldDescription;
+
+  /// Error when chat capacity is outside the allowed 0-200 range
+  ///
+  /// In en, this message translates to:
+  /// **'Capacity must be between 0 and 200.'**
+  String get chatCapacityInvalidRangeError;
+
+  /// Heading for the working hours section
+  ///
+  /// In en, this message translates to:
+  /// **'Working hours'**
+  String get workingHoursTitle;
+
+  /// Helper note showing the timezone for working hours
+  ///
+  /// In en, this message translates to:
+  /// **'Working hours are interpreted in: {timezone}'**
+  String workingHoursTimezoneHelper(String timezone);
+
+  /// Status text indicating an employee is not working on a day
+  ///
+  /// In en, this message translates to:
+  /// **'Not working'**
+  String get dayNotWorking;
+
+  /// Warning shown when no working hours are configured for an employee
+  ///
+  /// In en, this message translates to:
+  /// **'No hours set — this employee will not receive automatically assigned conversations. That is deliberate: unset never means always available.'**
+  String get noWorkingHoursWarning;
+
+  /// Monday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Monday'**
+  String get weekdayMonday;
+
+  /// Tuesday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Tuesday'**
+  String get weekdayTuesday;
+
+  /// Wednesday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Wednesday'**
+  String get weekdayWednesday;
+
+  /// Thursday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Thursday'**
+  String get weekdayThursday;
+
+  /// Friday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Friday'**
+  String get weekdayFriday;
+
+  /// Saturday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Saturday'**
+  String get weekdaySaturday;
+
+  /// Sunday weekday name
+  ///
+  /// In en, this message translates to:
+  /// **'Sunday'**
+  String get weekdaySunday;
+
+  /// Title for working hours interval editor
+  ///
+  /// In en, this message translates to:
+  /// **'Edit working hours'**
+  String get editWorkingHoursTitle;
+
+  /// Button to add a working interval
+  ///
+  /// In en, this message translates to:
+  /// **'Add interval'**
+  String get addIntervalAction;
+
+  /// Label for interval start time
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get startTimeLabel;
+
+  /// Label for interval end time
+  ///
+  /// In en, this message translates to:
+  /// **'End'**
+  String get endTimeLabel;
+
+  /// Validation error when interval start time is not before end time
+  ///
+  /// In en, this message translates to:
+  /// **'Start time must be before end time'**
+  String get invalidIntervalStartBeforeEnd;
+
+  /// Validation error when intervals on the same day overlap
+  ///
+  /// In en, this message translates to:
+  /// **'Intervals cannot overlap'**
+  String get overlappingIntervalsError;
+
+  /// Validation error for invalid time format
+  ///
+  /// In en, this message translates to:
+  /// **'Time must be in HH:MM format'**
+  String get invalidTimeFormatError;
+
+  /// Action to clear all hours for a weekday
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all hours'**
+  String get clearDayHoursAction;
+
+  /// Preset date filter for today
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get dateFilterToday;
+
+  /// Preset date filter for last 7 days
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get dateFilterLast7Days;
+
+  /// Preset date filter for last 30 days
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get dateFilterLast30Days;
+
+  /// Preset date filter for this month
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get dateFilterThisMonth;
+
+  /// Preset date filter for last month
+  ///
+  /// In en, this message translates to:
+  /// **'Last month'**
+  String get dateFilterLastMonth;
+
+  /// Custom date range filter option
+  ///
+  /// In en, this message translates to:
+  /// **'Custom range'**
+  String get dateFilterCustomRange;
+
+  /// Label for custom date range start date
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get dateFilterFrom;
+
+  /// Label for custom date range end date
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get dateFilterTo;
+
+  /// Button to apply custom date filter
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get dateFilterApply;
+
+  /// Error when from date is after to date
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid date range'**
+  String get dateFilterInvalidRange;
+
+  /// Error when custom date range exceeds 366 days
+  ///
+  /// In en, this message translates to:
+  /// **'Date range cannot exceed 366 days'**
+  String get dateFilterRangeExceedsLimit;
+
+  /// Placeholder format for date input
+  ///
+  /// In en, this message translates to:
+  /// **'mm/dd/yyyy'**
+  String get dateFilterPlaceholder;
+
+  /// Title for the date filter sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Date range'**
+  String get dateFilterTitle;
+
+  /// Subtitle for Connect WhatsApp modal
+  ///
+  /// In en, this message translates to:
+  /// **'You will finish signing in on Meta\'s own page. Nothing to copy or paste.'**
+  String get connectWhatsAppSubtitle;
+
+  /// Title for existing WhatsApp number option
+  ///
+  /// In en, this message translates to:
+  /// **'I already use this number in WhatsApp Business'**
+  String get whatsappOptionExistingTitle;
+
+  /// Description for existing WhatsApp number option
+  ///
+  /// In en, this message translates to:
+  /// **'Keep using the WhatsApp Business app on your phone exactly as you do now. Messages will appear here as well, and the chat history comes across.'**
+  String get whatsappOptionExistingDesc;
+
+  /// Button text for existing WhatsApp number option
+  ///
+  /// In en, this message translates to:
+  /// **'Use my existing number'**
+  String get whatsappOptionExistingButton;
+
+  /// Title for new WhatsApp number option
+  ///
+  /// In en, this message translates to:
+  /// **'I want to set up a new number'**
+  String get whatsappOptionNewTitle;
+
+  /// Description for new WhatsApp number option
+  ///
+  /// In en, this message translates to:
+  /// **'Add a number that is not on WhatsApp yet, or one you are ready to move over. You will confirm it with a code from Meta.'**
+  String get whatsappOptionNewDesc;
+
+  /// Button text for new WhatsApp number option
+  ///
+  /// In en, this message translates to:
+  /// **'Set up a new number'**
+  String get whatsappOptionNewButton;
+
+  /// Label for selecting all accounts in the platform account filter
+  ///
+  /// In en, this message translates to:
+  /// **'All accounts'**
+  String get allAccountsFilter;
+
+  /// Accessibility label for platform account filter button
+  ///
+  /// In en, this message translates to:
+  /// **'{provider} account'**
+  String accountFilterFor(String provider);
+
+  /// Section title in user menu for setting availability
+  ///
+  /// In en, this message translates to:
+  /// **'Set availability'**
+  String get setAvailabilityTitle;
+
+  /// Snackbar notification after changing availability
+  ///
+  /// In en, this message translates to:
+  /// **'You are now {status}.'**
+  String availabilityChanged(String status);
+
+  /// Snackbar notification when changing availability fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update availability'**
+  String get availabilityFailed;
+
+  /// Tooltip for user account menu button
+  ///
+  /// In en, this message translates to:
+  /// **'User account'**
+  String get userAccountMenuTooltip;
+
+  /// Tooltip for unresolved conversation checkmark button
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve conversation'**
+  String get resolveConversationTooltip;
+
+  /// Tooltip for resolved conversation double-check button
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation resolved'**
+  String get conversationResolvedTooltip;
+
+  /// Snackbar notification when updating conversation status fails
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update status. Please try again.'**
+  String get statusUpdateFailedMessage;
 }
 
 class _AppLocalizationsDelegate

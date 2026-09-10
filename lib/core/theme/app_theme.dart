@@ -71,10 +71,10 @@ class AppTheme {
       brightness: brightness,
       colorScheme: scheme,
       scaffoldBackgroundColor: background,
-      // Inter is the web client's face. Falling back to the platform default
-      // rather than bundling a 400KB font for a first release; the hierarchy
-      // below is what actually carries the visual identity.
-      fontFamily: 'Inter',
+      // Cairo, bundled under assets/fonts/ (Regular/Medium/SemiBold/Bold),
+      // renders both Arabic and Latin script from one face — the app's
+      // typography hierarchy lives in the sizes/weights below, not here.
+      fontFamily: 'Cairo',
       fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'system-ui'],
       textTheme: _textTheme(onSurface, mutedForeground),
       appBarTheme: AppBarTheme(
