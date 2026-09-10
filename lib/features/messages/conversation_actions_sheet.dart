@@ -22,6 +22,7 @@ import '../authentication/auth_controller.dart';
 import '../conversations/customer_conversation_group_sheet.dart';
 import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
+import 'assign_conversation_sheet.dart';
 import 'conversation_controller.dart';
 import 'conversation_history_sheet.dart';
 import 'conversion_sheet.dart';
@@ -151,6 +152,15 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
         conversation != null &&
         employee != null &&
         conversation.isOwnedBy(employee.id);
+
+    /// Who may hand this thread back to the queue.
+    ///
+    /// Mirrors the endpoint's own split: releasing what you already hold
+    /// needs only `assign_self`, while taking a thread off somebody else
+    /// needs `assign_any`. Either way there has to be an assignee to remove.
+    final canRelease =
+        conversation?.assignedTo != null &&
+        (canAssignAny || (canAssignSelf && isMine));
 
     final customerId = conversation?.customer.id;
     final intelAsync = ref.watch(
@@ -426,17 +436,61 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                         ),
                 ),
 
-              if (canAssignAny && conversation?.assignedTo != null)
+              // Manual assignment to a specific employee, plus release —
+              // `conversation.assign_any` is the capability Swagger names for
+              // "moving anyone else's work". The picker itself lives in
+              // assign_conversation_sheet.dart.
+              if (canAssignAny)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.people_alt_outlined),
+                  title: Text(context.l10n.assignAction),
+                  subtitle: Text(
+                    conversation?.assignedTo?.fullName ??
+                        context.l10n.unassignedBadge,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  enabled: !_busy,
+                  onTap: _busy
+                      ? null
+                      : () => showAssignConversationSheet(
+                          context,
+                          conversationId: widget.conversationId,
+                          conversation: conversation,
+                        ),
+                ),
+
+              // Releasing back to the queue. The endpoint splits this across
+              // both capabilities, in its own words: "Claiming for yourself,
+              // or *releasing what you already hold*, needs
+              // `conversation.assign_self`. Moving anyone else's work needs
+              // `conversation.assign_any`."
+              //
+              // So an agent may hand back their own thread with nothing more
+              // than assign_self — they just cannot take someone else's off
+              // them. `canRelease` mirrors exactly that split rather than
+              // requiring assign_any for every release.
+              if (canRelease)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.person_remove_alt_1_outlined),
-                  title: Text(context.l10n.unassignAction),
+                  title: Text(context.l10n.releaseToQueueAction),
                   enabled: !_busy,
                   onTap: _busy
                       ? null
                       : () => _run(
-                          () => repository.assign(widget.conversationId),
-                          context.l10n.unassignedMessage,
+                          // `releaseAssignee` sends an explicit
+                          // `assignee_id: null`. Passing no assignee at all
+                          // omits the key, which the backend reads as "leave
+                          // the assignee alone" — so this action used to be a
+                          // silent no-op.
+                          () => repository.assign(
+                            widget.conversationId,
+                            releaseAssignee: true,
+                          ),
+                          context.l10n.releasedToQueueMessage,
                         ),
                 ),
 

@@ -26,6 +26,7 @@ import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
 import '../templates/templates_providers.dart';
 import '../../core/models/template.dart';
+import 'assign_conversation_sheet.dart';
 import 'composer_attachment.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
@@ -205,6 +206,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final canChangeStatus = ref.watch(
       canProvider(Perm.conversationChangeStatus),
     );
+    final canAssignAny = ref.watch(canProvider(Perm.conversationAssignAny));
 
     async.whenData((state) {
       final convoIdStr = widget.conversationId.toString();
@@ -292,9 +294,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             orElse: () => const SizedBox.shrink(),
           ),
           async.maybeWhen(
-            data: (state) => state.conversation.assignedTo != null
-                ? _AssigneeAvatar(assignedTo: state.conversation.assignedTo!)
-                : const SizedBox.shrink(),
+            data: (state) => _AssigneeAvatar(
+              conversation: state.conversation,
+              canAssignAny: canAssignAny,
+            ),
             orElse: () => const SizedBox.shrink(),
           ),
           const SizedBox(width: Space.xs),
@@ -410,21 +413,60 @@ class _FollowUpButton extends ConsumerWidget {
 }
 
 /// Compact Assignee Avatar in the conversation header.
+///
+/// For an employee holding `conversation.assign_any` this is also the entry
+/// point to the assignment picker — the mobile stand-in for the web header's
+/// "Assign" dropdown. Without that capability it stays exactly what it was:
+/// a passive, tooltipped avatar of whoever currently holds the thread.
 class _AssigneeAvatar extends StatelessWidget {
-  const _AssigneeAvatar({required this.assignedTo});
+  const _AssigneeAvatar({
+    required this.conversation,
+    required this.canAssignAny,
+  });
 
-  final EmployeeBrief assignedTo;
+  final Conversation conversation;
+  final bool canAssignAny;
 
   @override
   Widget build(BuildContext context) {
+    final assignedTo = conversation.assignedTo;
+
+    // Nothing to show and nothing to open.
+    if (assignedTo == null && !canAssignAny) return const SizedBox.shrink();
+
+    final avatar = assignedTo != null
+        ? InitialsAvatar(
+            initials: assignedTo.initials,
+            imageUrl: assignedTo.avatarUrl,
+            size: 26,
+          )
+        : const Icon(Icons.person_add_alt, size: 22);
+
+    final label = assignedTo?.fullName ?? context.l10n.assignAction;
+
+    if (!canAssignAny) {
+      return Tooltip(
+        message: label,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: avatar,
+        ),
+      );
+    }
+
     return Tooltip(
-      message: assignedTo.fullName,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2),
-        child: InitialsAvatar(
-          initials: assignedTo.initials,
-          imageUrl: assignedTo.avatarUrl,
-          size: 26,
+      message: label,
+      child: InkWell(
+        key: const Key('conversation_header_assign_button'),
+        customBorder: const CircleBorder(),
+        onTap: () => showAssignConversationSheet(
+          context,
+          conversationId: conversation.id,
+          conversation: conversation,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          child: avatar,
         ),
       ),
     );

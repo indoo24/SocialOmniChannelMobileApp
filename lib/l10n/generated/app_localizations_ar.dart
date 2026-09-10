@@ -601,6 +601,32 @@ class AppLocalizationsAr extends AppLocalizations {
   String get unassignedMessage => 'تم إلغاء الإسناد';
 
   @override
+  String get assignAction => 'إسناد';
+
+  @override
+  String get assignSheetTitle => 'إسناد';
+
+  @override
+  String get releaseToQueueAction => 'إرجاع إلى قائمة الانتظار';
+
+  @override
+  String get releasedToQueueMessage => 'تم الإرجاع إلى قائمة الانتظار';
+
+  @override
+  String get assignSearchEmployeeHint => 'بحث عن موظف…';
+
+  @override
+  String assignedToEmployeeMessage(String name) {
+    return 'تم الإسناد إلى $name';
+  }
+
+  @override
+  String get assignNoEmployeesFound => 'لا يوجد موظفون';
+
+  @override
+  String get assignCurrentAssigneeLabel => 'المسؤول الحالي';
+
+  @override
   String get statusUpdatedMessage => 'تم تحديث الحالة';
 
   @override

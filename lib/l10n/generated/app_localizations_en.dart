@@ -601,6 +601,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unassignedMessage => 'Unassigned';
 
   @override
+  String get assignAction => 'Assign';
+
+  @override
+  String get assignSheetTitle => 'Assign';
+
+  @override
+  String get releaseToQueueAction => 'Release to the queue';
+
+  @override
+  String get releasedToQueueMessage => 'Released to the queue';
+
+  @override
+  String get assignSearchEmployeeHint => 'Search employee…';
+
+  @override
+  String assignedToEmployeeMessage(String name) {
+    return 'Assigned to $name';
+  }
+
+  @override
+  String get assignNoEmployeesFound => 'No employees found';
+
+  @override
+  String get assignCurrentAssigneeLabel => 'Current assignee';
+
+  @override
   String get statusUpdatedMessage => 'Status updated';
 
   @override

@@ -352,22 +352,49 @@ class ConversationRepository {
       _api.post<dynamic>('/conversations/$conversationId/read/');
 
   /// Assignment. The backend decides whether this is legal — the app only asks.
-  Future<void> assign(
+  ///
+  /// The endpoint distinguishes three states per field, and its own schema
+  /// spells the distinction out: *"`assignee_id=null` unassigns; omitting it
+  /// leaves the assignee alone."* So:
+  ///
+  ///  * [assigneeId] set        → give the thread to that employee
+  ///  * [releaseAssignee] true  → send an explicit `null`, releasing it back
+  ///                              to the queue
+  ///  * neither                 → key omitted, assignee untouched
+  ///
+  /// [releaseAssignee] is a separate flag rather than "pass null to
+  /// [assigneeId]" because a null-aware map entry cannot express the
+  /// difference: `'assignee_id': ?null` drops the key entirely, which the
+  /// backend reads as "leave it alone" — silently turning a release into a
+  /// no-op.
+  ///
+  /// Returns the conversation as the server now holds it, so callers apply
+  /// the confirmed assignment rather than guessing at it.
+  Future<Conversation> assign(
     int conversationId, {
     int? assigneeId,
+    bool releaseAssignee = false,
     int? teamId,
+    bool releaseTeam = false,
     String note = '',
-  }) => _api.post<dynamic>(
-    '/conversations/$conversationId/assign/',
-    body: {
-      // Null-aware map entries: an omitted key means "leave unchanged",
-      // which is exactly how the backend reads a missing field. Sending
-      // an explicit null would unassign instead.
-      'assignee_id': ?assigneeId,
-      'team_id': ?teamId,
-      if (note.isNotEmpty) 'note': note,
-    },
-  );
+  }) async {
+    assert(
+      !(releaseAssignee && assigneeId != null),
+      'Pass an assigneeId or releaseAssignee, not both.',
+    );
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/assign/',
+      body: {
+        if (releaseAssignee)
+          'assignee_id': null
+        else
+          'assignee_id': ?assigneeId,
+        if (releaseTeam) 'team_id': null else 'team_id': ?teamId,
+        if (note.isNotEmpty) 'note': note,
+      },
+    );
+    return Conversation.fromJson(data);
+  }
 
   Future<void> changeStatus(int conversationId, String status) =>
       _api.post<dynamic>(

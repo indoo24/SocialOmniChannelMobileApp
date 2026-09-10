@@ -1184,6 +1184,54 @@ abstract class AppLocalizations {
   /// **'Unassigned'**
   String get unassignedMessage;
 
+  /// No description provided for @assignAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign'**
+  String get assignAction;
+
+  /// No description provided for @assignSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign'**
+  String get assignSheetTitle;
+
+  /// No description provided for @releaseToQueueAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Release to the queue'**
+  String get releaseToQueueAction;
+
+  /// No description provided for @releasedToQueueMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Released to the queue'**
+  String get releasedToQueueMessage;
+
+  /// No description provided for @assignSearchEmployeeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search employee…'**
+  String get assignSearchEmployeeHint;
+
+  /// No description provided for @assignedToEmployeeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned to {name}'**
+  String assignedToEmployeeMessage(String name);
+
+  /// No description provided for @assignNoEmployeesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No employees found'**
+  String get assignNoEmployeesFound;
+
+  /// No description provided for @assignCurrentAssigneeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current assignee'**
+  String get assignCurrentAssigneeLabel;
+
   /// No description provided for @statusUpdatedMessage.
   ///
   /// In en, this message translates to:

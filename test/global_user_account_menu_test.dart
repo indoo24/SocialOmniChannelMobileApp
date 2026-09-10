@@ -817,5 +817,61 @@ void main() {
       expect(find.text('Online'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'popup menu button uses lightweight styling: translucent surface, elevation 2, subtle shadow',
+      (tester) async {
+        await tester.pumpWidget(
+          _testHarness(
+            theme: AppTheme.light,
+            child: const SectionScaffold(title: 'Dashboard', body: SizedBox()),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final popupBtn = tester.widget<PopupMenuButton<String>>(
+          find.descendant(
+            of: find.byType(UserAccountMenuButton),
+            matching: find.byType(PopupMenuButton<String>),
+          ),
+        );
+
+        expect(popupBtn.elevation, equals(2));
+        expect(popupBtn.surfaceTintColor, equals(Colors.transparent));
+        expect(popupBtn.color?.a, closeTo(0.95, 0.01));
+        expect(popupBtn.clipBehavior, equals(Clip.antiAlias));
+
+        final shape = popupBtn.shape as RoundedRectangleBorder;
+        expect(shape.side.color.a, closeTo(0.25, 0.01));
+      },
+    );
+
+    testWidgets(
+      'popup menu button uses lightweight translucent styling in Dark Mode',
+      (tester) async {
+        await tester.pumpWidget(
+          _testHarness(
+            theme: AppTheme.dark,
+            child: const SectionScaffold(title: 'Dashboard', body: SizedBox()),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final popupBtn = tester.widget<PopupMenuButton<String>>(
+          find.descendant(
+            of: find.byType(UserAccountMenuButton),
+            matching: find.byType(PopupMenuButton<String>),
+          ),
+        );
+
+        expect(popupBtn.elevation, equals(2));
+        expect(popupBtn.surfaceTintColor, equals(Colors.transparent));
+        expect(popupBtn.color?.a, closeTo(0.92, 0.01));
+        expect(popupBtn.clipBehavior, equals(Clip.antiAlias));
+
+        final shape = popupBtn.shape as RoundedRectangleBorder;
+        expect(shape.side.color.a, closeTo(0.40, 0.01));
+      },
+    );
   });
 }

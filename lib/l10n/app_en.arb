@@ -272,6 +272,19 @@
   "assignedToYouMessage": "Assigned to you",
   "unassignAction": "Unassign",
   "unassignedMessage": "Unassigned",
+  "assignAction": "Assign",
+  "assignSheetTitle": "Assign",
+  "releaseToQueueAction": "Release to the queue",
+  "releasedToQueueMessage": "Released to the queue",
+  "assignSearchEmployeeHint": "Search employee…",
+  "assignedToEmployeeMessage": "Assigned to {name}",
+  "@assignedToEmployeeMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "assignNoEmployeesFound": "No employees found",
+  "assignCurrentAssigneeLabel": "Current assignee",
   "statusUpdatedMessage": "Status updated",
   "priorityUpdatedMessage": "Priority updated",
   "categoryUpdatedMessage": "Category updated",

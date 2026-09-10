@@ -128,15 +128,28 @@ class _UserAccountMenuButtonState extends ConsumerState<UserAccountMenuButton> {
     if (employee == null) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isWide = MediaQuery.sizeOf(context).width >= 600;
 
     return PopupMenuButton<String>(
       tooltip: context.l10n.userAccountMenuTooltip,
       offset: const Offset(0, 46),
+      color: theme.colorScheme.surface.withValues(alpha: isDark ? 0.92 : 0.95),
+      surfaceTintColor: Colors.transparent,
+      shadowColor: theme.colorScheme.shadow.withValues(
+        alpha: isDark ? 0.3 : 0.08,
+      ),
+      elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Radii.lg),
+        side: BorderSide(
+          color: theme.colorScheme.outline.withValues(
+            alpha: isDark ? 0.4 : 0.25,
+          ),
+          width: 1,
+        ),
       ),
-      elevation: 4,
+      clipBehavior: Clip.antiAlias,
       constraints: const BoxConstraints(minWidth: 220, maxWidth: 280),
       enabled: !_busy,
       onSelected: (value) async {
