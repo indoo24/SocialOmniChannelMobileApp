@@ -1417,6 +1417,39 @@ class AppLocalizationsAr extends AppLocalizations {
       'تم تسجيل الطلب. قم بتأكيده بعد مراجعة سجلاتك الخاصة.';
 
   @override
+  String get customFieldsSectionTitle => 'الحقول المخصّصة';
+
+  @override
+  String get customFieldsEditTitle => 'تعديل الحقول المخصّصة';
+
+  @override
+  String get customFieldsEditTooltip => 'تعديل الحقول المخصّصة';
+
+  @override
+  String get customFieldsSaved => 'تم حفظ الحقول المخصّصة';
+
+  @override
+  String get customFieldYes => 'نعم';
+
+  @override
+  String get customFieldNo => 'لا';
+
+  @override
+  String get customFieldNotSet => 'غير محدد';
+
+  @override
+  String get customFieldRequired => 'هذا الحقل إلزامي.';
+
+  @override
+  String get customFieldPickDate => 'اختر تاريخًا';
+
+  @override
+  String get customFieldPickDateTime => 'اختر التاريخ والوقت';
+
+  @override
+  String get customFieldClear => 'مسح';
+
+  @override
   String get orderDeliverySectionTitle => 'بيانات التوصيل (اختيارية)';
 
   @override

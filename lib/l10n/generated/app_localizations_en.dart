@@ -1409,6 +1409,39 @@ class AppLocalizationsEn extends AppLocalizations {
       'Order recorded. Confirm it once you\'ve checked your own records.';
 
   @override
+  String get customFieldsSectionTitle => 'Custom fields';
+
+  @override
+  String get customFieldsEditTitle => 'Edit custom fields';
+
+  @override
+  String get customFieldsEditTooltip => 'Edit custom fields';
+
+  @override
+  String get customFieldsSaved => 'Custom fields saved';
+
+  @override
+  String get customFieldYes => 'Yes';
+
+  @override
+  String get customFieldNo => 'No';
+
+  @override
+  String get customFieldNotSet => 'Not set';
+
+  @override
+  String get customFieldRequired => 'This field is required.';
+
+  @override
+  String get customFieldPickDate => 'Choose a date';
+
+  @override
+  String get customFieldPickDateTime => 'Choose a date and time';
+
+  @override
+  String get customFieldClear => 'Clear';
+
+  @override
   String get orderDeliverySectionTitle => 'Delivery details (optional)';
 
   @override

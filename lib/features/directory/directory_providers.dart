@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/conversation.dart';
 import '../../core/models/customer_detail.dart';
+import '../../core/models/customer_fields.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
 import '../../core/models/routing_policy.dart';
@@ -190,3 +191,9 @@ final customerFactsProvider = FutureProvider.family<List<CustomerFact>, int>((
 ) {
   return ref.watch(directoryRepositoryProvider).customerFacts(customerId);
 });
+
+/// The organization's active custom fields for one customer, with values.
+final customerFieldsProvider =
+    FutureProvider.family<List<CustomerFieldRow>, int>((ref, customerId) {
+      return ref.watch(directoryRepositoryProvider).customerFields(customerId);
+    });

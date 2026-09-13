@@ -22,6 +22,7 @@ import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../conversations/inbox_screen.dart' show ConversationRow;
 import '../authentication/auth_controller.dart';
+import '../customer_fields/custom_fields_section.dart';
 import 'directory_providers.dart';
 import 'edit_customer_sheet.dart';
 
@@ -71,6 +72,8 @@ class CustomerProfileScreen extends ConsumerWidget {
             ),
             data: (customer) => _CustomerHeader(customer: customer),
           ),
+          // Hidden entirely when the organization defines no custom fields.
+          CustomFieldsSection(customerId: customerId),
           const Divider(height: Space.xxl),
 
           Text(
@@ -182,14 +185,16 @@ class _CustomerHeader extends StatelessWidget {
             label: context.l10n.customerNotesFieldLabel,
             value: customer.notes,
           ),
-        if (customer.facts.isNotEmpty) ...[
+        // Free-form details only: a typed custom field value is shown by its
+        // field in CustomFieldsSection, so it never appears twice.
+        if (customer.facts.any((fact) => !fact.isTypedField)) ...[
           const SizedBox(height: Space.md),
           Text(
             context.l10n.recordedDetailsSectionTitle,
             style: theme.textTheme.labelSmall,
           ),
           const SizedBox(height: Space.xs),
-          for (final fact in customer.facts)
+          for (final fact in customer.facts.where((fact) => !fact.isTypedField))
             _Field(label: humanizeEnum(fact.key), value: fact.value),
         ],
       ],

@@ -394,6 +394,8 @@ class CustomerFact {
     required this.status,
     required this.needsReview,
     this.reviewedByName = '',
+    this.definitionId,
+    this.validationError,
   });
 
   final int id;
@@ -401,6 +403,14 @@ class CustomerFact {
   final String value;
   final double confidence;
   final String source;
+
+  /// Set when this is a typed custom field value — shown by its field, not in
+  /// the free-form details list. Null for every free-form detail.
+  final int? definitionId;
+
+  /// For an analyzer suggestion on a custom field: why its value would not be
+  /// accepted as it stands. Confirming it then needs a correction.
+  final String? validationError;
 
   /// SUGGESTED · CONFIRMED · REJECTED.
   final String status;
@@ -419,5 +429,9 @@ class CustomerFact {
     status: JsonSafe.asString(json['status'], fallback: 'CONFIRMED'),
     needsReview: JsonSafe.asBool(json['needs_review']),
     reviewedByName: JsonSafe.asString(json['reviewed_by_name']),
+    definitionId: JsonSafe.asIntOrNull(json['definition']),
+    validationError: JsonSafe.asStringOrNull(json['validation_error']),
   );
+
+  bool get isTypedField => definitionId != null;
 }

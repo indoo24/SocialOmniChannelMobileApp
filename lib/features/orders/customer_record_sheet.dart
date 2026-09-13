@@ -78,8 +78,9 @@ class _CustomerRecordSheet extends ConsumerWidget {
     final suggestedFacts = (facts.value ?? [])
         .where((f) => f.needsReview)
         .toList();
+    // Typed custom field values are shown by their field, not as free-form details.
     final recordedFacts = (facts.value ?? [])
-        .where((f) => !f.needsReview)
+        .where((f) => !f.needsReview && !f.isTypedField)
         .toList();
     final suggestedOrders = (orders.value ?? [])
         .where((o) => o.isSuggestion)

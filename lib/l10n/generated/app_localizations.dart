@@ -2636,6 +2636,72 @@ abstract class AppLocalizations {
   /// **'Order recorded. Confirm it once you\'ve checked your own records.'**
   String get orderRecordedMessage;
 
+  /// No description provided for @customFieldsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom fields'**
+  String get customFieldsSectionTitle;
+
+  /// No description provided for @customFieldsEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit custom fields'**
+  String get customFieldsEditTitle;
+
+  /// No description provided for @customFieldsEditTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit custom fields'**
+  String get customFieldsEditTooltip;
+
+  /// No description provided for @customFieldsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom fields saved'**
+  String get customFieldsSaved;
+
+  /// No description provided for @customFieldYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get customFieldYes;
+
+  /// No description provided for @customFieldNo.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get customFieldNo;
+
+  /// No description provided for @customFieldNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get customFieldNotSet;
+
+  /// No description provided for @customFieldRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This field is required.'**
+  String get customFieldRequired;
+
+  /// No description provided for @customFieldPickDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a date'**
+  String get customFieldPickDate;
+
+  /// No description provided for @customFieldPickDateTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a date and time'**
+  String get customFieldPickDateTime;
+
+  /// No description provided for @customFieldClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get customFieldClear;
+
   /// No description provided for @orderDeliverySectionTitle.
   ///
   /// In en, this message translates to:

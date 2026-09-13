@@ -12,6 +12,7 @@ import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/customer_detail.dart';
+import '../../core/models/customer_fields.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
 import '../../core/models/routing_policy.dart';
@@ -513,6 +514,36 @@ class DirectoryRepository {
       body: {'key': key, 'value': value, 'conversation': ?conversationId},
     );
     return CustomerFact.fromJson(data);
+  }
+
+  /// Every active custom field with this customer's value or null.
+  Future<List<CustomerFieldRow>> customerFields(int customerId) async {
+    final data = await _api.get<dynamic>('/customers/$customerId/fields/');
+    final rows = data is List ? data : const [];
+    return rows
+        .whereType<Map>()
+        .map((row) => CustomerFieldRow.fromJson(Map<String, dynamic>.from(row)))
+        .toList();
+  }
+
+  /// `PATCH /customers/{id}/fields/` — gated server-side on `customer.manage`.
+  ///
+  /// [values] maps field keys to what the employee entered; null clears a
+  /// field. The server validates every value and saves none if one is refused,
+  /// naming each refused key under `details['values']`.
+  Future<List<CustomerFieldRow>> saveCustomerFields(
+    int customerId,
+    Map<String, Object?> values,
+  ) async {
+    final data = await _api.patch<dynamic>(
+      '/customers/$customerId/fields/',
+      body: {'values': values},
+    );
+    final rows = data is List ? data : const [];
+    return rows
+        .whereType<Map>()
+        .map((row) => CustomerFieldRow.fromJson(Map<String, dynamic>.from(row)))
+        .toList();
   }
 
   /// Accept or turn down one of the analyzer's suggestions.

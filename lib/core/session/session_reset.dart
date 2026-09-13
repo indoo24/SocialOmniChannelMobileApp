@@ -73,6 +73,8 @@ void clearSessionScopedState(Ref ref) {
   ref.invalidate(customerConversationsProvider);
   ref.invalidate(conversationOrdersProvider);
   ref.invalidate(customerFactsProvider);
+  // Custom field definitions belong to the previous agent's organization.
+  ref.invalidate(customerFieldsProvider);
   ref.invalidate(performanceProvider);
   ref.invalidate(performanceWindowProvider);
 
