@@ -2283,4 +2283,32 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get statusUpdateFailedMessage =>
       'Couldn\'t update status. Please try again.';
+
+  @override
+  String get savedRepliesTitle => 'Saved replies';
+
+  @override
+  String get savedRepliesTooltip => 'Insert a saved reply';
+
+  @override
+  String get savedRepliesSearchHint => 'Search saved replies';
+
+  @override
+  String get savedRepliesLoading => 'Loading saved replies…';
+
+  @override
+  String get savedRepliesEmpty =>
+      'No saved replies yet. Create them on the web in Settings.';
+
+  @override
+  String get savedRepliesNoMatch => 'No saved reply matches your search.';
+
+  @override
+  String get savedReplyScopePersonal => 'Personal';
+
+  @override
+  String get savedReplyScopeTeam => 'Team';
+
+  @override
+  String get savedReplyScopeOrganization => 'Everyone';
 }

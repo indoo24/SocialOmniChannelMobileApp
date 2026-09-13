@@ -709,5 +709,14 @@
   "userAccountMenuTooltip": "حساب المستخدم",
   "resolveConversationTooltip": "حل المحادثة",
   "conversationResolvedTooltip": "المحادثة محلولة",
-  "statusUpdateFailedMessage": "تعذر تحديث الحالة. يرجى المحاولة مرة أخرى."
+  "statusUpdateFailedMessage": "تعذر تحديث الحالة. يرجى المحاولة مرة أخرى.",
+  "savedRepliesTitle": "الردود المحفوظة",
+  "savedRepliesTooltip": "إدراج رد محفوظ",
+  "savedRepliesSearchHint": "ابحث في الردود المحفوظة",
+  "savedRepliesLoading": "جارٍ تحميل الردود المحفوظة…",
+  "savedRepliesEmpty": "لا توجد ردود محفوظة بعد. أنشئها من الإعدادات على الويب.",
+  "savedRepliesNoMatch": "لا يوجد رد محفوظ يطابق بحثك.",
+  "savedReplyScopePersonal": "شخصي",
+  "savedReplyScopeTeam": "الفريق",
+  "savedReplyScopeOrganization": "الجميع"
 }

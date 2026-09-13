@@ -2306,4 +2306,32 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get statusUpdateFailedMessage =>
       'تعذر تحديث الحالة. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get savedRepliesTitle => 'الردود المحفوظة';
+
+  @override
+  String get savedRepliesTooltip => 'إدراج رد محفوظ';
+
+  @override
+  String get savedRepliesSearchHint => 'ابحث في الردود المحفوظة';
+
+  @override
+  String get savedRepliesLoading => 'جارٍ تحميل الردود المحفوظة…';
+
+  @override
+  String get savedRepliesEmpty =>
+      'لا توجد ردود محفوظة بعد. أنشئها من الإعدادات على الويب.';
+
+  @override
+  String get savedRepliesNoMatch => 'لا يوجد رد محفوظ يطابق بحثك.';
+
+  @override
+  String get savedReplyScopePersonal => 'شخصي';
+
+  @override
+  String get savedReplyScopeTeam => 'الفريق';
+
+  @override
+  String get savedReplyScopeOrganization => 'الجميع';
 }

@@ -217,5 +217,9 @@ class Perm {
   /// ones taking the order. QA does not have it: reviewing history is not
   /// recording sales against it.
   static const orderManage = 'order.manage';
+
+  /// Manage shared saved replies. Web only today — mobile uses saved replies
+  /// but does not edit them.
+  static const savedReplyManage = 'saved_reply.manage';
   static const notificationView = 'notification.view';
 }

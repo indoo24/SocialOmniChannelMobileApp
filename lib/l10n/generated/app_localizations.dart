@@ -4122,6 +4122,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t update status. Please try again.'**
   String get statusUpdateFailedMessage;
+
+  /// No description provided for @savedRepliesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved replies'**
+  String get savedRepliesTitle;
+
+  /// No description provided for @savedRepliesTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert a saved reply'**
+  String get savedRepliesTooltip;
+
+  /// No description provided for @savedRepliesSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search saved replies'**
+  String get savedRepliesSearchHint;
+
+  /// No description provided for @savedRepliesLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading saved replies…'**
+  String get savedRepliesLoading;
+
+  /// No description provided for @savedRepliesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved replies yet. Create them on the web in Settings.'**
+  String get savedRepliesEmpty;
+
+  /// No description provided for @savedRepliesNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved reply matches your search.'**
+  String get savedRepliesNoMatch;
+
+  /// No description provided for @savedReplyScopePersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal'**
+  String get savedReplyScopePersonal;
+
+  /// No description provided for @savedReplyScopeTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Team'**
+  String get savedReplyScopeTeam;
+
+  /// No description provided for @savedReplyScopeOrganization.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone'**
+  String get savedReplyScopeOrganization;
 }
 
 class _AppLocalizationsDelegate

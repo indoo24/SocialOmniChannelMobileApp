@@ -1278,5 +1278,14 @@
   "statusUpdateFailedMessage": "Couldn't update status. Please try again.",
   "@statusUpdateFailedMessage": {
     "description": "Snackbar notification when updating conversation status fails"
-  }
+  },
+  "savedRepliesTitle": "Saved replies",
+  "savedRepliesTooltip": "Insert a saved reply",
+  "savedRepliesSearchHint": "Search saved replies",
+  "savedRepliesLoading": "Loading saved replies…",
+  "savedRepliesEmpty": "No saved replies yet. Create them on the web in Settings.",
+  "savedRepliesNoMatch": "No saved reply matches your search.",
+  "savedReplyScopePersonal": "Personal",
+  "savedReplyScopeTeam": "Team",
+  "savedReplyScopeOrganization": "Everyone"
 }

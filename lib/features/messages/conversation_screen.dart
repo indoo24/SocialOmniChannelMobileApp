@@ -25,6 +25,8 @@ import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
 import '../templates/templates_providers.dart';
+import '../saved_replies/saved_reply.dart';
+import '../saved_replies/saved_reply_picker.dart';
 import '../../core/models/template.dart';
 import 'assign_conversation_sheet.dart';
 import 'composer_attachment.dart';
@@ -1381,6 +1383,39 @@ class _ComposerState extends ConsumerState<_Composer> {
     setState(() => _stagedImage = null);
   }
 
+  /// Put a saved reply into the reply box, at the caret.
+  ///
+  /// Never sends: the agent edits the text and sends it with the ordinary Send
+  /// button, through `ConversationRepository.reply()`. Variables are filled
+  /// from what this screen already holds, and an unknown customer name is
+  /// dropped rather than shown to the customer.
+  Future<void> _insertSavedReply() async {
+    final reply = await showSavedReplyPicker(context);
+    if (reply == null || !mounted) return;
+
+    final conversation = ref
+        .read(conversationControllerProvider(widget.conversationId))
+        .value
+        ?.conversation;
+    final text = renderSavedReply(
+      reply.body,
+      customerName: conversation?.customer.displayName,
+      agentName: ref.read(currentEmployeeProvider)?.fullName,
+    );
+
+    final value = widget.controller.value;
+    final result = insertAtSelection(
+      value.text,
+      value.selection.start,
+      value.selection.end,
+      text,
+    );
+    widget.controller.value = TextEditingValue(
+      text: result.text,
+      selection: TextSelection.collapsed(offset: result.caret),
+    );
+  }
+
   void _onVoiceStaged(StagedAttachment staged) {
     // A voice note sends immediately on finishing recording rather than
     // sitting in the composer for a separate Send tap — matching the "Stop
@@ -1550,6 +1585,21 @@ class _ComposerState extends ConsumerState<_Composer> {
                         enabled: !widget.sending,
                         onStaged: _onImageStaged,
                         onError: _showMessage,
+                      ),
+                      // Saved replies: inserts text for the agent to edit,
+                      // never sends. Only in this row, which exists only while
+                      // an ordinary reply can reach the customer — past
+                      // WhatsApp's 24-hour window the composer shows the
+                      // template route instead.
+                      SizedBox(
+                        width: 40,
+                        height: 44,
+                        child: IconButton(
+                          key: const Key('savedRepliesButton'),
+                          tooltip: context.l10n.savedRepliesTooltip,
+                          onPressed: widget.sending ? null : _insertSavedReply,
+                          icon: const Icon(Icons.quickreply_outlined, size: 22),
+                        ),
                       ),
                       const SizedBox(width: Space.xs),
                       // Text input in the middle
