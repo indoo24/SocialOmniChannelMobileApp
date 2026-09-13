@@ -333,6 +333,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get connectInstagramAction => 'ربط Instagram';
 
   @override
+  String get connectTikTokAction => 'ربط TikTok';
+
+  @override
   String get enterDetailsManuallyAction => 'إدخال البيانات يدويًا';
 
   @override

@@ -170,6 +170,7 @@
   "channelStatusComingSoon": "Coming soon",
   "connectWhatsAppAction": "Connect WhatsApp",
   "connectInstagramAction": "Connect Instagram",
+  "connectTikTokAction": "Connect TikTok",
   "enterDetailsManuallyAction": "Enter details manually",
   "viaManualTokenHint": "via phone number ID and access token",
   "legacyViaPageHint": "Legacy — via a linked Facebook Page",

@@ -69,6 +69,7 @@ class Employee {
     this.lastName = '',
     this.phone = '',
     this.organization,
+    this.channelAvailability = const {},
   });
 
   final int id;
@@ -92,6 +93,22 @@ class Employee {
   final String visibilityScope;
 
   final Organization? organization;
+
+  /// Per provider, `AVAILABLE` or `COMING_SOON` for this employee — the
+  /// server's answer from `/auth/me/`. Nothing on the device decides it.
+  final Map<String, String> channelAvailability;
+
+  /// Providers that stay coming soon when the server has not said otherwise,
+  /// so an older backend or a partial payload can never widen access.
+  static const _comingSoonUnlessTold = {'TIKTOK'};
+
+  /// Whether [provider] is not offered to this employee yet.
+  bool isChannelComingSoon(String provider) {
+    final key = provider.toUpperCase();
+    final answer = channelAvailability[key];
+    if (answer != null && answer.isNotEmpty) return answer == 'COMING_SOON';
+    return _comingSoonUnlessTold.contains(key);
+  }
 
   factory Employee.fromJson(Map<String, dynamic> json) {
     final rawFirst = JsonSafe.asString(json['first_name']);
@@ -140,6 +157,10 @@ class Employee {
       organization: json['organization'] is Map
           ? Organization.fromJson(JsonSafe.asMap(json['organization']))
           : null,
+      channelAvailability: {
+        for (final entry in JsonSafe.asMap(json['channel_availability']).entries)
+          entry.key.toUpperCase(): entry.value.toString(),
+      },
     );
   }
 
@@ -178,6 +199,7 @@ class Employee {
     permissions: permissions,
     visibilityScope: visibilityScope,
     organization: organization,
+    channelAvailability: channelAvailability,
   );
 }
 

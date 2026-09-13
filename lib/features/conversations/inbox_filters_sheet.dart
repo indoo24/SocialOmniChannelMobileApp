@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/tokens.dart';
+import '../authentication/auth_controller.dart';
 import '../../core/widgets/badges.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'conversation_repository.dart';
@@ -41,6 +42,15 @@ class _FiltersSheet extends ConsumerWidget {
     final filters = ref.watch(inboxFiltersProvider);
     final controller = ref.read(inboxFiltersProvider.notifier);
     final theme = Theme.of(context);
+    // A channel the server has not made available to this employee is not a
+    // filter they can pick. Same answer the Channels screen reads.
+    final employee = ref.watch(currentEmployeeProvider);
+    final providers = [
+      for (final provider in _providers)
+        if (!(employee?.isChannelComingSoon(provider) ??
+            provider == 'TIKTOK'))
+          provider,
+    ];
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -97,7 +107,7 @@ class _FiltersSheet extends ConsumerWidget {
             const SizedBox(height: Space.lg),
             _SectionLabel(context.l10n.channelSection),
             _ChoiceRow(
-              options: _providers,
+              options: providers,
               selected: filters.provider,
               labelOf: ConversationBadges.providerLabel,
               onSelected: (value) => controller.update(

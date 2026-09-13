@@ -662,6 +662,12 @@ abstract class AppLocalizations {
   /// **'Connect Instagram'**
   String get connectInstagramAction;
 
+  /// No description provided for @connectTikTokAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect TikTok'**
+  String get connectTikTokAction;
+
   /// No description provided for @enterDetailsManuallyAction.
   ///
   /// In en, this message translates to:

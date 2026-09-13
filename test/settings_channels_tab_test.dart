@@ -2803,4 +2803,85 @@ void main() {
       },
     );
   });
+
+  group('SettingsScreen — TikTok availability comes from the server', () {
+    Employee withTikTok(String answer) => Employee(
+      id: 3,
+      email: 'pilot@acme.test',
+      fullName: 'Pilot User',
+      initials: 'PU',
+      role: 'ADMIN',
+      roleDisplay: 'Admin',
+      availability: 'ONLINE',
+      permissions: const {Perm.channelView, Perm.channelManage},
+      visibilityScope: 'ALL',
+      channelAvailability: {'TIKTOK': answer},
+    );
+
+    testWidgets('an employee without TikTok sees Coming soon and no connect', (
+      tester,
+    ) async {
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter(
+        (_) => _json(_channelsPage(const []), 200),
+      );
+
+      await _pumpChannelsTab(
+        tester,
+        apiClient: client,
+        employee: withTikTok('COMING_SOON'),
+      );
+
+      expect(find.text('Coming soon'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Connect TikTok'), findsNothing);
+    });
+
+    testWidgets('the pilot employee is offered Connect TikTok', (tester) async {
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter(
+        (_) => _json(_channelsPage(const []), 200),
+      );
+
+      await _pumpChannelsTab(
+        tester,
+        apiClient: client,
+        employee: withTikTok('AVAILABLE'),
+      );
+
+      expect(find.text('Coming soon'), findsNothing);
+      await tester.drag(find.byType(ListView), const Offset(0, -1200));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(FilledButton, 'Connect TikTok'), findsOneWidget);
+    });
+
+    testWidgets('a connected TikTok row offers no connect-another without access', (
+      tester,
+    ) async {
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter(
+        (_) => _json(_channelsPage([_tiktokChannel]), 200),
+      );
+
+      await _pumpChannelsTab(
+        tester,
+        apiClient: client,
+        employee: withTikTok('COMING_SOON'),
+      );
+      await tester.drag(find.byType(ListView), const Offset(0, -1200));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Connect another account'), findsNothing);
+    });
+
+    test('a missing answer never makes TikTok available', () {
+      final employee = Employee.fromJson({'id': 9, 'email': 'x@y.z'});
+      expect(employee.isChannelComingSoon('TIKTOK'), isTrue);
+      expect(employee.isChannelComingSoon('WHATSAPP'), isFalse);
+      final pilot = Employee.fromJson({
+        'id': 3,
+        'channel_availability': {'TIKTOK': 'AVAILABLE'},
+      });
+      expect(pilot.isChannelComingSoon('TIKTOK'), isFalse);
+    });
+  });
 }

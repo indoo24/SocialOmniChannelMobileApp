@@ -889,7 +889,10 @@ class _PlatformGroupCardState extends ConsumerState<_PlatformGroupCard> {
         icon: const Icon(Icons.refresh, size: 16),
         label: Text(context.l10n.reconnectChannelAction),
       ),
-      'TIKTOK' => OutlinedButton.icon(
+      // Only for an employee the server has given TikTok — otherwise a
+      // connected row would be a way around "Coming soon".
+      'TIKTOK' when !(ref.read(currentEmployeeProvider)?.isChannelComingSoon('TIKTOK') ?? true) =>
+          OutlinedButton.icon(
         onPressed: _busy ? null : () => _connectAnother(repo.authorizeTikTok),
         icon: const Icon(Icons.music_note, size: 16),
         label: Text(context.l10n.connectAnotherAccountAction),
@@ -1329,6 +1332,14 @@ class _ChannelOnboardingCardState
         icon: const Icon(Icons.camera_alt, size: 16),
         label: Text(context.l10n.connectInstagramAction),
       ),
+      // Offered only when the server has made TikTok available to this
+      // employee; everyone else sees the Coming soon card instead.
+      'TIKTOK' when !(ref.read(currentEmployeeProvider)?.isChannelComingSoon('TIKTOK') ?? true) =>
+          FilledButton.icon(
+        onPressed: _busy ? null : () => _connect(repo.authorizeTikTok),
+        icon: const Icon(Icons.music_note, size: 16),
+        label: Text(context.l10n.connectTikTokAction),
+      ),
       _ => null,
     };
   }
@@ -1369,7 +1380,10 @@ class _ChannelOnboardingCardState
     final platformColor = ConversationBadges.providerColor(widget.provider);
     final title = _platformTitle(context, widget.provider);
     final description = _platformDescription(context, widget.provider);
-    final isComingSoon = widget.provider.toUpperCase() == 'TIKTOK';
+    // The server's per-employee answer, not a hardcoded provider.
+    final isComingSoon =
+        ref.watch(currentEmployeeProvider)?.isChannelComingSoon(widget.provider) ??
+            widget.provider.toUpperCase() == 'TIKTOK';
     final primaryAction = _buildPrimaryAction(context, canManage);
     final otherWays = _otherWaysToConnect(context);
 

@@ -332,6 +332,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connectInstagramAction => 'Connect Instagram';
 
   @override
+  String get connectTikTokAction => 'Connect TikTok';
+
+  @override
   String get enterDetailsManuallyAction => 'Enter details manually';
 
   @override
