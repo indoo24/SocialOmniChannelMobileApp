@@ -1417,6 +1417,110 @@ class AppLocalizationsAr extends AppLocalizations {
       'تم تسجيل الطلب. قم بتأكيده بعد مراجعة سجلاتك الخاصة.';
 
   @override
+  String get orderDeliverySectionTitle => 'بيانات التوصيل (اختيارية)';
+
+  @override
+  String get orderRecipientNameLabel => 'اسم المستلم';
+
+  @override
+  String get orderRecipientPhoneLabel => 'هاتف المستلم';
+
+  @override
+  String get orderAddressLabel => 'العنوان';
+
+  @override
+  String get orderGovernorateLabel => 'المحافظة';
+
+  @override
+  String get orderCityLabel => 'المدينة / المنطقة';
+
+  @override
+  String get orderDeliveryNotesLabel => 'ملاحظات التوصيل';
+
+  @override
+  String get orderSubtotalLabel => 'المجموع الفرعي';
+
+  @override
+  String get orderDiscountLabel => 'الخصم';
+
+  @override
+  String get orderShippingLabel => 'الشحن';
+
+  @override
+  String get orderFulfilmentLabel => 'التنفيذ';
+
+  @override
+  String orderFulfilmentValue(String status) {
+    return 'التنفيذ: $status';
+  }
+
+  @override
+  String get orderFulfilmentUpdatedMessage => 'تم تحديث حالة التنفيذ';
+
+  @override
+  String orderDeliveryDue(String date) {
+    return 'التسليم المتوقع $date';
+  }
+
+  @override
+  String orderFollowUpValue(String name) {
+    return 'المتابعة: $name';
+  }
+
+  @override
+  String orderCancellationReason(String reason) {
+    return 'السبب: $reason';
+  }
+
+  @override
+  String get fulfilmentNew => 'جديد';
+
+  @override
+  String get fulfilmentProcessing => 'قيد التجهيز';
+
+  @override
+  String get fulfilmentPacking => 'قيد التغليف';
+
+  @override
+  String get fulfilmentShipped => 'تم الشحن';
+
+  @override
+  String get fulfilmentDelivered => 'تم التسليم';
+
+  @override
+  String get fulfilmentOnHold => 'معلّق';
+
+  @override
+  String get fulfilmentCancelled => 'ملغى';
+
+  @override
+  String get paymentMethodCashOnDelivery => 'الدفع عند الاستلام';
+
+  @override
+  String get paymentMethodBankTransfer => 'تحويل بنكي';
+
+  @override
+  String get paymentMethodCard => 'بطاقة';
+
+  @override
+  String get paymentMethodWallet => 'محفظة إلكترونية';
+
+  @override
+  String get paymentMethodOther => 'أخرى';
+
+  @override
+  String get paymentStatusUnpaid => 'غير مدفوع';
+
+  @override
+  String get paymentStatusPartiallyPaid => 'مدفوع جزئيًا (حسب الإفادة)';
+
+  @override
+  String get paymentStatusPaid => 'مدفوع (حسب الإفادة)';
+
+  @override
+  String get paymentStatusRefunded => 'مُسترد (حسب الإفادة)';
+
+  @override
   String get avgResponseLabel => 'متوسط زمن الرد';
 
   @override

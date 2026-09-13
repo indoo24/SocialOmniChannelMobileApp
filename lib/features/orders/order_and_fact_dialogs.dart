@@ -312,10 +312,37 @@ class _RecordOrderDialogState extends ConsumerState<_RecordOrderDialog> {
   bool _busy = false;
   String? _error;
 
+  /// Optional delivery details, keyed by wire name. Collapsed by default so a
+  /// quick order stays the three fields it always was; blanks are not sent.
+  bool _deliveryOpen = false;
+  final _delivery = <String, TextEditingController>{
+    for (final field in const [
+      'recipient_name',
+      'recipient_phone',
+      'address',
+      'governorate',
+      'city',
+      'delivery_notes',
+    ])
+      field: TextEditingController(),
+  };
+
+  List<(String, String)> _deliveryFields(BuildContext context) => [
+    ('recipient_name', context.l10n.orderRecipientNameLabel),
+    ('recipient_phone', context.l10n.orderRecipientPhoneLabel),
+    ('address', context.l10n.orderAddressLabel),
+    ('governorate', context.l10n.orderGovernorateLabel),
+    ('city', context.l10n.orderCityLabel),
+    ('delivery_notes', context.l10n.orderDeliveryNotesLabel),
+  ];
+
   @override
   void dispose() {
     for (final row in _rows) {
       row.dispose();
+    }
+    for (final controller in _delivery.values) {
+      controller.dispose();
     }
     super.dispose();
   }
@@ -373,6 +400,9 @@ class _RecordOrderDialogState extends ConsumerState<_RecordOrderDialog> {
             customerId: widget.customerId,
             conversationId: widget.conversationId,
             items: validItems,
+            delivery: {
+              for (final field in _delivery.entries) field.key: field.value.text,
+            },
           );
 
       if (!mounted) return;
@@ -617,6 +647,43 @@ class _RecordOrderDialogState extends ConsumerState<_RecordOrderDialog> {
                   ),
                 ],
               ),
+
+              const SizedBox(height: Space.sm),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton.icon(
+                  key: const Key('order-delivery-toggle'),
+                  onPressed: _busy
+                      ? null
+                      : () => setState(() => _deliveryOpen = !_deliveryOpen),
+                  icon: Icon(
+                    _deliveryOpen ? Icons.expand_less : Icons.expand_more,
+                    size: 18,
+                  ),
+                  label: Text(context.l10n.orderDeliverySectionTitle),
+                ),
+              ),
+              if (_deliveryOpen)
+                for (final (name, label) in _deliveryFields(context))
+                  Padding(
+                    padding: const EdgeInsets.only(top: Space.sm),
+                    child: TextField(
+                      key: Key('order-delivery-$name'),
+                      controller: _delivery[name],
+                      enabled: !_busy,
+                      keyboardType: name == 'recipient_phone'
+                          ? TextInputType.phone
+                          : TextInputType.text,
+                      maxLines: name == 'delivery_notes' ? 2 : 1,
+                      decoration: InputDecoration(
+                        labelText: label,
+                        isDense: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(Radii.md),
+                        ),
+                      ),
+                    ),
+                  ),
             ],
           ),
         ),

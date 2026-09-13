@@ -1409,6 +1409,110 @@ class AppLocalizationsEn extends AppLocalizations {
       'Order recorded. Confirm it once you\'ve checked your own records.';
 
   @override
+  String get orderDeliverySectionTitle => 'Delivery details (optional)';
+
+  @override
+  String get orderRecipientNameLabel => 'Recipient name';
+
+  @override
+  String get orderRecipientPhoneLabel => 'Recipient phone';
+
+  @override
+  String get orderAddressLabel => 'Address';
+
+  @override
+  String get orderGovernorateLabel => 'Governorate';
+
+  @override
+  String get orderCityLabel => 'City / area';
+
+  @override
+  String get orderDeliveryNotesLabel => 'Delivery notes';
+
+  @override
+  String get orderSubtotalLabel => 'Subtotal';
+
+  @override
+  String get orderDiscountLabel => 'Discount';
+
+  @override
+  String get orderShippingLabel => 'Shipping';
+
+  @override
+  String get orderFulfilmentLabel => 'Fulfilment';
+
+  @override
+  String orderFulfilmentValue(String status) {
+    return 'Fulfilment: $status';
+  }
+
+  @override
+  String get orderFulfilmentUpdatedMessage => 'Fulfilment updated';
+
+  @override
+  String orderDeliveryDue(String date) {
+    return 'Delivery expected $date';
+  }
+
+  @override
+  String orderFollowUpValue(String name) {
+    return 'Follow-up: $name';
+  }
+
+  @override
+  String orderCancellationReason(String reason) {
+    return 'Reason: $reason';
+  }
+
+  @override
+  String get fulfilmentNew => 'New';
+
+  @override
+  String get fulfilmentProcessing => 'Processing';
+
+  @override
+  String get fulfilmentPacking => 'Packing';
+
+  @override
+  String get fulfilmentShipped => 'Shipped';
+
+  @override
+  String get fulfilmentDelivered => 'Delivered';
+
+  @override
+  String get fulfilmentOnHold => 'On hold';
+
+  @override
+  String get fulfilmentCancelled => 'Cancelled';
+
+  @override
+  String get paymentMethodCashOnDelivery => 'Cash on delivery';
+
+  @override
+  String get paymentMethodBankTransfer => 'Bank transfer';
+
+  @override
+  String get paymentMethodCard => 'Card';
+
+  @override
+  String get paymentMethodWallet => 'Mobile wallet';
+
+  @override
+  String get paymentMethodOther => 'Other';
+
+  @override
+  String get paymentStatusUnpaid => 'Not paid';
+
+  @override
+  String get paymentStatusPartiallyPaid => 'Partly paid (reported)';
+
+  @override
+  String get paymentStatusPaid => 'Paid (reported)';
+
+  @override
+  String get paymentStatusRefunded => 'Refunded (reported)';
+
+  @override
   String get avgResponseLabel => 'Avg response';
 
   @override

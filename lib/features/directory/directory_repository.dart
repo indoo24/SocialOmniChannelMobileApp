@@ -436,11 +436,15 @@ class DirectoryRepository {
         .toList();
   }
 
+  /// [delivery] carries optional delivery fields keyed by their wire name
+  /// (`city`, `address`, …). Blank values are not sent, so a quick order sends
+  /// exactly the request it always did.
   Future<Order> recordOrder({
     required int customerId,
     required List<Map<String, dynamic>> items,
     int? conversationId,
     String note = '',
+    Map<String, String> delivery = const {},
   }) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/orders/',
@@ -449,7 +453,18 @@ class DirectoryRepository {
         'conversation': ?conversationId,
         'items': items,
         if (note.isNotEmpty) 'note': note,
+        for (final field in delivery.entries)
+          if (field.value.trim().isNotEmpty) field.key: field.value.trim(),
       },
+    );
+    return Order.fromJson(data);
+  }
+
+  /// Move an order's fulfilment. Changes neither its status nor revenue.
+  Future<Order> updateOrderFulfilment(int orderId, String fulfilmentStatus) async {
+    final data = await _api.patch<Map<String, dynamic>>(
+      '/orders/$orderId/',
+      body: {'fulfilment_status': fulfilmentStatus},
     );
     return Order.fromJson(data);
   }
@@ -463,10 +478,17 @@ class DirectoryRepository {
     return Order.fromJson(data);
   }
 
-  Future<Order> cancelOrder(int orderId, {bool refunded = false}) async {
+  Future<Order> cancelOrder(
+    int orderId, {
+    bool refunded = false,
+    String reason = '',
+  }) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/orders/$orderId/cancel/',
-      body: {'refunded': refunded},
+      body: {
+        'refunded': refunded,
+        if (reason.trim().isNotEmpty) 'reason': reason.trim(),
+      },
     );
     return Order.fromJson(data);
   }

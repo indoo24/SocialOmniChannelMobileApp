@@ -32,6 +32,7 @@ import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
+import 'order_details.dart';
 
 /// Opens the record sheet for a conversation.
 Future<void> showCustomerRecordSheet(
@@ -512,6 +513,8 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                 ],
               ),
             ),
+
+          OrderDetailsLines(order: order),
 
           if (order.evidence.isNotEmpty) ...[
             const SizedBox(height: Space.sm),

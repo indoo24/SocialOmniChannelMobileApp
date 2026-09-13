@@ -617,6 +617,58 @@
   "totalLabel": "Total",
   "recordOrderButton": "Record an order",
   "orderRecordedMessage": "Order recorded. Confirm it once you've checked your own records.",
+  "orderDeliverySectionTitle": "Delivery details (optional)",
+  "orderRecipientNameLabel": "Recipient name",
+  "orderRecipientPhoneLabel": "Recipient phone",
+  "orderAddressLabel": "Address",
+  "orderGovernorateLabel": "Governorate",
+  "orderCityLabel": "City / area",
+  "orderDeliveryNotesLabel": "Delivery notes",
+  "orderSubtotalLabel": "Subtotal",
+  "orderDiscountLabel": "Discount",
+  "orderShippingLabel": "Shipping",
+  "orderFulfilmentLabel": "Fulfilment",
+  "orderFulfilmentValue": "Fulfilment: {status}",
+  "@orderFulfilmentValue": {
+    "placeholders": {
+      "status": {"type": "String"}
+    }
+  },
+  "orderFulfilmentUpdatedMessage": "Fulfilment updated",
+  "orderDeliveryDue": "Delivery expected {date}",
+  "@orderDeliveryDue": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "orderFollowUpValue": "Follow-up: {name}",
+  "@orderFollowUpValue": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "orderCancellationReason": "Reason: {reason}",
+  "@orderCancellationReason": {
+    "placeholders": {
+      "reason": {"type": "String"}
+    }
+  },
+  "fulfilmentNew": "New",
+  "fulfilmentProcessing": "Processing",
+  "fulfilmentPacking": "Packing",
+  "fulfilmentShipped": "Shipped",
+  "fulfilmentDelivered": "Delivered",
+  "fulfilmentOnHold": "On hold",
+  "fulfilmentCancelled": "Cancelled",
+  "paymentMethodCashOnDelivery": "Cash on delivery",
+  "paymentMethodBankTransfer": "Bank transfer",
+  "paymentMethodCard": "Card",
+  "paymentMethodWallet": "Mobile wallet",
+  "paymentMethodOther": "Other",
+  "paymentStatusUnpaid": "Not paid",
+  "paymentStatusPartiallyPaid": "Partly paid (reported)",
+  "paymentStatusPaid": "Paid (reported)",
+  "paymentStatusRefunded": "Refunded (reported)",
 
   "avgResponseLabel": "Avg response",
   "repliesCountedHint": "{count, plural, one{1 reply} other{{count} replies}} · median {median}",

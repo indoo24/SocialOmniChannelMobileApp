@@ -30,6 +30,7 @@ import 'customer_intelligence_section.dart';
 import 'intelligence_providers.dart';
 import 'notes_sheet.dart';
 import '../orders/order_and_fact_dialogs.dart';
+import '../orders/order_details.dart';
 
 const _statuses = [
   'OPEN',
@@ -1351,6 +1352,22 @@ class _LiveOrderCardState extends ConsumerState<_LiveOrderCard> {
                 ),
               ),
           ],
+
+          OrderDetailsLines(
+            order: order,
+            showFulfilment: !(widget.canManage && order.canMoveFulfilment),
+          ),
+          if (widget.canManage && order.canMoveFulfilment)
+            OrderFulfilmentPicker(
+              order: order,
+              busy: _busy,
+              onChanged: (value) => _run(
+                () => ref
+                    .read(directoryRepositoryProvider)
+                    .updateOrderFulfilment(order.id, value),
+                context.l10n.orderFulfilmentUpdatedMessage,
+              ),
+            ),
 
           const SizedBox(height: Space.xs),
           Text(

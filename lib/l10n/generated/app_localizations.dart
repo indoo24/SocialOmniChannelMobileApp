@@ -2636,6 +2636,198 @@ abstract class AppLocalizations {
   /// **'Order recorded. Confirm it once you\'ve checked your own records.'**
   String get orderRecordedMessage;
 
+  /// No description provided for @orderDeliverySectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery details (optional)'**
+  String get orderDeliverySectionTitle;
+
+  /// No description provided for @orderRecipientNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipient name'**
+  String get orderRecipientNameLabel;
+
+  /// No description provided for @orderRecipientPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipient phone'**
+  String get orderRecipientPhoneLabel;
+
+  /// No description provided for @orderAddressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get orderAddressLabel;
+
+  /// No description provided for @orderGovernorateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Governorate'**
+  String get orderGovernorateLabel;
+
+  /// No description provided for @orderCityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'City / area'**
+  String get orderCityLabel;
+
+  /// No description provided for @orderDeliveryNotesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery notes'**
+  String get orderDeliveryNotesLabel;
+
+  /// No description provided for @orderSubtotalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtotal'**
+  String get orderSubtotalLabel;
+
+  /// No description provided for @orderDiscountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Discount'**
+  String get orderDiscountLabel;
+
+  /// No description provided for @orderShippingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shipping'**
+  String get orderShippingLabel;
+
+  /// No description provided for @orderFulfilmentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Fulfilment'**
+  String get orderFulfilmentLabel;
+
+  /// No description provided for @orderFulfilmentValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Fulfilment: {status}'**
+  String orderFulfilmentValue(String status);
+
+  /// No description provided for @orderFulfilmentUpdatedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Fulfilment updated'**
+  String get orderFulfilmentUpdatedMessage;
+
+  /// No description provided for @orderDeliveryDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery expected {date}'**
+  String orderDeliveryDue(String date);
+
+  /// No description provided for @orderFollowUpValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up: {name}'**
+  String orderFollowUpValue(String name);
+
+  /// No description provided for @orderCancellationReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason: {reason}'**
+  String orderCancellationReason(String reason);
+
+  /// No description provided for @fulfilmentNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get fulfilmentNew;
+
+  /// No description provided for @fulfilmentProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing'**
+  String get fulfilmentProcessing;
+
+  /// No description provided for @fulfilmentPacking.
+  ///
+  /// In en, this message translates to:
+  /// **'Packing'**
+  String get fulfilmentPacking;
+
+  /// No description provided for @fulfilmentShipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Shipped'**
+  String get fulfilmentShipped;
+
+  /// No description provided for @fulfilmentDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
+  String get fulfilmentDelivered;
+
+  /// No description provided for @fulfilmentOnHold.
+  ///
+  /// In en, this message translates to:
+  /// **'On hold'**
+  String get fulfilmentOnHold;
+
+  /// No description provided for @fulfilmentCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get fulfilmentCancelled;
+
+  /// No description provided for @paymentMethodCashOnDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash on delivery'**
+  String get paymentMethodCashOnDelivery;
+
+  /// No description provided for @paymentMethodBankTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank transfer'**
+  String get paymentMethodBankTransfer;
+
+  /// No description provided for @paymentMethodCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Card'**
+  String get paymentMethodCard;
+
+  /// No description provided for @paymentMethodWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile wallet'**
+  String get paymentMethodWallet;
+
+  /// No description provided for @paymentMethodOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get paymentMethodOther;
+
+  /// No description provided for @paymentStatusUnpaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Not paid'**
+  String get paymentStatusUnpaid;
+
+  /// No description provided for @paymentStatusPartiallyPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Partly paid (reported)'**
+  String get paymentStatusPartiallyPaid;
+
+  /// No description provided for @paymentStatusPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid (reported)'**
+  String get paymentStatusPaid;
+
+  /// No description provided for @paymentStatusRefunded.
+  ///
+  /// In en, this message translates to:
+  /// **'Refunded (reported)'**
+  String get paymentStatusRefunded;
+
   /// No description provided for @avgResponseLabel.
   ///
   /// In en, this message translates to:
