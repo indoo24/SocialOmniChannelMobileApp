@@ -866,6 +866,34 @@ class AppLocalizationsAr extends AppLocalizations {
   String get deleteMessageDeletedSnackbar => 'تم حذف الرسالة';
 
   @override
+  String get replyMessageAction => 'رد';
+
+  @override
+  String replyingToLabel(String name) {
+    return 'الرد على $name';
+  }
+
+  @override
+  String get cancelReplyTooltip => 'إلغاء الرد';
+
+  @override
+  String get quotedMessageDeletedLabel => 'تم حذف هذه الرسالة';
+
+  @override
+  String get quotedMessageUnavailableLabel => 'الرسالة الأصلية غير متاحة';
+
+  @override
+  String get photoMessageLabel => 'صورة';
+
+  @override
+  String get attachmentMessageLabel => 'مرفق';
+
+  @override
+  String sentFromPlatformLabel(String provider) {
+    return 'أُرسلت من $provider';
+  }
+
+  @override
   String get customerTitle => 'العميل';
 
   @override
@@ -891,6 +919,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get lastMessageFieldLabel => 'آخر رسالة';
+
+  @override
+  String get claimedByFieldLabel => 'استلمها';
+
+  @override
+  String get firstResponseFieldLabel => 'الرد الأول';
+
+  @override
+  String get resolvedFieldLabel => 'تم الحل في';
+
+  @override
+  String get lastAgentMessageFieldLabel => 'آخر رسالة من الموظف';
 
   @override
   String get customerSectionTitle => 'العميل';
@@ -2599,5 +2639,25 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String historyClaimedOwnerRestored(String name) {
     return 'أُعيدت المحادثة إلى $name الذي كان قد استلمها سابقًا';
+  }
+
+  @override
+  String historyFallbackAssigned(String name) {
+    return 'أُسندت إلى $name (احتياطيًا)';
+  }
+
+  @override
+  String historyFallbackReasonsLabel(String reasons) {
+    return 'السبب: $reasons';
+  }
+
+  @override
+  String historyRerouted(String previousName, String name) {
+    return 'أُعيد توجيهها من $previousName إلى $name';
+  }
+
+  @override
+  String historyReleasedFrom(String previousName) {
+    return 'أُفرجت من $previousName وعادت إلى قائمة الانتظار';
   }
 }

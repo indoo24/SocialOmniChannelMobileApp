@@ -278,10 +278,15 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   /// anything itself, only references what the composer already staged.
   /// [attachmentPreview] renders that same file locally in the optimistic
   /// bubble; it carries no server data and is discarded once [sent] arrives.
+  /// [replyTo], when set, must snapshot a server-confirmed message (a real,
+  /// non-negative id) — the backend refuses an optimistic id here, so
+  /// quoting another still-pending bubble is not offered by the UI in the
+  /// first place.
   Future<void> send(
     String text, {
     String? attachmentId,
     MessageAttachment? attachmentPreview,
+    QuotedMessage? replyTo,
   }) async {
     final current = state.value;
     final trimmed = text.trim();
@@ -298,6 +303,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       senderInitials: employee?.initials ?? '',
       previewAttachment: attachmentPreview,
       pendingAttachmentId: attachmentId,
+      replyTo: replyTo,
     );
 
     RealtimeLogger.log(
@@ -323,6 +329,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
             trimmed,
             attachmentIds: hasAttachment ? [attachmentId] : const [],
             clientMessageId: localId,
+            replyToId: replyTo?.id,
           );
 
       RealtimeLogger.log(
@@ -453,6 +460,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       failed.text,
       attachmentId: failed.pendingAttachmentId,
       attachmentPreview: preview,
+      replyTo: failed.replyTo,
     );
   }
 

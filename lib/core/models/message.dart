@@ -163,6 +163,71 @@ class ContentNotice {
   }
 }
 
+/// A snapshot of the message a reply quotes, as `Message.reply_to` carries it.
+///
+/// Still rendered when the original is deleted ([isDeleted]) or was never
+/// loaded into this client's page of history ([available] false) — the quote
+/// is a copy taken at send time, not a live reference, so it survives either.
+class QuotedMessage {
+  const QuotedMessage({
+    required this.id,
+    this.text = '',
+    this.truncated = false,
+    this.messageType = 'TEXT',
+    this.direction = 'INBOUND',
+    this.senderName = '',
+    this.sentAt,
+    this.isDeleted = false,
+    this.available = true,
+  });
+
+  final int id;
+  final String text;
+
+  /// True when [text] was cut short by the server for the quote preview —
+  /// the original message may be longer than this snapshot shows.
+  final bool truncated;
+  final String messageType;
+  final String direction; // INBOUND | OUTBOUND
+  final String senderName;
+  final DateTime? sentAt;
+  final bool isDeleted;
+
+  /// False when the original was outside this employee's visibility (a
+  /// cross-conversation edge case) rather than simply not yet fetched — the
+  /// snapshot fields above are still whatever the server captured at send
+  /// time, so the quote still renders; this only affects whether tapping it
+  /// could jump to the original.
+  final bool available;
+
+  /// A local snapshot of [message], for the optimistic bubble shown the
+  /// instant the agent taps Send on a quoted reply — before the server has
+  /// echoed back its own `reply_to`.
+  factory QuotedMessage.fromMessage(Message message) => QuotedMessage(
+    id: message.id,
+    text: message.text,
+    messageType: message.messageType,
+    direction: message.direction,
+    senderName: message.senderName,
+    sentAt: message.sentAt,
+  );
+
+  static QuotedMessage? fromJson(Object? json) {
+    if (json is! Map<String, dynamic>) return null;
+    return QuotedMessage(
+      id: JsonSafe.asInt(json['id'], fallback: -1),
+      text: JsonSafe.asString(json['text']),
+      truncated: JsonSafe.asBool(json['truncated']),
+      messageType: JsonSafe.asString(json['message_type'], fallback: 'TEXT'),
+      direction: JsonSafe.asString(json['direction'], fallback: 'INBOUND'),
+      senderName: JsonSafe.asString(json['sender_name']),
+      sentAt: _parseDate(json['sent_at']),
+      isDeleted: JsonSafe.asBool(json['is_deleted']),
+      available: JsonSafe.asBool(json['available'], fallback: true),
+    );
+  }
+}
+
 class Message {
   const Message({
     required this.id,
@@ -180,6 +245,8 @@ class Message {
     this.contentNotice,
     this.deliveredAt,
     this.readAt,
+    this.replyTo,
+    this.sentFromPlatform = false,
     this.sendState = SendState.sent,
     this.localId,
     this.pendingAttachmentId,
@@ -201,6 +268,19 @@ class Message {
   final String deliveryErrorCode;
   final ContentNotice? contentNotice;
   final DateTime sentAt;
+
+  /// True for an outbound message typed directly in the provider's own app
+  /// (WhatsApp/Instagram/TikTok) rather than sent through Scenario — there is
+  /// no employee behind it, so [senderName] is meaningless for these and the
+  /// bubble shows a platform label instead.
+  final bool sentFromPlatform;
+
+  /// The message this one quotes, if any — a snapshot taken at send time, so
+  /// it renders the same whether or not the original is still loaded or has
+  /// since been deleted. Populated both for an agent's own quoted reply and
+  /// for a customer's inbound quote (the provider carries these natively for
+  /// Meta channels, and for text/image/share-post on TikTok).
+  final QuotedMessage? replyTo;
 
   /// When the provider confirmed delivery to the customer's device, if known.
   /// Populated from the initial fetch and patched live by a `message.updated`
@@ -249,6 +329,8 @@ class Message {
         DateTime.now(),
     deliveredAt: _parseDate(json['delivered_at']),
     readAt: _parseDate(json['read_at']),
+    replyTo: QuotedMessage.fromJson(json['reply_to']),
+    sentFromPlatform: JsonSafe.asBool(json['sent_from_platform']),
   );
 
   /// A message the agent has typed but the server has not accepted yet.
@@ -256,6 +338,9 @@ class Message {
   /// [previewAttachment] shows the outgoing image/voice note immediately
   /// from the agent's own local file, without waiting on the server's own
   /// (network) URL — the same "optimistic" treatment [text] already gets.
+  /// [replyTo], when the agent quoted a message before sending, likewise
+  /// renders the quote block immediately from the message already on screen
+  /// rather than waiting for the server's own echo of it.
   factory Message.pending({
     required String localId,
     required String text,
@@ -263,6 +348,7 @@ class Message {
     required String senderInitials,
     MessageAttachment? previewAttachment,
     String? pendingAttachmentId,
+    QuotedMessage? replyTo,
   }) => Message(
     // Negative so it can never collide with a server id, and so ordering
     // by id keeps pending messages at the end where they belong.
@@ -278,6 +364,7 @@ class Message {
     attachments: previewAttachment == null ? const [] : [previewAttachment],
     deliveryStatus: 'PENDING',
     sentAt: DateTime.now(),
+    replyTo: replyTo,
     sendState: SendState.sending,
     localId: localId,
     pendingAttachmentId: pendingAttachmentId,
@@ -296,9 +383,11 @@ class Message {
     deliveryError: deliveryError ?? this.deliveryError,
     deliveryErrorCode: deliveryError != null ? '' : deliveryErrorCode,
     contentNotice: contentNotice,
+    replyTo: replyTo,
     sentAt: sentAt,
     deliveredAt: deliveredAt,
     readAt: readAt,
+    sentFromPlatform: sentFromPlatform,
     sendState: sendState ?? this.sendState,
     localId: localId,
     pendingAttachmentId: pendingAttachmentId,
@@ -326,9 +415,11 @@ class Message {
     deliveryError: JsonSafe.asString(json['delivery_error']),
     deliveryErrorCode: JsonSafe.asString(json['delivery_error_code']),
     contentNotice: contentNotice,
+    replyTo: replyTo,
     sentAt: sentAt,
     deliveredAt: _parseDate(json['delivered_at']) ?? deliveredAt,
     readAt: _parseDate(json['read_at']) ?? readAt,
+    sentFromPlatform: sentFromPlatform,
     sendState: sendState,
     localId: localId,
     pendingAttachmentId: pendingAttachmentId,

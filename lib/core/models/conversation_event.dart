@@ -68,6 +68,19 @@ class ConversationEvent {
   /// The name an ownership row is about.
   String get targetName => toValue.isNotEmpty ? toValue : targetEmployeeName;
 
+  /// Why an automatic fallback placement happened (`mode: "fallback"`) —
+  /// e.g. "no one on the responsible team was available." Empty for every
+  /// other mode.
+  List<String> get fallbackReasons => JsonSafe.asStringList(metadata['reasons']);
+
+  /// Who held the conversation immediately before a `mode: "reassignment"`
+  /// event — the router moved it off them, either onto someone else
+  /// (`TRANSFERRED`) or back to the queue (`UNASSIGNED`).
+  String get previousEmployeeName =>
+      JsonSafe.asString(metadata['previous_employee_name']);
+  int? get previousEmployeeId =>
+      JsonSafe.asIntOrNull(metadata['previous_employee_id']);
+
   static const _ownership = {'ASSIGNED', 'TRANSFERRED', 'UNASSIGNED'};
 
   /// Drop the second row of a claim written twice (before 2026-09-14).

@@ -23,26 +23,39 @@ import '../../core/realtime/realtime_logger.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/safe_url.dart';
 import '../../core/utils/formatting.dart';
+import '../../core/widgets/badges.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
     required this.message,
+    this.provider = '',
     this.onRetry,
     this.onDiscard,
     this.onDelete,
+    this.onReply,
     super.key,
   });
 
   final Message message;
+
+  /// The conversation's channel provider (`WHATSAPP`, `INSTAGRAM`, ...),
+  /// used only to name the platform in [message.sentFromPlatform]'s label.
+  final String provider;
   final VoidCallback? onRetry;
   final VoidCallback? onDiscard;
 
-  /// Long-press to delete. Null hides the affordance entirely — the caller
+  /// Long-press menu item. Null hides the affordance entirely — the caller
   /// only supplies this for a real, server-confirmed message when the
   /// signed-in employee holds `conversation.delete_message` (ADMIN/SUPERVISOR).
   final VoidCallback? onDelete;
+
+  /// Long-press menu item. Null hides the affordance entirely — the caller
+  /// only supplies this for a real, server-confirmed message when the
+  /// signed-in employee holds `conversation.reply` (there being nothing to
+  /// quote a message *into* without it).
+  final VoidCallback? onReply;
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +112,14 @@ class MessageBubble extends StatelessWidget {
                     : CrossAxisAlignment.start,
                 children: [
                   GestureDetector(
-                    onLongPress: onDelete,
+                    onLongPressStart: (onReply != null || onDelete != null)
+                        ? (details) => _showBubbleMenu(
+                            context,
+                            position: details.globalPosition,
+                            onReply: onReply,
+                            onDelete: onDelete,
+                          )
+                        : null,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: Space.md,
@@ -137,6 +157,10 @@ class MessageBubble extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (message.replyTo != null) ...[
+                            _QuoteBlock(quote: message.replyTo!, isMine: isMine),
+                            const SizedBox(height: Space.xs),
+                          ],
                           if (message.attachments.isNotEmpty)
                             _Attachments(message: message),
                           if (message.text.isNotEmpty)
@@ -159,7 +183,7 @@ class MessageBubble extends StatelessWidget {
                   const SizedBox(height: 3),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: _MetaRow(message: message),
+                    child: _MetaRow(message: message, provider: provider),
                   ),
                   if (failed) ...[
                     const SizedBox(height: Space.xs),
@@ -179,16 +203,131 @@ class MessageBubble extends StatelessWidget {
   }
 }
 
+/// The long-press menu on a bubble — Reply and/or Delete, whichever the
+/// caller made available. Positioned at the touch point rather than anchored
+/// to the bubble, matching the platform's own context-menu placement.
+void _showBubbleMenu(
+  BuildContext context, {
+  required Offset position,
+  required VoidCallback? onReply,
+  required VoidCallback? onDelete,
+}) {
+  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+  showMenu<VoidCallback>(
+    context: context,
+    position: RelativeRect.fromRect(
+      position & const Size(1, 1),
+      Offset.zero & overlay.size,
+    ),
+    items: [
+      if (onReply != null)
+        PopupMenuItem<VoidCallback>(
+          value: onReply,
+          child: ListTile(
+            leading: const Icon(Icons.reply_outlined),
+            title: Text(context.l10n.replyMessageAction),
+          ),
+        ),
+      if (onDelete != null)
+        PopupMenuItem<VoidCallback>(
+          value: onDelete,
+          child: ListTile(
+            leading: Icon(
+              Icons.delete_outline,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            title: Text(
+              context.l10n.deleteMessageAction,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ),
+    ],
+  ).then((selected) => selected?.call());
+}
+
+/// The quote block a reply shows above its own content — a snapshot of the
+/// message it answers, rendered the same whether the original is still
+/// loaded, deleted, or (rarely) outside this employee's visibility.
+class _QuoteBlock extends StatelessWidget {
+  const _QuoteBlock({required this.quote, required this.isMine});
+
+  final QuotedMessage quote;
+  final bool isMine;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accentColor = isMine
+        ? Colors.white.withValues(alpha: 0.85)
+        : theme.colorScheme.primary;
+    final backgroundColor = isMine
+        ? Colors.white.withValues(alpha: 0.12)
+        : theme.colorScheme.primary.withValues(alpha: 0.08);
+    final textColor = isMine
+        ? Colors.white.withValues(alpha: 0.85)
+        : theme.colorScheme.onSurfaceVariant;
+
+    final summary = quote.isDeleted
+        ? context.l10n.quotedMessageDeletedLabel
+        : !quote.available
+        ? context.l10n.quotedMessageUnavailableLabel
+        : quote.text.isNotEmpty
+        ? quote.text
+        : switch (quote.messageType) {
+            'IMAGE' => context.l10n.photoMessageLabel,
+            'AUDIO' => context.l10n.voiceMessageLabel,
+            _ => context.l10n.attachmentMessageLabel,
+          };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: Space.sm, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border(left: BorderSide(color: accentColor, width: 3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (quote.senderName.isNotEmpty)
+            Text(
+              quote.senderName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: accentColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          Text(
+            summary,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(color: textColor),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MetaRow extends StatelessWidget {
-  const _MetaRow({required this.message});
+  const _MetaRow({required this.message, this.provider = ''});
 
   final Message message;
+  final String provider;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final labels = <String>[
-      if (message.isOutbound && message.senderName.isNotEmpty)
+      if (message.isOutbound && message.sentFromPlatform)
+        context.l10n.sentFromPlatformLabel(
+          ConversationBadges.providerLabel(context, provider),
+        )
+      else if (message.isOutbound && message.senderName.isNotEmpty)
         message.senderName,
       formatTime(context, message.sentAt),
     ];

@@ -167,6 +167,10 @@ class Conversation {
     this.followUpMarkedByName = '',
     this.messagingPolicy,
     this.outboundMedia = true,
+    this.claimedBy,
+    this.firstResponseAt,
+    this.resolvedAt,
+    this.lastAgentMessageAt,
   });
 
   final int id;
@@ -191,6 +195,21 @@ class Conversation {
   final DateTime? followUpDate;
   final DateTime? followUpMarkedAt;
   final String followUpMarkedByName;
+
+  /// Who took this conversation by replying to it (claim-by-reply), which
+  /// can differ from [assignedTo] after a reassignment or release — this is
+  /// "who actually answered it first," not "who owns it now."
+  final EmployeeBrief? claimedBy;
+
+  /// When an agent's own first reply went out, if one has.
+  final DateTime? firstResponseAt;
+
+  /// When the conversation was last moved to `RESOLVED`, if it has been.
+  final DateTime? resolvedAt;
+
+  /// When an agent (not the platform, not the customer) last sent a message
+  /// in this conversation.
+  final DateTime? lastAgentMessageAt;
 
   /// TikTok's messaging allowance; null on every other channel and on list rows.
   final MessagingPolicy? messagingPolicy;
@@ -237,6 +256,12 @@ class Conversation {
             JsonSafe.asMap(json['media_capabilities'])['outbound_media'],
           )
         : JsonSafe.asString(json['provider']).toUpperCase() != 'TIKTOK',
+    claimedBy: json['claimed_by'] is Map
+        ? EmployeeBrief.fromJson(JsonSafe.asMap(json['claimed_by']))
+        : null,
+    firstResponseAt: _parseDate(json['first_response_at']),
+    resolvedAt: _parseDate(json['resolved_at']),
+    lastAgentMessageAt: _parseDate(json['last_agent_message_at']),
   );
 
   /// True when the platform's own limits refuse another message right now.
@@ -310,6 +335,10 @@ class Conversation {
     followUpMarkedByName: followUpMarkedByName ?? this.followUpMarkedByName,
     messagingPolicy: messagingPolicy,
     outboundMedia: outboundMedia,
+    claimedBy: claimedBy,
+    firstResponseAt: firstResponseAt,
+    resolvedAt: resolvedAt,
+    lastAgentMessageAt: lastAgentMessageAt,
   );
 }
 

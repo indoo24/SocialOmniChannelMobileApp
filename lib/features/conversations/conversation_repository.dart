@@ -288,12 +288,15 @@ class ConversationRepository {
   /// own `Reply` contract ("a photograph is a complete message"). Passing
   /// [clientMessageId] lets a caller give the server the idempotency key it
   /// documents, so retrying a request whose response was lost cannot produce
-  /// two stored messages.
+  /// two stored messages. [replyToId] must be a real, already-stored message
+  /// id in this conversation — the backend's own contract explicitly refuses
+  /// an optimistic (negative, not-yet-sent) id here.
   Future<Message> reply(
     int conversationId,
     String text, {
     List<String> attachmentIds = const [],
     String? clientMessageId,
+    int? replyToId,
   }) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/conversations/$conversationId/reply/',
@@ -301,6 +304,7 @@ class ConversationRepository {
         'text': text,
         if (attachmentIds.isNotEmpty) 'attachment_ids': attachmentIds,
         'client_message_id': ?clientMessageId,
+        'reply_to_id': ?replyToId,
       },
     );
     return Message.fromJson(data);

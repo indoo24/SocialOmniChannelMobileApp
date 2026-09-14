@@ -869,6 +869,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteMessageDeletedSnackbar => 'Message deleted';
 
   @override
+  String get replyMessageAction => 'Reply';
+
+  @override
+  String replyingToLabel(String name) {
+    return 'Replying to $name';
+  }
+
+  @override
+  String get cancelReplyTooltip => 'Cancel reply';
+
+  @override
+  String get quotedMessageDeletedLabel => 'This message was deleted';
+
+  @override
+  String get quotedMessageUnavailableLabel => 'Original message unavailable';
+
+  @override
+  String get photoMessageLabel => 'Photo';
+
+  @override
+  String get attachmentMessageLabel => 'Attachment';
+
+  @override
+  String sentFromPlatformLabel(String provider) {
+    return 'Sent from $provider';
+  }
+
+  @override
   String get customerTitle => 'Customer';
 
   @override
@@ -894,6 +922,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lastMessageFieldLabel => 'Last message';
+
+  @override
+  String get claimedByFieldLabel => 'Claimed by';
+
+  @override
+  String get firstResponseFieldLabel => 'First response';
+
+  @override
+  String get resolvedFieldLabel => 'Resolved at';
+
+  @override
+  String get lastAgentMessageFieldLabel => 'Last agent message';
 
   @override
   String get customerSectionTitle => 'Customer';
@@ -2576,5 +2616,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String historyClaimedOwnerRestored(String name) {
     return 'Returned to $name, who had already taken this conversation';
+  }
+
+  @override
+  String historyFallbackAssigned(String name) {
+    return 'Assigned to $name (fallback)';
+  }
+
+  @override
+  String historyFallbackReasonsLabel(String reasons) {
+    return 'Reason: $reasons';
+  }
+
+  @override
+  String historyRerouted(String previousName, String name) {
+    return 'Rerouted from $previousName to $name';
+  }
+
+  @override
+  String historyReleasedFrom(String previousName) {
+    return 'Released from $previousName back to the queue';
   }
 }
