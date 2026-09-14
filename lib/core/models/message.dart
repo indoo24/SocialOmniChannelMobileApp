@@ -178,6 +178,8 @@ class Message {
     this.deliveryError = '',
     this.deliveryErrorCode = '',
     this.contentNotice,
+    this.deliveredAt,
+    this.readAt,
     this.sendState = SendState.sent,
     this.localId,
     this.pendingAttachmentId,
@@ -199,6 +201,16 @@ class Message {
   final String deliveryErrorCode;
   final ContentNotice? contentNotice;
   final DateTime sentAt;
+
+  /// When the provider confirmed delivery to the customer's device, if known.
+  /// Populated from the initial fetch and patched live by a `message.updated`
+  /// delivery-status event; null until the provider reports it (and always
+  /// null on an inbound message).
+  final DateTime? deliveredAt;
+
+  /// When the customer read the message, if the provider reports read
+  /// receipts. Same lifecycle as [deliveredAt].
+  final DateTime? readAt;
 
   final SendState sendState;
 
@@ -235,6 +247,8 @@ class Message {
     sentAt:
         DateTime.tryParse(JsonSafe.asString(json['sent_at']))?.toLocal() ??
         DateTime.now(),
+    deliveredAt: _parseDate(json['delivered_at']),
+    readAt: _parseDate(json['read_at']),
   );
 
   /// A message the agent has typed but the server has not accepted yet.
@@ -283,7 +297,39 @@ class Message {
     deliveryErrorCode: deliveryError != null ? '' : deliveryErrorCode,
     contentNotice: contentNotice,
     sentAt: sentAt,
+    deliveredAt: deliveredAt,
+    readAt: readAt,
     sendState: sendState ?? this.sendState,
+    localId: localId,
+    pendingAttachmentId: pendingAttachmentId,
+  );
+
+  /// Applies one entry of a `message.updated` delivery-status realtime event
+  /// (`messages: [{id, delivery_status, delivery_error, delivered_at,
+  /// read_at}]`) to this already-loaded message, in place of a full refetch.
+  ///
+  /// Only ever called on a server-confirmed message ([sendState] is already
+  /// [SendState.sent]), so the local-only send lifecycle fields are untouched.
+  Message withDeliveryUpdate(Map<String, dynamic> json) => Message(
+    id: id,
+    direction: direction,
+    senderType: senderType,
+    senderName: senderName,
+    senderInitials: senderInitials,
+    messageType: messageType,
+    text: text,
+    attachments: attachments,
+    deliveryStatus: JsonSafe.asString(
+      json['delivery_status'],
+      fallback: deliveryStatus,
+    ),
+    deliveryError: JsonSafe.asString(json['delivery_error']),
+    deliveryErrorCode: JsonSafe.asString(json['delivery_error_code']),
+    contentNotice: contentNotice,
+    sentAt: sentAt,
+    deliveredAt: _parseDate(json['delivered_at']) ?? deliveredAt,
+    readAt: _parseDate(json['read_at']) ?? readAt,
+    sendState: sendState,
     localId: localId,
     pendingAttachmentId: pendingAttachmentId,
   );
@@ -360,4 +406,9 @@ class InternalNote {
           DateTime.now(),
     );
   }
+}
+
+DateTime? _parseDate(Object? value) {
+  if (value is! String || value.isEmpty) return null;
+  return DateTime.tryParse(value)?.toLocal();
 }

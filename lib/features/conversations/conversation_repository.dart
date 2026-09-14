@@ -467,6 +467,21 @@ class ConversationRepository {
     body: reason.isNotEmpty ? {'reason': reason} : null,
   );
 
+  /// Send a server-stored `FAILED` outbound message again.
+  ///
+  /// Only for a message the server already holds — nothing is re-uploaded and
+  /// no new attachment row is created, unlike a local resend. The claim is
+  /// atomic on the server: a message that is not waiting to be retried
+  /// (already succeeded, or a concurrent retry got there first) answers `409`
+  /// rather than sending twice — callers should treat that as "already
+  /// resolved," not as a failure to report.
+  Future<Message> retryMessage(int conversationId, int messageId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/messages/$messageId/retry/',
+    );
+    return Message.fromJson(data);
+  }
+
   // ------------------------------------------------------------ intelligence
   /// The current advisory read. Legitimately `null` before the analyzer has
   /// run — not an error and not a zero score.

@@ -20,8 +20,6 @@ import '../../features/messages/conversation_controller.dart';
 import '../../features/messages/intelligence_providers.dart';
 import '../../features/messages/notes_controller.dart';
 import '../../features/notifications/notifications_controller.dart';
-import '../api/api_exception.dart';
-import '../models/conversation.dart';
 import '../models/message.dart';
 import '../providers.dart';
 import 'realtime_client.dart';
@@ -160,8 +158,8 @@ final activeConversationProvider = NotifierProvider<ActiveConversation, int?>(
   ActiveConversation.new,
 );
 
-/// One-shot signal: a `conversation.access_changed` event resolved to "access
-/// lost" (a 404 on refetch) for the conversation currently on screen.
+/// One-shot signal: a `conversation.access_revoked` event for the
+/// conversation currently on screen.
 ///
 /// `conversation.<id>` group membership is granted at subscribe time with no
 /// server-side eviction, so losing access is cooperative — the client has to
@@ -310,6 +308,16 @@ final realtimeEventProvider = StreamProvider<RealtimeEvent>((ref) {
   });
 });
 
+/// Test-only entry point for [_apply] — drives the real event-routing switch
+/// (invalidations, refetches, access-revocation) without needing a live
+/// WebSocket connection or widget tree.
+@visibleForTesting
+void applyRealtimeEventForTesting(
+  Ref ref,
+  RealtimeEvent event, {
+  String? traceId,
+}) => _apply(ref, event, traceId: traceId);
+
 void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
   final effectiveTraceId =
       traceId ??
@@ -408,6 +416,18 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
           );
         }
 
+      // Delivery status (ticks, read receipts) or a media attachment
+      // finishing/failing to download — see RealtimeEvents.messageUpdated for
+      // the two payload shapes. Unlike every other event, this one patches
+      // the message(s) it names directly instead of refetching: delivery
+      // status is per-message and self-contained, so there is nothing a
+      // refetch would reconcile that the payload does not already say. The
+      // payload carries no reliable conversation_id, so this applies to
+      // whichever conversation is currently open — applyDeliveryUpdate /
+      // upsertRealtimeMessage below are no-ops if it isn't the right one.
+      case RealtimeEvents.messageUpdated:
+        _handleMessageUpdated(ref, event, traceId: effectiveTraceId);
+
       // The internal-notes sheet has its own provider — invalidate it
       // unconditionally (cheap even when nobody is watching it right now),
       // matching how intelligenceUpdated below handles its own provider.
@@ -440,9 +460,9 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
       // signal that "you may no longer watch this thread" ever arrives on —
       // ignoring it would leave a stale subscription receiving events for a
       // conversation this employee has lost access to.
-      case RealtimeEvents.accessChanged:
+      case RealtimeEvents.accessRevoked:
         if (conversationId != null) {
-          _checkAccess(ref, conversationId, traceId: effectiveTraceId);
+          _handleAccessRevoked(ref, conversationId, traceId: effectiveTraceId);
         }
 
       case RealtimeEvents.notificationCreated:
@@ -545,57 +565,82 @@ void _refreshConversation(
   controller.refreshFromServer(triggerTraceId: traceId);
 }
 
-/// `conversation.access_changed` carries no content — it means "re-check that
-/// you still may watch this thread". A 404 on refetch means access was lost:
-/// unsubscribe so the socket stops delivering this conversation's events,
-/// refresh the inbox so the row disappears from it, and — if this is the
-/// conversation currently on screen — signal it to pop.
+/// `message.updated` carries no reliable `conversation_id` (see the realtime
+/// contract), so this always targets whichever conversation is currently
+/// open — [ConversationController.applyDeliveryUpdate] and
+/// [ConversationController.refreshFromServer] both no-op harmlessly if the
+/// message(s) named turn out to belong to a different, inactive conversation.
 ///
-/// A resource in another organization also answers 404 rather than 403 (so a
-/// 403 would confirm the row exists), which is exactly the ambiguity this
-/// event exists to resolve cooperatively rather than the client guessing.
-void _checkAccess(Ref ref, int conversationId, {String? traceId}) {
-  Future<void> run() async {
-    final Conversation conversation;
-    try {
-      conversation = await ref
-          .read(conversationRepositoryProvider)
-          .detail(conversationId);
-    } on ApiException catch (error) {
-      if (!error.isNotFound) return;
+/// Two payload shapes share this event name:
+/// * delivery-status: `reason: "delivery_status"`, `messages: [{id,
+///   delivery_status, delivery_error, delivered_at, read_at}, ...]` — patched
+///   directly, since the payload already carries everything a refetch would
+///   return for those fields.
+/// * media: `message_id` only (an attachment finished or failed
+///   downloading) — no per-field data to patch, so this refetches the open
+///   conversation instead.
+void _handleMessageUpdated(Ref ref, RealtimeEvent event, {String? traceId}) {
+  final active = ref.read(activeConversationProvider);
+  if (active == null) return;
 
-      RealtimeLogger.log(
-        'BRIDGE',
-        'ACCESS_REVOKED',
-        traceId: traceId,
-        conversationId: conversationId.toString(),
-      );
+  final payload = event.payload;
+  if (payload['reason'] == 'delivery_status') {
+    final rawMessages = payload['messages'];
+    final updates = rawMessages is List
+        ? rawMessages.whereType<Map>().map(Map<String, dynamic>.from).toList()
+        : const <Map<String, dynamic>>[];
+    if (updates.isEmpty) return;
 
-      ref.read(realtimeClientProvider).unsubscribe(conversationId);
-      ref.read(inboxControllerProvider.notifier).refreshQuietly();
-
-      final active = ref.read(activeConversationProvider);
-      if (active == conversationId) {
-        ref.read(revokedConversationProvider.notifier).revoke(conversationId);
-      }
-      return;
-    }
-
-    // Access is still granted, but this event most often means a
-    // reassignment (it is published alongside `conversation.assigned`,
-    // which already handles its own inbox refresh — see that case above).
-    // The one thing unique to this branch is the conversation object itself,
-    // which refreshFromServer() does not cover; apply the read already in
-    // hand rather than triggering a second, message-only fetch for it.
-    final active = ref.read(activeConversationProvider);
-    if (active == conversationId) {
-      ref
-          .read(conversationControllerProvider(conversationId).notifier)
-          .updateConversation(conversation);
-    }
+    RealtimeLogger.log(
+      'BRIDGE',
+      'MESSAGE_DELIVERY_UPDATE',
+      traceId: traceId,
+      socketId: event.socketId,
+      conversationId: active.toString(),
+      data: {'messageCount': updates.length},
+    );
+    ref
+        .read(conversationControllerProvider(active).notifier)
+        .applyDeliveryUpdate(updates);
+    return;
   }
 
-  run();
+  // Media form: an attachment finished or failed downloading. Nothing in the
+  // payload to patch with, so refetch the open conversation.
+  RealtimeLogger.log(
+    'BRIDGE',
+    'MESSAGE_MEDIA_UPDATE',
+    traceId: traceId,
+    socketId: event.socketId,
+    conversationId: active.toString(),
+    messageId: event.messageId?.toString(),
+  );
+  ref
+      .read(conversationControllerProvider(active).notifier)
+      .refreshFromServer(triggerTraceId: traceId);
+}
+
+/// `conversation.access_revoked` means access is already gone — unlike a
+/// reassignment (`conversation.assigned`, handled separately above), there is
+/// nothing to re-check by refetching: unsubscribe so the socket stops
+/// delivering this conversation's events, refresh the inbox so the row
+/// disappears from it, and — if this is the conversation currently on
+/// screen — signal it to pop.
+void _handleAccessRevoked(Ref ref, int conversationId, {String? traceId}) {
+  RealtimeLogger.log(
+    'BRIDGE',
+    'ACCESS_REVOKED',
+    traceId: traceId,
+    conversationId: conversationId.toString(),
+  );
+
+  ref.read(realtimeClientProvider).unsubscribe(conversationId);
+  ref.read(inboxControllerProvider.notifier).refreshQuietly();
+
+  final active = ref.read(activeConversationProvider);
+  if (active == conversationId) {
+    ref.read(revokedConversationProvider.notifier).revoke(conversationId);
+  }
 }
 
 Message? _tryExtractMessage(RealtimeEvent event) {

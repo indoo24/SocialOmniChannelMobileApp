@@ -215,11 +215,21 @@ class RealtimeEvents {
   const RealtimeEvents._();
   static const messageCreated = 'message.created';
   static const messageDeleted = 'message.deleted';
+
+  /// Two payload shapes share this event name (see the realtime contract):
+  /// a delivery-status update — `reason: "delivery_status"`, `message_ids`,
+  /// `messages: [{id, delivery_status, delivery_error, delivered_at,
+  /// read_at}]`, `last_message_id` — and a media-ready/failed update, which
+  /// carries only `message_id`. The bridge tells them apart by payload shape.
+  static const messageUpdated = 'message.updated';
   static const conversationCreated = 'conversation.created';
   static const conversationUpdated = 'conversation.updated';
   static const conversationAssigned = 'conversation.assigned';
   static const conversationStatusChanged = 'conversation.status_changed';
-  static const accessChanged = 'conversation.access_changed';
+  // The backend sends this — not `conversation.access_changed`, which the
+  // realtime contract documents as never forwarded to clients despite an
+  // earlier version of this client listening for it.
+  static const accessRevoked = 'conversation.access_revoked';
   static const noteCreated = 'note.created';
   static const intelligenceUpdated = 'intelligence.updated';
   static const presenceChanged = 'presence.changed';
@@ -229,22 +239,46 @@ class RealtimeEvents {
 
 enum RealtimeStatus { disconnected, connecting, connected }
 
+/// Close codes the backend sends for an authentication failure at connect
+/// time (see the realtime contract): `4401` unauthenticated, `4403`
+/// deactivated or without an organization. Both mean "this session is dead,"
+/// not "the network hiccupped," so they get routed to [RealtimeClient.onUnauthorized]
+/// instead of the ordinary backoff-and-retry loop.
+const _closeCodeUnauthenticated = 4401;
+const _closeCodeForbidden = 4403;
+
 class RealtimeClient {
   RealtimeClient({
     required CookieJar cookieJar,
     Environment? environment,
     WebSocketConnectFn? connect,
+    void Function()? onUnauthorized,
   }) : this._(
          cookieJar,
          environment ?? Environment.current,
          connect ?? _defaultConnect,
+         onUnauthorized,
        );
 
-  RealtimeClient._(this._cookieJar, this._environment, this._connectFn);
+  RealtimeClient._(
+    this._cookieJar,
+    this._environment,
+    this._connectFn,
+    this._onUnauthorized,
+  );
 
   final CookieJar _cookieJar;
   final Environment _environment;
   final WebSocketConnectFn _connectFn;
+
+  /// Fired when the socket closes with 4401 or 4403 — the session that
+  /// authenticated it is dead or the employee lost access, not a transient
+  /// network failure. Reconnecting on the same schedule as a dropped Wi-Fi
+  /// signal would just replay a rejected credential every 30s until the
+  /// [maxConsecutiveFailures] cap silently gave up; this instead tells the
+  /// caller once, immediately, so it can clear the session the same way a
+  /// REST 401/403 does.
+  final void Function()? _onUnauthorized;
 
   static int _socketCounter = 1;
   String? _currentSocketId;
@@ -380,13 +414,9 @@ class RealtimeClient {
         RealtimeLogger.log(
           'REALTIME',
           'CONNECT_FAILED',
-          data: {
-            'socketId': socketId,
-            'error': e.toString(),
-            'httpStatus': 403,
-          },
+          data: {'socketId': socketId, 'error': e.toString()},
         );
-        _scheduleReconnect();
+        _handleDisconnect(socketId, channel, reason: 'Handshake failed');
         return;
       }
 
@@ -398,7 +428,7 @@ class RealtimeClient {
             'CONNECT_FAILED',
             data: {'socketId': socketId, 'error': err.toString()},
           );
-          _scheduleReconnect();
+          _handleDisconnect(socketId, channel, reason: 'Stream error');
         },
         onDone: () {
           RealtimeLogger.log(
@@ -406,12 +436,7 @@ class RealtimeClient {
             'LISTENER_DETACHED',
             data: {'socketId': socketId, 'reason': 'Stream done'},
           );
-          RealtimeLogger.log(
-            'REALTIME',
-            'DISCONNECT',
-            data: {'socketId': socketId, 'reason': 'Stream done'},
-          );
-          _scheduleReconnect();
+          _handleDisconnect(socketId, channel, reason: 'Stream done');
         },
         cancelOnError: false,
       );
@@ -647,6 +672,59 @@ class RealtimeClient {
       heartbeatInterval,
       (_) => _send({'action': 'ping'}),
     );
+  }
+
+  /// Routes a closed/failed socket to either the unauthorized callback or the
+  /// ordinary reconnect loop, depending on why it closed.
+  ///
+  /// `4401`/`4403` mean the session behind this socket is already dead — the
+  /// same condition a REST call reports as 401 or 403 `not_authenticated`.
+  /// Reconnecting on the usual schedule would just replay that same dead
+  /// cookie every 30s until [maxConsecutiveFailures] silently gave up several
+  /// minutes later; calling [_onUnauthorized] instead reports it immediately,
+  /// once, so the caller can clear the session the way it already does for a
+  /// REST 401/403.
+  void _handleDisconnect(
+    String socketId,
+    WebSocketChannel channel, {
+    required String reason,
+  }) {
+    // Reading closeCode is best-effort: on some failure paths (a handshake
+    // that never reached an HTTP response, an unusual channel
+    // implementation) it can throw rather than simply be null. Either way
+    // that just means "unknown," which routes to the ordinary reconnect path
+    // below — the same place a null code already goes.
+    int? closeCode;
+    try {
+      closeCode = channel.closeCode;
+    } on Object {
+      closeCode = null;
+    }
+    if (closeCode == _closeCodeUnauthenticated ||
+        closeCode == _closeCodeForbidden) {
+      RealtimeLogger.log(
+        'REALTIME',
+        'DISCONNECT',
+        data: {'socketId': socketId, 'reason': reason, 'closeCode': closeCode},
+      );
+      _heartbeatTimer?.cancel();
+      _subscription?.cancel();
+      _subscription = null;
+      _channel = null;
+      _intentionallyClosed = true;
+      _reconnectTimer?.cancel();
+      _reconnectTimer = null;
+      _setStatus(RealtimeStatus.disconnected);
+      _onUnauthorized?.call();
+      return;
+    }
+
+    RealtimeLogger.log(
+      'REALTIME',
+      'DISCONNECT',
+      data: {'socketId': socketId, 'reason': reason},
+    );
+    _scheduleReconnect();
   }
 
   void _scheduleReconnect() {

@@ -258,9 +258,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       }
     });
 
-    // A realtime `conversation.access_changed` event resolved to "access
-    // lost" for this conversation — leave rather than keep showing a thread
-    // this employee can no longer see.
+    // A realtime `conversation.access_revoked` event for this conversation —
+    // leave rather than keep showing a thread this employee can no longer see.
     ref.listen<int?>(revokedConversationProvider, (previous, next) {
       if (next != widget.conversationId) return;
       final navigator = Navigator.of(context);
@@ -983,16 +982,7 @@ class _MessageList extends ConsumerWidget {
               else if (entry.message != null)
                 MessageBubble(
                   message: entry.message!,
-                  onRetry:
-                      entry.message!.hasFailed && entry.message!.localId != null
-                      ? () => ref
-                            .read(
-                              conversationControllerProvider(
-                                conversationId,
-                              ).notifier,
-                            )
-                            .retry(entry.message!.localId!)
-                      : null,
+                  onRetry: _retryHandlerFor(ref, conversationId, entry.message!),
                   onDiscard:
                       entry.message!.hasFailed && entry.message!.localId != null
                       ? () => ref
@@ -1146,6 +1136,32 @@ class _InternalNoteTimelineCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Picks which retry a failed bubble's button should perform.
+///
+/// A message that never reached the server ([Message.hasFailed], identified
+/// by [Message.localId]) resends through the local send path — the same one
+/// [Message.pending] used originally, since nothing server-side has any
+/// record of it yet. A message the server accepted and later marked `FAILED`
+/// ([Message.isDeliveryFailure] with a real server [Message.id]) instead
+/// calls the dedicated retry endpoint, which claims that stored row
+/// atomically rather than sending a fresh `reply()`.
+VoidCallback? _retryHandlerFor(
+  WidgetRef ref,
+  int conversationId,
+  Message message,
+) {
+  ConversationController controller() =>
+      ref.read(conversationControllerProvider(conversationId).notifier);
+
+  if (message.hasFailed && message.localId != null) {
+    return () => controller().retry(message.localId!);
+  }
+  if (message.isDeliveryFailure && !message.hasFailed && message.id >= 0) {
+    return () => controller().retryStoredMessage(message.id);
+  }
+  return null;
 }
 
 /// Confirms, then soft-deletes a message. ADMIN/SUPERVISOR only.
