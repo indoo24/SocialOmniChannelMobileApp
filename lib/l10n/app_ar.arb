@@ -778,5 +778,10 @@
   "deliveryErrorTiktokUnavailable": "واجه TikTok مشكلة مؤقتة. لم تُرسَل الرسالة؛ حاول مرة أخرى.",
   "deliveryErrorTiktokMediaRejected": "تعذّر على TikTok قبول هذا الملف.",
   "deliveryErrorTiktokUnknownError": "رفض TikTok هذه الرسالة. لم تُرسَل.",
-  "deliveryErrorTiktokNotReady": "ربط TikTok هذا غير جاهز لإرسال الرسائل. اطلب من المسؤول مراجعته."
+  "deliveryErrorTiktokNotReady": "ربط TikTok هذا غير جاهز لإرسال الرسائل. اطلب من المسؤول مراجعته.",
+  "deliveryErrorTiktokNoCustomerMessage": "يسمح TikTok للنشاط التجاري بمراسلة العميل فقط بعد أن يبدأ هو بالكتابة. لم تُرسَل الرسالة.",
+  "tiktokLimitReachedNotice": "تم الوصول إلى حد الردود الذي يسمح به TikTok لهذه المحادثة.",
+  "tiktokLimitReachedDetail": "يمكنك الإرسال مجددًا بمجرد أن يرد العميل.",
+  "tiktokNoCustomerMessageNotice": "يسمح TikTok للنشاط التجاري بمراسلة العميل فقط بعد أن يبدأ هو بالكتابة.",
+  "tiktokMessagesRemaining": "يسمح TikTok بـ {count} رسائل إضافية حتى يرد العميل."
 }

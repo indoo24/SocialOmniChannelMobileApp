@@ -1368,5 +1368,11 @@
   "deliveryErrorTiktokUnavailable": "TikTok had a temporary problem. The message was not sent; try again.",
   "deliveryErrorTiktokMediaRejected": "TikTok could not accept this file.",
   "deliveryErrorTiktokUnknownError": "TikTok refused this message. It was not sent.",
-  "deliveryErrorTiktokNotReady": "This TikTok connection is not ready to send messages. Ask an administrator to check it."
+  "deliveryErrorTiktokNotReady": "This TikTok connection is not ready to send messages. Ask an administrator to check it.",
+  "deliveryErrorTiktokNoCustomerMessage": "TikTok only lets a business message a customer who has written first. The message was not sent.",
+  "tiktokLimitReachedNotice": "TikTok’s reply limit for this conversation has been reached.",
+  "tiktokLimitReachedDetail": "You can send again as soon as the customer writes back.",
+  "tiktokNoCustomerMessageNotice": "TikTok only lets a business message a customer who has written first.",
+  "tiktokMessagesRemaining": "TikTok allows {count} more messages until the customer replies.",
+  "@tiktokMessagesRemaining": {"placeholders": {"count": {"type": "int"}}}
 }

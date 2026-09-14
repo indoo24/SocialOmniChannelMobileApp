@@ -1443,6 +1443,8 @@ class _ComposerState extends ConsumerState<_Composer> {
         : widget.isWhatsApp;
     final isConversationClosed = convo?.isClosed ?? false;
     final isMessagingWindowClosed = convo?.isMessagingWindowClosed ?? false;
+    final messagingPolicy = convo?.messagingPolicy;
+    final outboundMedia = convo?.outboundMedia ?? true;
 
     // Web useEffect equivalence:
     // y && t === "reply" && u && n("template")
@@ -1546,6 +1548,8 @@ class _ComposerState extends ConsumerState<_Composer> {
             if (currentMode == _ComposerMode.reply) ...[
               if (isConversationClosed)
                 const _ConversationClosedNotice()
+              else if (messagingPolicy != null && !messagingPolicy.allowed)
+                _MessagingLimitNotice(policy: messagingPolicy)
               else if (isMessagingWindowClosed)
                 _WhatsAppWindowClosedCallout(
                   customerName: convo?.customer.displayName ?? '',
@@ -1555,6 +1559,21 @@ class _ComposerState extends ConsumerState<_Composer> {
                   },
                 )
               else ...[
+                if (messagingPolicy != null &&
+                    messagingPolicy.state != 'active' &&
+                    messagingPolicy.remainingCount != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: Space.xs),
+                    child: Text(
+                      context.l10n.tiktokMessagesRemaining(
+                        messagingPolicy.remainingCount!,
+                      ),
+                      key: const Key('tiktokMessagesRemaining'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                 if (_stagedImage != null)
                   Align(
                     alignment: AlignmentDirectional.centerStart,
@@ -1579,13 +1598,16 @@ class _ComposerState extends ConsumerState<_Composer> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // Attachment button on the far left
-                      ComposerAttachmentButton(
-                        conversationId: widget.conversationId,
-                        enabled: !widget.sending,
-                        onStaged: _onImageStaged,
-                        onError: _showMessage,
-                      ),
+                      // Attachment button on the far left, only where the
+                      // platform accepts files, so it never offers a send
+                      // that is certain to fail.
+                      if (outboundMedia)
+                        ComposerAttachmentButton(
+                          conversationId: widget.conversationId,
+                          enabled: !widget.sending,
+                          onStaged: _onImageStaged,
+                          onError: _showMessage,
+                        ),
                       // Saved replies: inserts text for the agent to edit,
                       // never sends. Only in this row, which exists only while
                       // an ordinary reply can reach the customer — past
@@ -1622,16 +1644,19 @@ class _ComposerState extends ConsumerState<_Composer> {
                       ),
                       const SizedBox(width: Space.xs),
                       // Microphone button immediately before Send
-                      ComposerVoiceRecorder(
-                        key: _voiceRecorderKey,
-                        conversationId: widget.conversationId,
-                        enabled: !widget.sending,
-                        onStaged: _onVoiceStaged,
-                        onError: _showMessage,
-                        onRecordingChanged: (recording) {
-                          if (mounted) setState(() => _isRecording = recording);
-                        },
-                      ),
+                      if (outboundMedia)
+                        ComposerVoiceRecorder(
+                          key: _voiceRecorderKey,
+                          conversationId: widget.conversationId,
+                          enabled: !widget.sending,
+                          onStaged: _onVoiceStaged,
+                          onError: _showMessage,
+                          onRecordingChanged: (recording) {
+                            if (mounted) {
+                              setState(() => _isRecording = recording);
+                            }
+                          },
+                        ),
                       const SizedBox(width: Space.xs),
                       // Send button fixed at far right
                       SizedBox(
@@ -2152,6 +2177,56 @@ class _WhatsAppWindowClosedCallout extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// TikTok will not accept another message here right now, and why.
+///
+/// Replaces the input row, as the closed-conversation notice does: an agent is
+/// not invited to type what the server will refuse. The words say what reopens
+/// the conversation (the customer writing) rather than "wait".
+class _MessagingLimitNotice extends StatelessWidget {
+  const _MessagingLimitNotice({required this.policy});
+
+  final MessagingPolicy policy;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final noCustomer = policy.reason == 'tiktok_no_customer_message';
+
+    return Container(
+      key: const Key('tiktokMessagingLimitNotice'),
+      margin: const EdgeInsets.symmetric(vertical: Space.xs),
+      padding: const EdgeInsets.all(Space.md),
+      decoration: BoxDecoration(
+        color: ScenarioColors.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(Radii.md),
+        border: Border.all(
+          color: ScenarioColors.warning.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            noCustomer
+                ? context.l10n.tiktokNoCustomerMessageNotice
+                : context.l10n.tiktokLimitReachedNotice,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (!noCustomer) ...[
+            const SizedBox(height: 2),
+            Text(
+              context.l10n.tiktokLimitReachedDetail,
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
         ],
       ),
     );

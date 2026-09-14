@@ -266,6 +266,7 @@ String deliveryErrorText(AppLocalizations l10n, Message message) {
     'tiktok_media_rejected' => l10n.deliveryErrorTiktokMediaRejected,
     'tiktok_unknown_error' => l10n.deliveryErrorTiktokUnknownError,
     'tiktok_not_ready' => l10n.deliveryErrorTiktokNotReady,
+    'tiktok_no_customer_message' => l10n.deliveryErrorTiktokNoCustomerMessage,
     _ => null,
   };
   if (translated != null) return translated;

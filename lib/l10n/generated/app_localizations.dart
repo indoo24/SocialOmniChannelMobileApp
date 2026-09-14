@@ -4536,6 +4536,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This TikTok connection is not ready to send messages. Ask an administrator to check it.'**
   String get deliveryErrorTiktokNotReady;
+
+  /// No description provided for @deliveryErrorTiktokNoCustomerMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok only lets a business message a customer who has written first. The message was not sent.'**
+  String get deliveryErrorTiktokNoCustomerMessage;
+
+  /// No description provided for @tiktokLimitReachedNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok’s reply limit for this conversation has been reached.'**
+  String get tiktokLimitReachedNotice;
+
+  /// No description provided for @tiktokLimitReachedDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'You can send again as soon as the customer writes back.'**
+  String get tiktokLimitReachedDetail;
+
+  /// No description provided for @tiktokNoCustomerMessageNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok only lets a business message a customer who has written first.'**
+  String get tiktokNoCustomerMessageNotice;
+
+  /// No description provided for @tiktokMessagesRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok allows {count} more messages until the customer replies.'**
+  String tiktokMessagesRemaining(int count);
 }
 
 class _AppLocalizationsDelegate

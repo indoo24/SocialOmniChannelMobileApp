@@ -2513,4 +2513,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deliveryErrorTiktokNotReady =>
       'This TikTok connection is not ready to send messages. Ask an administrator to check it.';
+
+  @override
+  String get deliveryErrorTiktokNoCustomerMessage =>
+      'TikTok only lets a business message a customer who has written first. The message was not sent.';
+
+  @override
+  String get tiktokLimitReachedNotice =>
+      'TikTok’s reply limit for this conversation has been reached.';
+
+  @override
+  String get tiktokLimitReachedDetail =>
+      'You can send again as soon as the customer writes back.';
+
+  @override
+  String get tiktokNoCustomerMessageNotice =>
+      'TikTok only lets a business message a customer who has written first.';
+
+  @override
+  String tiktokMessagesRemaining(int count) {
+    return 'TikTok allows $count more messages until the customer replies.';
+  }
 }

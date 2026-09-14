@@ -2536,4 +2536,25 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get deliveryErrorTiktokNotReady =>
       'ربط TikTok هذا غير جاهز لإرسال الرسائل. اطلب من المسؤول مراجعته.';
+
+  @override
+  String get deliveryErrorTiktokNoCustomerMessage =>
+      'يسمح TikTok للنشاط التجاري بمراسلة العميل فقط بعد أن يبدأ هو بالكتابة. لم تُرسَل الرسالة.';
+
+  @override
+  String get tiktokLimitReachedNotice =>
+      'تم الوصول إلى حد الردود الذي يسمح به TikTok لهذه المحادثة.';
+
+  @override
+  String get tiktokLimitReachedDetail =>
+      'يمكنك الإرسال مجددًا بمجرد أن يرد العميل.';
+
+  @override
+  String get tiktokNoCustomerMessageNotice =>
+      'يسمح TikTok للنشاط التجاري بمراسلة العميل فقط بعد أن يبدأ هو بالكتابة.';
+
+  @override
+  String tiktokMessagesRemaining(int count) {
+    return 'يسمح TikTok بـ $count رسائل إضافية حتى يرد العميل.';
+  }
 }

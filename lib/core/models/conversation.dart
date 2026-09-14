@@ -106,6 +106,41 @@ class IntelligenceBrief {
       );
 }
 
+/// How many more messages a platform will accept in one conversation.
+///
+/// TikTok only. The server computes it from the conversation's history with
+/// the same engine that refuses a send, so the composer can say no first.
+class MessagingPolicy {
+  const MessagingPolicy({
+    required this.state,
+    required this.allowed,
+    this.remainingCount,
+    this.windowExpiresAt,
+    this.reason = '',
+  });
+
+  /// `no_customer_message` | `initial` | `active` | `inactive`.
+  final String state;
+  final bool allowed;
+
+  /// Null when the platform sets no cap.
+  final int? remainingCount;
+  final DateTime? windowExpiresAt;
+  final String reason;
+
+  static MessagingPolicy? fromJson(Object? json) {
+    if (json is! Map<String, dynamic>) return null;
+    return MessagingPolicy(
+      state: JsonSafe.asString(json['state']),
+      // A malformed answer must not unlock a composer the server would refuse.
+      allowed: JsonSafe.asBool(json['allowed']),
+      remainingCount: JsonSafe.asIntOrNull(json['remaining_count']),
+      windowExpiresAt: _parseDate(json['window_expires_at']),
+      reason: JsonSafe.asString(json['reason']),
+    );
+  }
+}
+
 class Conversation {
   const Conversation({
     required this.id,
@@ -130,6 +165,8 @@ class Conversation {
     this.followUpDate,
     this.followUpMarkedAt,
     this.followUpMarkedByName = '',
+    this.messagingPolicy,
+    this.outboundMedia = true,
   });
 
   final int id;
@@ -154,6 +191,14 @@ class Conversation {
   final DateTime? followUpDate;
   final DateTime? followUpMarkedAt;
   final String followUpMarkedByName;
+
+  /// TikTok's messaging allowance; null on every other channel and on list rows.
+  final MessagingPolicy? messagingPolicy;
+
+  /// Whether the platform accepts files from an agent. From the detail's
+  /// `media_capabilities`; a row without it keeps the old behaviour, except
+  /// TikTok, which accepts no outbound media.
+  final bool outboundMedia;
 
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
     id: JsonSafe.asInt(json['id'], fallback: -1),
@@ -186,7 +231,17 @@ class Conversation {
     followUpDate: _parseDate(json['follow_up_date']),
     followUpMarkedAt: _parseDate(json['follow_up_marked_at']),
     followUpMarkedByName: JsonSafe.asString(json['follow_up_marked_by_name']),
+    messagingPolicy: MessagingPolicy.fromJson(json['messaging_policy']),
+    outboundMedia: json['media_capabilities'] is Map
+        ? JsonSafe.asBool(
+            JsonSafe.asMap(json['media_capabilities'])['outbound_media'],
+          )
+        : JsonSafe.asString(json['provider']).toUpperCase() != 'TIKTOK',
   );
+
+  /// True when the platform's own limits refuse another message right now.
+  bool get isMessagingLimited =>
+      messagingPolicy != null && !messagingPolicy!.allowed;
 
   bool get isUnassigned => assignedTo == null;
   bool get hasUnread => unreadCount > 0;
@@ -253,6 +308,8 @@ class Conversation {
         : (followUpDate ?? this.followUpDate),
     followUpMarkedAt: followUpMarkedAt ?? this.followUpMarkedAt,
     followUpMarkedByName: followUpMarkedByName ?? this.followUpMarkedByName,
+    messagingPolicy: messagingPolicy,
+    outboundMedia: outboundMedia,
   );
 }
 
