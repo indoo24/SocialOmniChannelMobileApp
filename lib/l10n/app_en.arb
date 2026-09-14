@@ -1374,5 +1374,14 @@
   "tiktokLimitReachedDetail": "You can send again as soon as the customer writes back.",
   "tiktokNoCustomerMessageNotice": "TikTok only lets a business message a customer who has written first.",
   "tiktokMessagesRemaining": "TikTok allows {count} more messages until the customer replies.",
-  "@tiktokMessagesRemaining": {"placeholders": {"count": {"type": "int"}}}
+  "@tiktokMessagesRemaining": {"placeholders": {"count": {"type": "int"}}},
+  "tiktokRegionNotice": "TikTok Business Messaging is available for all Business Accounts except those signed up in the US, the European Economic Area, Switzerland and the UK. Personal accounts cannot be connected.",
+  "tiktokReadinessNotChecked": "Not verified. Reconnect this account to check that TikTok allows Business Messaging for it.",
+  "tiktokReadinessUnknown": "Connected, but TikTok could not confirm Business Messaging yet. Reconnect later to check again.",
+  "tiktokReadinessMissingScopes": "TikTok did not grant every permission Business Messaging needs. Reconnect and approve all of them.",
+  "tiktokReadinessNotEligible": "TikTok does not allow Business Messaging for this account. Accounts signed up in the US, the EEA, Switzerland or the UK may not be eligible.",
+  "tiktokReadinessPermissionDenied": "TikTok refused Business Messaging for this account. Check that it is a Business Account.",
+  "tiktokReadinessTokenInvalid": "TikTok no longer accepts this authorization. Reconnect TikTok.",
+  "tiktokReadinessReference": "TikTok reference: {reference}",
+  "@tiktokReadinessReference": {"placeholders": {"reference": {"type": "String"}}}
 }

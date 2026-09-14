@@ -2557,4 +2557,37 @@ class AppLocalizationsAr extends AppLocalizations {
   String tiktokMessagesRemaining(int count) {
     return 'يسمح TikTok بـ $count رسائل إضافية حتى يرد العميل.';
   }
+
+  @override
+  String get tiktokRegionNotice =>
+      'تتوفر رسائل الأعمال على TikTok لجميع حسابات الأعمال باستثناء الحسابات المسجلة في الولايات المتحدة والمنطقة الاقتصادية الأوروبية وسويسرا والمملكة المتحدة. لا يمكن ربط الحسابات الشخصية.';
+
+  @override
+  String get tiktokReadinessNotChecked =>
+      'لم يتم التحقق. أعد ربط هذا الحساب للتأكد من أن TikTok يسمح له برسائل الأعمال.';
+
+  @override
+  String get tiktokReadinessUnknown =>
+      'تم الربط، لكن TikTok لم يؤكد رسائل الأعمال بعد. أعد الربط لاحقًا للتحقق مجددًا.';
+
+  @override
+  String get tiktokReadinessMissingScopes =>
+      'لم يمنح TikTok كل الصلاحيات التي تحتاجها رسائل الأعمال. أعد الربط ووافق عليها جميعًا.';
+
+  @override
+  String get tiktokReadinessNotEligible =>
+      'لا يسمح TikTok برسائل الأعمال لهذا الحساب. قد لا تكون الحسابات المسجلة في الولايات المتحدة أو المنطقة الاقتصادية الأوروبية أو سويسرا أو المملكة المتحدة مؤهلة.';
+
+  @override
+  String get tiktokReadinessPermissionDenied =>
+      'رفض TikTok رسائل الأعمال لهذا الحساب. تأكد من أنه حساب أعمال.';
+
+  @override
+  String get tiktokReadinessTokenInvalid =>
+      'لم يعد TikTok يقبل هذا التفويض. أعد ربط TikTok.';
+
+  @override
+  String tiktokReadinessReference(String reference) {
+    return 'مرجع TikTok: $reference';
+  }
 }

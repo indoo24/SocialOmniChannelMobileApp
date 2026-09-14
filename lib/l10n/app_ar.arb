@@ -783,5 +783,13 @@
   "tiktokLimitReachedNotice": "تم الوصول إلى حد الردود الذي يسمح به TikTok لهذه المحادثة.",
   "tiktokLimitReachedDetail": "يمكنك الإرسال مجددًا بمجرد أن يرد العميل.",
   "tiktokNoCustomerMessageNotice": "يسمح TikTok للنشاط التجاري بمراسلة العميل فقط بعد أن يبدأ هو بالكتابة.",
-  "tiktokMessagesRemaining": "يسمح TikTok بـ {count} رسائل إضافية حتى يرد العميل."
+  "tiktokMessagesRemaining": "يسمح TikTok بـ {count} رسائل إضافية حتى يرد العميل.",
+  "tiktokRegionNotice": "تتوفر رسائل الأعمال على TikTok لجميع حسابات الأعمال باستثناء الحسابات المسجلة في الولايات المتحدة والمنطقة الاقتصادية الأوروبية وسويسرا والمملكة المتحدة. لا يمكن ربط الحسابات الشخصية.",
+  "tiktokReadinessNotChecked": "لم يتم التحقق. أعد ربط هذا الحساب للتأكد من أن TikTok يسمح له برسائل الأعمال.",
+  "tiktokReadinessUnknown": "تم الربط، لكن TikTok لم يؤكد رسائل الأعمال بعد. أعد الربط لاحقًا للتحقق مجددًا.",
+  "tiktokReadinessMissingScopes": "لم يمنح TikTok كل الصلاحيات التي تحتاجها رسائل الأعمال. أعد الربط ووافق عليها جميعًا.",
+  "tiktokReadinessNotEligible": "لا يسمح TikTok برسائل الأعمال لهذا الحساب. قد لا تكون الحسابات المسجلة في الولايات المتحدة أو المنطقة الاقتصادية الأوروبية أو سويسرا أو المملكة المتحدة مؤهلة.",
+  "tiktokReadinessPermissionDenied": "رفض TikTok رسائل الأعمال لهذا الحساب. تأكد من أنه حساب أعمال.",
+  "tiktokReadinessTokenInvalid": "لم يعد TikTok يقبل هذا التفويض. أعد ربط TikTok.",
+  "tiktokReadinessReference": "مرجع TikTok: {reference}"
 }

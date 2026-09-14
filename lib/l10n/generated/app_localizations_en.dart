@@ -2534,4 +2534,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String tiktokMessagesRemaining(int count) {
     return 'TikTok allows $count more messages until the customer replies.';
   }
+
+  @override
+  String get tiktokRegionNotice =>
+      'TikTok Business Messaging is available for all Business Accounts except those signed up in the US, the European Economic Area, Switzerland and the UK. Personal accounts cannot be connected.';
+
+  @override
+  String get tiktokReadinessNotChecked =>
+      'Not verified. Reconnect this account to check that TikTok allows Business Messaging for it.';
+
+  @override
+  String get tiktokReadinessUnknown =>
+      'Connected, but TikTok could not confirm Business Messaging yet. Reconnect later to check again.';
+
+  @override
+  String get tiktokReadinessMissingScopes =>
+      'TikTok did not grant every permission Business Messaging needs. Reconnect and approve all of them.';
+
+  @override
+  String get tiktokReadinessNotEligible =>
+      'TikTok does not allow Business Messaging for this account. Accounts signed up in the US, the EEA, Switzerland or the UK may not be eligible.';
+
+  @override
+  String get tiktokReadinessPermissionDenied =>
+      'TikTok refused Business Messaging for this account. Check that it is a Business Account.';
+
+  @override
+  String get tiktokReadinessTokenInvalid =>
+      'TikTok no longer accepts this authorization. Reconnect TikTok.';
+
+  @override
+  String tiktokReadinessReference(String reference) {
+    return 'TikTok reference: $reference';
+  }
 }

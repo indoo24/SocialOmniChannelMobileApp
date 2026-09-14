@@ -4566,6 +4566,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'TikTok allows {count} more messages until the customer replies.'**
   String tiktokMessagesRemaining(int count);
+
+  /// No description provided for @tiktokRegionNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok Business Messaging is available for all Business Accounts except those signed up in the US, the European Economic Area, Switzerland and the UK. Personal accounts cannot be connected.'**
+  String get tiktokRegionNotice;
+
+  /// No description provided for @tiktokReadinessNotChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Not verified. Reconnect this account to check that TikTok allows Business Messaging for it.'**
+  String get tiktokReadinessNotChecked;
+
+  /// No description provided for @tiktokReadinessUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected, but TikTok could not confirm Business Messaging yet. Reconnect later to check again.'**
+  String get tiktokReadinessUnknown;
+
+  /// No description provided for @tiktokReadinessMissingScopes.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok did not grant every permission Business Messaging needs. Reconnect and approve all of them.'**
+  String get tiktokReadinessMissingScopes;
+
+  /// No description provided for @tiktokReadinessNotEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok does not allow Business Messaging for this account. Accounts signed up in the US, the EEA, Switzerland or the UK may not be eligible.'**
+  String get tiktokReadinessNotEligible;
+
+  /// No description provided for @tiktokReadinessPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok refused Business Messaging for this account. Check that it is a Business Account.'**
+  String get tiktokReadinessPermissionDenied;
+
+  /// No description provided for @tiktokReadinessTokenInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok no longer accepts this authorization. Reconnect TikTok.'**
+  String get tiktokReadinessTokenInvalid;
+
+  /// No description provided for @tiktokReadinessReference.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok reference: {reference}'**
+  String tiktokReadinessReference(String reference);
 }
 
 class _AppLocalizationsDelegate

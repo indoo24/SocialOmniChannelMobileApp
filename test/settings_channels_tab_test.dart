@@ -25,6 +25,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scenario_mobile/core/api/api_client.dart';
+import 'package:scenario_mobile/core/models/directory.dart';
 import 'package:scenario_mobile/core/models/employee.dart';
 import 'package:scenario_mobile/core/providers.dart';
 import 'package:scenario_mobile/core/theme/app_theme.dart';
@@ -2871,6 +2872,76 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Connect another account'), findsNothing);
+    });
+
+    testWidgets('the pilot is told which accounts TikTok serves before connecting', (
+      tester,
+    ) async {
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter(
+        (_) => _json(_channelsPage(const []), 200),
+      );
+
+      await _pumpChannelsTab(
+        tester,
+        apiClient: client,
+        employee: withTikTok('AVAILABLE'),
+      );
+      await tester.drag(find.byType(ListView), const Offset(0, -1200));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('tiktokRegionNotice')), findsOneWidget);
+    });
+
+    testWidgets('nobody else sees the region notice', (tester) async {
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter(
+        (_) => _json(_channelsPage(const []), 200),
+      );
+
+      await _pumpChannelsTab(
+        tester,
+        apiClient: client,
+        employee: withTikTok('COMING_SOON'),
+      );
+      await tester.drag(find.byType(ListView), const Offset(0, -1200));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('tiktokRegionNotice')), findsNothing);
+    });
+
+    test('readiness keeps TikTok references and is never assumed ready', () {
+      final blocked = ChannelConnection.fromJson({
+        'id': 15,
+        'provider': 'TIKTOK',
+        'display_name': 'Acme TikTok',
+        'status': 'ERROR',
+        'tiktok_readiness': {
+          'state': 'BLOCKED',
+          'reason': 'tiktok_not_eligible',
+          'provider_code': 41000,
+          'request_id': 'req-9',
+          'log_id': '',
+          'missing_scopes': <String>[],
+        },
+      });
+      expect(blocked.tiktokReadiness?.isReady, isFalse);
+      expect(blocked.tiktokReadiness?.reference, 'code 41000 · request req-9');
+
+      final unchecked = ChannelConnection.fromJson({
+        'id': 16,
+        'provider': 'TIKTOK',
+        'display_name': 'Old',
+        'tiktok_readiness': {'state': 'UNKNOWN', 'reason': 'not_checked'},
+      });
+      expect(unchecked.tiktokReadiness?.isReady, isFalse);
+
+      final meta = ChannelConnection.fromJson({
+        'id': 17,
+        'provider': 'FACEBOOK',
+        'display_name': 'Page',
+      });
+      expect(meta.tiktokReadiness, isNull);
     });
 
     test('a missing answer never makes TikTok available', () {

@@ -1065,6 +1065,10 @@ class _PlatformGroupCardState extends ConsumerState<_PlatformGroupCard> {
           // Always accessible even when the platform is collapsed!
           if (platformAction != null) ...[
             const SizedBox(height: Space.md),
+            if (widget.provider.toUpperCase() == 'TIKTOK') ...[
+              const _TikTokRegionNotice(),
+              const SizedBox(height: Space.sm),
+            ],
             platformAction,
           ],
 
@@ -1491,6 +1495,10 @@ class _ChannelOnboardingCardState
             if (canManage) ...[
               if (primaryAction != null) ...[
                 const SizedBox(height: Space.md),
+                if (widget.provider.toUpperCase() == 'TIKTOK') ...[
+                  const _TikTokRegionNotice(),
+                  const SizedBox(height: Space.sm),
+                ],
                 primaryAction,
               ],
               if (otherWays.isNotEmpty) ...[
@@ -1860,7 +1868,11 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
             ],
           ),
 
-          if (channel.statusDetail.isNotEmpty) ...[
+          if (channel.tiktokReadiness != null &&
+              !channel.tiktokReadiness!.isReady) ...[
+            const SizedBox(height: Space.xs),
+            _TikTokReadinessNote(readiness: channel.tiktokReadiness!),
+          ] else if (channel.statusDetail.isNotEmpty) ...[
             const SizedBox(height: Space.xs),
             Text(
               channel.statusDetail,
@@ -3011,6 +3023,76 @@ class _TimezoneCardState extends ConsumerState<_TimezoneCard> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Before connecting TikTok: which accounts TikTok serves. TikTok authorizes
+/// accounts it will not serve, so this is the owner's one chance to learn it
+/// without a dead connection to show for it. Wording from TikTok's own FAQ.
+class _TikTokRegionNotice extends StatelessWidget {
+  const _TikTokRegionNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      context.l10n.tiktokRegionNotice,
+      key: const Key('tiktokRegionNotice'),
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
+/// A TikTok connection that is not confirmed ready: what is wrong, what to
+/// do, and TikTok's reference for support. Never TikTok's raw text.
+class _TikTokReadinessNote extends StatelessWidget {
+  const _TikTokReadinessNote({required this.readiness});
+
+  final TikTokReadiness readiness;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+    final blocked = readiness.state == 'BLOCKED';
+    final text = readiness.reason == 'not_checked'
+        ? l10n.tiktokReadinessNotChecked
+        : !blocked
+        ? l10n.tiktokReadinessUnknown
+        : switch (readiness.reason) {
+            'missing_scopes' => l10n.tiktokReadinessMissingScopes,
+            'tiktok_not_eligible' => l10n.tiktokReadinessNotEligible,
+            'tiktok_permission_denied' => l10n.tiktokReadinessPermissionDenied,
+            'tiktok_token_invalid' => l10n.tiktokReadinessTokenInvalid,
+            _ => l10n.tiktokReadinessUnknown,
+          };
+    final color = blocked
+        ? theme.colorScheme.error
+        : theme.colorScheme.onSurfaceVariant;
+    final reference = readiness.reference;
+
+    return Column(
+      key: const Key('tiktokReadinessNote'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(text, style: theme.textTheme.bodySmall?.copyWith(color: color)),
+        if (readiness.missingScopes.isNotEmpty)
+          Text(
+            readiness.missingScopes.join(', '),
+            style: theme.textTheme.labelSmall?.copyWith(color: color),
+          ),
+        if (reference.isNotEmpty)
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Text(
+              l10n.tiktokReadinessReference(reference),
+              style: theme.textTheme.labelSmall?.copyWith(color: color),
+            ),
+          ),
+      ],
     );
   }
 }
