@@ -791,5 +791,7 @@
   "tiktokReadinessNotEligible": "لا يسمح TikTok برسائل الأعمال لهذا الحساب. قد لا تكون الحسابات المسجلة في الولايات المتحدة أو المنطقة الاقتصادية الأوروبية أو سويسرا أو المملكة المتحدة مؤهلة.",
   "tiktokReadinessPermissionDenied": "رفض TikTok رسائل الأعمال لهذا الحساب. تأكد من أنه حساب أعمال.",
   "tiktokReadinessTokenInvalid": "لم يعد TikTok يقبل هذا التفويض. أعد ربط TikTok.",
-  "tiktokReadinessReference": "مرجع TikTok: {reference}"
+  "tiktokReadinessReference": "مرجع TikTok: {reference}",
+  "historyClaimedByReplying": "استلم {name} المحادثة بعد الرد عليها",
+  "historyClaimedOwnerRestored": "أُعيدت المحادثة إلى {name} الذي كان قد استلمها سابقًا"
 }

@@ -113,7 +113,9 @@ class _HistorySheet extends ConsumerWidget {
                       ),
                     );
                   }
-                  final reversed = events.reversed.toList(growable: false);
+                  final reversed = ConversationEvent.withoutRedundantClaims(
+                    events,
+                  ).reversed.toList(growable: false);
                   return SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) => _HistoryRow(event: reversed[index]),
@@ -165,7 +167,7 @@ class _HistoryRow extends StatelessWidget {
               const SizedBox(width: Space.xs),
               Expanded(
                 child: Text(
-                  humanizeEnum(event.eventType),
+                  _titleFor(context, event),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -201,6 +203,19 @@ class _HistoryRow extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// A claim is a person's own reply, not routing, and says so.
+  static String _titleFor(BuildContext context, ConversationEvent event) {
+    if (event.eventType == 'ASSIGNED' && event.actorName.isEmpty) {
+      if (event.mode == 'claim') {
+        return context.l10n.historyClaimedByReplying(event.targetName);
+      }
+      if (event.mode == 'claimed_owner_restored') {
+        return context.l10n.historyClaimedOwnerRestored(event.targetName);
+      }
+    }
+    return humanizeEnum(event.eventType);
   }
 
   static IconData _iconFor(String eventType) => switch (eventType) {

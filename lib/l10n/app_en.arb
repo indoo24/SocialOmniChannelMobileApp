@@ -1383,5 +1383,9 @@
   "tiktokReadinessPermissionDenied": "TikTok refused Business Messaging for this account. Check that it is a Business Account.",
   "tiktokReadinessTokenInvalid": "TikTok no longer accepts this authorization. Reconnect TikTok.",
   "tiktokReadinessReference": "TikTok reference: {reference}",
-  "@tiktokReadinessReference": {"placeholders": {"reference": {"type": "String"}}}
+  "@tiktokReadinessReference": {"placeholders": {"reference": {"type": "String"}}},
+  "historyClaimedByReplying": "{name} took this conversation by replying",
+  "@historyClaimedByReplying": {"placeholders": {"name": {"type": "String"}}},
+  "historyClaimedOwnerRestored": "Returned to {name}, who had already taken this conversation",
+  "@historyClaimedOwnerRestored": {"placeholders": {"name": {"type": "String"}}}
 }

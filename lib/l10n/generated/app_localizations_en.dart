@@ -2567,4 +2567,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String tiktokReadinessReference(String reference) {
     return 'TikTok reference: $reference';
   }
+
+  @override
+  String historyClaimedByReplying(String name) {
+    return '$name took this conversation by replying';
+  }
+
+  @override
+  String historyClaimedOwnerRestored(String name) {
+    return 'Returned to $name, who had already taken this conversation';
+  }
 }

@@ -4614,6 +4614,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'TikTok reference: {reference}'**
   String tiktokReadinessReference(String reference);
+
+  /// No description provided for @historyClaimedByReplying.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} took this conversation by replying'**
+  String historyClaimedByReplying(String name);
+
+  /// No description provided for @historyClaimedOwnerRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Returned to {name}, who had already taken this conversation'**
+  String historyClaimedOwnerRestored(String name);
 }
 
 class _AppLocalizationsDelegate
