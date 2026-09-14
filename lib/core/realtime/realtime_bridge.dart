@@ -22,6 +22,7 @@ import '../../features/messages/notes_controller.dart';
 import '../../features/notifications/notifications_controller.dart';
 import '../models/message.dart';
 import '../providers.dart';
+import '../utils/json_safe.dart';
 import 'realtime_client.dart';
 import 'realtime_logger.dart';
 
@@ -602,6 +603,23 @@ void _handleMessageUpdated(Ref ref, RealtimeEvent event, {String? traceId}) {
     ref
         .read(conversationControllerProvider(active).notifier)
         .applyDeliveryUpdate(updates);
+
+    // The inbox row's own tick tracks whichever message is now last —
+    // last_message_id names it explicitly rather than assuming it is
+    // whichever entry happens to come last in the array.
+    final lastMessageId = payload['last_message_id'];
+    final lastUpdate = updates
+        .where((u) => u['id'] == lastMessageId)
+        .firstOrNull;
+    if (lastUpdate != null) {
+      ref
+          .read(inboxControllerProvider.notifier)
+          .patchLastMessageDelivery(
+            active,
+            direction: 'OUTBOUND',
+            deliveryStatus: JsonSafe.asString(lastUpdate['delivery_status']),
+          );
+    }
     return;
   }
 

@@ -158,6 +158,8 @@ class Conversation {
     this.intelligence,
     this.lastMessagePreview = '',
     this.lastMessageAt,
+    this.lastMessageDirection = '',
+    this.lastMessageDeliveryStatus = '',
     this.lastCustomerMessageAt,
     this.startedAt,
     this.subject = '',
@@ -187,6 +189,15 @@ class Conversation {
   final int messageCount;
   final String lastMessagePreview;
   final DateTime? lastMessageAt;
+
+  /// `INBOUND` | `OUTBOUND`, for the inbox row's delivery tick — empty when
+  /// the conversation has no messages yet.
+  final String lastMessageDirection;
+
+  /// The last message's delivery status (`SENT`, `DELIVERED`, `READ`,
+  /// `FAILED`, ...), shown as a tick only when [lastMessageDirection] is
+  /// `OUTBOUND` — an inbound message has no delivery state of ours to show.
+  final String lastMessageDeliveryStatus;
   final DateTime? lastCustomerMessageAt;
   final DateTime? startedAt;
   final IntelligenceBrief? intelligence;
@@ -240,6 +251,10 @@ class Conversation {
     messageCount: JsonSafe.asInt(json['message_count']),
     lastMessagePreview: JsonSafe.asString(json['last_message_preview']),
     lastMessageAt: _parseDate(json['last_message_at']),
+    lastMessageDirection: JsonSafe.asString(json['last_message_direction']),
+    lastMessageDeliveryStatus: JsonSafe.asString(
+      json['last_message_delivery_status'],
+    ),
     lastCustomerMessageAt: _parseDate(json['last_customer_message_at']),
     startedAt: _parseDate(json['started_at']),
     intelligence: json['intelligence'] is Map
@@ -306,6 +321,8 @@ class Conversation {
     bool clearFollowUpDate = false,
     DateTime? followUpMarkedAt,
     String? followUpMarkedByName,
+    String? lastMessageDirection,
+    String? lastMessageDeliveryStatus,
   }) => Conversation(
     id: id,
     customer: customer,
@@ -322,6 +339,9 @@ class Conversation {
     intelligence: intelligence,
     lastMessagePreview: lastMessagePreview,
     lastMessageAt: lastMessageAt,
+    lastMessageDirection: lastMessageDirection ?? this.lastMessageDirection,
+    lastMessageDeliveryStatus:
+        lastMessageDeliveryStatus ?? this.lastMessageDeliveryStatus,
     lastCustomerMessageAt: clearLastCustomerMessageAt
         ? null
         : (lastCustomerMessageAt ?? this.lastCustomerMessageAt),

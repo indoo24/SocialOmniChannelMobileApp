@@ -379,11 +379,10 @@ class _DeliveryIcon extends StatelessWidget {
       );
     }
 
-    final (icon, color) = switch (message.deliveryStatus) {
-      'READ' => (Icons.done_all, ScenarioColors.info),
-      'DELIVERED' => (Icons.done_all, theme.textTheme.labelSmall?.color),
-      _ => (Icons.done, theme.textTheme.labelSmall?.color),
-    };
+    final (icon, color) = ConversationBadges.deliveryStatusIcon(
+      context,
+      message.deliveryStatus,
+    );
 
     return Icon(icon, size: 12, color: color);
   }
