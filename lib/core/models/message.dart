@@ -129,6 +129,40 @@ class AttachmentDraft {
 /// confirming, which on mobile data can be seconds.
 enum SendState { sent, sending, failed }
 
+/// What a message shows when its content is neither text nor a file — a
+/// shared TikTok post, a question card, or a type the product cannot display.
+/// The server records it (`content_notice`); an empty bubble would look like a
+/// lost message, so the bubble says plainly what arrived.
+class ContentNotice {
+  const ContentNotice({
+    required this.kind,
+    this.providerType = '',
+    this.url = '',
+    this.title = '',
+    this.videoId = '',
+  });
+
+  /// `share_post` | `template` | `unsupported`.
+  final String kind;
+  final String providerType;
+  final String url;
+  final String title;
+  final String videoId;
+
+  static ContentNotice? fromJson(Object? json) {
+    if (json is! Map<String, dynamic>) return null;
+    final kind = JsonSafe.asString(json['kind']);
+    if (kind.isEmpty) return null;
+    return ContentNotice(
+      kind: kind,
+      providerType: JsonSafe.asString(json['provider_type']),
+      url: JsonSafe.asString(json['url']),
+      title: JsonSafe.asString(json['title']),
+      videoId: JsonSafe.asString(json['video_id']),
+    );
+  }
+}
+
 class Message {
   const Message({
     required this.id,
@@ -142,6 +176,8 @@ class Message {
     this.senderInitials = '',
     this.attachments = const [],
     this.deliveryError = '',
+    this.deliveryErrorCode = '',
+    this.contentNotice,
     this.sendState = SendState.sent,
     this.localId,
     this.pendingAttachmentId,
@@ -157,6 +193,11 @@ class Message {
   final List<MessageAttachment> attachments;
   final String deliveryStatus;
   final String deliveryError;
+
+  /// The server's stable failure code (e.g. `tiktok_messaging_limit`), which
+  /// the bubble translates; [deliveryError] is the English fallback.
+  final String deliveryErrorCode;
+  final ContentNotice? contentNotice;
   final DateTime sentAt;
 
   final SendState sendState;
@@ -189,6 +230,8 @@ class Message {
       fallback: 'SENT',
     ),
     deliveryError: JsonSafe.asString(json['delivery_error']),
+    deliveryErrorCode: JsonSafe.asString(json['delivery_error_code']),
+    contentNotice: ContentNotice.fromJson(json['content_notice']),
     sentAt:
         DateTime.tryParse(JsonSafe.asString(json['sent_at']))?.toLocal() ??
         DateTime.now(),
@@ -237,6 +280,8 @@ class Message {
     attachments: attachments,
     deliveryStatus: deliveryStatus,
     deliveryError: deliveryError ?? this.deliveryError,
+    deliveryErrorCode: deliveryError != null ? '' : deliveryErrorCode,
+    contentNotice: contentNotice,
     sentAt: sentAt,
     sendState: sendState ?? this.sendState,
     localId: localId,

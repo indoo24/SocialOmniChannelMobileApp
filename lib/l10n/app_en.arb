@@ -1351,5 +1351,22 @@
   "savedRepliesNoMatch": "No saved reply matches your search.",
   "savedReplyScopePersonal": "Personal",
   "savedReplyScopeTeam": "Team",
-  "savedReplyScopeOrganization": "Everyone"
+  "savedReplyScopeOrganization": "Everyone",
+  "tiktokSharedPost": "Shared a TikTok post",
+  "tiktokOpenOnTikTok": "Open on TikTok",
+  "tiktokQuestionCard": "Question card: {title}",
+  "@tiktokQuestionCard": {"placeholders": {"title": {"type": "String"}}},
+  "tiktokQuestionCardUntitled": "Question card",
+  "tiktokUnsupportedContent": "This TikTok message can’t be shown here. Open the conversation in TikTok to see it.",
+  "deliveryErrorChannelUnavailable": "TikTok is not available to you yet. The message was not sent.",
+  "deliveryErrorTiktokTokenInvalid": "TikTok no longer accepts this account’s authorization. Ask an administrator to reconnect TikTok.",
+  "deliveryErrorTiktokPermissionDenied": "TikTok refused this action for this account. Ask an administrator to check the TikTok connection.",
+  "deliveryErrorTiktokInvalidRequest": "TikTok could not accept this message. It was not sent.",
+  "deliveryErrorTiktokMessagingLimit": "TikTok’s reply limit for this conversation has been reached. The message was not sent.",
+  "deliveryErrorTiktokRateLimited": "TikTok was busy and the message could not be sent after several tries. Try again.",
+  "deliveryErrorTiktokNotEligible": "TikTok does not allow Business Messaging for this account. The message was not sent.",
+  "deliveryErrorTiktokUnavailable": "TikTok had a temporary problem. The message was not sent; try again.",
+  "deliveryErrorTiktokMediaRejected": "TikTok could not accept this file.",
+  "deliveryErrorTiktokUnknownError": "TikTok refused this message. It was not sent.",
+  "deliveryErrorTiktokNotReady": "This TikTok connection is not ready to send messages. Ask an administrator to check it."
 }

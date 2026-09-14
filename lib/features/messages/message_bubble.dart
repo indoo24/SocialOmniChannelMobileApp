@@ -15,6 +15,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart' show ResponseType, Options;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/models/message.dart';
 import '../../core/providers.dart';
@@ -22,6 +23,7 @@ import '../../core/realtime/realtime_logger.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/safe_url.dart';
 import '../../core/utils/formatting.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -145,6 +147,11 @@ class MessageBubble extends StatelessWidget {
                                 height: 1.35,
                               ),
                             ),
+                          if (message.contentNotice != null)
+                            ContentNoticeView(
+                              notice: message.contentNotice!,
+                              color: foreground,
+                            ),
                         ],
                       ),
                     ),
@@ -243,6 +250,93 @@ class _DeliveryIcon extends StatelessWidget {
   }
 }
 
+/// The agent-facing reason a message failed: a known server code is
+/// translated, anything else falls back to the server's English text, so a new
+/// code is never shown as a blank.
+String deliveryErrorText(AppLocalizations l10n, Message message) {
+  final translated = switch (message.deliveryErrorCode) {
+    'channel_unavailable' => l10n.deliveryErrorChannelUnavailable,
+    'tiktok_token_invalid' => l10n.deliveryErrorTiktokTokenInvalid,
+    'tiktok_permission_denied' => l10n.deliveryErrorTiktokPermissionDenied,
+    'tiktok_invalid_request' => l10n.deliveryErrorTiktokInvalidRequest,
+    'tiktok_messaging_limit' => l10n.deliveryErrorTiktokMessagingLimit,
+    'tiktok_rate_limited' => l10n.deliveryErrorTiktokRateLimited,
+    'tiktok_not_eligible' => l10n.deliveryErrorTiktokNotEligible,
+    'tiktok_unavailable' => l10n.deliveryErrorTiktokUnavailable,
+    'tiktok_media_rejected' => l10n.deliveryErrorTiktokMediaRejected,
+    'tiktok_unknown_error' => l10n.deliveryErrorTiktokUnknownError,
+    'tiktok_not_ready' => l10n.deliveryErrorTiktokNotReady,
+    _ => null,
+  };
+  if (translated != null) return translated;
+  if (message.deliveryError.isNotEmpty) return message.deliveryError;
+  return l10n.notDeliveredFallback;
+}
+
+/// What a message shows when its content is neither text nor a file — a
+/// shared TikTok post, a question card, or a type the app cannot display.
+/// Says plainly what arrived rather than leaving an empty bubble.
+class ContentNoticeView extends StatelessWidget {
+  const ContentNoticeView({
+    super.key,
+    required this.notice,
+    required this.color,
+  });
+
+  final ContentNotice notice;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final style = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      color: color.withValues(alpha: 0.85),
+      fontStyle: FontStyle.italic,
+      height: 1.35,
+    );
+
+    if (notice.kind == 'share_post') {
+      final uri = Uri.tryParse(notice.url);
+      final canOpen = uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.tiktokSharedPost, style: style),
+          if (canOpen)
+            TextButton.icon(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 32),
+                foregroundColor: color,
+              ),
+              onPressed: () =>
+                  launchUrl(uri, mode: LaunchMode.externalApplication),
+              icon: const Icon(Icons.open_in_new, size: 16),
+              label: Text(l10n.tiktokOpenOnTikTok),
+            ),
+        ],
+      );
+    }
+
+    final text = notice.kind == 'template'
+        ? (notice.title.isNotEmpty
+              ? l10n.tiktokQuestionCard(notice.title)
+              : l10n.tiktokQuestionCardUntitled)
+        : l10n.tiktokUnsupportedContent;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2, right: 6),
+          child: Icon(Icons.info_outline, size: 16, color: style?.color),
+        ),
+        Flexible(child: Text(text, style: style)),
+      ],
+    );
+  }
+}
+
 class _FailureActions extends StatelessWidget {
   const _FailureActions({required this.message, this.onRetry, this.onDiscard});
 
@@ -253,9 +347,7 @@ class _FailureActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final reason = message.deliveryError.isNotEmpty
-        ? message.deliveryError
-        : context.l10n.notDeliveredFallback;
+    final reason = deliveryErrorText(context.l10n, message);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,

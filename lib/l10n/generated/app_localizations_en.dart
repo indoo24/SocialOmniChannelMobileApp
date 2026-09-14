@@ -2451,4 +2451,66 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedReplyScopeOrganization => 'Everyone';
+
+  @override
+  String get tiktokSharedPost => 'Shared a TikTok post';
+
+  @override
+  String get tiktokOpenOnTikTok => 'Open on TikTok';
+
+  @override
+  String tiktokQuestionCard(String title) {
+    return 'Question card: $title';
+  }
+
+  @override
+  String get tiktokQuestionCardUntitled => 'Question card';
+
+  @override
+  String get tiktokUnsupportedContent =>
+      'This TikTok message can’t be shown here. Open the conversation in TikTok to see it.';
+
+  @override
+  String get deliveryErrorChannelUnavailable =>
+      'TikTok is not available to you yet. The message was not sent.';
+
+  @override
+  String get deliveryErrorTiktokTokenInvalid =>
+      'TikTok no longer accepts this account’s authorization. Ask an administrator to reconnect TikTok.';
+
+  @override
+  String get deliveryErrorTiktokPermissionDenied =>
+      'TikTok refused this action for this account. Ask an administrator to check the TikTok connection.';
+
+  @override
+  String get deliveryErrorTiktokInvalidRequest =>
+      'TikTok could not accept this message. It was not sent.';
+
+  @override
+  String get deliveryErrorTiktokMessagingLimit =>
+      'TikTok’s reply limit for this conversation has been reached. The message was not sent.';
+
+  @override
+  String get deliveryErrorTiktokRateLimited =>
+      'TikTok was busy and the message could not be sent after several tries. Try again.';
+
+  @override
+  String get deliveryErrorTiktokNotEligible =>
+      'TikTok does not allow Business Messaging for this account. The message was not sent.';
+
+  @override
+  String get deliveryErrorTiktokUnavailable =>
+      'TikTok had a temporary problem. The message was not sent; try again.';
+
+  @override
+  String get deliveryErrorTiktokMediaRejected =>
+      'TikTok could not accept this file.';
+
+  @override
+  String get deliveryErrorTiktokUnknownError =>
+      'TikTok refused this message. It was not sent.';
+
+  @override
+  String get deliveryErrorTiktokNotReady =>
+      'This TikTok connection is not ready to send messages. Ask an administrator to check it.';
 }

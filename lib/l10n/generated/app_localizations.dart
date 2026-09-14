@@ -4440,6 +4440,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Everyone'**
   String get savedReplyScopeOrganization;
+
+  /// No description provided for @tiktokSharedPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared a TikTok post'**
+  String get tiktokSharedPost;
+
+  /// No description provided for @tiktokOpenOnTikTok.
+  ///
+  /// In en, this message translates to:
+  /// **'Open on TikTok'**
+  String get tiktokOpenOnTikTok;
+
+  /// No description provided for @tiktokQuestionCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Question card: {title}'**
+  String tiktokQuestionCard(String title);
+
+  /// No description provided for @tiktokQuestionCardUntitled.
+  ///
+  /// In en, this message translates to:
+  /// **'Question card'**
+  String get tiktokQuestionCardUntitled;
+
+  /// No description provided for @tiktokUnsupportedContent.
+  ///
+  /// In en, this message translates to:
+  /// **'This TikTok message can’t be shown here. Open the conversation in TikTok to see it.'**
+  String get tiktokUnsupportedContent;
+
+  /// No description provided for @deliveryErrorChannelUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok is not available to you yet. The message was not sent.'**
+  String get deliveryErrorChannelUnavailable;
+
+  /// No description provided for @deliveryErrorTiktokTokenInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok no longer accepts this account’s authorization. Ask an administrator to reconnect TikTok.'**
+  String get deliveryErrorTiktokTokenInvalid;
+
+  /// No description provided for @deliveryErrorTiktokPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok refused this action for this account. Ask an administrator to check the TikTok connection.'**
+  String get deliveryErrorTiktokPermissionDenied;
+
+  /// No description provided for @deliveryErrorTiktokInvalidRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok could not accept this message. It was not sent.'**
+  String get deliveryErrorTiktokInvalidRequest;
+
+  /// No description provided for @deliveryErrorTiktokMessagingLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok’s reply limit for this conversation has been reached. The message was not sent.'**
+  String get deliveryErrorTiktokMessagingLimit;
+
+  /// No description provided for @deliveryErrorTiktokRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok was busy and the message could not be sent after several tries. Try again.'**
+  String get deliveryErrorTiktokRateLimited;
+
+  /// No description provided for @deliveryErrorTiktokNotEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok does not allow Business Messaging for this account. The message was not sent.'**
+  String get deliveryErrorTiktokNotEligible;
+
+  /// No description provided for @deliveryErrorTiktokUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok had a temporary problem. The message was not sent; try again.'**
+  String get deliveryErrorTiktokUnavailable;
+
+  /// No description provided for @deliveryErrorTiktokMediaRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok could not accept this file.'**
+  String get deliveryErrorTiktokMediaRejected;
+
+  /// No description provided for @deliveryErrorTiktokUnknownError.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok refused this message. It was not sent.'**
+  String get deliveryErrorTiktokUnknownError;
+
+  /// No description provided for @deliveryErrorTiktokNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'This TikTok connection is not ready to send messages. Ask an administrator to check it.'**
+  String get deliveryErrorTiktokNotReady;
 }
 
 class _AppLocalizationsDelegate

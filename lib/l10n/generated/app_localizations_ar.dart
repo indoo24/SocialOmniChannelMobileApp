@@ -2474,4 +2474,66 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get savedReplyScopeOrganization => 'الجميع';
+
+  @override
+  String get tiktokSharedPost => 'شارك منشورًا على TikTok';
+
+  @override
+  String get tiktokOpenOnTikTok => 'فتح على TikTok';
+
+  @override
+  String tiktokQuestionCard(String title) {
+    return 'بطاقة سؤال: $title';
+  }
+
+  @override
+  String get tiktokQuestionCardUntitled => 'بطاقة سؤال';
+
+  @override
+  String get tiktokUnsupportedContent =>
+      'لا يمكن عرض رسالة TikTok هذه هنا. افتح المحادثة في TikTok لرؤيتها.';
+
+  @override
+  String get deliveryErrorChannelUnavailable =>
+      'TikTok غير متاح لك بعد. لم تُرسَل الرسالة.';
+
+  @override
+  String get deliveryErrorTiktokTokenInvalid =>
+      'لم يعد TikTok يقبل تفويض هذا الحساب. اطلب من المسؤول إعادة ربط TikTok.';
+
+  @override
+  String get deliveryErrorTiktokPermissionDenied =>
+      'رفض TikTok هذا الإجراء لهذا الحساب. اطلب من المسؤول مراجعة ربط TikTok.';
+
+  @override
+  String get deliveryErrorTiktokInvalidRequest =>
+      'تعذّر على TikTok قبول هذه الرسالة. لم تُرسَل.';
+
+  @override
+  String get deliveryErrorTiktokMessagingLimit =>
+      'تم الوصول إلى حد الردود الذي يسمح به TikTok لهذه المحادثة. لم تُرسَل الرسالة.';
+
+  @override
+  String get deliveryErrorTiktokRateLimited =>
+      'كان TikTok مشغولًا وتعذّر إرسال الرسالة بعد عدة محاولات. حاول مرة أخرى.';
+
+  @override
+  String get deliveryErrorTiktokNotEligible =>
+      'لا يسمح TikTok برسائل الأعمال لهذا الحساب. لم تُرسَل الرسالة.';
+
+  @override
+  String get deliveryErrorTiktokUnavailable =>
+      'واجه TikTok مشكلة مؤقتة. لم تُرسَل الرسالة؛ حاول مرة أخرى.';
+
+  @override
+  String get deliveryErrorTiktokMediaRejected =>
+      'تعذّر على TikTok قبول هذا الملف.';
+
+  @override
+  String get deliveryErrorTiktokUnknownError =>
+      'رفض TikTok هذه الرسالة. لم تُرسَل.';
+
+  @override
+  String get deliveryErrorTiktokNotReady =>
+      'ربط TikTok هذا غير جاهز لإرسال الرسائل. اطلب من المسؤول مراجعته.';
 }
