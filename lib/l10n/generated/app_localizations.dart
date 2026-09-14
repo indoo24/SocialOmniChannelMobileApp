@@ -4122,6 +4122,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t update status. Please try again.'**
   String get statusUpdateFailedMessage;
+
+  /// Title of the optional app-update dialog shown when Google Play has a newer build than the one installed
+  ///
+  /// In en, this message translates to:
+  /// **'Update available'**
+  String get updateAvailableTitle;
+
+  /// Body of the optional app-update dialog
+  ///
+  /// In en, this message translates to:
+  /// **'A new version of the app is available. Please update to get the latest improvements and fixes.'**
+  String get updateAvailableBody;
+
+  /// Primary button of the update dialog; opens this app's Google Play listing
+  ///
+  /// In en, this message translates to:
+  /// **'Update now'**
+  String get updateNowAction;
+
+  /// Dismiss button of the update dialog; the update is optional and is offered again on a future launch
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get updateLaterAction;
 }
 
 class _AppLocalizationsDelegate

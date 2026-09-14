@@ -2306,4 +2306,17 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get statusUpdateFailedMessage =>
       'تعذر تحديث الحالة. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get updateAvailableTitle => 'يتوفر تحديث جديد';
+
+  @override
+  String get updateAvailableBody =>
+      'يوجد إصدار جديد من التطبيق. حدّث التطبيق للحصول على أحدث التحسينات والإصلاحات.';
+
+  @override
+  String get updateNowAction => 'تحديث الآن';
+
+  @override
+  String get updateLaterAction => 'لاحقًا';
 }

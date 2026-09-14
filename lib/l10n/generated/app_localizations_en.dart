@@ -2283,4 +2283,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get statusUpdateFailedMessage =>
       'Couldn\'t update status. Please try again.';
+
+  @override
+  String get updateAvailableTitle => 'Update available';
+
+  @override
+  String get updateAvailableBody =>
+      'A new version of the app is available. Please update to get the latest improvements and fixes.';
+
+  @override
+  String get updateNowAction => 'Update now';
+
+  @override
+  String get updateLaterAction => 'Later';
 }

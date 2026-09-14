@@ -1278,5 +1278,22 @@
   "statusUpdateFailedMessage": "Couldn't update status. Please try again.",
   "@statusUpdateFailedMessage": {
     "description": "Snackbar notification when updating conversation status fails"
+  },
+
+  "updateAvailableTitle": "Update available",
+  "@updateAvailableTitle": {
+    "description": "Title of the optional app-update dialog shown when Google Play has a newer build than the one installed"
+  },
+  "updateAvailableBody": "A new version of the app is available. Please update to get the latest improvements and fixes.",
+  "@updateAvailableBody": {
+    "description": "Body of the optional app-update dialog"
+  },
+  "updateNowAction": "Update now",
+  "@updateNowAction": {
+    "description": "Primary button of the update dialog; opens this app's Google Play listing"
+  },
+  "updateLaterAction": "Later",
+  "@updateLaterAction": {
+    "description": "Dismiss button of the update dialog; the update is optional and is offered again on a future launch"
   }
 }

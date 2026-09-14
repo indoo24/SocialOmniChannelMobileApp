@@ -57,6 +57,14 @@ class Routes {
   static String customerProfile(int customerId) => '/customers/$customerId';
 }
 
+/// The root navigator's key.
+///
+/// Exists so code mounted in `MaterialApp.router`'s `builder` — which sits
+/// *above* this navigator and so has no `Navigator` ancestor of its own — can
+/// still push a route. `AppUpdateBridge` is the only such caller today; see
+/// `showUpdateAvailableDialog`.
+final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _AuthRouterNotifier(ref);
   ref.onDispose(notifier.dispose);
@@ -76,6 +84,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   }
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: Routes.inbox,
     refreshListenable: notifier,
     redirect: (context, state) {

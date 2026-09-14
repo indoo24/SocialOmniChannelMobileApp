@@ -709,5 +709,10 @@
   "userAccountMenuTooltip": "حساب المستخدم",
   "resolveConversationTooltip": "حل المحادثة",
   "conversationResolvedTooltip": "المحادثة محلولة",
-  "statusUpdateFailedMessage": "تعذر تحديث الحالة. يرجى المحاولة مرة أخرى."
+  "statusUpdateFailedMessage": "تعذر تحديث الحالة. يرجى المحاولة مرة أخرى.",
+
+  "updateAvailableTitle": "يتوفر تحديث جديد",
+  "updateAvailableBody": "يوجد إصدار جديد من التطبيق. حدّث التطبيق للحصول على أحدث التحسينات والإصلاحات.",
+  "updateNowAction": "تحديث الآن",
+  "updateLaterAction": "لاحقًا"
 }
