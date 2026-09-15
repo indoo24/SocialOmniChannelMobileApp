@@ -291,6 +291,15 @@
   "deleteMessageReasonLabel": "السبب (اختياري)",
   "deleteMessageDeletedSnackbar": "تم حذف الرسالة",
 
+  "replyMessageAction": "رد",
+  "replyingToLabel": "الرد على {name}",
+  "cancelReplyTooltip": "إلغاء الرد",
+  "quotedMessageDeletedLabel": "تم حذف هذه الرسالة",
+  "quotedMessageUnavailableLabel": "الرسالة الأصلية غير متاحة",
+  "photoMessageLabel": "صورة",
+  "attachmentMessageLabel": "مرفق",
+  "sentFromPlatformLabel": "أُرسلت من {provider}",
+
   "customerTitle": "العميل",
   "conversationSectionTitle": "المحادثة",
   "categoryFieldLabel": "الفئة",
@@ -300,6 +309,10 @@
   "messagesFieldLabel": "الرسائل",
   "startedFieldLabel": "بدأت",
   "lastMessageFieldLabel": "آخر رسالة",
+  "claimedByFieldLabel": "استلمها",
+  "firstResponseFieldLabel": "الرد الأول",
+  "resolvedFieldLabel": "تم الحل في",
+  "lastAgentMessageFieldLabel": "آخر رسالة من الموظف",
   "customerSectionTitle": "العميل",
   "lifecycleFieldLabel": "مرحلة دورة الحياة",
   "intelligenceSectionTitle": "الذكاء الاصطناعي",
@@ -793,5 +806,9 @@
   "tiktokReadinessTokenInvalid": "لم يعد TikTok يقبل هذا التفويض. أعد ربط TikTok.",
   "tiktokReadinessReference": "مرجع TikTok: {reference}",
   "historyClaimedByReplying": "استلم {name} المحادثة بعد الرد عليها",
-  "historyClaimedOwnerRestored": "أُعيدت المحادثة إلى {name} الذي كان قد استلمها سابقًا"
+  "historyClaimedOwnerRestored": "أُعيدت المحادثة إلى {name} الذي كان قد استلمها سابقًا",
+  "historyFallbackAssigned": "أُسندت إلى {name} (احتياطيًا)",
+  "historyFallbackReasonsLabel": "السبب: {reasons}",
+  "historyRerouted": "أُعيد توجيهها من {previousName} إلى {name}",
+  "historyReleasedFrom": "أُفرجت من {previousName} وعادت إلى قائمة الانتظار"
 }

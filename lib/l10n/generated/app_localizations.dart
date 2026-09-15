@@ -1694,6 +1694,54 @@ abstract class AppLocalizations {
   /// **'Message deleted'**
   String get deleteMessageDeletedSnackbar;
 
+  /// No description provided for @replyMessageAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get replyMessageAction;
+
+  /// No description provided for @replyingToLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Replying to {name}'**
+  String replyingToLabel(String name);
+
+  /// No description provided for @cancelReplyTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel reply'**
+  String get cancelReplyTooltip;
+
+  /// No description provided for @quotedMessageDeletedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'This message was deleted'**
+  String get quotedMessageDeletedLabel;
+
+  /// No description provided for @quotedMessageUnavailableLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Original message unavailable'**
+  String get quotedMessageUnavailableLabel;
+
+  /// No description provided for @photoMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get photoMessageLabel;
+
+  /// No description provided for @attachmentMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment'**
+  String get attachmentMessageLabel;
+
+  /// No description provided for @sentFromPlatformLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent from {provider}'**
+  String sentFromPlatformLabel(String provider);
+
   /// No description provided for @customerTitle.
   ///
   /// In en, this message translates to:
@@ -1747,6 +1795,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Last message'**
   String get lastMessageFieldLabel;
+
+  /// No description provided for @claimedByFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Claimed by'**
+  String get claimedByFieldLabel;
+
+  /// No description provided for @firstResponseFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'First response'**
+  String get firstResponseFieldLabel;
+
+  /// No description provided for @resolvedFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved at'**
+  String get resolvedFieldLabel;
+
+  /// No description provided for @lastAgentMessageFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last agent message'**
+  String get lastAgentMessageFieldLabel;
 
   /// No description provided for @customerSectionTitle.
   ///
@@ -4626,6 +4698,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Returned to {name}, who had already taken this conversation'**
   String historyClaimedOwnerRestored(String name);
+
+  /// No description provided for @historyFallbackAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned to {name} (fallback)'**
+  String historyFallbackAssigned(String name);
+
+  /// No description provided for @historyFallbackReasonsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason: {reasons}'**
+  String historyFallbackReasonsLabel(String reasons);
+
+  /// No description provided for @historyRerouted.
+  ///
+  /// In en, this message translates to:
+  /// **'Rerouted from {previousName} to {name}'**
+  String historyRerouted(String previousName, String name);
+
+  /// No description provided for @historyReleasedFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Released from {previousName} back to the queue'**
+  String historyReleasedFrom(String previousName);
 }
 
 class _AppLocalizationsDelegate

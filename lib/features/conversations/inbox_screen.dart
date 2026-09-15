@@ -286,6 +286,12 @@ class ConversationGroupRow extends StatelessWidget {
                   const SizedBox(height: 3),
                   Row(
                     children: [
+                      if (group.lastMessageDirection == 'OUTBOUND') ...[
+                        _RowDeliveryIcon(
+                          status: group.lastMessageDeliveryStatus,
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       Expanded(
                         child: Text(
                           group.lastMessagePreview.isEmpty
@@ -417,6 +423,12 @@ class ConversationRow extends StatelessWidget {
                   const SizedBox(height: 3),
                   Row(
                     children: [
+                      if (conversation.lastMessageDirection == 'OUTBOUND') ...[
+                        _RowDeliveryIcon(
+                          status: conversation.lastMessageDeliveryStatus,
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       Expanded(
                         child: Text(
                           conversation.lastMessagePreview.isEmpty
@@ -518,6 +530,25 @@ class _FollowUpBadge extends StatelessWidget {
       icon: Icons.flag_rounded,
       dense: true,
     );
+  }
+}
+
+/// The inbox row's own delivery tick — only ever shown when
+/// [Conversation.lastMessageDirection] is `OUTBOUND` (the caller checks
+/// that), so a customer's own message never carries a tick meant for the
+/// agent's side of the conversation.
+class _RowDeliveryIcon extends StatelessWidget {
+  const _RowDeliveryIcon({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, color) = ConversationBadges.deliveryStatusIcon(
+      context,
+      status,
+    );
+    return Icon(icon, size: 13, color: color);
   }
 }
 

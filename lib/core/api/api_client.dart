@@ -10,8 +10,9 @@
 /// * cookies must persist across launches → [PersistCookieJar] over secure
 ///   storage-backed files
 /// * unsafe methods must echo the CSRF cookie in a header → [_CsrfInterceptor]
-/// * a 401 means the session lapsed → surfaced as [SessionExpiredException] so
-///   the app can return to login rather than showing a generic error
+/// * a 401, or a 403 with error.code "not_authenticated", means the session
+///   lapsed → surfaced as [SessionExpiredException] so the app can return to
+///   login rather than showing a generic error
 library;
 
 import 'dart:io';
@@ -168,6 +169,22 @@ class ApiClient {
 
     if (status == 401) {
       _log('$requestLabel -> 401 (session expired)');
+      _onSessionExpired?.call();
+      throw SessionExpiredException();
+    }
+
+    // The backend documents 401 for "no session" but currently answers 403
+    // with error.code "not_authenticated" for the same condition (expired,
+    // missing, or invalidated session). Without this check that 403 reads as
+    // a permission refusal and the app stays on screen showing "You do not
+    // have permission to do that" while quietly signed out. A genuine
+    // permission_denied 403 falls through below unchanged.
+    if (status == 403 &&
+        response.data is Map &&
+        (response.data as Map)['error'] is Map &&
+        ((response.data as Map)['error'] as Map)['code'] ==
+            'not_authenticated') {
+      _log('$requestLabel -> 403 not_authenticated (session expired)');
       _onSessionExpired?.call();
       throw SessionExpiredException();
     }

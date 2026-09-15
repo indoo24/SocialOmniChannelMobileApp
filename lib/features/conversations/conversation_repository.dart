@@ -288,12 +288,15 @@ class ConversationRepository {
   /// own `Reply` contract ("a photograph is a complete message"). Passing
   /// [clientMessageId] lets a caller give the server the idempotency key it
   /// documents, so retrying a request whose response was lost cannot produce
-  /// two stored messages.
+  /// two stored messages. [replyToId] must be a real, already-stored message
+  /// id in this conversation — the backend's own contract explicitly refuses
+  /// an optimistic (negative, not-yet-sent) id here.
   Future<Message> reply(
     int conversationId,
     String text, {
     List<String> attachmentIds = const [],
     String? clientMessageId,
+    int? replyToId,
   }) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/conversations/$conversationId/reply/',
@@ -301,6 +304,7 @@ class ConversationRepository {
         'text': text,
         if (attachmentIds.isNotEmpty) 'attachment_ids': attachmentIds,
         'client_message_id': ?clientMessageId,
+        'reply_to_id': ?replyToId,
       },
     );
     return Message.fromJson(data);
@@ -466,6 +470,21 @@ class ConversationRepository {
     '/conversations/$conversationId/messages/$messageId/',
     body: reason.isNotEmpty ? {'reason': reason} : null,
   );
+
+  /// Send a server-stored `FAILED` outbound message again.
+  ///
+  /// Only for a message the server already holds — nothing is re-uploaded and
+  /// no new attachment row is created, unlike a local resend. The claim is
+  /// atomic on the server: a message that is not waiting to be retried
+  /// (already succeeded, or a concurrent retry got there first) answers `409`
+  /// rather than sending twice — callers should treat that as "already
+  /// resolved," not as a failure to report.
+  Future<Message> retryMessage(int conversationId, int messageId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/messages/$messageId/retry/',
+    );
+    return Message.fromJson(data);
+  }
 
   // ------------------------------------------------------------ intelligence
   /// The current advisory read. Legitimately `null` before the analyzer has

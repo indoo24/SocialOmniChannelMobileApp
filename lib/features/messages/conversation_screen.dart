@@ -55,6 +55,19 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   bool _initialScrollDone = false;
   bool _showScrollToBottom = false;
 
+  /// The message the agent has picked "Reply" on, if any — shown as a quote
+  /// preview above the composer and sent as `reply_to_id`, cleared once the
+  /// send resolves (success or failure) or the agent dismisses it.
+  Message? _replyingTo;
+
+  void _startReplyingTo(Message message) {
+    setState(() => _replyingTo = message);
+  }
+
+  void _cancelReply() {
+    setState(() => _replyingTo = null);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -164,6 +177,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   /// attachment/voice flow in [_Composer] — this method only ever
   /// references it, never uploads anything itself. [attachmentPreview]
   /// renders that same local file in the optimistic bubble.
+  ///
+  /// The quote preview ([_replyingTo]) is cleared as soon as the send is
+  /// attempted, win or lose — same as the composer text already clearing
+  /// immediately: a failed send keeps the quote on the failed bubble itself
+  /// (via [Message.replyTo]), so there is nothing left to show above the
+  /// composer either way.
   Future<void> _send({
     String? attachmentId,
     MessageAttachment? attachmentPreview,
@@ -172,7 +191,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final hasAttachment = attachmentId != null;
     if ((text.isEmpty && !hasAttachment) || _sending) return;
 
-    setState(() => _sending = true);
+    final replyTo = _replyingTo;
+    setState(() {
+      _sending = true;
+      _replyingTo = null;
+    });
     _composerController.clear();
 
     try {
@@ -182,6 +205,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             text,
             attachmentId: attachmentId,
             attachmentPreview: attachmentPreview,
+            replyTo: replyTo == null ? null : QuotedMessage.fromMessage(replyTo),
           );
       _scrollToBottom(animated: true);
     } on ApiException catch (error) {
@@ -258,9 +282,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       }
     });
 
-    // A realtime `conversation.access_changed` event resolved to "access
-    // lost" for this conversation — leave rather than keep showing a thread
-    // this employee can no longer see.
+    // A realtime `conversation.access_revoked` event for this conversation —
+    // leave rather than keep showing a thread this employee can no longer see.
     ref.listen<int?>(revokedConversationProvider, (previous, next) {
       if (next != widget.conversationId) return;
       final navigator = Navigator.of(context);
@@ -342,6 +365,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                             onInitialLayout: _initialScrollDone
                                 ? null
                                 : _jumpToBottomInitial,
+                            onReply: canReply ? _startReplyingTo : null,
                           ),
                   ),
                   PositionedDirectional(
@@ -364,6 +388,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 isWhatsApp:
                     async.value?.conversation.provider.toUpperCase() ==
                     'WHATSAPP',
+                replyingTo: _replyingTo,
+                onCancelReply: _cancelReply,
               )
             else
               const _ReadOnlyNotice(),
@@ -915,12 +941,18 @@ class _MessageList extends ConsumerWidget {
     required this.controller,
     required this.conversationId,
     this.onInitialLayout,
+    this.onReply,
   });
 
   final ConversationState state;
   final ScrollController controller;
   final int conversationId;
   final VoidCallback? onInitialLayout;
+
+  /// Null hides the affordance entirely — the caller only supplies this when
+  /// the signed-in employee holds `conversation.reply` (there is nothing to
+  /// quote a message *into* without it).
+  final ValueChanged<Message>? onReply;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -983,16 +1015,8 @@ class _MessageList extends ConsumerWidget {
               else if (entry.message != null)
                 MessageBubble(
                   message: entry.message!,
-                  onRetry:
-                      entry.message!.hasFailed && entry.message!.localId != null
-                      ? () => ref
-                            .read(
-                              conversationControllerProvider(
-                                conversationId,
-                              ).notifier,
-                            )
-                            .retry(entry.message!.localId!)
-                      : null,
+                  provider: state.conversation.provider,
+                  onRetry: _retryHandlerFor(ref, conversationId, entry.message!),
                   onDiscard:
                       entry.message!.hasFailed && entry.message!.localId != null
                       ? () => ref
@@ -1015,6 +1039,14 @@ class _MessageList extends ConsumerWidget {
                           conversationId,
                           entry.message!,
                         )
+                      : null,
+                  onReply:
+                      onReply != null &&
+                          !entry.message!.isSystem &&
+                          !entry.message!.isPending &&
+                          !entry.message!.hasFailed &&
+                          entry.message!.id >= 0
+                      ? () => onReply!(entry.message!)
                       : null,
                 ),
             ],
@@ -1146,6 +1178,32 @@ class _InternalNoteTimelineCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Picks which retry a failed bubble's button should perform.
+///
+/// A message that never reached the server ([Message.hasFailed], identified
+/// by [Message.localId]) resends through the local send path — the same one
+/// [Message.pending] used originally, since nothing server-side has any
+/// record of it yet. A message the server accepted and later marked `FAILED`
+/// ([Message.isDeliveryFailure] with a real server [Message.id]) instead
+/// calls the dedicated retry endpoint, which claims that stored row
+/// atomically rather than sending a fresh `reply()`.
+VoidCallback? _retryHandlerFor(
+  WidgetRef ref,
+  int conversationId,
+  Message message,
+) {
+  ConversationController controller() =>
+      ref.read(conversationControllerProvider(conversationId).notifier);
+
+  if (message.hasFailed && message.localId != null) {
+    return () => controller().retry(message.localId!);
+  }
+  if (message.isDeliveryFailure && !message.hasFailed && message.id >= 0) {
+    return () => controller().retryStoredMessage(message.id);
+  }
+  return null;
 }
 
 /// Confirms, then soft-deletes a message. ADMIN/SUPERVISOR only.
@@ -1329,6 +1387,83 @@ class _SegmentTab extends StatelessWidget {
   }
 }
 
+/// The quote preview shown above the composer while replying to a message —
+/// mirrors [_QuoteBlock]'s content summary (in `message_bubble.dart`) so the
+/// agent sees the same thing here that the sent bubble will show.
+class _ReplyPreviewBar extends StatelessWidget {
+  const _ReplyPreviewBar({required this.message, this.onCancel});
+
+  final Message message;
+  final VoidCallback? onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final summary = message.text.isNotEmpty
+        ? message.text
+        : switch (message.messageType) {
+            'IMAGE' => context.l10n.photoMessageLabel,
+            'AUDIO' => context.l10n.voiceMessageLabel,
+            _ => context.l10n.attachmentMessageLabel,
+          };
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: Space.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.sm,
+        vertical: Space.xs,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border(
+          left: BorderSide(color: theme.colorScheme.primary, width: 3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  context.l10n.replyingToLabel(
+                    message.senderName.isNotEmpty
+                        ? message.senderName
+                        : context.l10n.customerTitle,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  summary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          if (onCancel != null)
+            IconButton(
+              icon: const Icon(Icons.close, size: 18),
+              tooltip: context.l10n.cancelReplyTooltip,
+              onPressed: onCancel,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Sends the composer's current text, plus an optional attachment already
 /// staged (uploaded) via [ConversationRepository.stageAttachment].
 typedef ComposerSendCallback =
@@ -1341,6 +1476,8 @@ class _Composer extends ConsumerStatefulWidget {
     required this.sending,
     required this.onSend,
     this.isWhatsApp = false,
+    this.replyingTo,
+    this.onCancelReply,
   });
 
   final int conversationId;
@@ -1348,6 +1485,11 @@ class _Composer extends ConsumerStatefulWidget {
   final bool sending;
   final ComposerSendCallback onSend;
   final bool isWhatsApp;
+
+  /// The message currently quoted, shown as a preview bar above the
+  /// composer. Null hides the bar entirely.
+  final Message? replyingTo;
+  final VoidCallback? onCancelReply;
 
   @override
   ConsumerState<_Composer> createState() => _ComposerState();
@@ -1494,6 +1636,11 @@ class _ComposerState extends ConsumerState<_Composer> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (widget.replyingTo != null && currentMode == _ComposerMode.reply)
+              _ReplyPreviewBar(
+                message: widget.replyingTo!,
+                onCancel: widget.onCancelReply,
+              ),
             // Mode selector row
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,

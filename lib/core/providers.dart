@@ -93,6 +93,17 @@ final realtimeClientProvider = Provider<RealtimeClient>((ref) {
   final client = RealtimeClient(
     cookieJar: ref.watch(cookieJarProvider),
     environment: ref.watch(environmentProvider),
+    // A close code 4401/4403 means this socket's session is already dead —
+    // the same condition a REST call reports as 401 or 403
+    // `not_authenticated`. Route it through the same teardown rather than
+    // letting the socket retry a rejected cookie on the ordinary backoff
+    // schedule. See the comment on apiClientProvider's onSessionExpired for
+    // why this is `ref.read` inside the callback and wrapped in a microtask.
+    onUnauthorized: () {
+      Future.microtask(
+        () => ref.read(authControllerProvider.notifier).onSessionExpired(),
+      );
+    },
   );
   ref.onDispose(client.dispose);
   return client;

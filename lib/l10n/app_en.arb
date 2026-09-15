@@ -377,6 +377,25 @@
   "deleteMessageReasonLabel": "Reason (optional)",
   "deleteMessageDeletedSnackbar": "Message deleted",
 
+  "replyMessageAction": "Reply",
+  "replyingToLabel": "Replying to {name}",
+  "@replyingToLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "cancelReplyTooltip": "Cancel reply",
+  "quotedMessageDeletedLabel": "This message was deleted",
+  "quotedMessageUnavailableLabel": "Original message unavailable",
+  "photoMessageLabel": "Photo",
+  "attachmentMessageLabel": "Attachment",
+  "sentFromPlatformLabel": "Sent from {provider}",
+  "@sentFromPlatformLabel": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+
   "customerTitle": "Customer",
   "conversationSectionTitle": "Conversation",
   "categoryFieldLabel": "Category",
@@ -386,6 +405,10 @@
   "messagesFieldLabel": "Messages",
   "startedFieldLabel": "Started",
   "lastMessageFieldLabel": "Last message",
+  "claimedByFieldLabel": "Claimed by",
+  "firstResponseFieldLabel": "First response",
+  "resolvedFieldLabel": "Resolved at",
+  "lastAgentMessageFieldLabel": "Last agent message",
   "customerSectionTitle": "Customer",
   "lifecycleFieldLabel": "Lifecycle",
   "intelligenceSectionTitle": "Intelligence",
@@ -1387,5 +1410,18 @@
   "historyClaimedByReplying": "{name} took this conversation by replying",
   "@historyClaimedByReplying": {"placeholders": {"name": {"type": "String"}}},
   "historyClaimedOwnerRestored": "Returned to {name}, who had already taken this conversation",
-  "@historyClaimedOwnerRestored": {"placeholders": {"name": {"type": "String"}}}
+  "@historyClaimedOwnerRestored": {"placeholders": {"name": {"type": "String"}}},
+  "historyFallbackAssigned": "Assigned to {name} (fallback)",
+  "@historyFallbackAssigned": {"placeholders": {"name": {"type": "String"}}},
+  "historyFallbackReasonsLabel": "Reason: {reasons}",
+  "@historyFallbackReasonsLabel": {"placeholders": {"reasons": {"type": "String"}}},
+  "historyRerouted": "Rerouted from {previousName} to {name}",
+  "@historyRerouted": {
+    "placeholders": {
+      "previousName": {"type": "String"},
+      "name": {"type": "String"}
+    }
+  },
+  "historyReleasedFrom": "Released from {previousName} back to the queue",
+  "@historyReleasedFrom": {"placeholders": {"previousName": {"type": "String"}}}
 }

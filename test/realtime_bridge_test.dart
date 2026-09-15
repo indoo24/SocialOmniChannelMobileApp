@@ -17,6 +17,10 @@ import 'package:scenario_mobile/core/realtime/realtime_client.dart';
 import 'package:scenario_mobile/features/conversations/inbox_controller.dart';
 import 'package:scenario_mobile/features/messages/conversation_controller.dart';
 
+/// Lets a test pull a [Ref] out of a [ProviderContainer], to call
+/// [applyRealtimeEventForTesting] the same way the real bridge does.
+final _refProvider = Provider<Ref>((ref) => ref);
+
 // ---------------------------------------------------------------------------
 // Stub helpers
 // ---------------------------------------------------------------------------
@@ -169,7 +173,7 @@ void main() {
         RealtimeEvents.conversationStatusChanged,
         'conversation.status_changed',
       );
-      expect(RealtimeEvents.accessChanged, 'conversation.access_changed');
+      expect(RealtimeEvents.accessRevoked, 'conversation.access_revoked');
       expect(RealtimeEvents.noteCreated, 'note.created');
       expect(RealtimeEvents.intelligenceUpdated, 'intelligence.updated');
       expect(RealtimeEvents.presenceChanged, 'presence.changed');
@@ -254,13 +258,13 @@ void main() {
     });
 
     test(
-      'access_changed event correctly extracts conversation_id from payload',
+      'access_revoked event correctly extracts conversation_id from payload',
       () {
-        final event = RealtimeEvent(RealtimeEvents.accessChanged, {
+        final event = RealtimeEvent(RealtimeEvents.accessRevoked, {
           'conversation_id': 77,
         });
         expect(event.conversationId, 77);
-        expect(event.event, 'conversation.access_changed');
+        expect(event.event, 'conversation.access_revoked');
       },
     );
 
@@ -311,4 +315,100 @@ void main() {
       expect(event.event, 'notification.created');
     });
   });
+
+  group('conversation.access_revoked dispatch', _accessRevokedDispatchTests);
+}
+
+/// A no-op `InboxController` that just counts refresh calls, so
+/// `_handleAccessRevoked`'s inbox refresh can be observed without driving the
+/// real controller's REST-backed `build()`.
+class _FakeInboxController extends InboxController {
+  int refreshQuietlyCalls = 0;
+
+  @override
+  Future<InboxState> build() async => InboxState();
+
+  @override
+  Future<void> refreshQuietly() async {
+    refreshQuietlyCalls += 1;
+  }
+}
+
+/// Exercises the real `_apply()` switch (via the `applyRealtimeEventForTesting`
+/// test seam) for `conversation.access_revoked`, end to end: the event should
+/// unsubscribe the socket, refresh the inbox, and — only when the revoked
+/// conversation is the one on screen — set `revokedConversationProvider`.
+void _accessRevokedDispatchTests() {
+  test(
+    'revokes the active conversation: unsubscribes, refreshes the inbox, '
+    'and signals the screen to pop',
+    () async {
+      final fakeInbox = _FakeInboxController();
+
+      final container = ProviderContainer(
+        overrides: [
+          inboxControllerProvider.overrideWith(() => fakeInbox),
+          conversationCountsProvider.overrideWith((ref) async => {}),
+          realtimeClientProvider.overrideWithValue(
+            RealtimeClient(
+              cookieJar: CookieJar(),
+              connect: (uri, {protocols, headers}) =>
+                  throw UnimplementedError('not used in this test'),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // The conversation on screen is the one about to be revoked.
+      container.read(activeConversationProvider.notifier).opened(77);
+      expect(container.read(revokedConversationProvider), isNull);
+
+      applyRealtimeEventForTesting(
+        container.read(_refProvider),
+        RealtimeEvent(RealtimeEvents.accessRevoked, {'conversation_id': 77}),
+      );
+      // _apply() does its work in a microtask (see MICROTASK_SCHEDULED in the
+      // bridge's own logging) rather than synchronously.
+      await Future<void>.delayed(Duration.zero);
+
+      expect(container.read(revokedConversationProvider), 77);
+      expect(fakeInbox.refreshQuietlyCalls, 1);
+    },
+  );
+
+  test(
+    'revoking a conversation that is not on screen refreshes the inbox but '
+    'does not signal any screen to pop',
+    () async {
+      final fakeInbox = _FakeInboxController();
+
+      final container = ProviderContainer(
+        overrides: [
+          inboxControllerProvider.overrideWith(() => fakeInbox),
+          conversationCountsProvider.overrideWith((ref) async => {}),
+          realtimeClientProvider.overrideWithValue(
+            RealtimeClient(
+              cookieJar: CookieJar(),
+              connect: (uri, {protocols, headers}) =>
+                  throw UnimplementedError('not used in this test'),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Conversation 100 is on screen; conversation 77 is revoked elsewhere.
+      container.read(activeConversationProvider.notifier).opened(100);
+
+      applyRealtimeEventForTesting(
+        container.read(_refProvider),
+        RealtimeEvent(RealtimeEvents.accessRevoked, {'conversation_id': 77}),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(container.read(revokedConversationProvider), isNull);
+      expect(fakeInbox.refreshQuietlyCalls, 1);
+    },
+  );
 }

@@ -837,6 +837,11 @@ class _CustomerDetailsView extends ConsumerWidget {
             label: context.l10n.teamFieldLabel,
             value: conversation.assignedTeam!.name,
           ),
+        if (conversation.claimedBy != null)
+          _KeyValueRow(
+            label: context.l10n.claimedByFieldLabel,
+            value: conversation.claimedBy!.fullName,
+          ),
         _KeyValueRow(
           label: context.l10n.messagesFieldLabel,
           value: '${conversation.messageCount}',
@@ -850,6 +855,21 @@ class _CustomerDetailsView extends ConsumerWidget {
           _KeyValueRow(
             label: context.l10n.lastMessageFieldLabel,
             value: formatDateTime(context, conversation.lastMessageAt),
+          ),
+        if (conversation.firstResponseAt != null)
+          _KeyValueRow(
+            label: context.l10n.firstResponseFieldLabel,
+            value: formatDateTime(context, conversation.firstResponseAt),
+          ),
+        if (conversation.lastAgentMessageAt != null)
+          _KeyValueRow(
+            label: context.l10n.lastAgentMessageFieldLabel,
+            value: formatDateTime(context, conversation.lastAgentMessageAt),
+          ),
+        if (conversation.resolvedAt != null)
+          _KeyValueRow(
+            label: context.l10n.resolvedFieldLabel,
+            value: formatDateTime(context, conversation.resolvedAt),
           ),
         if (customer.lifecycleStage.isNotEmpty)
           _KeyValueRow(
