@@ -455,5 +455,8 @@ final conversationCountsProvider = FutureProvider<Map<String, int>>((ref) {
   final filters = ref.watch(inboxFiltersProvider);
   return ref
       .watch(conversationRepositoryProvider)
-      .counts(channelConnections: filters.channelConnections);
+      .counts(
+        channelConnections: filters.channelConnections,
+        currentEmployeeId: ref.watch(currentEmployeeProvider)?.id,
+      );
 });

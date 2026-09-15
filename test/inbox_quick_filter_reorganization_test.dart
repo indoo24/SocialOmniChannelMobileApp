@@ -47,6 +47,13 @@ ResponseBody _json(String body, int status) => ResponseBody.fromString(
   },
 );
 
+/// The real first-page `/conversations/` list request — as opposed to one of
+/// the five `page_size=1` probes `ConversationRepository.counts()` now sends
+/// to the very same path to derive each quick-filter badge.
+bool _isListRequest(RequestOptions r) =>
+    r.uri.path.contains('/conversations/') &&
+    r.uri.queryParameters['page_size'] == null;
+
 final _testEmployee = Employee(
   id: 42,
   email: 'employee@test.com',
@@ -161,12 +168,6 @@ void main() {
     setUp(() {
       adapter = _StubAdapter((options) {
         final path = options.uri.path;
-        if (path.contains('/conversations/counts/')) {
-          return _json(
-            '{"all": 17, "mine": 2, "unassigned": 0, "unread": 0, "open": 14}',
-            200,
-          );
-        }
         if (path.contains('/conversations/')) {
           final convos = [
             _convoJson(
@@ -194,6 +195,29 @@ void main() {
               assignedToId: 42,
             ),
           ];
+
+          // A `page_size=1` request is one of the five quick-filter count
+          // probes `ConversationRepository.counts()` sends — only its
+          // `count` is read, so each bucket gets a distinct total here
+          // (matching what the old, now-removed `/conversations/counts/`
+          // stub used to hand back) while the real list request below still
+          // returns the three fixture rows every other test in this file
+          // asserts against.
+          if (options.uri.queryParameters['page_size'] == '1') {
+            final q = options.uri.queryParameters;
+            final count = switch (q) {
+              _ when q['assigned_to'] == '42' => 2,
+              _ when q['view'] == 'unassigned' => 0,
+              _ when q['unread'] == 'true' => 0,
+              _ when q['status'] == 'OPEN' => 14,
+              _ => 17,
+            };
+            return _json(
+              '{"count": $count, "next": null, "previous": null, "results": []}',
+              200,
+            );
+          }
+
           return _json(
             '{"count": ${convos.length}, "next": null, "previous": null, "results": [${convos.join(',')}]}',
             200,
@@ -252,49 +276,50 @@ void main() {
       expect(find.byKey(const Key('quick_filter_open')), findsOneWidget);
     });
 
-    testWidgets('6-7. Active state and exact count display behavior', (
+    testWidgets('6-7. Pills show label text only, no count badge', (
       tester,
     ) async {
       await tester.pumpWidget(createInboxApp());
       await tester.pumpAndSettle();
 
-      // Counts: all=17, mine=2, open=14 are > 0 so rendered inside pills.
+      // Every pill renders just its label — no number is ever shown,
+      // active or not, regardless of how many conversations match it.
       expect(
         find.descendant(
           of: find.byKey(const Key('quick_filter_all')),
-          matching: find.text('17'),
+          matching: find.text('All'),
         ),
         findsOneWidget,
       );
       expect(
         find.descendant(
           of: find.byKey(const Key('quick_filter_mine')),
-          matching: find.text('2'),
+          matching: find.text('Mine'),
         ),
         findsOneWidget,
       );
       expect(
         find.descendant(
           of: find.byKey(const Key('quick_filter_open')),
-          matching: find.text('14'),
+          matching: find.text('Open'),
         ),
         findsOneWidget,
       );
-      // unassigned=0, unread=0 are 0 so no count widget inside their pills.
-      expect(
-        find.descendant(
-          of: find.byKey(const Key('quick_filter_unassigned')),
-          matching: find.text('0'),
-        ),
-        findsNothing,
-      );
-      expect(
-        find.descendant(
-          of: find.byKey(const Key('quick_filter_unread')),
-          matching: find.text('0'),
-        ),
-        findsNothing,
-      );
+      for (final key in [
+        'quick_filter_all',
+        'quick_filter_mine',
+        'quick_filter_unassigned',
+        'quick_filter_unread',
+        'quick_filter_open',
+      ]) {
+        expect(
+          find.descendant(
+            of: find.byKey(Key(key)),
+            matching: find.byType(Text),
+          ),
+          findsOneWidget,
+        );
+      }
 
       // Default active is "All"
       final container = ProviderScope.containerOf(
@@ -320,11 +345,7 @@ void main() {
       await tester.tap(find.byKey(const Key('quick_filter_mine')));
       await tester.pumpAndSettle();
       expect(container.read(inboxFiltersProvider).assignedToMe, isTrue);
-      var req = adapter.received.lastWhere(
-        (r) =>
-            r.uri.path.contains('/conversations/') &&
-            !r.uri.path.contains('/counts/'),
-      );
+      var req = adapter.received.lastWhere(_isListRequest);
       expect(req.uri.queryParameters['assigned_to'], equals('42'));
 
       // Tap Unassigned
@@ -332,11 +353,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(container.read(inboxFiltersProvider).unassigned, isTrue);
       expect(container.read(inboxFiltersProvider).assignedToMe, isFalse);
-      req = adapter.received.lastWhere(
-        (r) =>
-            r.uri.path.contains('/conversations/') &&
-            !r.uri.path.contains('/counts/'),
-      );
+      req = adapter.received.lastWhere(_isListRequest);
       expect(req.uri.queryParameters['view'], equals('unassigned'));
 
       // Tap Unread
@@ -344,11 +361,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(container.read(inboxFiltersProvider).unread, isTrue);
       expect(container.read(inboxFiltersProvider).unassigned, isFalse);
-      req = adapter.received.lastWhere(
-        (r) =>
-            r.uri.path.contains('/conversations/') &&
-            !r.uri.path.contains('/counts/'),
-      );
+      req = adapter.received.lastWhere(_isListRequest);
       expect(req.uri.queryParameters['unread'], equals('true'));
 
       // Tap Open
@@ -356,11 +369,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(container.read(inboxFiltersProvider).status, equals('OPEN'));
       expect(container.read(inboxFiltersProvider).unread, isFalse);
-      req = adapter.received.lastWhere(
-        (r) =>
-            r.uri.path.contains('/conversations/') &&
-            !r.uri.path.contains('/counts/'),
-      );
+      req = adapter.received.lastWhere(_isListRequest);
       expect(req.uri.queryParameters['status'], equals('OPEN'));
 
       // Tap All -> clears primary filters
@@ -436,11 +445,7 @@ void main() {
       expect(filters.unread, isTrue);
       expect(filters.selectedAccounts['INSTAGRAM'], equals(4));
 
-      final req = adapter.received.lastWhere(
-        (r) =>
-            r.uri.path.contains('/conversations/') &&
-            !r.uri.path.contains('/counts/'),
-      );
+      final req = adapter.received.lastWhere(_isListRequest);
       expect(req.uri.queryParameters['unread'], equals('true'));
       expect(req.uri.queryParameters['channel_connections'], isNotNull);
 
@@ -450,11 +455,7 @@ void main() {
           .update(filters.copyWith(search: 'Order 123'));
       await tester.pumpAndSettle();
 
-      final reqSearch = adapter.received.lastWhere(
-        (r) =>
-            r.uri.path.contains('/conversations/') &&
-            !r.uri.path.contains('/counts/'),
-      );
+      final reqSearch = adapter.received.lastWhere(_isListRequest);
       expect(reqSearch.uri.queryParameters['unread'], equals('true'));
       expect(reqSearch.uri.queryParameters['search'], equals('Order 123'));
       expect(reqSearch.uri.queryParameters['channel_connections'], isNotNull);
@@ -497,11 +498,7 @@ void main() {
       await tester.tap(find.byKey(const Key('quick_filter_unread')));
       await tester.pumpAndSettle();
 
-      var req = adapter.received.lastWhere(
-        (r) =>
-            r.uri.path.contains('/conversations/') &&
-            !r.uri.path.contains('/counts/'),
-      );
+      var req = adapter.received.lastWhere(_isListRequest);
       expect(req.uri.queryParameters['page'], equals('1'));
 
       // Change account -> resets to page 1
@@ -511,11 +508,7 @@ void main() {
       await tester.tap(find.text('IndoTech'));
       await tester.pumpAndSettle();
 
-      req = adapter.received.lastWhere(
-        (r) =>
-            r.uri.path.contains('/conversations/') &&
-            !r.uri.path.contains('/counts/'),
-      );
+      req = adapter.received.lastWhere(_isListRequest);
       expect(req.uri.queryParameters['page'], equals('1'));
     });
 

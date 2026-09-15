@@ -124,7 +124,7 @@ class JsonSafe {
   /// Non-null string, defaulting to [fallback]. Numbers are stringified,
   /// because an id rendered into a label is legitimately either on the wire.
   static String asString(Object? value, {String fallback = ''}) {
-    if (value is String) return value;
+    if (value is String) return _sanitizeUtf16(value);
     if (value is num || value is bool) return value.toString();
     return fallback;
   }
@@ -135,10 +135,48 @@ class JsonSafe {
   /// mean the same thing, but a caller still needs to tell "no value" apart
   /// from "empty value".
   static String? asStringOrNull(Object? value) {
-    if (value is String) return value;
+    if (value is String) return _sanitizeUtf16(value);
     if (value is num || value is bool) return value.toString();
     return null;
   }
+
+  /// Replaces every lone (unpaired) UTF-16 surrogate with U+FFFD.
+  ///
+  /// A Dart `String` is a UTF-16 code unit sequence and does not itself
+  /// enforce well-formedness — a JSON payload can carry a half of a surrogate
+  /// pair (a truncated emoji, corrupted data from an upstream integration)
+  /// and decode into a value that is a perfectly legal `String` by Dart's own
+  /// rules. Flutter's text layout is not so forgiving: handing that string to
+  /// `Text`/`TextSpan` throws `ArgumentError: string is not well-formed
+  /// UTF-16` deep in Skia, which is a red-screen crash on whatever widget
+  /// tried to render it — a customer's display name or a message preview,
+  /// arriving from a source Scenario does not control. Cleaning it once here,
+  /// at the same boundary that already guards every other field's shape,
+  /// means every caller downstream gets a renderable string for free.
+  static String _sanitizeUtf16(String value) {
+    if (!value.codeUnits.any(_isSurrogate)) return value;
+    final buffer = StringBuffer();
+    for (var i = 0; i < value.length; i++) {
+      final unit = value.codeUnitAt(i);
+      if (unit >= 0xD800 && unit <= 0xDBFF) {
+        final next = i + 1 < value.length ? value.codeUnitAt(i + 1) : null;
+        if (next != null && next >= 0xDC00 && next <= 0xDFFF) {
+          buffer.writeCharCode(unit);
+          buffer.writeCharCode(next);
+          i++;
+        } else {
+          buffer.writeCharCode(0xFFFD);
+        }
+      } else if (unit >= 0xDC00 && unit <= 0xDFFF) {
+        buffer.writeCharCode(0xFFFD);
+      } else {
+        buffer.writeCharCode(unit);
+      }
+    }
+    return buffer.toString();
+  }
+
+  static bool _isSurrogate(int unit) => unit >= 0xD800 && unit <= 0xDFFF;
 
   /// Strings from a list, dropping non-strings.
   static List<String> asStringList(Object? value) {

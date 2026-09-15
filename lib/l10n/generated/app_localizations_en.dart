@@ -1091,6 +1091,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get autoAssignmentToggleLabel => 'Enable automatic assignment';
 
   @override
+  String get strictResponsibilityTitle => 'Strict responsibility';
+
+  @override
+  String get strictResponsibilityDescription =>
+      'When on, a conversation with nobody responsible for its channel stays unassigned rather than falling back to whoever is available. When off, responsibility is only a preference.';
+
+  @override
+  String get strictResponsibilityToggleLabel =>
+      'Require responsibility to assign';
+
+  @override
   String get defaultChatCapacityTitle => 'Default chat capacity';
 
   @override
@@ -1825,6 +1836,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get employeesLoadFailedMessage => 'Couldn\'t load employees.';
 
   @override
+  String get teamResponsibilitiesTitle => 'Channel responsibilities';
+
+  @override
+  String get teamResponsibilitiesDescription =>
+      'Which channels this team is offered new conversations from. This decides who is offered work first — it never changes who can see a conversation.';
+
+  @override
+  String get teamResponsibilityNone => 'None';
+
+  @override
+  String get teamResponsibilityAll => 'All accounts';
+
+  @override
+  String get teamResponsibilitySelected => 'Selected accounts';
+
+  @override
+  String get teamResponsibilitiesLoadFailedMessage =>
+      'Couldn\'t load current responsibilities.';
+
+  @override
+  String get teamResponsibilityNoChannelsMessage =>
+      'No connected accounts for this channel yet.';
+
+  @override
   String get deactivateTeamConfirmTitle => 'Deactivate team?';
 
   @override
@@ -2308,6 +2343,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'Capacity must be between 0 and 200.';
 
   @override
+  String get routingChannelScopeTitle => 'Channel scope';
+
+  @override
+  String get routingChannelScopeDescription =>
+      'A hard limit on which channels this person can be assigned or routed conversations from. Narrowing this never removes conversations they already own.';
+
+  @override
+  String get routingChannelScopeAll => 'All channels';
+
+  @override
+  String get routingChannelScopeSelected => 'Selected channels';
+
+  @override
+  String get routingChannelScopeRequiredError => 'Choose at least one channel.';
+
+  @override
   String get workingHoursTitle => 'Working hours';
 
   @override
@@ -2477,8 +2528,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get savedRepliesLoading => 'Loading saved replies…';
 
   @override
-  String get savedRepliesEmpty =>
-      'No saved replies yet. Create them on the web in Settings.';
+  String get savedRepliesEmpty => 'No saved replies yet.';
 
   @override
   String get savedRepliesNoMatch => 'No saved reply matches your search.';
@@ -2637,4 +2687,251 @@ class AppLocalizationsEn extends AppLocalizations {
   String historyReleasedFrom(String previousName) {
     return 'Released from $previousName back to the queue';
   }
+
+  @override
+  String get tabCustomerFields => 'Customer fields';
+
+  @override
+  String get customerFieldsPermissionDenied =>
+      'You don\'t have permission to view customer fields.';
+
+  @override
+  String get customerFieldsTabTitle => 'Customer fields';
+
+  @override
+  String get customerFieldsTabDescription =>
+      'These fields are stored on every customer record and can be filled in from a customer\'s profile. Only authorized admins can add, edit, reorder or disable them.';
+
+  @override
+  String get addFieldAction => 'Add field';
+
+  @override
+  String get noCustomerFieldsTitle => 'No custom fields yet';
+
+  @override
+  String get noCustomerFieldsMessage =>
+      'Add a field to start collecting it on customer profiles.';
+
+  @override
+  String customerFieldKeyLabel(String key) {
+    return 'Key: $key';
+  }
+
+  @override
+  String get customerFieldDisabledBadge => 'Disabled';
+
+  @override
+  String get moveFieldUpAction => 'Move up';
+
+  @override
+  String get moveFieldDownAction => 'Move down';
+
+  @override
+  String get enableFieldAction => 'Enable';
+
+  @override
+  String get disableFieldAction => 'Disable';
+
+  @override
+  String get customerFieldEnabledSnackbar => 'Field enabled';
+
+  @override
+  String get customerFieldDisabledSnackbar => 'Field disabled';
+
+  @override
+  String get customerFieldReorderedSnackbar => 'Field order updated';
+
+  @override
+  String get addFieldTitle => 'Add field';
+
+  @override
+  String get editFieldTitle => 'Edit field';
+
+  @override
+  String get fieldLabelFieldLabel => 'Label';
+
+  @override
+  String get fieldLabelRequiredError => 'Enter a label.';
+
+  @override
+  String get fieldKeyFieldLabel => 'Key';
+
+  @override
+  String get fieldKeyHelperTextGenerated =>
+      'Generated automatically from the label.';
+
+  @override
+  String get fieldKeyHelperTextFixed =>
+      'The key cannot be changed after the field is created.';
+
+  @override
+  String get fieldKeyInvalidError =>
+      'Use only English letters, numbers and underscores.';
+
+  @override
+  String get fieldTypeFieldLabel => 'Type';
+
+  @override
+  String get fieldRequiredToggleLabel => 'Required';
+
+  @override
+  String get fieldRequiredToggleHelper =>
+      'A required field cannot be saved empty.';
+
+  @override
+  String get fieldHelpTextFieldLabel => 'Help text';
+
+  @override
+  String get fieldHelpTextFieldHint =>
+      'Optional guidance shown under the field';
+
+  @override
+  String get fieldPlaceholderFieldLabel => 'Placeholder';
+
+  @override
+  String get fieldPlaceholderFieldHint =>
+      'Optional example text shown inside the field';
+
+  @override
+  String get fieldAddedSnackbar => 'Field added';
+
+  @override
+  String get fieldUpdatedSnackbar => 'Field updated';
+
+  @override
+  String get fieldTypeText => 'Text';
+
+  @override
+  String get fieldTypeLongText => 'Long text';
+
+  @override
+  String get fieldTypeNumber => 'Whole number';
+
+  @override
+  String get fieldTypeDecimal => 'Decimal number';
+
+  @override
+  String get fieldTypeDate => 'Date';
+
+  @override
+  String get fieldTypeDatetime => 'Date & time';
+
+  @override
+  String get fieldTypeBoolean => 'Yes / No';
+
+  @override
+  String get fieldTypeSelect => 'Single choice';
+
+  @override
+  String get fieldTypeMultiSelect => 'Multiple choice';
+
+  @override
+  String get fieldTypePhone => 'Phone';
+
+  @override
+  String get fieldTypeEmail => 'Email';
+
+  @override
+  String get tabSavedReplies => 'Saved replies';
+
+  @override
+  String get savedRepliesPermissionDenied =>
+      'You don\'t have permission to view saved replies.';
+
+  @override
+  String get savedRepliesTabDescription =>
+      'Reusable text you insert into the reply box and edit before sending. These are not WhatsApp templates and do not need Meta approval.';
+
+  @override
+  String get newSavedReplyAction => 'New saved reply';
+
+  @override
+  String get noSavedRepliesTitle => 'No saved replies yet.';
+
+  @override
+  String get noSavedRepliesMessage =>
+      'Add a saved reply to reuse it from the composer.';
+
+  @override
+  String get savedReplyDisabledBadge => 'Disabled';
+
+  @override
+  String savedReplyShortcutLabel(String shortcut) {
+    return 'Shortcut: /$shortcut';
+  }
+
+  @override
+  String savedReplyCategoryLabel(String category) {
+    return 'Category: $category';
+  }
+
+  @override
+  String get addSavedReplyTitle => 'New saved reply';
+
+  @override
+  String get editSavedReplyTitle => 'Edit saved reply';
+
+  @override
+  String get savedReplyTitleFieldLabel => 'Title';
+
+  @override
+  String get savedReplyTitleRequiredError => 'Enter a title.';
+
+  @override
+  String get savedReplyShortcutFieldLabel => 'Shortcut';
+
+  @override
+  String get savedReplyShortcutFieldHint => '/thanks';
+
+  @override
+  String get savedReplyShortcutHelperText =>
+      'Optional. Type / followed by the shortcut in the reply box to insert it.';
+
+  @override
+  String get savedReplyCategoryFieldLabel => 'Category';
+
+  @override
+  String get savedReplyScopeFieldLabel => 'Who can use it';
+
+  @override
+  String get savedReplyBodyFieldLabel => 'Text';
+
+  @override
+  String get savedReplyBodyRequiredError => 'Enter the reply text.';
+
+  @override
+  String savedReplyBodyHelperText(String customerToken, String agentToken) {
+    return 'Use $customerToken or $agentToken to fill in names when the reply is inserted.';
+  }
+
+  @override
+  String get savedReplyAddedSnackbar => 'Saved reply added';
+
+  @override
+  String get savedReplyUpdatedSnackbar => 'Saved reply updated';
+
+  @override
+  String get deleteSavedReplyAction => 'Delete';
+
+  @override
+  String get deleteSavedReplyConfirmTitle => 'Delete saved reply?';
+
+  @override
+  String deleteSavedReplyConfirmBody(String title) {
+    return '\"$title\" will no longer be available to insert. This cannot be undone from here.';
+  }
+
+  @override
+  String get savedReplyDeletedSnackbar => 'Saved reply deleted';
+
+  @override
+  String get exportCsvAction => 'Export CSV';
+
+  @override
+  String get exportRateLimitedMessage =>
+      'Too many exports in the last minute. Please wait and try again.';
+
+  @override
+  String get exportFailedMessage =>
+      'The export could not be completed. Please try again.';
 }

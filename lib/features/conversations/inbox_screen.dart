@@ -14,6 +14,7 @@ import 'package:intl/intl.dart';
 import '../../app/router.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/conversation_group.dart';
+import '../../core/models/employee.dart';
 import '../../core/realtime/realtime_bridge.dart';
 import '../../core/realtime/realtime_client.dart';
 import '../../core/providers.dart';
@@ -21,6 +22,7 @@ import '../../core/theme/tokens.dart';
 import '../../core/widgets/app_drawer.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
+import '../../core/widgets/export_csv_action.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
 import '../../core/widgets/user_account_menu.dart';
@@ -110,6 +112,13 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
             },
           ),
           _FilterButton(active: filters.hasAdvancedFilters),
+          if (employee?.can(Perm.crmExport) ?? false)
+            ExportCsvAction(
+              fileNamePrefix: 'conversations',
+              fetch: () => ref
+                  .read(conversationRepositoryProvider)
+                  .exportCsv(filters: filters, currentEmployeeId: employee?.id),
+            ),
           const NotificationBellButton(),
           const UserAccountMenuButton(),
           const SizedBox(width: Space.xs),

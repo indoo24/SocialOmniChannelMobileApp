@@ -30,8 +30,10 @@ import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
 import '../conversations/inbox_controller.dart';
+import '../customer_fields/customer_fields_settings_screen.dart';
 import '../directory/directory_providers.dart';
 import '../messages/conversation_controller.dart';
+import '../saved_replies/saved_replies_settings_screen.dart';
 import 'channel_connect_sheets.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -46,12 +48,18 @@ class SettingsScreen extends ConsumerWidget {
 
     final canSeeChannels = employee.can(Perm.channelView);
     final canManageRouting = employee.can(Perm.routingManage);
+    final canSeeCustomerFields = employee.can(Perm.customerView);
+    final canSeeSavedReplies = employee.can(Perm.conversationReply);
     final tabs = <(String, Widget)>[
       if (canSeeChannels) (context.l10n.tabChannels, const _ChannelsTab()),
       (context.l10n.tabProfile, const ProfileTab()),
       (context.l10n.tabSecurity, const _SecurityTab()),
       if (canManageRouting)
         (context.l10n.tabAssignment, const _AssignmentTab()),
+      if (canSeeCustomerFields)
+        (context.l10n.tabCustomerFields, const CustomerFieldsSettingsTab()),
+      if (canSeeSavedReplies)
+        (context.l10n.tabSavedReplies, const SavedRepliesSettingsTab()),
     ];
 
     return DefaultTabController(
@@ -66,6 +74,8 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(width: Space.xs),
           ],
           bottom: TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [for (final (label, _) in tabs) Tab(text: label)],
           ),
         ),
@@ -891,12 +901,16 @@ class _PlatformGroupCardState extends ConsumerState<_PlatformGroupCard> {
       ),
       // Only for an employee the server has given TikTok — otherwise a
       // connected row would be a way around "Coming soon".
-      'TIKTOK' when !(ref.read(currentEmployeeProvider)?.isChannelComingSoon('TIKTOK') ?? true) =>
-          OutlinedButton.icon(
-        onPressed: _busy ? null : () => _connectAnother(repo.authorizeTikTok),
-        icon: const Icon(Icons.music_note, size: 16),
-        label: Text(context.l10n.connectAnotherAccountAction),
-      ),
+      'TIKTOK'
+          when !(ref
+                  .read(currentEmployeeProvider)
+                  ?.isChannelComingSoon('TIKTOK') ??
+              true) =>
+        OutlinedButton.icon(
+          onPressed: _busy ? null : () => _connectAnother(repo.authorizeTikTok),
+          icon: const Icon(Icons.music_note, size: 16),
+          label: Text(context.l10n.connectAnotherAccountAction),
+        ),
       _ => null,
     };
   }
@@ -1338,12 +1352,16 @@ class _ChannelOnboardingCardState
       ),
       // Offered only when the server has made TikTok available to this
       // employee; everyone else sees the Coming soon card instead.
-      'TIKTOK' when !(ref.read(currentEmployeeProvider)?.isChannelComingSoon('TIKTOK') ?? true) =>
-          FilledButton.icon(
-        onPressed: _busy ? null : () => _connect(repo.authorizeTikTok),
-        icon: const Icon(Icons.music_note, size: 16),
-        label: Text(context.l10n.connectTikTokAction),
-      ),
+      'TIKTOK'
+          when !(ref
+                  .read(currentEmployeeProvider)
+                  ?.isChannelComingSoon('TIKTOK') ??
+              true) =>
+        FilledButton.icon(
+          onPressed: _busy ? null : () => _connect(repo.authorizeTikTok),
+          icon: const Icon(Icons.music_note, size: 16),
+          label: Text(context.l10n.connectTikTokAction),
+        ),
       _ => null,
     };
   }
@@ -1386,8 +1404,10 @@ class _ChannelOnboardingCardState
     final description = _platformDescription(context, widget.provider);
     // The server's per-employee answer, not a hardcoded provider.
     final isComingSoon =
-        ref.watch(currentEmployeeProvider)?.isChannelComingSoon(widget.provider) ??
-            widget.provider.toUpperCase() == 'TIKTOK';
+        ref
+            .watch(currentEmployeeProvider)
+            ?.isChannelComingSoon(widget.provider) ??
+        widget.provider.toUpperCase() == 'TIKTOK';
     final primaryAction = _buildPrimaryAction(context, canManage);
     final otherWays = _otherWaysToConnect(context);
 
@@ -2200,6 +2220,8 @@ class _AssignmentTabContentState extends State<_AssignmentTabContent> {
       children: [
         _AutoAssignmentCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
+        _StrictResponsibilityCard(policy: widget.policy),
+        const SizedBox(height: Space.lg),
         _ChatCapacityCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
         _ReassignmentSettingsCard(policy: widget.policy),
@@ -2305,6 +2327,99 @@ class _AutoAssignmentCardState extends ConsumerState<_AutoAssignmentCard> {
                 ),
                 Switch.adaptive(
                   value: isEnabled,
+                  onChanged: _busy ? null : _toggle,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StrictResponsibilityCard extends ConsumerStatefulWidget {
+  const _StrictResponsibilityCard({required this.policy});
+
+  final RoutingPolicy policy;
+
+  @override
+  ConsumerState<_StrictResponsibilityCard> createState() =>
+      _StrictResponsibilityCardState();
+}
+
+class _StrictResponsibilityCardState
+    extends ConsumerState<_StrictResponsibilityCard> {
+  bool _busy = false;
+
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+      ),
+    );
+  }
+
+  Future<void> _toggle(bool value) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(directoryRepositoryProvider)
+          .updateRoutingPolicy(strictResponsibility: value);
+      ref.invalidate(routingPolicyProvider);
+      if (mounted) {
+        _showMessage(context.l10n.assignmentPolicyUpdatedSnackbar);
+      }
+    } on ApiException catch (error) {
+      _showMessage(error.message, isError: true);
+    } catch (error) {
+      _showMessage(error.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final strict = widget.policy.strictResponsibility;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(Space.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.l10n.strictResponsibilityTitle,
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: Space.sm),
+            Text(
+              context.l10n.strictResponsibilityDescription,
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: Space.md),
+            if (_busy) ...[
+              const LinearProgressIndicator(minHeight: 2),
+              const SizedBox(height: Space.sm),
+            ],
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.l10n.strictResponsibilityToggleLabel,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Switch.adaptive(
+                  value: strict,
                   onChanged: _busy ? null : _toggle,
                 ),
               ],

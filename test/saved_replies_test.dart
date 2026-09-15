@@ -95,7 +95,10 @@ void main() {
 
     test('leaves other placeholders exactly as written', () {
       expect(
-        renderSavedReply('Order {{1}} for {{customer_name}}', customerName: 'Sam'),
+        renderSavedReply(
+          'Order {{1}} for {{customer_name}}',
+          customerName: 'Sam',
+        ),
         'Order {{1}} for Sam',
       );
     });
@@ -145,7 +148,8 @@ void main() {
       client = ApiClient.create(cookieJar: CookieJar());
       client.raw.httpClientAdapter = _StubAdapter((options) {
         requests.add(options);
-        if (options.path.contains('/saved-replies/') && options.method == 'GET') {
+        if (options.path.contains('/saved-replies/') &&
+            options.method == 'GET') {
           return _json(_page, 200);
         }
         return _json('{}', 404);
@@ -179,7 +183,9 @@ void main() {
       return chosen;
     }
 
-    testWidgets('lists usable replies and returns the one tapped', (tester) async {
+    testWidgets('lists usable replies and returns the one tapped', (
+      tester,
+    ) async {
       final chosen = await openAndPick(tester, 'Phone number');
 
       expect(tester.takeException(), isNull);
@@ -187,7 +193,9 @@ void main() {
       expect(chosen?.body, 'Please send your phone number.');
     });
 
-    testWidgets('only ever reads — choosing a reply sends nothing', (tester) async {
+    testWidgets('only ever reads — choosing a reply sends nothing', (
+      tester,
+    ) async {
       await openAndPick(tester, 'Thanks');
 
       expect(requests, isNotEmpty);
@@ -210,7 +218,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byKey(const Key('savedReplySearch')), 'phone');
+      await tester.enterText(
+        find.byKey(const Key('savedReplySearch')),
+        'phone',
+      );
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
 
@@ -230,7 +241,11 @@ void main() {
       role: 'AGENT',
       roleDisplay: 'Agent',
       availability: 'ONLINE',
-      permissions: {Perm.conversationReply, Perm.conversationNote, Perm.channelView},
+      permissions: {
+        Perm.conversationReply,
+        Perm.conversationNote,
+        Perm.channelView,
+      },
       visibilityScope: 'ALL',
       organization: Organization(id: 1, name: 'Scenario Corp'),
     );
@@ -279,7 +294,9 @@ void main() {
             200,
           );
         }
-        if (path.contains('/templates/')) return _json('{"templates": []}', 200);
+        if (path.contains('/templates/')) {
+          return _json('{"templates": []}', 200);
+        }
         return _json('{}', 200);
       });
       return client;
@@ -343,7 +360,9 @@ void main() {
       },
     );
 
-    testWidgets('is not offered past WhatsApp\'s 24-hour window', (tester) async {
+    testWidgets('is not offered past WhatsApp\'s 24-hour window', (
+      tester,
+    ) async {
       final client = serverWith(sinceCustomerWrote: const Duration(hours: 48));
       await pumpScreen(tester, client);
 
@@ -352,9 +371,14 @@ void main() {
     });
   });
 
-  test('the saved replies feature never posts anything', () {
-    // Structural: the only way a saved reply reaches a customer is through the
-    // composer and ConversationRepository.reply().
+  test('the saved replies feature never reaches a customer except through '
+      'the ordinary reply path', () {
+    // Structural: the only way a saved reply's text reaches a customer is
+    // through the composer and ConversationRepository.reply() — nothing in
+    // this feature calls that, or any endpoint under /conversations/,
+    // itself. `saved_replies_providers.dart` is the one file allowed to
+    // write, and only ever to /saved-replies/ — managing the reply
+    // definitions themselves, never sending on a customer's behalf.
     final dir = Directory('lib/features/saved_replies');
     for (final file in dir.listSync().whereType<File>()) {
       // Code only: doc comments explaining the rule must not trip it.
@@ -362,10 +386,12 @@ void main() {
           .readAsLinesSync()
           .where((line) => !line.trimLeft().startsWith('//'))
           .join('\n');
+      expect(source.contains('.reply('), isFalse, reason: file.path);
+      expect(source.contains('/conversations/'), isFalse, reason: file.path);
+      if (file.path.endsWith('saved_replies_providers.dart')) continue;
       expect(source.contains('.post<'), isFalse, reason: file.path);
       expect(source.contains('.patch<'), isFalse, reason: file.path);
       expect(source.contains('.delete<'), isFalse, reason: file.path);
-      expect(source.contains('.reply('), isFalse, reason: file.path);
     }
   });
 }

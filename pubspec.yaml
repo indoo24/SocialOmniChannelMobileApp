@@ -48,6 +48,16 @@ dependencies:
   connectivity_plus: ^7.0.0
   path_provider: ^2.1.6
 
+  # CSV export (Customers, Inbox): writes the exported file to a temp path via
+  # path_provider above, then hands it to the platform share sheet so the
+  # employee can save or send it anywhere — the same one-time, outbound flow
+  # composer attachments already use path_provider for, just in reverse.
+  # share_plus registers the platform-specific SharePlatform implementation;
+  # app code calls the platform_interface directly (see csv_export.dart) so a
+  # widget test can swap SharePlatform.instance for a fake.
+  share_plus: ^13.3.0
+  share_plus_platform_interface: ^7.2.0
+
   # Push. Backgrounded/killed-app fallback for the realtime socket above —
   # same two notification types the socket carries, delivered by Firebase
   # Cloud Messaging instead of Django Channels while the app cannot hold a

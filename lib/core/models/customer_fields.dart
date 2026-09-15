@@ -38,11 +38,14 @@ class CustomerFieldDefinition {
     this.isActive = true,
     this.helpText = '',
     this.placeholder = '',
+    this.displayOrder = 0,
   });
 
   final int id;
 
-  /// Stable machine identifier, e.g. `birth_date`.
+  /// Stable machine identifier, e.g. `birth_date`. Fixed once the field
+  /// exists — the backend derives it from the label on create and never
+  /// changes it afterward.
   final String key;
   final String label;
 
@@ -55,6 +58,11 @@ class CustomerFieldDefinition {
   final bool isActive;
   final String helpText;
   final String placeholder;
+
+  /// Position among the organization's fields — what
+  /// `POST /customer-fields/reorder/` changes. Read-only on the wire; a
+  /// reorder is expressed as a list of ids, not a value sent per field.
+  final int displayOrder;
 
   String labelForOption(String value) {
     for (final option in options) {
@@ -69,13 +77,33 @@ class CustomerFieldDefinition {
         key: JsonSafe.asString(json['key']),
         label: JsonSafe.asString(json['label']),
         fieldType: JsonSafe.asString(json['field_type'], fallback: 'TEXT'),
-        options: JsonSafe.parseList(json['options'], CustomerFieldOption.fromJson),
+        options: JsonSafe.parseList(
+          json['options'],
+          CustomerFieldOption.fromJson,
+        ),
         required: JsonSafe.asBool(json['required']),
         isActive: JsonSafe.asBool(json['is_active'], fallback: true),
         helpText: JsonSafe.asString(json['help_text']),
         placeholder: JsonSafe.asString(json['placeholder']),
+        displayOrder: JsonSafe.asInt(json['display_order']),
       );
 }
+
+/// Every field type `FieldTypeEnum` documents. A dropdown that offers a type
+/// not in this list would be offering something the backend will refuse.
+const kCustomerFieldTypes = [
+  'TEXT',
+  'LONG_TEXT',
+  'NUMBER',
+  'DECIMAL',
+  'DATE',
+  'DATETIME',
+  'BOOLEAN',
+  'SELECT',
+  'MULTI_SELECT',
+  'PHONE',
+  'EMAIL',
+];
 
 class CustomerFieldRow {
   const CustomerFieldRow({

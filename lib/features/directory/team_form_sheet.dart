@@ -18,11 +18,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/models/directory.dart';
+import '../../core/models/routing_policy.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
+import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'directory_providers.dart';
+
+/// `RoutableProviderEnum`.
+const _routableProviders = ['WHATSAPP', 'FACEBOOK', 'INSTAGRAM', 'TIKTOK'];
 
 /// Opens the Add Team sheet.
 Future<void> showAddTeamSheet(BuildContext context) {
@@ -81,6 +86,25 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
   final Set<int> _memberIds = {};
   final Set<int> _leaderIds = {};
 
+  /// One entry per provider the team is responsible for. A provider absent
+  /// here has no responsibility — matches the backend's own "omitted means
+  /// none" semantics for `TeamWrite.responsibilities`.
+  final Map<String, TeamResponsibilityInput> _responsibilities = {};
+
+  /// Seeded once, the first time [routingResponsibilitiesProvider] resolves
+  /// — there is no per-team read endpoint, so this is derived client-side
+  /// from the full org list and must not be re-applied on every rebuild
+  /// (that would stomp whatever the admin has already changed).
+  bool _responsibilitiesSeeded = false;
+
+  /// Whether the admin has touched the responsibilities section this
+  /// session. `responsibilities` is only ever sent when true — omitting the
+  /// field on edit leaves existing rules untouched (the backend's own
+  /// contract), and nothing here can safely diff against "current state"
+  /// the way other fields do, since it starts unseeded until the async
+  /// fetch resolves.
+  bool _responsibilitiesTouched = false;
+
   bool _submitting = false;
   String? _error;
 
@@ -90,6 +114,34 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
     if (widget.existing != null) {
       _memberIds.addAll(widget.existing!.memberIds);
       _leaderIds.addAll(widget.existing!.leaderIds);
+    }
+  }
+
+  void _seedResponsibilities(List<RoutingResponsibility> all) {
+    if (_responsibilitiesSeeded || widget.existing == null) return;
+    _responsibilitiesSeeded = true;
+
+    final mine = all.where(
+      (r) => r.isActive && r.teamId == widget.existing!.id,
+    );
+    final byProvider = <String, List<RoutingResponsibility>>{};
+    for (final rule in mine) {
+      (byProvider[rule.provider] ??= []).add(rule);
+    }
+
+    for (final entry in byProvider.entries) {
+      final channelSpecific = entry.value
+          .where((r) => r.isChannelSpecific)
+          .map((r) => r.channelConnectionId!)
+          .toList();
+      _responsibilities[entry.key] = TeamResponsibilityInput(
+        provider: entry.key,
+        // A provider-wide rule (no channel_connection) means "all"; every
+        // rule this team has for this provider being channel-specific means
+        // "selected" with exactly those channels.
+        scope: channelSpecific.isEmpty ? 'all' : 'selected',
+        channelConnectionIds: channelSpecific,
+      );
     }
   }
 
@@ -108,6 +160,16 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
     final name = _name.text.trim();
     if (name.isEmpty) {
       setState(() => _error = context.l10n.addTeamNameRequiredError);
+      return;
+    }
+
+    final emptySelected = _responsibilities.values.where(
+      (r) => r.scope == 'selected' && r.channelConnectionIds.isEmpty,
+    );
+    if (emptySelected.isNotEmpty) {
+      setState(
+        () => _error = context.l10n.routingChannelScopeRequiredError,
+      );
       return;
     }
 
@@ -131,6 +193,10 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
           'is_active': _isActive,
           'member_ids': _memberIds.toList(),
           'leader_ids': _leaderIds.toList(),
+          if (_responsibilities.isNotEmpty)
+            'responsibilities': _responsibilities.values
+                .map((r) => r.toJson())
+                .toList(),
         });
       }
 
@@ -183,6 +249,17 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
     final originalLeaderIds = existing.leaderIds.toSet();
     if (!_setEquals(_leaderIds, originalLeaderIds)) {
       fields['leader_ids'] = _leaderIds.toList();
+    }
+
+    // Omitted entirely unless the admin actually opened and edited this
+    // section — see the field's own doc comment for why nothing here can
+    // diff against "current state" the way the fields above do. Sending it
+    // untouched would silently overwrite rules this form never displayed
+    // (e.g. still loading when the admin hit Save).
+    if (_responsibilitiesTouched) {
+      fields['responsibilities'] = _responsibilities.values
+          .map((r) => r.toJson())
+          .toList();
     }
 
     return fields;
@@ -263,6 +340,19 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
           value: _isActive,
           onChanged: (value) => setState(() => _isActive = value),
         ),
+        const SizedBox(height: Space.lg),
+        _TeamResponsibilitiesCard(
+          responsibilities: _responsibilities,
+          seedFrom: widget.isEdit ? _seedResponsibilities : null,
+          onChanged: (provider, input) => setState(() {
+            _responsibilitiesTouched = true;
+            if (input == null) {
+              _responsibilities.remove(provider);
+            } else {
+              _responsibilities[provider] = input;
+            }
+          }),
+        ),
         const SizedBox(height: Space.md),
         Text(context.l10n.leadersFieldLabel, style: theme.textTheme.labelLarge),
         employees.when(
@@ -332,6 +422,208 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
                 )
               : Text(context.l10n.commonSave),
         ),
+      ],
+    );
+  }
+}
+
+/// One row per provider: none / all accounts / selected accounts, with a
+/// channel picker that appears only for "selected."
+///
+/// On edit, [seedFrom] is called once real data arrives from
+/// [routingResponsibilitiesProvider] — there is no per-team read endpoint,
+/// so current state is derived client-side from the full organization list
+/// (see `_TeamFormSheetState._seedResponsibilities`). On add, [seedFrom] is
+/// null: a new team starts with no responsibilities, same as the backend's
+/// own default.
+class _TeamResponsibilitiesCard extends ConsumerWidget {
+  const _TeamResponsibilitiesCard({
+    required this.responsibilities,
+    required this.seedFrom,
+    required this.onChanged,
+  });
+
+  final Map<String, TeamResponsibilityInput> responsibilities;
+  final void Function(List<RoutingResponsibility> all)? seedFrom;
+  final void Function(String provider, TeamResponsibilityInput? input)
+  onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final channels = ref.watch(channelsProvider);
+    final allResponsibilities = seedFrom == null
+        ? const AsyncValue<List<RoutingResponsibility>>.data([])
+        : ref.watch(routingResponsibilitiesProvider);
+
+    allResponsibilities.whenData((rows) => seedFrom?.call(rows));
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(Radii.lg),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+        ),
+      ),
+      padding: const EdgeInsets.all(Space.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.l10n.teamResponsibilitiesTitle,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: Space.xs),
+          Text(
+            context.l10n.teamResponsibilitiesDescription,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: Space.md),
+          if (allResponsibilities.hasError)
+            Text(
+              context.l10n.teamResponsibilitiesLoadFailedMessage,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            )
+          else
+            for (final provider in _routableProviders) ...[
+              _ProviderResponsibilityRow(
+                provider: provider,
+                current: responsibilities[provider],
+                channels: channels.value
+                    ?.where(
+                      (c) => c.provider.toUpperCase() == provider && c.isActive,
+                    )
+                    .toList(),
+                onChanged: (input) => onChanged(provider, input),
+              ),
+              if (provider != _routableProviders.last)
+                const SizedBox(height: Space.sm),
+            ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ProviderResponsibilityRow extends StatelessWidget {
+  const _ProviderResponsibilityRow({
+    required this.provider,
+    required this.current,
+    required this.channels,
+    required this.onChanged,
+  });
+
+  final String provider;
+  final TeamResponsibilityInput? current;
+  final List<ChannelConnection>? channels;
+  final ValueChanged<TeamResponsibilityInput?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scope = current?.scope ?? 'none';
+    final selectedIds = current?.channelConnectionIds.toSet() ?? const {};
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              ConversationBadges.providerIcon(provider),
+              size: 18,
+              color: ConversationBadges.providerColor(provider),
+            ),
+            const SizedBox(width: Space.sm),
+            Expanded(
+              child: Text(
+                ConversationBadges.providerLabel(context, provider),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            DropdownButton<String>(
+              value: scope,
+              underline: const SizedBox.shrink(),
+              items: [
+                DropdownMenuItem(
+                  value: 'none',
+                  child: Text(context.l10n.teamResponsibilityNone),
+                ),
+                DropdownMenuItem(
+                  value: 'all',
+                  child: Text(context.l10n.teamResponsibilityAll),
+                ),
+                DropdownMenuItem(
+                  value: 'selected',
+                  child: Text(context.l10n.teamResponsibilitySelected),
+                ),
+              ],
+              onChanged: (value) {
+                if (value == null || value == 'none') {
+                  onChanged(null);
+                } else if (value == 'all') {
+                  onChanged(
+                    TeamResponsibilityInput(provider: provider, scope: 'all'),
+                  );
+                } else {
+                  onChanged(
+                    TeamResponsibilityInput(
+                      provider: provider,
+                      scope: 'selected',
+                      channelConnectionIds: selectedIds.toList(),
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+        if (scope == 'selected') ...[
+          const SizedBox(height: Space.xs),
+          Padding(
+            padding: const EdgeInsets.only(left: Space.xl),
+            child: (channels == null || channels!.isEmpty)
+                ? Text(
+                    context.l10n.teamResponsibilityNoChannelsMessage,
+                    style: theme.textTheme.bodySmall,
+                  )
+                : Wrap(
+                    spacing: Space.sm,
+                    runSpacing: Space.xs,
+                    children: [
+                      for (final channel in channels!)
+                        FilterChip(
+                          label: Text(channel.displayName),
+                          selected: selectedIds.contains(channel.id),
+                          onSelected: (isSelected) {
+                            final updated = Set<int>.from(selectedIds);
+                            if (isSelected) {
+                              updated.add(channel.id);
+                            } else {
+                              updated.remove(channel.id);
+                            }
+                            onChanged(
+                              TeamResponsibilityInput(
+                                provider: provider,
+                                scope: 'selected',
+                                channelConnectionIds: updated.toList(),
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+          ),
+        ],
       ],
     );
   }

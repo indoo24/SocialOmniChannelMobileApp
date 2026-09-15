@@ -27,6 +27,7 @@ import '../../core/api/api_exception.dart';
 import '../../core/models/directory.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
+import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
@@ -35,6 +36,10 @@ import 'working_hours_editor_sheet.dart';
 
 const _roles = ['AGENT', 'TEAM_LEADER', 'SUPERVISOR', 'QA', 'ADMIN'];
 const _availabilities = ['ONLINE', 'AWAY', 'BREAK', 'OFFLINE'];
+
+/// `RoutingProvidersEnum` — MOCK is deliberately excluded, per the backend's
+/// own contract ("MOCK refused").
+const _routingProviders = ['WHATSAPP', 'FACEBOOK', 'INSTAGRAM', 'TIKTOK'];
 
 /// Opens the Add Employee sheet.
 Future<void> showAddEmployeeSheet(BuildContext context) {
@@ -107,6 +112,11 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
   late bool _isActive = widget.existing?.isActive ?? true;
   final Set<int> _teamIds = {};
   late final List<WorkingHoursWindow> _workingHours;
+  late String _routingChannelScope =
+      widget.existing?.routingChannelScope ?? 'ALL';
+  late final Set<String> _routingProvidersSelected = {
+    ...?widget.existing?.routingProviders,
+  };
 
   bool _submitting = false;
   String? _error;
@@ -184,6 +194,14 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
       maxOpenChats = parsed;
     }
 
+    if (_routingChannelScope == 'SELECTED' &&
+        _routingProvidersSelected.isEmpty) {
+      setState(
+        () => _error = context.l10n.routingChannelScopeRequiredError,
+      );
+      return;
+    }
+
     final repository = ref.read(directoryRepositoryProvider);
 
     setState(() {
@@ -255,6 +273,12 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
     if (_workingHours.isNotEmpty) {
       body['working_hours'] = _workingHours.map((w) => w.toJson()).toList();
     }
+    // routing_channel_scope defaults to ALL server-side, so it is only worth
+    // sending when the admin picked SELECTED (and, with it, the providers).
+    if (_routingChannelScope == 'SELECTED') {
+      body['routing_channel_scope'] = _routingChannelScope;
+      body['routing_providers'] = _routingProvidersSelected.toList();
+    }
     return body;
   }
 
@@ -298,6 +322,18 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
       fields['working_hours'] = _workingHours.map((w) => w.toJson()).toList();
     }
 
+    final originalProviders = existing.routingProviders.toSet();
+    final scopeChanged = _routingChannelScope != existing.routingChannelScope;
+    final providersChanged =
+        _routingChannelScope == 'SELECTED' &&
+        !_setEquals(_routingProvidersSelected, originalProviders);
+    if (scopeChanged || providersChanged) {
+      fields['routing_channel_scope'] = _routingChannelScope;
+      fields['routing_providers'] = _routingChannelScope == 'SELECTED'
+          ? _routingProvidersSelected.toList()
+          : <String>[];
+    }
+
     // Never sent unless the administrator actually typed a new one — see
     // the spec's "do not blindly send a password if the administrator did
     // not change it."
@@ -327,7 +363,7 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
     return true;
   }
 
-  static bool _setEquals(Set<int> a, Set<int> b) =>
+  static bool _setEquals<T>(Set<T> a, Set<T> b) =>
       a.length == b.length && a.containsAll(b);
 
   @override
@@ -449,6 +485,20 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
           timezone: timezone,
           onEditDay: (day) => _editWorkingHours(day, timezone),
         ),
+        const SizedBox(height: Space.lg),
+        _RoutingChannelScopeCard(
+          scope: _routingChannelScope,
+          selectedProviders: _routingProvidersSelected,
+          onScopeChanged: (scope) =>
+              setState(() => _routingChannelScope = scope),
+          onProviderToggled: (provider, selected) => setState(() {
+            if (selected) {
+              _routingProvidersSelected.add(provider);
+            } else {
+              _routingProvidersSelected.remove(provider);
+            }
+          }),
+        ),
         const SizedBox(height: Space.md),
         TextField(
           controller: _password,
@@ -531,6 +581,89 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
         'BREAK' => context.l10n.availabilityOnBreak,
         _ => context.l10n.availabilityOffline,
       };
+}
+
+class _RoutingChannelScopeCard extends StatelessWidget {
+  const _RoutingChannelScopeCard({
+    required this.scope,
+    required this.selectedProviders,
+    required this.onScopeChanged,
+    required this.onProviderToggled,
+  });
+
+  final String scope;
+  final Set<String> selectedProviders;
+  final ValueChanged<String> onScopeChanged;
+  final void Function(String provider, bool selected) onProviderToggled;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isSelected = scope == 'SELECTED';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(Radii.lg),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+        ),
+      ),
+      padding: const EdgeInsets.all(Space.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.l10n.routingChannelScopeTitle,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: Space.xs),
+          Text(
+            context.l10n.routingChannelScopeDescription,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: Space.md),
+          SegmentedButton<String>(
+            segments: [
+              ButtonSegment(
+                value: 'ALL',
+                label: Text(context.l10n.routingChannelScopeAll),
+              ),
+              ButtonSegment(
+                value: 'SELECTED',
+                label: Text(context.l10n.routingChannelScopeSelected),
+              ),
+            ],
+            selected: {scope},
+            onSelectionChanged: (selection) =>
+                onScopeChanged(selection.first),
+          ),
+          if (isSelected) ...[
+            const SizedBox(height: Space.md),
+            Wrap(
+              spacing: Space.sm,
+              runSpacing: Space.sm,
+              children: [
+                for (final provider in _routingProviders)
+                  FilterChip(
+                    label: Text(
+                      ConversationBadges.providerLabel(context, provider),
+                    ),
+                    selected: selectedProviders.contains(provider),
+                    onSelected: (selected) =>
+                        onProviderToggled(provider, selected),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _AutomaticAllocationCard extends StatelessWidget {

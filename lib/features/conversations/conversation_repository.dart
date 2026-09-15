@@ -47,8 +47,20 @@ class ConversationFilters {
   /// Explicit channel connection IDs to filter by on the server (`channel_connections` query parameter).
   final List<int>? channelConnections;
 
-  Map<String, dynamic> toQuery(int page, int? currentEmployeeId) {
-    final query = <String, dynamic>{'page': page};
+  Map<String, dynamic> toQuery(int page, int? currentEmployeeId) => {
+    'page': page,
+    ..._filterQuery(currentEmployeeId),
+  };
+
+  /// The same filters as [toQuery], without `page` — for
+  /// `GET /conversations/export/`, which the OpenAPI contract documents as
+  /// accepting every filter the list does but ignoring pagination and
+  /// exporting every matching row regardless of what is loaded on screen.
+  Map<String, dynamic> toExportQuery(int? currentEmployeeId) =>
+      _filterQuery(currentEmployeeId);
+
+  Map<String, dynamic> _filterQuery(int? currentEmployeeId) {
+    final query = <String, dynamic>{};
     if (status != null) query['status'] = status;
     if (priority != null) query['priority'] = priority;
     if (provider != null) query['provider'] = provider;
@@ -186,12 +198,30 @@ class ConversationRepository {
     ConversationFilters filters = const ConversationFilters(),
     int page = 1,
     int? currentEmployeeId,
+    int? pageSize,
   }) async {
+    final query = filters.toQuery(page, currentEmployeeId);
+    if (pageSize != null) query['page_size'] = pageSize;
     final data = await _api.get<Map<String, dynamic>>(
       '/conversations/',
-      query: filters.toQuery(page, currentEmployeeId),
+      query: query,
     );
     return Paginated.fromJson(data, Conversation.fromJson);
+  }
+
+  /// `GET /conversations/export/` — the inbox as a UTF-8 CSV (BOM-prefixed
+  /// for Excel), one row per conversation, every matching row regardless of
+  /// pagination. Needs `crm.export`. Same [ConversationFilters] the list
+  /// itself uses, so the export always matches what is on screen — filtered,
+  /// never hard-coded, never just the currently-loaded page.
+  Future<List<int>> exportCsv({
+    ConversationFilters filters = const ConversationFilters(),
+    int? currentEmployeeId,
+  }) {
+    return _api.getBytes(
+      '/conversations/export/',
+      query: filters.toExportQuery(currentEmployeeId),
+    );
   }
 
   Future<Paginated<CustomerConversationGroup>> listGrouped({
@@ -211,18 +241,50 @@ class ConversationRepository {
     return Conversation.fromJson(data);
   }
 
-  Future<Map<String, int>> counts({List<int>? channelConnections}) async {
-    final query = <String, dynamic>{};
-    if (channelConnections != null && channelConnections.isNotEmpty) {
-      query['channel_connections'] = channelConnections.join(',');
+  /// Quick-filter badge counts, one per bucket: all, mine, unassigned,
+  /// unread, open.
+  ///
+  /// Deliberately **not** `GET /conversations/counts/`: that endpoint's own
+  /// total disagreed with what `/conversations/` actually returns for the
+  /// same account (confirmed live against production — the badge read 32
+  /// while the list, and the web client, both agreed on 15), which is a
+  /// server-side inconsistency between the two endpoints' queries. Asking
+  /// `/conversations/` itself — the same endpoint and the same
+  /// [ConversationFilters] the list uses — for each bucket's `count` makes
+  /// the badge numbers correct by construction: they cannot disagree with
+  /// the list, because they are answers from the list's own query, not a
+  /// second, independently-implemented one. `pageSize: 1` keeps each of the
+  /// five requests to a single-row response; only `count` is read.
+  Future<Map<String, int>> counts({
+    List<int>? channelConnections,
+    int? currentEmployeeId,
+  }) async {
+    final base = ConversationFilters(channelConnections: channelConnections);
+
+    Future<int> countFor(ConversationFilters filters) async {
+      final page = await list(
+        filters: filters,
+        currentEmployeeId: currentEmployeeId,
+        pageSize: 1,
+      );
+      return page.count;
     }
-    final data = await _api.get<Map<String, dynamic>>(
-      '/conversations/counts/',
-      query: query.isNotEmpty ? query : null,
-    );
-    return data.map(
-      (key, value) => MapEntry(key, (value as num?)?.toInt() ?? 0),
-    );
+
+    final results = await Future.wait([
+      countFor(base),
+      countFor(base.copyWith(assignedToMe: true)),
+      countFor(base.copyWith(unassigned: true)),
+      countFor(base.copyWith(unread: true)),
+      countFor(base.copyWith(status: 'OPEN')),
+    ]);
+
+    return {
+      'all': results[0],
+      'mine': results[1],
+      'unassigned': results[2],
+      'unread': results[3],
+      'open': results[4],
+    };
   }
 
   Future<Paginated<Message>> messages(

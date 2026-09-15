@@ -7,6 +7,14 @@
 ///
 /// Requires `analytics.view`. The drawer hides it otherwise, and the backend
 /// refuses `/dashboard/channels/` outright for roles without it.
+///
+/// The lead-pipeline section reads `dashboardProvider` — the same provider
+/// the Dashboard screen uses — so it shares one date-range filter
+/// (`dashboardDateFilterProvider`/`DashboardDateFilterButton`) rather than a
+/// second, parallel one; changing the range here changes it on Dashboard too,
+/// and vice versa. Volume-by-channel is not filtered: `/dashboard/channels/`
+/// takes no date parameters — it reports what arrived, not a queryable
+/// window — same on web.
 library;
 
 import 'package:flutter/material.dart';
@@ -18,6 +26,7 @@ import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../dashboard/dashboard_date_filter_sheet.dart';
 import '../directory/directory_providers.dart';
 import '../performance/performance_card.dart';
 
@@ -32,6 +41,7 @@ class AnalyticsScreen extends ConsumerWidget {
 
     return SectionScaffold(
       title: context.l10n.navAnalytics,
+      actions: const [DashboardDateFilterButton()],
       onRefresh: () async {
         ref
           ..invalidate(dashboardProvider)

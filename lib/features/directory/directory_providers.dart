@@ -33,6 +33,14 @@ final routingPolicyProvider = FutureProvider<RoutingPolicy>((ref) {
   return ref.watch(directoryRepositoryProvider).routingPolicy();
 });
 
+/// Every routing-responsibility rule in the organization — the team form
+/// filters this down to one team's rows itself, since the endpoint carries
+/// no team filter of its own.
+final routingResponsibilitiesProvider =
+    FutureProvider<List<RoutingResponsibility>>((ref) {
+      return ref.watch(directoryRepositoryProvider).routingResponsibilities();
+    });
+
 final channelVolumeProvider = FutureProvider<List<ChannelVolume>>((ref) {
   return ref.watch(directoryRepositoryProvider).channelVolume();
 });
@@ -196,4 +204,13 @@ final customerFactsProvider = FutureProvider.family<List<CustomerFact>, int>((
 final customerFieldsProvider =
     FutureProvider.family<List<CustomerFieldRow>, int>((ref, customerId) {
       return ref.watch(directoryRepositoryProvider).customerFields(customerId);
+    });
+
+/// Every custom field definition the organization has, active or disabled —
+/// the admin management list, not one customer's values.
+final customerFieldDefinitionsProvider =
+    FutureProvider<List<CustomerFieldDefinition>>((ref) {
+      return ref
+          .watch(directoryRepositoryProvider)
+          .customerFieldDefinitions(includeInactive: true);
     });

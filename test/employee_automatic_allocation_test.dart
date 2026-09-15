@@ -822,6 +822,346 @@ void main() {
     });
   });
 
+  group('Routing Channel Scope', () {
+    testWidgets('defaults to All channels and shows no provider picker', (
+      tester,
+    ) async {
+      final adapter = _adapter();
+      final client = _clientFrom(adapter);
+
+      await tester.pumpWidget(
+        _harness(
+          apiClient: client,
+          child: Builder(
+            builder: (ctx) => TextButton(
+              onPressed: () => showAddEmployeeSheet(ctx),
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Channel scope'),
+        _sheetScrollable(),
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Channel scope'), findsOneWidget);
+      expect(find.text('All channels'), findsOneWidget);
+      expect(find.text('Selected channels'), findsOneWidget);
+      expect(find.text('WhatsApp'), findsNothing);
+    });
+
+    testWidgets(
+      'an existing employee with SELECTED scope shows their providers '
+      'pre-checked',
+      (tester) async {
+        final adapter = _adapter();
+        final client = _clientFrom(adapter);
+
+        const employee = DirectoryEmployee(
+          id: 10,
+          fullName: 'Jane Doe',
+          initials: 'JD',
+          email: 'jane@acme.test',
+          role: 'AGENT',
+          roleDisplay: 'Agent',
+          availability: 'ONLINE',
+          isActive: true,
+          teamNames: [],
+          routingChannelScope: 'SELECTED',
+          routingProviders: ['WHATSAPP', 'INSTAGRAM'],
+        );
+
+        await tester.pumpWidget(
+          _harness(
+            apiClient: client,
+            child: Builder(
+              builder: (ctx) => TextButton(
+                onPressed: () => showEditEmployeeSheet(ctx, employee: employee),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
+
+        await tester.dragUntilVisible(
+          find.text('Channel scope'),
+          _sheetScrollable(),
+          const Offset(0, -300),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('WhatsApp'), findsOneWidget);
+        expect(find.text('Instagram'), findsOneWidget);
+        expect(find.text('Messenger'), findsOneWidget);
+        expect(find.text('TikTok'), findsOneWidget);
+
+        final whatsapp = tester.widget<FilterChip>(
+          find.ancestor(
+            of: find.text('WhatsApp'),
+            matching: find.byType(FilterChip),
+          ),
+        );
+        expect(whatsapp.selected, isTrue);
+
+        final facebook = tester.widget<FilterChip>(
+          find.ancestor(
+            of: find.text('Messenger'),
+            matching: find.byType(FilterChip),
+          ),
+        );
+        expect(facebook.selected, isFalse);
+      },
+    );
+
+    testWidgets(
+      'switching to Selected with no channel picked is rejected locally',
+      (tester) async {
+        final adapter = _adapter();
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(
+          _harness(
+            apiClient: client,
+            child: Builder(
+              builder: (ctx) => TextButton(
+                onPressed: () => showAddEmployeeSheet(ctx),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField).at(0), 'new@acme.test');
+        await tester.enterText(find.byType(TextField).at(1), 'First');
+        await tester.enterText(find.byType(TextField).at(2), 'Last');
+
+        final scrollable = _sheetScrollable();
+        await tester.dragUntilVisible(
+          find.text('Selected channels'),
+          scrollable,
+          const Offset(0, -200),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Selected channels'));
+        await tester.pumpAndSettle();
+
+        await tester.dragUntilVisible(
+          find.widgetWithText(TextField, 'Password'),
+          scrollable,
+          const Offset(0, -200),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Password'),
+          'secret123',
+        );
+
+        await _scrollToAndTapSave(tester);
+        await _scrollToErrorBanner(tester);
+
+        expect(find.text('Choose at least one channel.'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Add Employee omits routing fields entirely when scope is left as All',
+      (tester) async {
+        RequestOptions? captured;
+        final adapter = _adapter(
+          extra: (options) {
+            if (options.path == '/employees/' && options.method == 'POST') {
+              captured = options;
+              return _json(
+                '{"id": 99, "full_name": "New Emp", "email": "new@acme.test", "role": "AGENT", "role_display": "Agent", "availability": "ONLINE", "is_active": true, "teams": []}',
+                201,
+              );
+            }
+            return ResponseBody.fromString('', 599);
+          },
+        );
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(
+          _harness(
+            apiClient: client,
+            child: Builder(
+              builder: (ctx) => TextButton(
+                onPressed: () => showAddEmployeeSheet(ctx),
+                child: const Text('Open Add'),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Add'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField).at(0), 'new@acme.test');
+        await tester.enterText(find.byType(TextField).at(1), 'New');
+        await tester.enterText(find.byType(TextField).at(2), 'Emp');
+
+        final scrollable = _sheetScrollable();
+        await tester.dragUntilVisible(
+          find.widgetWithText(TextField, 'Password'),
+          scrollable,
+          const Offset(0, -200),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Password'),
+          'pass123',
+        );
+
+        await _scrollToAndTapSave(tester);
+
+        expect(captured, isNotNull);
+        final data = captured!.data as Map<String, dynamic>;
+        expect(data.containsKey('routing_channel_scope'), isFalse);
+        expect(data.containsKey('routing_providers'), isFalse);
+      },
+    );
+
+    testWidgets(
+      'Add Employee sends routing_channel_scope and routing_providers when '
+      'Selected channels are chosen',
+      (tester) async {
+        RequestOptions? captured;
+        final adapter = _adapter(
+          extra: (options) {
+            if (options.path == '/employees/' && options.method == 'POST') {
+              captured = options;
+              return _json(
+                '{"id": 99, "full_name": "New Emp", "email": "new@acme.test", "role": "AGENT", "role_display": "Agent", "availability": "ONLINE", "is_active": true, "teams": []}',
+                201,
+              );
+            }
+            return ResponseBody.fromString('', 599);
+          },
+        );
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(
+          _harness(
+            apiClient: client,
+            child: Builder(
+              builder: (ctx) => TextButton(
+                onPressed: () => showAddEmployeeSheet(ctx),
+                child: const Text('Open Add'),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Add'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField).at(0), 'new@acme.test');
+        await tester.enterText(find.byType(TextField).at(1), 'New');
+        await tester.enterText(find.byType(TextField).at(2), 'Emp');
+
+        final scrollable = _sheetScrollable();
+        await tester.dragUntilVisible(
+          find.text('Selected channels'),
+          scrollable,
+          const Offset(0, -200),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Selected channels'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('WhatsApp'));
+        await tester.pumpAndSettle();
+
+        await tester.dragUntilVisible(
+          find.widgetWithText(TextField, 'Password'),
+          scrollable,
+          const Offset(0, -200),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Password'),
+          'pass123',
+        );
+
+        await _scrollToAndTapSave(tester);
+
+        expect(captured, isNotNull);
+        final data = captured!.data as Map<String, dynamic>;
+        expect(data['routing_channel_scope'], 'SELECTED');
+        expect(data['routing_providers'], ['WHATSAPP']);
+      },
+    );
+
+    testWidgets(
+      'Edit Employee omits routing fields when the scope was not touched',
+      (tester) async {
+        RequestOptions? captured;
+        final adapter = _adapter(
+          extra: (options) {
+            if (options.path == '/employees/10/' && options.method == 'PATCH') {
+              captured = options;
+              return _json(
+                '{"id": 10, "full_name": "Jane Doe", "email": "jane@acme.test", "role": "AGENT", "role_display": "Agent", "availability": "ONLINE", "is_active": true, "teams": []}',
+                200,
+              );
+            }
+            return ResponseBody.fromString('', 599);
+          },
+        );
+        final client = _clientFrom(adapter);
+
+        const employee = DirectoryEmployee(
+          id: 10,
+          fullName: 'Jane Doe',
+          initials: 'JD',
+          email: 'jane@acme.test',
+          role: 'AGENT',
+          roleDisplay: 'Agent',
+          availability: 'ONLINE',
+          isActive: true,
+          teamNames: [],
+          routingChannelScope: 'SELECTED',
+          routingProviders: ['TIKTOK'],
+        );
+
+        await tester.pumpWidget(
+          _harness(
+            apiClient: client,
+            child: Builder(
+              builder: (ctx) => TextButton(
+                onPressed: () => showEditEmployeeSheet(ctx, employee: employee),
+                child: const Text('Open Edit'),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Edit'));
+        await tester.pumpAndSettle();
+
+        await _scrollToAndTapSave(tester);
+
+        expect(captured, isNotNull);
+        final data = captured!.data as Map<String, dynamic>;
+        expect(data.containsKey('routing_channel_scope'), isFalse);
+        expect(data.containsKey('routing_providers'), isFalse);
+      },
+    );
+  });
+
   group('Layout & Accessibility', () {
     testWidgets('renders properly in RTL Arabic locale without overflow', (
       tester,
