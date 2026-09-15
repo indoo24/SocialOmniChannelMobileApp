@@ -167,9 +167,7 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
       (r) => r.scope == 'selected' && r.channelConnectionIds.isEmpty,
     );
     if (emptySelected.isNotEmpty) {
-      setState(
-        () => _error = context.l10n.routingChannelScopeRequiredError,
-      );
+      setState(() => _error = context.l10n.routingChannelScopeRequiredError);
       return;
     }
 

@@ -26,6 +26,7 @@ class DirectoryRepository {
   Future<Paginated<DirectoryEmployee>> employees({
     String search = '',
     String? role,
+    int? teamId,
     bool? isActive,
     int page = 1,
   }) async {
@@ -36,6 +37,7 @@ class DirectoryRepository {
         'page_size': 50,
         if (search.trim().isNotEmpty) 'search': search.trim(),
         'role': ?role,
+        'team': ?teamId,
         'is_active': ?isActive,
       },
     );
@@ -60,6 +62,7 @@ class DirectoryRepository {
 
   Future<Paginated<Customer>> customers({
     String search = '',
+    Map<String, String> fieldFilter = const {},
     int page = 1,
   }) async {
     final data = await _api.get<Map<String, dynamic>>(
@@ -68,6 +71,7 @@ class DirectoryRepository {
         'page': page,
         'page_size': 50,
         if (search.trim().isNotEmpty) 'search': search.trim(),
+        ...fieldFilter,
       },
     );
     return Paginated.fromJson(data, Customer.fromJson);
@@ -75,14 +79,21 @@ class DirectoryRepository {
 
   /// `GET /customers/export/` — the customers list as a UTF-8 CSV
   /// (BOM-prefixed for Excel), every matching row regardless of pagination.
-  /// Needs `crm.export` and `customer.view`. Takes the same `search` filter
-  /// [customers] does — this app has no lifecycle/language/country filter UI
-  /// yet, so there is nothing else to forward; adding those to [customers]
-  /// later means adding them here too, not inventing a separate query.
-  Future<List<int>> exportCustomersCsv({String search = ''}) {
+  /// Needs `crm.export` and `customer.view`. Takes the same `search` and
+  /// custom-field filters [customers] does — this app has no
+  /// lifecycle/language/country filter UI yet, so there is nothing else to
+  /// forward; adding those to [customers] later means adding them here too,
+  /// not inventing a separate query.
+  Future<List<int>> exportCustomersCsv({
+    String search = '',
+    Map<String, String> fieldFilter = const {},
+  }) {
     return _api.getBytes(
       '/customers/export/',
-      query: {if (search.trim().isNotEmpty) 'search': search.trim()},
+      query: {
+        if (search.trim().isNotEmpty) 'search': search.trim(),
+        ...fieldFilter,
+      },
     );
   }
 

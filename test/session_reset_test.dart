@@ -24,6 +24,7 @@ import 'package:scenario_mobile/core/session/session_reset.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
 import 'package:scenario_mobile/features/conversations/conversation_repository.dart';
 import 'package:scenario_mobile/features/conversations/inbox_controller.dart';
+import 'package:scenario_mobile/features/directory/employee_filter_state.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// A provider whose only job is to hand [clearSessionScopedState] a `Ref`.
@@ -84,6 +85,23 @@ void main() {
         container.read(inboxFiltersProvider).search,
         isEmpty,
         reason: 'a typed search term is a customer identifier',
+      );
+    });
+
+    test('clears employee role/team/status filters', () {
+      container.read(employeeFiltersProvider.notifier).setRole('ADMIN');
+      container.read(employeeFiltersProvider.notifier).setTeamId(7);
+      container.read(employeeFiltersProvider.notifier).setIsActive(false);
+      expect(container.read(employeeFiltersProvider).isEmpty, isFalse);
+
+      clearSessionScopedState(container.read(_refProvider));
+
+      expect(
+        container.read(employeeFiltersProvider).isEmpty,
+        isTrue,
+        reason:
+            "a team id is scoped to the previous org's team list and must "
+            'not silently narrow the next agent\'s Employees screen',
       );
     });
 

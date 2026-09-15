@@ -1265,6 +1265,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onlineNowFilter => 'Online now';
 
   @override
+  String get employeeFilterAllRoles => 'All roles';
+
+  @override
+  String get employeeFilterAllTeams => 'All teams';
+
+  @override
+  String get employeeFilterAllStatus => 'All';
+
+  @override
+  String get employeeFilterActive => 'Active';
+
+  @override
+  String get employeeFilterInactive => 'Inactive';
+
+  @override
+  String get employeeFilterReset => 'Reset filters';
+
+  @override
   String totalCountSuffix(int total) {
     return '$total total';
   }
@@ -1494,6 +1512,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customFieldClear => 'Clear';
+
+  @override
+  String get customerFieldFilterButton => 'Filter by field';
+
+  @override
+  String get customerFieldFilterTitle => 'Filter by field';
+
+  @override
+  String get customerFieldFilterNoFields =>
+      'No custom fields are set up for this organization.';
+
+  @override
+  String get customerFieldFilterFieldLabel => 'Field';
+
+  @override
+  String get customerFieldFilterValueLabel => 'Value';
+
+  @override
+  String get customerFieldFilterFromLabel => 'From';
+
+  @override
+  String get customerFieldFilterToLabel => 'To';
+
+  @override
+  String get customerFieldFilterReset => 'Reset';
+
+  @override
+  String get customerFieldFilterSelectFieldError => 'Choose a field first.';
+
+  @override
+  String get customerFieldFilterEnterValueError =>
+      'Enter a value to filter by.';
+
+  @override
+  String get customerFieldFilterSelectValueError =>
+      'Choose a value to filter by.';
+
+  @override
+  String get customerFieldFilterInvalidRange =>
+      '\"From\" must be before \"To\".';
+
+  @override
+  String get customerFieldFilterNoResults =>
+      'No customers match this field filter.';
 
   @override
   String get orderDeliverySectionTitle => 'Delivery details (optional)';

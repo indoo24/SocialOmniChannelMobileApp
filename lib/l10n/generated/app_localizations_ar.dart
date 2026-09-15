@@ -1269,6 +1269,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String get onlineNowFilter => 'متصل الآن';
 
   @override
+  String get employeeFilterAllRoles => 'كل الأدوار';
+
+  @override
+  String get employeeFilterAllTeams => 'كل الفرق';
+
+  @override
+  String get employeeFilterAllStatus => 'الكل';
+
+  @override
+  String get employeeFilterActive => 'نشط';
+
+  @override
+  String get employeeFilterInactive => 'غير نشط';
+
+  @override
+  String get employeeFilterReset => 'إعادة تعيين عوامل التصفية';
+
+  @override
   String totalCountSuffix(int total) {
     return '$total إجمالي';
   }
@@ -1501,6 +1519,48 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get customFieldClear => 'مسح';
+
+  @override
+  String get customerFieldFilterButton => 'تصفية حسب الحقل';
+
+  @override
+  String get customerFieldFilterTitle => 'تصفية حسب الحقل';
+
+  @override
+  String get customerFieldFilterNoFields =>
+      'لا توجد حقول مخصصة معدّة لهذه المؤسسة.';
+
+  @override
+  String get customerFieldFilterFieldLabel => 'الحقل';
+
+  @override
+  String get customerFieldFilterValueLabel => 'القيمة';
+
+  @override
+  String get customerFieldFilterFromLabel => 'من';
+
+  @override
+  String get customerFieldFilterToLabel => 'إلى';
+
+  @override
+  String get customerFieldFilterReset => 'إعادة تعيين';
+
+  @override
+  String get customerFieldFilterSelectFieldError => 'اختر حقلاً أولاً.';
+
+  @override
+  String get customerFieldFilterEnterValueError => 'أدخل قيمة للتصفية بها.';
+
+  @override
+  String get customerFieldFilterSelectValueError => 'اختر قيمة للتصفية بها.';
+
+  @override
+  String get customerFieldFilterInvalidRange =>
+      'يجب أن يكون \"من\" قبل \"إلى\".';
+
+  @override
+  String get customerFieldFilterNoResults =>
+      'لا يوجد عملاء مطابقون لهذا الحقل.';
 
   @override
   String get orderDeliverySectionTitle => 'بيانات التوصيل (اختيارية)';

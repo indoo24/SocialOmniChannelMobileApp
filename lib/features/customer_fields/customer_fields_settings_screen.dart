@@ -172,7 +172,14 @@ class _CustomerFieldCardState extends ConsumerState<_CustomerFieldCard> {
     setState(() => _busy = true);
     try {
       await action();
+      // Both providers wrap the same `GET /customer-fields/` call — this one
+      // (active + inactive, for the admin list above) and
+      // `activeCustomerFieldDefinitionsProvider` (active only, what the
+      // Customers screen's "Filter by field…" picker reads). A toggle/reorder
+      // here must bust both caches, or the filter picker keeps showing
+      // whatever was active before this change until the app restarts.
       ref.invalidate(customerFieldDefinitionsProvider);
+      ref.invalidate(activeCustomerFieldDefinitionsProvider);
       if (successMessage != null) _showMessage(successMessage);
     } on ApiException catch (error) {
       _showMessage(error.message, isError: true);

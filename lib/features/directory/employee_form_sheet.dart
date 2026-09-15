@@ -196,9 +196,7 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
 
     if (_routingChannelScope == 'SELECTED' &&
         _routingProvidersSelected.isEmpty) {
-      setState(
-        () => _error = context.l10n.routingChannelScopeRequiredError,
-      );
+      setState(() => _error = context.l10n.routingChannelScopeRequiredError);
       return;
     }
 
@@ -639,8 +637,7 @@ class _RoutingChannelScopeCard extends StatelessWidget {
               ),
             ],
             selected: {scope},
-            onSelectionChanged: (selection) =>
-                onScopeChanged(selection.first),
+            onSelectionChanged: (selection) => onScopeChanged(selection.first),
           ),
           if (isSelected) ...[
             const SizedBox(height: Space.md),
