@@ -533,12 +533,21 @@
   "emailFieldLabel": "Email",
   "phoneFieldLabel": "Phone",
   "locationFieldLabel": "Location",
+  "firstSeenFieldLabel": "First seen",
   "lastSeenFieldLabel": "Last seen",
   "confirmedPurchasesFieldLabel": "Confirmed purchases",
+  "confirmedPurchasesSubtitle": "Verified by an employee, not by a payment system.",
   "customerNotesFieldLabel": "Notes",
   "recordedDetailsSectionTitle": "Recorded details",
   "conversationsCapsSectionTitle": "CONVERSATIONS",
   "noVisibleConversations": "No conversations you can see.",
+  "channelsCapsSectionTitle": "CHANNELS",
+  "noChannelsMessage": "No channels recorded for this customer yet.",
+  "knownFactsCapsSectionTitle": "KNOWN FACTS",
+  "knownFactsSectionSubtitle": "Extracted from conversations. Confidence shown per fact.",
+  "noKnownFactsMessage": "Nothing known yet.",
+  "ordersCapsSectionTitle": "ORDERS",
+  "noOrdersForCustomerMessage": "No orders recorded for this customer yet.",
   "searchCustomersHint": "Search name, email, phone or handle",
   "noCustomersTitle": "No customers",
   "noCustomersMessage": "Customers appear the first time they message you.",
@@ -551,6 +560,12 @@
 
   "searchEmployeesHint": "Search by name or email",
   "onlineNowFilter": "Online now",
+  "employeeFilterAllRoles": "All roles",
+  "employeeFilterAllTeams": "All teams",
+  "employeeFilterAllStatus": "All",
+  "employeeFilterActive": "Active",
+  "employeeFilterInactive": "Inactive",
+  "employeeFilterReset": "Reset filters",
   "totalCountSuffix": "{total} total",
   "@totalCountSuffix": {
     "placeholders": {
@@ -629,6 +644,12 @@
     }
   },
   "confirmedByUnknownEmployee": "an employee",
+  "orderedAtLabel": "Ordered {date}",
+  "@orderedAtLabel": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
   "recordedByMessage": "Recorded by {name}",
   "@recordedByMessage": {
     "placeholders": {
@@ -655,6 +676,19 @@
   "customFieldPickDate": "Choose a date",
   "customFieldPickDateTime": "Choose a date and time",
   "customFieldClear": "Clear",
+  "customerFieldFilterButton": "Filter by field",
+  "customerFieldFilterTitle": "Filter by field",
+  "customerFieldFilterNoFields": "No custom fields are set up for this organization.",
+  "customerFieldFilterFieldLabel": "Field",
+  "customerFieldFilterValueLabel": "Value",
+  "customerFieldFilterFromLabel": "From",
+  "customerFieldFilterToLabel": "To",
+  "customerFieldFilterReset": "Reset",
+  "customerFieldFilterSelectFieldError": "Choose a field first.",
+  "customerFieldFilterEnterValueError": "Enter a value to filter by.",
+  "customerFieldFilterSelectValueError": "Choose a value to filter by.",
+  "customerFieldFilterInvalidRange": "\"From\" must be before \"To\".",
+  "customerFieldFilterNoResults": "No customers match this field filter.",
   "orderDeliverySectionTitle": "Delivery details (optional)",
   "orderRecipientNameLabel": "Recipient name",
   "orderRecipientPhoneLabel": "Recipient phone",

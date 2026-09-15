@@ -71,7 +71,8 @@ class ConversationEvent {
   /// Why an automatic fallback placement happened (`mode: "fallback"`) —
   /// e.g. "no one on the responsible team was available." Empty for every
   /// other mode.
-  List<String> get fallbackReasons => JsonSafe.asStringList(metadata['reasons']);
+  List<String> get fallbackReasons =>
+      JsonSafe.asStringList(metadata['reasons']);
 
   /// Who held the conversation immediately before a `mode: "reassignment"`
   /// event — the router moved it off them, either onto someone else

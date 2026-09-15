@@ -25,6 +25,7 @@ import '../authentication/auth_controller.dart';
 import 'deactivate_employee_dialog.dart';
 import 'directory_providers.dart';
 import 'directory_search_field.dart';
+import 'employee_filter_state.dart';
 import 'employee_form_sheet.dart';
 
 class EmployeesScreen extends ConsumerStatefulWidget {
@@ -103,6 +104,8 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
               ? ref.watch(onlineEmployeesProvider)
               : AsyncValue.data(all);
 
+          final filters = ref.watch(employeeFiltersProvider);
+
           return Column(
             children: [
               _FilterBar(
@@ -127,7 +130,12 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                                 title: _onlineOnly
                                     ? context.l10n.nobodyOnlineTitle
                                     : context.l10n.noEmployeesFoundTitle,
-                                message: _onlineOnly
+                                message:
+                                    _onlineOnly ||
+                                        !filters.isEmpty ||
+                                        ref
+                                            .watch(employeeSearchProvider)
+                                            .isNotEmpty
                                     ? context.l10n.turnOffFilterMessage
                                     : context.l10n.tryDifferentSearchMessage,
                               ),
@@ -155,7 +163,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   }
 }
 
-class _FilterBar extends StatelessWidget {
+class _FilterBar extends ConsumerWidget {
   const _FilterBar({
     required this.onlineOnly,
     required this.onToggle,
@@ -167,25 +175,189 @@ class _FilterBar extends StatelessWidget {
   final int total;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final filters = ref.watch(employeeFiltersProvider);
+    final controller = ref.read(employeeFiltersProvider.notifier);
+    final teamsAsync = ref.watch(teamsProvider);
+
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: Space.lg,
         vertical: Space.sm,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FilterChip(
-            label: Text(context.l10n.onlineNowFilter),
-            selected: onlineOnly,
-            onSelected: onToggle,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                FilterChip(
+                  label: Text(context.l10n.onlineNowFilter),
+                  selected: onlineOnly,
+                  onSelected: onToggle,
+                ),
+                const SizedBox(width: Space.sm),
+                _EmployeeFilterDropdown<String?>(
+                  key: const Key('employee-filter-role'),
+                  value: filters.role,
+                  hint: context.l10n.employeeFilterAllRoles,
+                  isSelected: filters.role != null,
+                  items: [
+                    DropdownMenuItem(
+                      value: null,
+                      child: _dropdownItemText(
+                        context.l10n.employeeFilterAllRoles,
+                      ),
+                    ),
+                    for (final role in kEmployeeRoles)
+                      DropdownMenuItem(
+                        value: role,
+                        child: _dropdownItemText(_roleLabel(context, role)),
+                      ),
+                  ],
+                  onChanged: controller.setRole,
+                ),
+                const SizedBox(width: Space.sm),
+                _EmployeeFilterDropdown<int?>(
+                  key: const Key('employee-filter-team'),
+                  value: filters.teamId,
+                  hint: context.l10n.employeeFilterAllTeams,
+                  isSelected: filters.teamId != null,
+                  items: [
+                    DropdownMenuItem(
+                      value: null,
+                      child: _dropdownItemText(
+                        context.l10n.employeeFilterAllTeams,
+                      ),
+                    ),
+                    for (final team in teamsAsync.value ?? const <Team>[])
+                      DropdownMenuItem(
+                        value: team.id,
+                        child: _dropdownItemText(team.name),
+                      ),
+                  ],
+                  onChanged: controller.setTeamId,
+                ),
+                const SizedBox(width: Space.sm),
+                _EmployeeFilterDropdown<bool?>(
+                  key: const Key('employee-filter-status'),
+                  value: filters.isActive,
+                  hint: context.l10n.employeeFilterAllStatus,
+                  isSelected: filters.isActive != null,
+                  items: [
+                    DropdownMenuItem(
+                      value: null,
+                      child: _dropdownItemText(
+                        context.l10n.employeeFilterAllStatus,
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: true,
+                      child: _dropdownItemText(
+                        context.l10n.employeeFilterActive,
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: false,
+                      child: _dropdownItemText(
+                        context.l10n.employeeFilterInactive,
+                      ),
+                    ),
+                  ],
+                  onChanged: controller.setIsActive,
+                ),
+                if (!filters.isEmpty) ...[
+                  const SizedBox(width: Space.sm),
+                  IconButton(
+                    key: const Key('employee-filter-reset'),
+                    tooltip: context.l10n.employeeFilterReset,
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                    onPressed: controller.reset,
+                  ),
+                ],
+              ],
+            ),
           ),
-          const Spacer(),
+          const SizedBox(height: Space.xs),
           Text(
             context.l10n.totalCountSuffix(total),
             style: Theme.of(context).textTheme.labelSmall,
           ),
         ],
+      ),
+    );
+  }
+
+  /// A team name is admin-entered and unbounded in length — clip it rather
+  /// than let a long one push the dropdown's fixed-width selector past its
+  /// container.
+  static Widget _dropdownItemText(String text) =>
+      Text(text, maxLines: 1, overflow: TextOverflow.ellipsis);
+
+  /// Matches `employee_form_sheet.dart`'s own role labels, so the same role
+  /// reads the same whether it is being picked or filtered on.
+  static String _roleLabel(BuildContext context, String role) => switch (role) {
+    'ADMIN' => context.l10n.roleAdmin,
+    'SUPERVISOR' => context.l10n.roleSupervisor,
+    'TEAM_LEADER' => context.l10n.roleTeamLeader,
+    'QA' => context.l10n.roleQa,
+    _ => context.l10n.roleAgent,
+  };
+}
+
+/// A compact bordered dropdown, matching the outlined-pill style
+/// `DashboardDateFilterButton`/`CustomerFieldFilterButton` already use for a
+/// filter trigger elsewhere in the app.
+class _EmployeeFilterDropdown<T> extends StatelessWidget {
+  const _EmployeeFilterDropdown({
+    required this.value,
+    required this.hint,
+    required this.isSelected,
+    required this.items,
+    required this.onChanged,
+    super.key,
+  });
+
+  final T value;
+  final String hint;
+  final bool isSelected;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: 140,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: Space.sm),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outlineVariant,
+          ),
+          borderRadius: BorderRadius.circular(Radii.md),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<T>(
+            value: value,
+            isDense: true,
+            isExpanded: true,
+            icon: const Icon(Icons.arrow_drop_down, size: 18),
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface,
+            ),
+            items: items,
+            onChanged: (selected) => onChanged(selected as T),
+          ),
+        ),
       ),
     );
   }

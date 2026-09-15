@@ -163,7 +163,12 @@ class _CustomerFieldFormSheetState
       }
 
       if (!mounted) return;
+      // See `customer_fields_settings_screen.dart`'s `_run` for why both
+      // providers need invalidating: they wrap the same endpoint with
+      // different `include_inactive` values, and the Customers screen's
+      // "Filter by field…" picker only reads the active-only one.
       ref.invalidate(customerFieldDefinitionsProvider);
+      ref.invalidate(activeCustomerFieldDefinitionsProvider);
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

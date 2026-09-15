@@ -299,7 +299,7 @@ abstract class AppLocalizations {
   /// No description provided for @noChannelsMessage.
   ///
   /// In en, this message translates to:
-  /// **'Connect Instagram, Messenger or WhatsApp from the web app to start receiving conversations.'**
+  /// **'No channels recorded for this customer yet.'**
   String get noChannelsMessage;
 
   /// No description provided for @channelStatusConnected.
@@ -2324,6 +2324,12 @@ abstract class AppLocalizations {
   /// **'Location'**
   String get locationFieldLabel;
 
+  /// No description provided for @firstSeenFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'First seen'**
+  String get firstSeenFieldLabel;
+
   /// No description provided for @lastSeenFieldLabel.
   ///
   /// In en, this message translates to:
@@ -2335,6 +2341,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirmed purchases'**
   String get confirmedPurchasesFieldLabel;
+
+  /// No description provided for @confirmedPurchasesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified by an employee, not by a payment system.'**
+  String get confirmedPurchasesSubtitle;
 
   /// No description provided for @customerNotesFieldLabel.
   ///
@@ -2359,6 +2371,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No conversations you can see.'**
   String get noVisibleConversations;
+
+  /// No description provided for @channelsCapsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANNELS'**
+  String get channelsCapsSectionTitle;
+
+  /// No description provided for @knownFactsCapsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'KNOWN FACTS'**
+  String get knownFactsCapsSectionTitle;
+
+  /// No description provided for @knownFactsSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Extracted from conversations. Confidence shown per fact.'**
+  String get knownFactsSectionSubtitle;
+
+  /// No description provided for @noKnownFactsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing known yet.'**
+  String get noKnownFactsMessage;
+
+  /// No description provided for @ordersCapsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'ORDERS'**
+  String get ordersCapsSectionTitle;
+
+  /// No description provided for @noOrdersForCustomerMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No orders recorded for this customer yet.'**
+  String get noOrdersForCustomerMessage;
 
   /// No description provided for @searchCustomersHint.
   ///
@@ -2395,6 +2443,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Online now'**
   String get onlineNowFilter;
+
+  /// No description provided for @employeeFilterAllRoles.
+  ///
+  /// In en, this message translates to:
+  /// **'All roles'**
+  String get employeeFilterAllRoles;
+
+  /// No description provided for @employeeFilterAllTeams.
+  ///
+  /// In en, this message translates to:
+  /// **'All teams'**
+  String get employeeFilterAllTeams;
+
+  /// No description provided for @employeeFilterAllStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get employeeFilterAllStatus;
+
+  /// No description provided for @employeeFilterActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get employeeFilterActive;
+
+  /// No description provided for @employeeFilterInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get employeeFilterInactive;
+
+  /// No description provided for @employeeFilterReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset filters'**
+  String get employeeFilterReset;
 
   /// No description provided for @totalCountSuffix.
   ///
@@ -2672,6 +2756,12 @@ abstract class AppLocalizations {
   /// **'an employee'**
   String get confirmedByUnknownEmployee;
 
+  /// No description provided for @orderedAtLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ordered {date}'**
+  String orderedAtLabel(String date);
+
   /// No description provided for @recordedByMessage.
   ///
   /// In en, this message translates to:
@@ -2797,6 +2887,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear'**
   String get customFieldClear;
+
+  /// No description provided for @customerFieldFilterButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by field'**
+  String get customerFieldFilterButton;
+
+  /// No description provided for @customerFieldFilterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by field'**
+  String get customerFieldFilterTitle;
+
+  /// No description provided for @customerFieldFilterNoFields.
+  ///
+  /// In en, this message translates to:
+  /// **'No custom fields are set up for this organization.'**
+  String get customerFieldFilterNoFields;
+
+  /// No description provided for @customerFieldFilterFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Field'**
+  String get customerFieldFilterFieldLabel;
+
+  /// No description provided for @customerFieldFilterValueLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get customerFieldFilterValueLabel;
+
+  /// No description provided for @customerFieldFilterFromLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get customerFieldFilterFromLabel;
+
+  /// No description provided for @customerFieldFilterToLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get customerFieldFilterToLabel;
+
+  /// No description provided for @customerFieldFilterReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get customerFieldFilterReset;
+
+  /// No description provided for @customerFieldFilterSelectFieldError.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a field first.'**
+  String get customerFieldFilterSelectFieldError;
+
+  /// No description provided for @customerFieldFilterEnterValueError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value to filter by.'**
+  String get customerFieldFilterEnterValueError;
+
+  /// No description provided for @customerFieldFilterSelectValueError.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a value to filter by.'**
+  String get customerFieldFilterSelectValueError;
+
+  /// No description provided for @customerFieldFilterInvalidRange.
+  ///
+  /// In en, this message translates to:
+  /// **'\"From\" must be before \"To\".'**
+  String get customerFieldFilterInvalidRange;
+
+  /// No description provided for @customerFieldFilterNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No customers match this field filter.'**
+  String get customerFieldFilterNoResults;
 
   /// No description provided for @orderDeliverySectionTitle.
   ///

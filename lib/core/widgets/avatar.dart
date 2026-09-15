@@ -91,11 +91,48 @@ class InitialsAvatar extends StatelessWidget {
     );
   }
 
+  /// [initials] unchanged when it is well-formed UTF-16 — this widget's
+  /// callers disagree on length (some pass a server-computed two-letter
+  /// label like `"JD"`, others a single glyph sliced from a display name),
+  /// so this must not itself truncate. What it does guard against is a
+  /// *malformed* string: a caller can slice a display name that starts with
+  /// an emoji or other multi-code-unit character, and half of one is a lone
+  /// UTF-16 surrogate that crashes `TextPainter` the moment this widget
+  /// renders it. Sanitising here, the single place every avatar in the app
+  /// renders through, covers every caller — the same reason
+  /// [SafeUrl.forImage] is applied here rather than at each call site.
+  static String _safeGlyph(String value) {
+    if (value.isEmpty) return '?';
+    return _isWellFormedUtf16(value) ? value : '?';
+  }
+
+  /// True if every high surrogate (`0xD800`–`0xDBFF`) is immediately
+  /// followed by a low surrogate (`0xDC00`–`0xDFFF`) and no low surrogate
+  /// appears unpaired — the exact condition `TextPainter` requires and a
+  /// lone half of a split surrogate pair violates.
+  static bool _isWellFormedUtf16(String value) {
+    for (var i = 0; i < value.length; i++) {
+      final unit = value.codeUnitAt(i);
+      final isHighSurrogate = unit >= 0xD800 && unit <= 0xDBFF;
+      final isLowSurrogate = unit >= 0xDC00 && unit <= 0xDFFF;
+      if (isLowSurrogate) return false;
+      if (isHighSurrogate) {
+        final hasPartner =
+            i + 1 < value.length &&
+            value.codeUnitAt(i + 1) >= 0xDC00 &&
+            value.codeUnitAt(i + 1) <= 0xDFFF;
+        if (!hasPartner) return false;
+        i++;
+      }
+    }
+    return true;
+  }
+
   Widget _initials(ThemeData theme) => Container(
     color: theme.colorScheme.surfaceContainerHighest,
     alignment: Alignment.center,
     child: Text(
-      initials.isEmpty ? '?' : initials,
+      _safeGlyph(initials),
       style: TextStyle(
         fontSize: size * 0.36,
         fontWeight: FontWeight.w600,

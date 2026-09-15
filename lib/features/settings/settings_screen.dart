@@ -129,7 +129,6 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
   @override
   Widget build(BuildContext context) {
     final employee = ref.watch(currentEmployeeProvider);
-    final environment = ref.watch(environmentProvider);
     final theme = Theme.of(context);
 
     if (employee == null) return const LoadingState();
@@ -204,15 +203,6 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
             foregroundColor: theme.colorScheme.error,
           ),
         ),
-
-        if (environment.isDevelopment) ...[
-          const SizedBox(height: Space.xl),
-          Text(
-            '${environment.name.name} · ${environment.apiBaseUrl}',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.labelSmall,
-          ),
-        ],
       ],
     );
   }

@@ -112,8 +112,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noChannelsTitle => 'لا توجد قنوات متصلة';
 
   @override
-  String get noChannelsMessage =>
-      'قم بربط Instagram أو Messenger أو WhatsApp من تطبيق الويب لبدء استقبال المحادثات.';
+  String get noChannelsMessage => 'لا توجد قنوات مسجلة لهذا العميل بعد.';
 
   @override
   String get channelStatusConnected => 'متصل';
@@ -1220,10 +1219,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get locationFieldLabel => 'الموقع';
 
   @override
+  String get firstSeenFieldLabel => 'أول ظهور';
+
+  @override
   String get lastSeenFieldLabel => 'آخر ظهور';
 
   @override
   String get confirmedPurchasesFieldLabel => 'المشتريات المؤكدة';
+
+  @override
+  String get confirmedPurchasesSubtitle =>
+      'تم التحقق منها بواسطة موظف، وليس عبر نظام دفع.';
 
   @override
   String get customerNotesFieldLabel => 'ملاحظات';
@@ -1236,6 +1242,26 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noVisibleConversations => 'لا توجد محادثات يمكنك رؤيتها.';
+
+  @override
+  String get channelsCapsSectionTitle => 'القنوات';
+
+  @override
+  String get knownFactsCapsSectionTitle => 'الحقائق المعروفة';
+
+  @override
+  String get knownFactsSectionSubtitle =>
+      'مستخرجة من المحادثات. مستوى الثقة موضح لكل حقيقة.';
+
+  @override
+  String get noKnownFactsMessage => 'لا يوجد شيء معروف بعد.';
+
+  @override
+  String get ordersCapsSectionTitle => 'الطلبات';
+
+  @override
+  String get noOrdersForCustomerMessage =>
+      'لا توجد طلبات مسجلة لهذا العميل بعد.';
 
   @override
   String get searchCustomersHint =>
@@ -1267,6 +1293,24 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get onlineNowFilter => 'متصل الآن';
+
+  @override
+  String get employeeFilterAllRoles => 'كل الأدوار';
+
+  @override
+  String get employeeFilterAllTeams => 'كل الفرق';
+
+  @override
+  String get employeeFilterAllStatus => 'الكل';
+
+  @override
+  String get employeeFilterActive => 'نشط';
+
+  @override
+  String get employeeFilterInactive => 'غير نشط';
+
+  @override
+  String get employeeFilterReset => 'إعادة تعيين عوامل التصفية';
 
   @override
   String totalCountSuffix(int total) {
@@ -1436,6 +1480,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get confirmedByUnknownEmployee => 'أحد الموظفين';
 
   @override
+  String orderedAtLabel(String date) {
+    return 'تم الطلب في $date';
+  }
+
+  @override
   String recordedByMessage(String name) {
     return 'تم التسجيل بواسطة $name';
   }
@@ -1501,6 +1550,48 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get customFieldClear => 'مسح';
+
+  @override
+  String get customerFieldFilterButton => 'تصفية حسب الحقل';
+
+  @override
+  String get customerFieldFilterTitle => 'تصفية حسب الحقل';
+
+  @override
+  String get customerFieldFilterNoFields =>
+      'لا توجد حقول مخصصة معدّة لهذه المؤسسة.';
+
+  @override
+  String get customerFieldFilterFieldLabel => 'الحقل';
+
+  @override
+  String get customerFieldFilterValueLabel => 'القيمة';
+
+  @override
+  String get customerFieldFilterFromLabel => 'من';
+
+  @override
+  String get customerFieldFilterToLabel => 'إلى';
+
+  @override
+  String get customerFieldFilterReset => 'إعادة تعيين';
+
+  @override
+  String get customerFieldFilterSelectFieldError => 'اختر حقلاً أولاً.';
+
+  @override
+  String get customerFieldFilterEnterValueError => 'أدخل قيمة للتصفية بها.';
+
+  @override
+  String get customerFieldFilterSelectValueError => 'اختر قيمة للتصفية بها.';
+
+  @override
+  String get customerFieldFilterInvalidRange =>
+      'يجب أن يكون \"من\" قبل \"إلى\".';
+
+  @override
+  String get customerFieldFilterNoResults =>
+      'لا يوجد عملاء مطابقون لهذا الحقل.';
 
   @override
   String get orderDeliverySectionTitle => 'بيانات التوصيل (اختيارية)';

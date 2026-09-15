@@ -56,6 +56,9 @@ const _page = '''
 ]}
 ''';
 
+const _emptyPage =
+    '{"count": 0, "next": null, "previous": null, "results": []}';
+
 void main() {
   group('renderSavedReply', () {
     test('fills known names', () {
@@ -230,6 +233,83 @@ void main() {
         isTrue,
       );
     });
+
+    testWidgets(
+      'searching to zero results does not overflow the picker sheet',
+      (tester) async {
+        // Regression: EmptyState (icon + title + message + Space.xxl
+        // padding on every side) used to assume its parent always had
+        // generous height, which broke inside the real
+        // DraggableScrollableSheet this picker opens through — not the bare,
+        // unbounded Scaffold the other tests above use. Reproducing it needs
+        // several things together: the actual sheet (opened via
+        // showSavedReplyPicker, at its real initialChildSize: 0.7), a small
+        // phone-sized screen (matching composer_attachment_test.dart's own
+        // "narrow Android width" convention — the default 800×600 test
+        // surface has enough headroom to hide the overflow), the on-screen
+        // keyboard actually open — exactly what happens while typing a
+        // search term, and what SavedReplyPickerSheet's own
+        // `Padding(bottom: MediaQuery.viewInsets.bottom)` anticipates —
+        // shrinking the sheet's usable height further, and a server that
+        // genuinely returns no matches for the typed term (the shared
+        // `client` stub above always answers with the same two replies
+        // regardless of the query).
+        tester.view.devicePixelRatio = 1.0;
+        tester.view.physicalSize = const Size(320, 640);
+        tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+          tester.view.resetViewInsets();
+        });
+
+        final emptySearchClient = ApiClient.create(cookieJar: CookieJar());
+        emptySearchClient.raw.httpClientAdapter = _StubAdapter((options) {
+          if (options.path.contains('/saved-replies/') &&
+              options.method == 'GET') {
+            final search = options.queryParameters['search'] as String?;
+            return _json(
+              search == null || search.isEmpty ? _page : _emptyPage,
+              200,
+            );
+          }
+          return _json('{}', 404);
+        });
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [apiClientProvider.overrideWithValue(emptySearchClient)],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(
+                body: Builder(
+                  builder: (context) => ElevatedButton(
+                    onPressed: () => showSavedReplyPicker(context),
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('open'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byKey(const Key('savedReplySearch')),
+          'zzz-no-match',
+        );
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(
+          find.text('No saved reply matches your search.'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 
   group('the conversation composer', () {
