@@ -10,12 +10,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/conversation.dart';
 import '../../core/models/customer_detail.dart';
+import '../../core/models/customer_fields.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
 import '../../core/models/routing_policy.dart';
 import '../../core/providers.dart';
 import '../authentication/auth_controller.dart';
 import '../dashboard/dashboard_date_filter_state.dart';
+import 'customer_field_filter_state.dart';
+import 'employee_filter_state.dart';
 
 final dashboardProvider = FutureProvider<DashboardSummary>((ref) {
   final filter = ref.watch(dashboardDateFilterProvider);
@@ -31,6 +34,14 @@ final dashboardProvider = FutureProvider<DashboardSummary>((ref) {
 final routingPolicyProvider = FutureProvider<RoutingPolicy>((ref) {
   return ref.watch(directoryRepositoryProvider).routingPolicy();
 });
+
+/// Every routing-responsibility rule in the organization — the team form
+/// filters this down to one team's rows itself, since the endpoint carries
+/// no team filter of its own.
+final routingResponsibilitiesProvider =
+    FutureProvider<List<RoutingResponsibility>>((ref) {
+      return ref.watch(directoryRepositoryProvider).routingResponsibilities();
+    });
 
 final channelVolumeProvider = FutureProvider<List<ChannelVolume>>((ref) {
   return ref.watch(directoryRepositoryProvider).channelVolume();
@@ -100,9 +111,15 @@ final customerSearchProvider = NotifierProvider<SearchQueryController, String>(
 final employeeDirectoryProvider = FutureProvider<List<DirectoryEmployee>>((
   ref,
 ) async {
+  final filters = ref.watch(employeeFiltersProvider);
   final page = await ref
       .watch(directoryRepositoryProvider)
-      .employees(search: ref.watch(employeeSearchProvider));
+      .employees(
+        search: ref.watch(employeeSearchProvider),
+        role: filters.role,
+        teamId: filters.teamId,
+        isActive: filters.isActive,
+      );
   return page.results;
 });
 
@@ -113,9 +130,13 @@ final onlineEmployeesProvider = FutureProvider<List<DirectoryEmployee>>((ref) {
 });
 
 final customerDirectoryProvider = FutureProvider<List<Customer>>((ref) async {
+  final fieldFilter = ref.watch(customerFieldFilterProvider);
   final page = await ref
       .watch(directoryRepositoryProvider)
-      .customers(search: ref.watch(customerSearchProvider));
+      .customers(
+        search: ref.watch(customerSearchProvider),
+        fieldFilter: fieldFilter?.toQueryParams() ?? const {},
+      );
   return page.results;
 });
 
@@ -184,9 +205,43 @@ final conversationOrdersProvider = FutureProvider.family<List<Order>, int>((
       .conversationOrders(conversationId);
 });
 
+/// Every order for one customer, across every conversation — what the
+/// Customer Details screen's Orders section shows, unlike
+/// [conversationOrdersProvider] which is scoped to a single thread.
+final customerOrdersProvider = FutureProvider.family<List<Order>, int>((
+  ref,
+  customerId,
+) {
+  return ref.watch(directoryRepositoryProvider).customerOrders(customerId);
+});
+
 final customerFactsProvider = FutureProvider.family<List<CustomerFact>, int>((
   ref,
   customerId,
 ) {
   return ref.watch(directoryRepositoryProvider).customerFacts(customerId);
 });
+
+/// The organization's active custom fields for one customer, with values.
+final customerFieldsProvider =
+    FutureProvider.family<List<CustomerFieldRow>, int>((ref, customerId) {
+      return ref.watch(directoryRepositoryProvider).customerFields(customerId);
+    });
+
+/// Every custom field definition the organization has, active or disabled —
+/// the admin management list, not one customer's values.
+final customerFieldDefinitionsProvider =
+    FutureProvider<List<CustomerFieldDefinition>>((ref) {
+      return ref
+          .watch(directoryRepositoryProvider)
+          .customerFieldDefinitions(includeInactive: true);
+    });
+
+/// Active fields only — what the Customers screen's "Filter by field…"
+/// picker offers. A disabled field is a 400 from the filter endpoint, so
+/// unlike [customerFieldDefinitionsProvider] this never includes inactive
+/// ones.
+final activeCustomerFieldDefinitionsProvider =
+    FutureProvider<List<CustomerFieldDefinition>>((ref) {
+      return ref.watch(directoryRepositoryProvider).customerFieldDefinitions();
+    });

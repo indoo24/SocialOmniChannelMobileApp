@@ -33,6 +33,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/conversations/inbox_controller.dart';
 import '../../features/dashboard/dashboard_date_filter_state.dart';
 import '../../features/directory/directory_providers.dart';
+import '../../features/directory/employee_filter_state.dart';
 import '../../features/messages/conversation_controller.dart';
 import '../logging/app_log.dart';
 import '../realtime/realtime_bridge.dart';
@@ -73,12 +74,18 @@ void clearSessionScopedState(Ref ref) {
   ref.invalidate(customerConversationsProvider);
   ref.invalidate(conversationOrdersProvider);
   ref.invalidate(customerFactsProvider);
+  // Custom field definitions belong to the previous agent's organization.
+  ref.invalidate(customerFieldsProvider);
   ref.invalidate(performanceProvider);
   ref.invalidate(performanceWindowProvider);
 
   // Typed search terms are themselves customer identifiers.
   ref.invalidate(employeeSearchProvider);
   ref.invalidate(customerSearchProvider);
+
+  // Team/role/status selections are scoped to the previous org's team list
+  // and would otherwise silently narrow the next agent's Employees screen.
+  ref.invalidate(employeeFiltersProvider);
 
   // Latency traces hold conversation and message ids.
   RealtimeLogger.reset();

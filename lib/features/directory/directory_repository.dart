@@ -12,6 +12,7 @@ import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/customer_detail.dart';
+import '../../core/models/customer_fields.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
 import '../../core/models/routing_policy.dart';
@@ -25,6 +26,7 @@ class DirectoryRepository {
   Future<Paginated<DirectoryEmployee>> employees({
     String search = '',
     String? role,
+    int? teamId,
     bool? isActive,
     int page = 1,
   }) async {
@@ -35,6 +37,7 @@ class DirectoryRepository {
         'page_size': 50,
         if (search.trim().isNotEmpty) 'search': search.trim(),
         'role': ?role,
+        'team': ?teamId,
         'is_active': ?isActive,
       },
     );
@@ -59,6 +62,7 @@ class DirectoryRepository {
 
   Future<Paginated<Customer>> customers({
     String search = '',
+    Map<String, String> fieldFilter = const {},
     int page = 1,
   }) async {
     final data = await _api.get<Map<String, dynamic>>(
@@ -67,9 +71,30 @@ class DirectoryRepository {
         'page': page,
         'page_size': 50,
         if (search.trim().isNotEmpty) 'search': search.trim(),
+        ...fieldFilter,
       },
     );
     return Paginated.fromJson(data, Customer.fromJson);
+  }
+
+  /// `GET /customers/export/` — the customers list as a UTF-8 CSV
+  /// (BOM-prefixed for Excel), every matching row regardless of pagination.
+  /// Needs `crm.export` and `customer.view`. Takes the same `search` and
+  /// custom-field filters [customers] does — this app has no
+  /// lifecycle/language/country filter UI yet, so there is nothing else to
+  /// forward; adding those to [customers] later means adding them here too,
+  /// not inventing a separate query.
+  Future<List<int>> exportCustomersCsv({
+    String search = '',
+    Map<String, String> fieldFilter = const {},
+  }) {
+    return _api.getBytes(
+      '/customers/export/',
+      query: {
+        if (search.trim().isNotEmpty) 'search': search.trim(),
+        ...fieldFilter,
+      },
+    );
   }
 
   /// The customer detail representation — adds `confirmed_purchase_count`
@@ -436,11 +461,24 @@ class DirectoryRepository {
         .toList();
   }
 
+  /// `GET /orders/export/` — every order the caller may see, as a UTF-8 CSV
+  /// (BOM-prefixed for Excel), regardless of pagination. Needs `crm.export`.
+  /// Filtered to one customer's orders here — the same `customer` param the
+  /// list/export endpoint documents, not a client-side filter over
+  /// [customerOrders].
+  Future<List<int>> exportOrdersCsv({required int customerId}) {
+    return _api.getBytes('/orders/export/', query: {'customer': customerId});
+  }
+
+  /// [delivery] carries optional delivery fields keyed by their wire name
+  /// (`city`, `address`, …). Blank values are not sent, so a quick order sends
+  /// exactly the request it always did.
   Future<Order> recordOrder({
     required int customerId,
     required List<Map<String, dynamic>> items,
     int? conversationId,
     String note = '',
+    Map<String, String> delivery = const {},
   }) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/orders/',
@@ -449,7 +487,21 @@ class DirectoryRepository {
         'conversation': ?conversationId,
         'items': items,
         if (note.isNotEmpty) 'note': note,
+        for (final field in delivery.entries)
+          if (field.value.trim().isNotEmpty) field.key: field.value.trim(),
       },
+    );
+    return Order.fromJson(data);
+  }
+
+  /// Move an order's fulfilment. Changes neither its status nor revenue.
+  Future<Order> updateOrderFulfilment(
+    int orderId,
+    String fulfilmentStatus,
+  ) async {
+    final data = await _api.patch<Map<String, dynamic>>(
+      '/orders/$orderId/',
+      body: {'fulfilment_status': fulfilmentStatus},
     );
     return Order.fromJson(data);
   }
@@ -463,10 +515,17 @@ class DirectoryRepository {
     return Order.fromJson(data);
   }
 
-  Future<Order> cancelOrder(int orderId, {bool refunded = false}) async {
+  Future<Order> cancelOrder(
+    int orderId, {
+    bool refunded = false,
+    String reason = '',
+  }) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/orders/$orderId/cancel/',
-      body: {'refunded': refunded},
+      body: {
+        'refunded': refunded,
+        if (reason.trim().isNotEmpty) 'reason': reason.trim(),
+      },
     );
     return Order.fromJson(data);
   }
@@ -491,6 +550,121 @@ class DirectoryRepository {
       body: {'key': key, 'value': value, 'conversation': ?conversationId},
     );
     return CustomerFact.fromJson(data);
+  }
+
+  /// Every active custom field with this customer's value or null.
+  Future<List<CustomerFieldRow>> customerFields(int customerId) async {
+    final data = await _api.get<dynamic>('/customers/$customerId/fields/');
+    final rows = data is List ? data : const [];
+    return rows
+        .whereType<Map>()
+        .map((row) => CustomerFieldRow.fromJson(Map<String, dynamic>.from(row)))
+        .toList();
+  }
+
+  /// `PATCH /customers/{id}/fields/` — gated server-side on `customer.manage`.
+  ///
+  /// [values] maps field keys to what the employee entered; null clears a
+  /// field. The server validates every value and saves none if one is refused,
+  /// naming each refused key under `details['values']`.
+  Future<List<CustomerFieldRow>> saveCustomerFields(
+    int customerId,
+    Map<String, Object?> values,
+  ) async {
+    final data = await _api.patch<dynamic>(
+      '/customers/$customerId/fields/',
+      body: {'values': values},
+    );
+    final rows = data is List ? data : const [];
+    return rows
+        .whereType<Map>()
+        .map((row) => CustomerFieldRow.fromJson(Map<String, dynamic>.from(row)))
+        .toList();
+  }
+
+  // ------------------------------------------------------ field definitions
+
+  /// `GET /customer-fields/` — every field the organization defined, in
+  /// display order. Active only unless [includeInactive]. Needs
+  /// `customer.view`.
+  Future<List<CustomerFieldDefinition>> customerFieldDefinitions({
+    bool includeInactive = false,
+  }) async {
+    final data = await _api.get<List<dynamic>>(
+      '/customer-fields/',
+      query: {if (includeInactive) 'include_inactive': true},
+    );
+    return data
+        .whereType<Map>()
+        .map((row) => CustomerFieldDefinition.fromJson(JsonSafe.asMap(row)))
+        .toList();
+  }
+
+  /// `POST /customer-fields/` — needs `customer_field.manage`. [key] is
+  /// derived from [label] server-side when omitted, and is fixed thereafter.
+  Future<CustomerFieldDefinition> createCustomerFieldDefinition({
+    required String label,
+    required String fieldType,
+    String? key,
+    bool required = false,
+    String helpText = '',
+    String placeholder = '',
+  }) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/customer-fields/',
+      body: {
+        'label': label,
+        'field_type': fieldType,
+        'key': ?key,
+        'required': required,
+        'help_text': helpText,
+        'placeholder': placeholder,
+      },
+    );
+    return CustomerFieldDefinition.fromJson(data);
+  }
+
+  /// `PATCH /customer-fields/{id}/` — needs `customer_field.manage`. The key
+  /// is never sent: it cannot change once the field exists. Send
+  /// `isActive: false` to turn a field off without deleting its values.
+  Future<CustomerFieldDefinition> updateCustomerFieldDefinition(
+    int id, {
+    String? label,
+    String? fieldType,
+    bool? required,
+    bool? isActive,
+    String? helpText,
+    String? placeholder,
+  }) async {
+    final data = await _api.patch<Map<String, dynamic>>(
+      '/customer-fields/$id/',
+      body: {
+        'label': ?label,
+        'field_type': ?fieldType,
+        'required': ?required,
+        'is_active': ?isActive,
+        'help_text': ?helpText,
+        'placeholder': ?placeholder,
+      },
+    );
+    return CustomerFieldDefinition.fromJson(data);
+  }
+
+  /// `POST /customer-fields/reorder/` — needs `customer_field.manage`.
+  /// [order] lists field ids in their new order; fields left out keep their
+  /// current relative order after the listed ones. Returns every field,
+  /// active or not, in the new order.
+  Future<List<CustomerFieldDefinition>> reorderCustomerFieldDefinitions(
+    List<int> order,
+  ) async {
+    final data = await _api.post<List<dynamic>>(
+      '/customer-fields/reorder/',
+      body: {'order': order},
+    );
+    return data
+        .whereType<Map>()
+        .map((row) => CustomerFieldDefinition.fromJson(JsonSafe.asMap(row)))
+        .toList();
   }
 
   /// Accept or turn down one of the analyzer's suggestions.
@@ -524,6 +698,7 @@ class DirectoryRepository {
     int? firstResponseSlaSeconds,
     bool? stickyConversationOwnership,
     int? escalationMaxHops,
+    bool? strictResponsibility,
   }) async {
     final body = <String, dynamic>{
       'is_enabled': ?isEnabled,
@@ -532,11 +707,24 @@ class DirectoryRepository {
       'first_response_sla_seconds': ?firstResponseSlaSeconds,
       'sticky_conversation_ownership': ?stickyConversationOwnership,
       'escalation_max_hops': ?escalationMaxHops,
+      'strict_responsibility': ?strictResponsibility,
     };
     final data = await _api.patch<Map<String, dynamic>>(
       '/routing/policy/',
       body: body,
     );
     return RoutingPolicy.fromJson(data);
+  }
+
+  /// `GET /api/routing/responsibilities/` — every rule in the organization,
+  /// active and retired. Requires `routing.manage`. There is no team filter
+  /// server-side, so a caller that wants one team's rules (the team form's
+  /// use case) filters the returned list itself by `RoutingResponsibility.teamId`.
+  Future<List<RoutingResponsibility>> routingResponsibilities() async {
+    final data = await _api.get<List<dynamic>>('/routing/responsibilities/');
+    return data
+        .whereType<Map>()
+        .map((row) => RoutingResponsibility.fromJson(JsonSafe.asMap(row)))
+        .toList();
   }
 }

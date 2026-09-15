@@ -418,6 +418,34 @@ class InboxController extends AsyncNotifier<InboxState> {
 
     state = AsyncData(current.copyWith(conversations: updated));
   }
+
+  /// Patches the row's delivery tick from a realtime `message.updated`
+  /// delivery-status event, in place of a full inbox refetch.
+  ///
+  /// A no-op if [conversationId] is not currently loaded (it may be on
+  /// another filtered view, or a later page not yet fetched) — the next
+  /// ordinary refresh picks up the correct status anyway.
+  void patchLastMessageDelivery(
+    int conversationId, {
+    required String direction,
+    required String deliveryStatus,
+  }) {
+    final current = state.value;
+    if (current == null) return;
+
+    var changed = false;
+    final updated = current.conversations.map((c) {
+      if (c.id != conversationId) return c;
+      changed = true;
+      return c.copyWith(
+        lastMessageDirection: direction,
+        lastMessageDeliveryStatus: deliveryStatus,
+      );
+    }).toList();
+
+    if (!changed) return;
+    state = AsyncData(current.copyWith(conversations: updated));
+  }
 }
 
 final inboxControllerProvider =
@@ -427,5 +455,8 @@ final conversationCountsProvider = FutureProvider<Map<String, int>>((ref) {
   final filters = ref.watch(inboxFiltersProvider);
   return ref
       .watch(conversationRepositoryProvider)
-      .counts(channelConnections: filters.channelConnections);
+      .counts(
+        channelConnections: filters.channelConnections,
+        currentEmployeeId: ref.watch(currentEmployeeProvider)?.id,
+      );
 });

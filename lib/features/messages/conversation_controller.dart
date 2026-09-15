@@ -278,10 +278,15 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   /// anything itself, only references what the composer already staged.
   /// [attachmentPreview] renders that same file locally in the optimistic
   /// bubble; it carries no server data and is discarded once [sent] arrives.
+  /// [replyTo], when set, must snapshot a server-confirmed message (a real,
+  /// non-negative id) — the backend refuses an optimistic id here, so
+  /// quoting another still-pending bubble is not offered by the UI in the
+  /// first place.
   Future<void> send(
     String text, {
     String? attachmentId,
     MessageAttachment? attachmentPreview,
+    QuotedMessage? replyTo,
   }) async {
     final current = state.value;
     final trimmed = text.trim();
@@ -298,6 +303,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       senderInitials: employee?.initials ?? '',
       previewAttachment: attachmentPreview,
       pendingAttachmentId: attachmentId,
+      replyTo: replyTo,
     );
 
     RealtimeLogger.log(
@@ -323,6 +329,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
             trimmed,
             attachmentIds: hasAttachment ? [attachmentId] : const [],
             clientMessageId: localId,
+            replyToId: replyTo?.id,
           );
 
       RealtimeLogger.log(
@@ -453,7 +460,69 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       failed.text,
       attachmentId: failed.pendingAttachmentId,
       attachmentPreview: preview,
+      replyTo: failed.replyTo,
     );
+  }
+
+  /// Retry a message the server already holds and has marked `FAILED` —
+  /// distinct from [retry], which resends a message that never reached the
+  /// server at all (identified by a local id, not a server one).
+  ///
+  /// Calls the dedicated `POST .../messages/{id}/retry/` endpoint rather than
+  /// resending through `reply()`: the server's claim on a stored `FAILED`
+  /// message is atomic, so this can never double-send even if the agent taps
+  /// retry twice in quick succession. A `409` means the message was already
+  /// retried or has since succeeded (e.g. a concurrent retry, or a delivery
+  /// update that arrived first) — not a failure to report, just refreshed
+  /// away.
+  Future<void> retryStoredMessage(int messageId) async {
+    final current = state.value;
+    if (current == null) return;
+
+    RealtimeLogger.log(
+      'CONTROLLER',
+      'RETRY_STORED_START',
+      conversationId: conversationId.toString(),
+      messageId: messageId.toString(),
+    );
+
+    try {
+      final retried = await ref
+          .read(conversationRepositoryProvider)
+          .retryMessage(conversationId, messageId);
+
+      RealtimeLogger.log(
+        'CONTROLLER',
+        'RETRY_STORED_SUCCESS',
+        conversationId: conversationId.toString(),
+        messageId: messageId.toString(),
+      );
+
+      final latest = state.value;
+      if (latest == null) return;
+      state = AsyncData(
+        latest.copyWith(
+          messages: latest.messages
+              .map((m) => m.id == messageId ? retried : m)
+              .toList(growable: false),
+        ),
+      );
+    } on ApiException catch (error) {
+      RealtimeLogger.log(
+        'CONTROLLER',
+        'RETRY_STORED_FAILED',
+        conversationId: conversationId.toString(),
+        messageId: messageId.toString(),
+        data: {'statusCode': error.statusCode.toString()},
+      );
+      if (error.statusCode == 409) {
+        // Already resolved one way or another — pick up whatever the server
+        // now says rather than surfacing this as an error.
+        await refreshFromServer();
+        return;
+      }
+      rethrow;
+    }
   }
 
   void discardFailed(String localId) {
@@ -483,12 +552,11 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   }
 
   /// Replaces the conversation object in state with one already fetched by
-  /// the caller (`realtime_bridge.dart`'s `conversation.access_changed`
-  /// handler re-fetches `detail()` to check whether access was lost; when it
-  /// wasn't, that same response is the freshest read of the conversation —
-  /// [refreshFromServer] only re-fetches messages, not this, so reusing the
+  /// the caller — e.g. `assign_conversation_sheet.dart` applies the response
+  /// of its own assign/release call directly, since [refreshFromServer] only
+  /// re-fetches messages, not the conversation object itself, and reusing the
   /// fetch already in hand is both more correct and one round trip cheaper
-  /// than triggering a second, message-only refresh).
+  /// than triggering a second, message-only refresh.
   void updateConversation(Conversation conversation) {
     final current = state.value;
     if (current == null) return;
@@ -646,12 +714,38 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     );
   }
 
-  /// A realtime event said this conversation changed. Refetch rather than
-  /// patch — one authority, no divergence.
+  /// Patches delivery status/timestamps on already-loaded messages from a
+  /// `message.updated` delivery-status realtime event, in place of a full
+  /// refetch — the one deliberate exception to "an event never patches
+  /// state" (see the realtime bridge's own doc comment): delivery status is
+  /// per-message and self-contained, so there is nothing for a refetch to
+  /// reconcile that this payload does not already say directly.
   ///
-  /// Guarded against concurrent calls: if a refresh is already in flight, a
-  /// second request is silently dropped. The in-flight call will fetch the
-  /// latest data, so the second call would produce the same result anyway.
+  /// Entries for messages not currently in state (not yet loaded, on another
+  /// page) are silently skipped rather than fetched — the next full refresh
+  /// picks them up with the status already correct.
+  void applyDeliveryUpdate(List<Map<String, dynamic>> updates) {
+    final current = state.value;
+    if (current == null || updates.isEmpty) return;
+
+    final byId = <int, Map<String, dynamic>>{
+      for (final update in updates)
+        if (update['id'] is int) update['id'] as int: update,
+    };
+    if (byId.isEmpty) return;
+
+    var changed = false;
+    final patched = current.messages.map((m) {
+      final update = byId[m.id];
+      if (update == null) return m;
+      changed = true;
+      return m.withDeliveryUpdate(update);
+    }).toList(growable: false);
+
+    if (!changed) return;
+    state = AsyncData(current.copyWith(messages: patched));
+  }
+
   /// A realtime event said this conversation changed. Refetch rather than
   /// patch — one authority, no divergence.
   ///

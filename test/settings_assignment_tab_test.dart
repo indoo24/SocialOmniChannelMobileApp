@@ -236,7 +236,11 @@ void main() {
       // Verify controls and values
       expect(find.text('Automatic conversation assignment'), findsOneWidget);
       expect(find.text('Active'), findsOneWidget);
-      expect(find.byType(Switch), findsOneWidget);
+      // Auto-assignment and strict-responsibility each have their own
+      // switch now.
+      expect(find.byType(Switch), findsNWidgets(2));
+
+      expect(find.text('Strict responsibility'), findsOneWidget);
 
       expect(find.text('Default chat capacity'), findsOneWidget);
       expect(find.widgetWithText(TextField, '200'), findsOneWidget);
@@ -305,8 +309,8 @@ void main() {
       await tester.tap(find.text('Assignment'));
       await tester.pumpAndSettle();
 
-      // Toggle switch off
-      await tester.tap(find.byType(Switch));
+      // Toggle the auto-assignment switch (first of the two on this tab) off
+      await tester.tap(find.byType(Switch).first);
       await tester.pumpAndSettle();
 
       // Verify PATCH sent with ONLY is_enabled
@@ -320,6 +324,60 @@ void main() {
 
       expect(find.text('Assignment settings updated'), findsOneWidget);
     });
+
+    testWidgets(
+      'toggling strict responsibility sends PATCH with ONLY strict_responsibility',
+      (tester) async {
+        tester.view.devicePixelRatio = 1.0;
+        tester.view.physicalSize = const Size(800, 1600);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'GET' &&
+              options.path.contains('/routing/policy/')) {
+            return _json(_defaultPolicyJson, 200);
+          }
+          if (options.method == 'PATCH' &&
+              options.path.contains('/routing/policy/')) {
+            return _json('''
+{
+  "is_enabled": true,
+  "max_open_chats_per_agent": 200,
+  "timezone": "Africa/Cairo",
+  "heartbeat_max_seconds": 0,
+  "strict_responsibility": true
+}
+''', 200);
+          }
+          return _json('{"results": []}', 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await tester.pumpWidget(_settingsHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Assignment'));
+        await tester.pumpAndSettle();
+
+        // The strict-responsibility switch is the second on this tab.
+        await tester.tap(find.byType(Switch).at(1));
+        await tester.pumpAndSettle();
+
+        final patchReq = adapter.received.firstWhere(
+          (r) => r.method == 'PATCH' && r.path.contains('/routing/policy/'),
+        );
+        final body = patchReq.data as Map<String, dynamic>;
+        expect(body, {'strict_responsibility': true});
+        expect(body.containsKey('is_enabled'), isFalse);
+        expect(body.containsKey('max_open_chats_per_agent'), isFalse);
+
+        expect(find.text('Assignment settings updated'), findsOneWidget);
+      },
+    );
 
     testWidgets(
       'saving chat capacity sends PATCH with ONLY max_open_chats_per_agent',
@@ -463,6 +521,12 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Save time zone
+      await tester.dragUntilVisible(
+        find.text('Save time zone'),
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Save time zone'));
       await tester.pumpAndSettle();
 
@@ -509,6 +573,12 @@ void main() {
       await tester.tap(find.text('Assignment'));
       await tester.pumpAndSettle();
 
+      await tester.dragUntilVisible(
+        find.text('Save time zone'),
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Save time zone'));
       await tester.pumpAndSettle();
 

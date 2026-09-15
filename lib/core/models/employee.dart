@@ -69,6 +69,9 @@ class Employee {
     this.lastName = '',
     this.phone = '',
     this.organization,
+    this.channelAvailability = const {},
+    this.routingChannelScope = 'ALL',
+    this.routingProviders = const [],
   });
 
   final int id;
@@ -92,6 +95,30 @@ class Employee {
   final String visibilityScope;
 
   final Organization? organization;
+
+  /// Per provider, `AVAILABLE` or `COMING_SOON` for this employee — the
+  /// server's answer from `/auth/me/`. Nothing on the device decides it.
+  final Map<String, String> channelAvailability;
+
+  /// `ALL` or `SELECTED` — a hard limit on which channels' conversations
+  /// this employee can own (assignment/routing), separate from visibility.
+  final String routingChannelScope;
+
+  /// The providers this employee handles when [routingChannelScope] is
+  /// `SELECTED`. Empty when the scope is `ALL`.
+  final List<String> routingProviders;
+
+  /// Providers that stay coming soon when the server has not said otherwise,
+  /// so an older backend or a partial payload can never widen access.
+  static const _comingSoonUnlessTold = {'TIKTOK'};
+
+  /// Whether [provider] is not offered to this employee yet.
+  bool isChannelComingSoon(String provider) {
+    final key = provider.toUpperCase();
+    final answer = channelAvailability[key];
+    if (answer != null && answer.isNotEmpty) return answer == 'COMING_SOON';
+    return _comingSoonUnlessTold.contains(key);
+  }
 
   factory Employee.fromJson(Map<String, dynamic> json) {
     final rawFirst = JsonSafe.asString(json['first_name']);
@@ -140,6 +167,17 @@ class Employee {
       organization: json['organization'] is Map
           ? Organization.fromJson(JsonSafe.asMap(json['organization']))
           : null,
+      channelAvailability: {
+        for (final entry in JsonSafe.asMap(
+          json['channel_availability'],
+        ).entries)
+          entry.key.toUpperCase(): entry.value.toString(),
+      },
+      routingChannelScope: JsonSafe.asString(
+        json['routing_channel_scope'],
+        fallback: 'ALL',
+      ),
+      routingProviders: JsonSafe.asStringList(json['routing_providers']),
     );
   }
 
@@ -178,6 +216,9 @@ class Employee {
     permissions: permissions,
     visibilityScope: visibilityScope,
     organization: organization,
+    channelAvailability: channelAvailability,
+    routingChannelScope: routingChannelScope,
+    routingProviders: routingProviders,
   );
 }
 
@@ -203,6 +244,7 @@ class Perm {
   static const conversionReport = 'conversion.report';
   static const customerView = 'customer.view';
   static const customerManage = 'customer.manage';
+  static const customerFieldManage = 'customer_field.manage';
   static const employeeView = 'employee.view';
   static const employeeManage = 'employee.manage';
   static const teamView = 'team.view';
@@ -211,11 +253,16 @@ class Perm {
   static const channelView = 'channel.view';
   static const channelManage = 'channel.manage';
   static const routingManage = 'routing.manage';
+  static const crmExport = 'crm.export';
 
   /// Record an order, and review the customer details the analyzer extracted.
   /// Held by everyone who talks to customers — including agents, who are the
   /// ones taking the order. QA does not have it: reviewing history is not
   /// recording sales against it.
   static const orderManage = 'order.manage';
+
+  /// Manage shared saved replies. Web only today — mobile uses saved replies
+  /// but does not edit them.
+  static const savedReplyManage = 'saved_reply.manage';
   static const notificationView = 'notification.view';
 }

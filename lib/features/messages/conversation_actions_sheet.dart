@@ -29,7 +29,9 @@ import 'conversion_sheet.dart';
 import 'customer_intelligence_section.dart';
 import 'intelligence_providers.dart';
 import 'notes_sheet.dart';
+import '../customer_fields/custom_fields_section.dart';
 import '../orders/order_and_fact_dialogs.dart';
+import '../orders/order_details.dart';
 
 const _statuses = [
   'OPEN',
@@ -748,7 +750,10 @@ class _CustomerDetailsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final customer = conversation.customer;
-    final recordedFacts = facts.where((f) => !f.needsReview).toList();
+    // Free-form details only; typed custom field values show by their field.
+    final recordedFacts = facts
+        .where((f) => !f.needsReview && !f.isTypedField)
+        .toList();
 
     final inboxState = ref.watch(inboxControllerProvider).value;
     final groups = inboxState?.groups ?? const [];
@@ -832,6 +837,11 @@ class _CustomerDetailsView extends ConsumerWidget {
             label: context.l10n.teamFieldLabel,
             value: conversation.assignedTeam!.name,
           ),
+        if (conversation.claimedBy != null)
+          _KeyValueRow(
+            label: context.l10n.claimedByFieldLabel,
+            value: conversation.claimedBy!.fullName,
+          ),
         _KeyValueRow(
           label: context.l10n.messagesFieldLabel,
           value: '${conversation.messageCount}',
@@ -845,6 +855,21 @@ class _CustomerDetailsView extends ConsumerWidget {
           _KeyValueRow(
             label: context.l10n.lastMessageFieldLabel,
             value: formatDateTime(context, conversation.lastMessageAt),
+          ),
+        if (conversation.firstResponseAt != null)
+          _KeyValueRow(
+            label: context.l10n.firstResponseFieldLabel,
+            value: formatDateTime(context, conversation.firstResponseAt),
+          ),
+        if (conversation.lastAgentMessageAt != null)
+          _KeyValueRow(
+            label: context.l10n.lastAgentMessageFieldLabel,
+            value: formatDateTime(context, conversation.lastAgentMessageAt),
+          ),
+        if (conversation.resolvedAt != null)
+          _KeyValueRow(
+            label: context.l10n.resolvedFieldLabel,
+            value: formatDateTime(context, conversation.resolvedAt),
           ),
         if (customer.lifecycleStage.isNotEmpty)
           _KeyValueRow(
@@ -876,6 +901,11 @@ class _CustomerDetailsView extends ConsumerWidget {
               if (customer.country.isNotEmpty) customer.country,
             ].join(', '),
           ),
+
+        if (customer.id > 0) ...[
+          const SizedBox(height: Space.sm),
+          CustomFieldsSection(customerId: customer.id),
+        ],
 
         if (recordedFacts.isNotEmpty) ...[
           const SizedBox(height: Space.md),
@@ -1351,6 +1381,22 @@ class _LiveOrderCardState extends ConsumerState<_LiveOrderCard> {
                 ),
               ),
           ],
+
+          OrderDetailsLines(
+            order: order,
+            showFulfilment: !(widget.canManage && order.canMoveFulfilment),
+          ),
+          if (widget.canManage && order.canMoveFulfilment)
+            OrderFulfilmentPicker(
+              order: order,
+              busy: _busy,
+              onChanged: (value) => _run(
+                () => ref
+                    .read(directoryRepositoryProvider)
+                    .updateOrderFulfilment(order.id, value),
+                context.l10n.orderFulfilmentUpdatedMessage,
+              ),
+            ),
 
           const SizedBox(height: Space.xs),
           Text(

@@ -112,8 +112,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noChannelsTitle => 'لا توجد قنوات متصلة';
 
   @override
-  String get noChannelsMessage =>
-      'قم بربط Instagram أو Messenger أو WhatsApp من تطبيق الويب لبدء استقبال المحادثات.';
+  String get noChannelsMessage => 'لا توجد قنوات مسجلة لهذا العميل بعد.';
 
   @override
   String get channelStatusConnected => 'متصل';
@@ -331,6 +330,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get connectInstagramAction => 'ربط Instagram';
+
+  @override
+  String get connectTikTokAction => 'ربط TikTok';
 
   @override
   String get enterDetailsManuallyAction => 'إدخال البيانات يدويًا';
@@ -863,6 +865,34 @@ class AppLocalizationsAr extends AppLocalizations {
   String get deleteMessageDeletedSnackbar => 'تم حذف الرسالة';
 
   @override
+  String get replyMessageAction => 'رد';
+
+  @override
+  String replyingToLabel(String name) {
+    return 'الرد على $name';
+  }
+
+  @override
+  String get cancelReplyTooltip => 'إلغاء الرد';
+
+  @override
+  String get quotedMessageDeletedLabel => 'تم حذف هذه الرسالة';
+
+  @override
+  String get quotedMessageUnavailableLabel => 'الرسالة الأصلية غير متاحة';
+
+  @override
+  String get photoMessageLabel => 'صورة';
+
+  @override
+  String get attachmentMessageLabel => 'مرفق';
+
+  @override
+  String sentFromPlatformLabel(String provider) {
+    return 'أُرسلت من $provider';
+  }
+
+  @override
   String get customerTitle => 'العميل';
 
   @override
@@ -888,6 +918,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get lastMessageFieldLabel => 'آخر رسالة';
+
+  @override
+  String get claimedByFieldLabel => 'استلمها';
+
+  @override
+  String get firstResponseFieldLabel => 'الرد الأول';
+
+  @override
+  String get resolvedFieldLabel => 'تم الحل في';
+
+  @override
+  String get lastAgentMessageFieldLabel => 'آخر رسالة من الموظف';
 
   @override
   String get customerSectionTitle => 'العميل';
@@ -1049,6 +1091,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get autoAssignmentToggleLabel => 'تفعيل التوزيع التلقائي';
 
   @override
+  String get strictResponsibilityTitle => 'المسؤولية الصارمة';
+
+  @override
+  String get strictResponsibilityDescription =>
+      'عند التفعيل، تبقى المحادثة بلا تعيين إذا لم يكن أحد مسؤولاً عن قناتها، بدلاً من إسنادها لأي موظف متاح. عند الإيقاف، تُعامل المسؤولية كتفضيل فقط.';
+
+  @override
+  String get strictResponsibilityToggleLabel => 'اشتراط المسؤولية للتعيين';
+
+  @override
   String get defaultChatCapacityTitle => 'سعة المحادثات الافتراضية';
 
   @override
@@ -1167,10 +1219,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get locationFieldLabel => 'الموقع';
 
   @override
+  String get firstSeenFieldLabel => 'أول ظهور';
+
+  @override
   String get lastSeenFieldLabel => 'آخر ظهور';
 
   @override
   String get confirmedPurchasesFieldLabel => 'المشتريات المؤكدة';
+
+  @override
+  String get confirmedPurchasesSubtitle =>
+      'تم التحقق منها بواسطة موظف، وليس عبر نظام دفع.';
 
   @override
   String get customerNotesFieldLabel => 'ملاحظات';
@@ -1183,6 +1242,26 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noVisibleConversations => 'لا توجد محادثات يمكنك رؤيتها.';
+
+  @override
+  String get channelsCapsSectionTitle => 'القنوات';
+
+  @override
+  String get knownFactsCapsSectionTitle => 'الحقائق المعروفة';
+
+  @override
+  String get knownFactsSectionSubtitle =>
+      'مستخرجة من المحادثات. مستوى الثقة موضح لكل حقيقة.';
+
+  @override
+  String get noKnownFactsMessage => 'لا يوجد شيء معروف بعد.';
+
+  @override
+  String get ordersCapsSectionTitle => 'الطلبات';
+
+  @override
+  String get noOrdersForCustomerMessage =>
+      'لا توجد طلبات مسجلة لهذا العميل بعد.';
 
   @override
   String get searchCustomersHint =>
@@ -1214,6 +1293,24 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get onlineNowFilter => 'متصل الآن';
+
+  @override
+  String get employeeFilterAllRoles => 'كل الأدوار';
+
+  @override
+  String get employeeFilterAllTeams => 'كل الفرق';
+
+  @override
+  String get employeeFilterAllStatus => 'الكل';
+
+  @override
+  String get employeeFilterActive => 'نشط';
+
+  @override
+  String get employeeFilterInactive => 'غير نشط';
+
+  @override
+  String get employeeFilterReset => 'إعادة تعيين عوامل التصفية';
 
   @override
   String totalCountSuffix(int total) {
@@ -1383,6 +1480,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get confirmedByUnknownEmployee => 'أحد الموظفين';
 
   @override
+  String orderedAtLabel(String date) {
+    return 'تم الطلب في $date';
+  }
+
+  @override
   String recordedByMessage(String name) {
     return 'تم التسجيل بواسطة $name';
   }
@@ -1415,6 +1517,185 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get orderRecordedMessage =>
       'تم تسجيل الطلب. قم بتأكيده بعد مراجعة سجلاتك الخاصة.';
+
+  @override
+  String get customFieldsSectionTitle => 'الحقول المخصّصة';
+
+  @override
+  String get customFieldsEditTitle => 'تعديل الحقول المخصّصة';
+
+  @override
+  String get customFieldsEditTooltip => 'تعديل الحقول المخصّصة';
+
+  @override
+  String get customFieldsSaved => 'تم حفظ الحقول المخصّصة';
+
+  @override
+  String get customFieldYes => 'نعم';
+
+  @override
+  String get customFieldNo => 'لا';
+
+  @override
+  String get customFieldNotSet => 'غير محدد';
+
+  @override
+  String get customFieldRequired => 'هذا الحقل إلزامي.';
+
+  @override
+  String get customFieldPickDate => 'اختر تاريخًا';
+
+  @override
+  String get customFieldPickDateTime => 'اختر التاريخ والوقت';
+
+  @override
+  String get customFieldClear => 'مسح';
+
+  @override
+  String get customerFieldFilterButton => 'تصفية حسب الحقل';
+
+  @override
+  String get customerFieldFilterTitle => 'تصفية حسب الحقل';
+
+  @override
+  String get customerFieldFilterNoFields =>
+      'لا توجد حقول مخصصة معدّة لهذه المؤسسة.';
+
+  @override
+  String get customerFieldFilterFieldLabel => 'الحقل';
+
+  @override
+  String get customerFieldFilterValueLabel => 'القيمة';
+
+  @override
+  String get customerFieldFilterFromLabel => 'من';
+
+  @override
+  String get customerFieldFilterToLabel => 'إلى';
+
+  @override
+  String get customerFieldFilterReset => 'إعادة تعيين';
+
+  @override
+  String get customerFieldFilterSelectFieldError => 'اختر حقلاً أولاً.';
+
+  @override
+  String get customerFieldFilterEnterValueError => 'أدخل قيمة للتصفية بها.';
+
+  @override
+  String get customerFieldFilterSelectValueError => 'اختر قيمة للتصفية بها.';
+
+  @override
+  String get customerFieldFilterInvalidRange =>
+      'يجب أن يكون \"من\" قبل \"إلى\".';
+
+  @override
+  String get customerFieldFilterNoResults =>
+      'لا يوجد عملاء مطابقون لهذا الحقل.';
+
+  @override
+  String get orderDeliverySectionTitle => 'بيانات التوصيل (اختيارية)';
+
+  @override
+  String get orderRecipientNameLabel => 'اسم المستلم';
+
+  @override
+  String get orderRecipientPhoneLabel => 'هاتف المستلم';
+
+  @override
+  String get orderAddressLabel => 'العنوان';
+
+  @override
+  String get orderGovernorateLabel => 'المحافظة';
+
+  @override
+  String get orderCityLabel => 'المدينة / المنطقة';
+
+  @override
+  String get orderDeliveryNotesLabel => 'ملاحظات التوصيل';
+
+  @override
+  String get orderSubtotalLabel => 'المجموع الفرعي';
+
+  @override
+  String get orderDiscountLabel => 'الخصم';
+
+  @override
+  String get orderShippingLabel => 'الشحن';
+
+  @override
+  String get orderFulfilmentLabel => 'التنفيذ';
+
+  @override
+  String orderFulfilmentValue(String status) {
+    return 'التنفيذ: $status';
+  }
+
+  @override
+  String get orderFulfilmentUpdatedMessage => 'تم تحديث حالة التنفيذ';
+
+  @override
+  String orderDeliveryDue(String date) {
+    return 'التسليم المتوقع $date';
+  }
+
+  @override
+  String orderFollowUpValue(String name) {
+    return 'المتابعة: $name';
+  }
+
+  @override
+  String orderCancellationReason(String reason) {
+    return 'السبب: $reason';
+  }
+
+  @override
+  String get fulfilmentNew => 'جديد';
+
+  @override
+  String get fulfilmentProcessing => 'قيد التجهيز';
+
+  @override
+  String get fulfilmentPacking => 'قيد التغليف';
+
+  @override
+  String get fulfilmentShipped => 'تم الشحن';
+
+  @override
+  String get fulfilmentDelivered => 'تم التسليم';
+
+  @override
+  String get fulfilmentOnHold => 'معلّق';
+
+  @override
+  String get fulfilmentCancelled => 'ملغى';
+
+  @override
+  String get paymentMethodCashOnDelivery => 'الدفع عند الاستلام';
+
+  @override
+  String get paymentMethodBankTransfer => 'تحويل بنكي';
+
+  @override
+  String get paymentMethodCard => 'بطاقة';
+
+  @override
+  String get paymentMethodWallet => 'محفظة إلكترونية';
+
+  @override
+  String get paymentMethodOther => 'أخرى';
+
+  @override
+  String get paymentStatusUnpaid => 'غير مدفوع';
+
+  @override
+  String get paymentStatusPartiallyPaid => 'مدفوع جزئيًا (حسب الإفادة)';
+
+  @override
+  String get paymentStatusPaid => 'مدفوع (حسب الإفادة)';
+
+  @override
+  String get paymentStatusRefunded => 'مُسترد (حسب الإفادة)';
 
   @override
   String get avgResponseLabel => 'متوسط زمن الرد';
@@ -1663,6 +1944,30 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get employeesLoadFailedMessage => 'تعذّر تحميل الموظفين.';
+
+  @override
+  String get teamResponsibilitiesTitle => 'مسؤوليات القنوات';
+
+  @override
+  String get teamResponsibilitiesDescription =>
+      'القنوات التي يُعرض على هذا الفريق محادثاتها الجديدة. هذا يحدد من يُعرض عليه العمل أولاً — ولا يغيّر أبدًا من يمكنه رؤية المحادثة.';
+
+  @override
+  String get teamResponsibilityNone => 'لا شيء';
+
+  @override
+  String get teamResponsibilityAll => 'جميع الحسابات';
+
+  @override
+  String get teamResponsibilitySelected => 'حسابات محددة';
+
+  @override
+  String get teamResponsibilitiesLoadFailedMessage =>
+      'تعذّر تحميل المسؤوليات الحالية.';
+
+  @override
+  String get teamResponsibilityNoChannelsMessage =>
+      'لا توجد حسابات متصلة بهذه القناة بعد.';
 
   @override
   String get deactivateTeamConfirmTitle => 'إلغاء تفعيل الفريق؟';
@@ -2150,6 +2455,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get chatCapacityInvalidRangeError => 'يجب أن تكون السعة بين 0 و200.';
 
   @override
+  String get routingChannelScopeTitle => 'نطاق القنوات';
+
+  @override
+  String get routingChannelScopeDescription =>
+      'حد صارم على القنوات التي يمكن إسناد أو توجيه محادثاتها لهذا الشخص. تضييق هذا النطاق لا يزيل المحادثات التي يملكها بالفعل.';
+
+  @override
+  String get routingChannelScopeAll => 'جميع القنوات';
+
+  @override
+  String get routingChannelScopeSelected => 'قنوات محددة';
+
+  @override
+  String get routingChannelScopeRequiredError => 'اختر قناة واحدة على الأقل.';
+
+  @override
   String get workingHoursTitle => 'ساعات العمل';
 
   @override
@@ -2306,4 +2627,420 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get statusUpdateFailedMessage =>
       'تعذر تحديث الحالة. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get savedRepliesTitle => 'الردود المحفوظة';
+
+  @override
+  String get savedRepliesTooltip => 'إدراج رد محفوظ';
+
+  @override
+  String get savedRepliesSearchHint => 'ابحث في الردود المحفوظة';
+
+  @override
+  String get savedRepliesLoading => 'جارٍ تحميل الردود المحفوظة…';
+
+  @override
+  String get savedRepliesEmpty => 'لا توجد ردود محفوظة بعد.';
+
+  @override
+  String get savedRepliesNoMatch => 'لا يوجد رد محفوظ يطابق بحثك.';
+
+  @override
+  String get savedReplyScopePersonal => 'شخصي';
+
+  @override
+  String get savedReplyScopeTeam => 'الفريق';
+
+  @override
+  String get savedReplyScopeOrganization => 'الجميع';
+
+  @override
+  String get tiktokSharedPost => 'شارك منشورًا على TikTok';
+
+  @override
+  String get tiktokOpenOnTikTok => 'فتح على TikTok';
+
+  @override
+  String tiktokQuestionCard(String title) {
+    return 'بطاقة سؤال: $title';
+  }
+
+  @override
+  String get tiktokQuestionCardUntitled => 'بطاقة سؤال';
+
+  @override
+  String get tiktokUnsupportedContent =>
+      'لا يمكن عرض رسالة TikTok هذه هنا. افتح المحادثة في TikTok لرؤيتها.';
+
+  @override
+  String get deliveryErrorChannelUnavailable =>
+      'TikTok غير متاح لك بعد. لم تُرسَل الرسالة.';
+
+  @override
+  String get deliveryErrorTiktokTokenInvalid =>
+      'لم يعد TikTok يقبل تفويض هذا الحساب. اطلب من المسؤول إعادة ربط TikTok.';
+
+  @override
+  String get deliveryErrorTiktokPermissionDenied =>
+      'رفض TikTok هذا الإجراء لهذا الحساب. اطلب من المسؤول مراجعة ربط TikTok.';
+
+  @override
+  String get deliveryErrorTiktokInvalidRequest =>
+      'تعذّر على TikTok قبول هذه الرسالة. لم تُرسَل.';
+
+  @override
+  String get deliveryErrorTiktokMessagingLimit =>
+      'تم الوصول إلى حد الردود الذي يسمح به TikTok لهذه المحادثة. لم تُرسَل الرسالة.';
+
+  @override
+  String get deliveryErrorTiktokRateLimited =>
+      'كان TikTok مشغولًا وتعذّر إرسال الرسالة بعد عدة محاولات. حاول مرة أخرى.';
+
+  @override
+  String get deliveryErrorTiktokNotEligible =>
+      'لا يسمح TikTok برسائل الأعمال لهذا الحساب. لم تُرسَل الرسالة.';
+
+  @override
+  String get deliveryErrorTiktokUnavailable =>
+      'واجه TikTok مشكلة مؤقتة. لم تُرسَل الرسالة؛ حاول مرة أخرى.';
+
+  @override
+  String get deliveryErrorTiktokMediaRejected =>
+      'تعذّر على TikTok قبول هذا الملف.';
+
+  @override
+  String get deliveryErrorTiktokUnknownError =>
+      'رفض TikTok هذه الرسالة. لم تُرسَل.';
+
+  @override
+  String get deliveryErrorTiktokNotReady =>
+      'ربط TikTok هذا غير جاهز لإرسال الرسائل. اطلب من المسؤول مراجعته.';
+
+  @override
+  String get deliveryErrorTiktokNoCustomerMessage =>
+      'يسمح TikTok للنشاط التجاري بمراسلة العميل فقط بعد أن يبدأ هو بالكتابة. لم تُرسَل الرسالة.';
+
+  @override
+  String get tiktokLimitReachedNotice =>
+      'تم الوصول إلى حد الردود الذي يسمح به TikTok لهذه المحادثة.';
+
+  @override
+  String get tiktokLimitReachedDetail =>
+      'يمكنك الإرسال مجددًا بمجرد أن يرد العميل.';
+
+  @override
+  String get tiktokNoCustomerMessageNotice =>
+      'يسمح TikTok للنشاط التجاري بمراسلة العميل فقط بعد أن يبدأ هو بالكتابة.';
+
+  @override
+  String tiktokMessagesRemaining(int count) {
+    return 'يسمح TikTok بـ $count رسائل إضافية حتى يرد العميل.';
+  }
+
+  @override
+  String get tiktokRegionNotice =>
+      'تتوفر رسائل الأعمال على TikTok لجميع حسابات الأعمال باستثناء الحسابات المسجلة في الولايات المتحدة والمنطقة الاقتصادية الأوروبية وسويسرا والمملكة المتحدة. لا يمكن ربط الحسابات الشخصية.';
+
+  @override
+  String get tiktokReadinessNotChecked =>
+      'لم يتم التحقق. أعد ربط هذا الحساب للتأكد من أن TikTok يسمح له برسائل الأعمال.';
+
+  @override
+  String get tiktokReadinessUnknown =>
+      'تم الربط، لكن TikTok لم يؤكد رسائل الأعمال بعد. أعد الربط لاحقًا للتحقق مجددًا.';
+
+  @override
+  String get tiktokReadinessMissingScopes =>
+      'لم يمنح TikTok كل الصلاحيات التي تحتاجها رسائل الأعمال. أعد الربط ووافق عليها جميعًا.';
+
+  @override
+  String get tiktokReadinessNotEligible =>
+      'لا يسمح TikTok برسائل الأعمال لهذا الحساب. قد لا تكون الحسابات المسجلة في الولايات المتحدة أو المنطقة الاقتصادية الأوروبية أو سويسرا أو المملكة المتحدة مؤهلة.';
+
+  @override
+  String get tiktokReadinessPermissionDenied =>
+      'رفض TikTok رسائل الأعمال لهذا الحساب. تأكد من أنه حساب أعمال.';
+
+  @override
+  String get tiktokReadinessTokenInvalid =>
+      'لم يعد TikTok يقبل هذا التفويض. أعد ربط TikTok.';
+
+  @override
+  String tiktokReadinessReference(String reference) {
+    return 'مرجع TikTok: $reference';
+  }
+
+  @override
+  String historyClaimedByReplying(String name) {
+    return 'استلم $name المحادثة بعد الرد عليها';
+  }
+
+  @override
+  String historyClaimedOwnerRestored(String name) {
+    return 'أُعيدت المحادثة إلى $name الذي كان قد استلمها سابقًا';
+  }
+
+  @override
+  String historyFallbackAssigned(String name) {
+    return 'أُسندت إلى $name (احتياطيًا)';
+  }
+
+  @override
+  String historyFallbackReasonsLabel(String reasons) {
+    return 'السبب: $reasons';
+  }
+
+  @override
+  String historyRerouted(String previousName, String name) {
+    return 'أُعيد توجيهها من $previousName إلى $name';
+  }
+
+  @override
+  String historyReleasedFrom(String previousName) {
+    return 'أُفرجت من $previousName وعادت إلى قائمة الانتظار';
+  }
+
+  @override
+  String get tabCustomerFields => 'حقول العملاء';
+
+  @override
+  String get customerFieldsPermissionDenied =>
+      'ليست لديك صلاحية عرض حقول العملاء.';
+
+  @override
+  String get customerFieldsTabTitle => 'حقول العملاء';
+
+  @override
+  String get customerFieldsTabDescription =>
+      'تُخزَّن هذه الحقول في سجل كل عميل ويمكن تعبئتها من الملف الشخصي للعميل. يمكن فقط للمسؤولين المخوَّلين إضافتها أو تعديلها أو إعادة ترتيبها أو تعطيلها.';
+
+  @override
+  String get addFieldAction => 'إضافة حقل';
+
+  @override
+  String get noCustomerFieldsTitle => 'لا توجد حقول مخصصة بعد';
+
+  @override
+  String get noCustomerFieldsMessage =>
+      'أضف حقلاً لبدء جمعه في ملفات العملاء الشخصية.';
+
+  @override
+  String customerFieldKeyLabel(String key) {
+    return 'المفتاح: $key';
+  }
+
+  @override
+  String get customerFieldDisabledBadge => 'معطَّل';
+
+  @override
+  String get moveFieldUpAction => 'تحريك لأعلى';
+
+  @override
+  String get moveFieldDownAction => 'تحريك لأسفل';
+
+  @override
+  String get enableFieldAction => 'تفعيل';
+
+  @override
+  String get disableFieldAction => 'تعطيل';
+
+  @override
+  String get customerFieldEnabledSnackbar => 'تم تفعيل الحقل';
+
+  @override
+  String get customerFieldDisabledSnackbar => 'تم تعطيل الحقل';
+
+  @override
+  String get customerFieldReorderedSnackbar => 'تم تحديث ترتيب الحقول';
+
+  @override
+  String get addFieldTitle => 'إضافة حقل';
+
+  @override
+  String get editFieldTitle => 'تعديل الحقل';
+
+  @override
+  String get fieldLabelFieldLabel => 'التسمية';
+
+  @override
+  String get fieldLabelRequiredError => 'أدخل تسمية.';
+
+  @override
+  String get fieldKeyFieldLabel => 'المفتاح';
+
+  @override
+  String get fieldKeyHelperTextGenerated => 'يُنشأ تلقائيًا من التسمية.';
+
+  @override
+  String get fieldKeyHelperTextFixed =>
+      'لا يمكن تغيير المفتاح بعد إنشاء الحقل.';
+
+  @override
+  String get fieldKeyInvalidError =>
+      'استخدم فقط أحرفًا إنجليزية وأرقامًا وشرطات سفلية.';
+
+  @override
+  String get fieldTypeFieldLabel => 'النوع';
+
+  @override
+  String get fieldRequiredToggleLabel => 'إلزامي';
+
+  @override
+  String get fieldRequiredToggleHelper => 'لا يمكن حفظ حقل إلزامي فارغًا.';
+
+  @override
+  String get fieldHelpTextFieldLabel => 'نص مساعد';
+
+  @override
+  String get fieldHelpTextFieldHint => 'إرشاد اختياري يظهر أسفل الحقل';
+
+  @override
+  String get fieldPlaceholderFieldLabel => 'النص التوضيحي';
+
+  @override
+  String get fieldPlaceholderFieldHint => 'نص مثال اختياري يظهر داخل الحقل';
+
+  @override
+  String get fieldAddedSnackbar => 'تمت إضافة الحقل';
+
+  @override
+  String get fieldUpdatedSnackbar => 'تم تحديث الحقل';
+
+  @override
+  String get fieldTypeText => 'نص';
+
+  @override
+  String get fieldTypeLongText => 'نص طويل';
+
+  @override
+  String get fieldTypeNumber => 'رقم صحيح';
+
+  @override
+  String get fieldTypeDecimal => 'رقم عشري';
+
+  @override
+  String get fieldTypeDate => 'تاريخ';
+
+  @override
+  String get fieldTypeDatetime => 'تاريخ ووقت';
+
+  @override
+  String get fieldTypeBoolean => 'نعم / لا';
+
+  @override
+  String get fieldTypeSelect => 'اختيار واحد';
+
+  @override
+  String get fieldTypeMultiSelect => 'اختيار متعدد';
+
+  @override
+  String get fieldTypePhone => 'هاتف';
+
+  @override
+  String get fieldTypeEmail => 'بريد إلكتروني';
+
+  @override
+  String get tabSavedReplies => 'الردود المحفوظة';
+
+  @override
+  String get savedRepliesPermissionDenied =>
+      'ليست لديك صلاحية عرض الردود المحفوظة.';
+
+  @override
+  String get savedRepliesTabDescription =>
+      'نص قابل لإعادة الاستخدام تُدرجه في مربع الرد وتعدّله قبل الإرسال. هذه ليست قوالب واتساب ولا تحتاج إلى موافقة ميتا.';
+
+  @override
+  String get newSavedReplyAction => 'رد محفوظ جديد';
+
+  @override
+  String get noSavedRepliesTitle => 'لا توجد ردود محفوظة بعد.';
+
+  @override
+  String get noSavedRepliesMessage =>
+      'أضف ردًا محفوظًا لإعادة استخدامه من مربع الرد.';
+
+  @override
+  String get savedReplyDisabledBadge => 'معطَّل';
+
+  @override
+  String savedReplyShortcutLabel(String shortcut) {
+    return 'الاختصار: /$shortcut';
+  }
+
+  @override
+  String savedReplyCategoryLabel(String category) {
+    return 'الفئة: $category';
+  }
+
+  @override
+  String get addSavedReplyTitle => 'رد محفوظ جديد';
+
+  @override
+  String get editSavedReplyTitle => 'تعديل الرد المحفوظ';
+
+  @override
+  String get savedReplyTitleFieldLabel => 'العنوان';
+
+  @override
+  String get savedReplyTitleRequiredError => 'أدخل عنوانًا.';
+
+  @override
+  String get savedReplyShortcutFieldLabel => 'الاختصار';
+
+  @override
+  String get savedReplyShortcutFieldHint => '/شكرا';
+
+  @override
+  String get savedReplyShortcutHelperText =>
+      'اختياري. اكتب / متبوعة بالاختصار في مربع الرد لإدراجه.';
+
+  @override
+  String get savedReplyCategoryFieldLabel => 'الفئة';
+
+  @override
+  String get savedReplyScopeFieldLabel => 'من يمكنه استخدامه';
+
+  @override
+  String get savedReplyBodyFieldLabel => 'النص';
+
+  @override
+  String get savedReplyBodyRequiredError => 'أدخل نص الرد.';
+
+  @override
+  String savedReplyBodyHelperText(String customerToken, String agentToken) {
+    return 'استخدم $customerToken أو $agentToken لملء الأسماء تلقائيًا عند إدراج الرد.';
+  }
+
+  @override
+  String get savedReplyAddedSnackbar => 'تمت إضافة الرد المحفوظ';
+
+  @override
+  String get savedReplyUpdatedSnackbar => 'تم تحديث الرد المحفوظ';
+
+  @override
+  String get deleteSavedReplyAction => 'حذف';
+
+  @override
+  String get deleteSavedReplyConfirmTitle => 'حذف الرد المحفوظ؟';
+
+  @override
+  String deleteSavedReplyConfirmBody(String title) {
+    return 'لن يعود \"$title\" متاحًا للإدراج. لا يمكن التراجع عن هذا من هنا.';
+  }
+
+  @override
+  String get savedReplyDeletedSnackbar => 'تم حذف الرد المحفوظ';
+
+  @override
+  String get exportCsvAction => 'تصدير CSV';
+
+  @override
+  String get exportRateLimitedMessage =>
+      'عمليات تصدير كثيرة خلال الدقيقة الماضية. يرجى الانتظار والمحاولة مرة أخرى.';
+
+  @override
+  String get exportFailedMessage =>
+      'تعذّر إكمال التصدير. يرجى المحاولة مرة أخرى.';
 }

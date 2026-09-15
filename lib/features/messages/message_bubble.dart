@@ -15,6 +15,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart' show ResponseType, Options;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/models/message.dart';
 import '../../core/providers.dart';
@@ -22,25 +23,39 @@ import '../../core/realtime/realtime_logger.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/safe_url.dart';
 import '../../core/utils/formatting.dart';
+import '../../core/widgets/badges.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
     required this.message,
+    this.provider = '',
     this.onRetry,
     this.onDiscard,
     this.onDelete,
+    this.onReply,
     super.key,
   });
 
   final Message message;
+
+  /// The conversation's channel provider (`WHATSAPP`, `INSTAGRAM`, ...),
+  /// used only to name the platform in [message.sentFromPlatform]'s label.
+  final String provider;
   final VoidCallback? onRetry;
   final VoidCallback? onDiscard;
 
-  /// Long-press to delete. Null hides the affordance entirely — the caller
+  /// Long-press menu item. Null hides the affordance entirely — the caller
   /// only supplies this for a real, server-confirmed message when the
   /// signed-in employee holds `conversation.delete_message` (ADMIN/SUPERVISOR).
   final VoidCallback? onDelete;
+
+  /// Long-press menu item. Null hides the affordance entirely — the caller
+  /// only supplies this for a real, server-confirmed message when the
+  /// signed-in employee holds `conversation.reply` (there being nothing to
+  /// quote a message *into* without it).
+  final VoidCallback? onReply;
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +112,14 @@ class MessageBubble extends StatelessWidget {
                     : CrossAxisAlignment.start,
                 children: [
                   GestureDetector(
-                    onLongPress: onDelete,
+                    onLongPressStart: (onReply != null || onDelete != null)
+                        ? (details) => _showBubbleMenu(
+                            context,
+                            position: details.globalPosition,
+                            onReply: onReply,
+                            onDelete: onDelete,
+                          )
+                        : null,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: Space.md,
@@ -135,6 +157,10 @@ class MessageBubble extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (message.replyTo != null) ...[
+                            _QuoteBlock(quote: message.replyTo!, isMine: isMine),
+                            const SizedBox(height: Space.xs),
+                          ],
                           if (message.attachments.isNotEmpty)
                             _Attachments(message: message),
                           if (message.text.isNotEmpty)
@@ -145,6 +171,11 @@ class MessageBubble extends StatelessWidget {
                                 height: 1.35,
                               ),
                             ),
+                          if (message.contentNotice != null)
+                            ContentNoticeView(
+                              notice: message.contentNotice!,
+                              color: foreground,
+                            ),
                         ],
                       ),
                     ),
@@ -152,7 +183,7 @@ class MessageBubble extends StatelessWidget {
                   const SizedBox(height: 3),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: _MetaRow(message: message),
+                    child: _MetaRow(message: message, provider: provider),
                   ),
                   if (failed) ...[
                     const SizedBox(height: Space.xs),
@@ -172,16 +203,131 @@ class MessageBubble extends StatelessWidget {
   }
 }
 
+/// The long-press menu on a bubble — Reply and/or Delete, whichever the
+/// caller made available. Positioned at the touch point rather than anchored
+/// to the bubble, matching the platform's own context-menu placement.
+void _showBubbleMenu(
+  BuildContext context, {
+  required Offset position,
+  required VoidCallback? onReply,
+  required VoidCallback? onDelete,
+}) {
+  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+  showMenu<VoidCallback>(
+    context: context,
+    position: RelativeRect.fromRect(
+      position & const Size(1, 1),
+      Offset.zero & overlay.size,
+    ),
+    items: [
+      if (onReply != null)
+        PopupMenuItem<VoidCallback>(
+          value: onReply,
+          child: ListTile(
+            leading: const Icon(Icons.reply_outlined),
+            title: Text(context.l10n.replyMessageAction),
+          ),
+        ),
+      if (onDelete != null)
+        PopupMenuItem<VoidCallback>(
+          value: onDelete,
+          child: ListTile(
+            leading: Icon(
+              Icons.delete_outline,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            title: Text(
+              context.l10n.deleteMessageAction,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ),
+    ],
+  ).then((selected) => selected?.call());
+}
+
+/// The quote block a reply shows above its own content — a snapshot of the
+/// message it answers, rendered the same whether the original is still
+/// loaded, deleted, or (rarely) outside this employee's visibility.
+class _QuoteBlock extends StatelessWidget {
+  const _QuoteBlock({required this.quote, required this.isMine});
+
+  final QuotedMessage quote;
+  final bool isMine;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accentColor = isMine
+        ? Colors.white.withValues(alpha: 0.85)
+        : theme.colorScheme.primary;
+    final backgroundColor = isMine
+        ? Colors.white.withValues(alpha: 0.12)
+        : theme.colorScheme.primary.withValues(alpha: 0.08);
+    final textColor = isMine
+        ? Colors.white.withValues(alpha: 0.85)
+        : theme.colorScheme.onSurfaceVariant;
+
+    final summary = quote.isDeleted
+        ? context.l10n.quotedMessageDeletedLabel
+        : !quote.available
+        ? context.l10n.quotedMessageUnavailableLabel
+        : quote.text.isNotEmpty
+        ? quote.text
+        : switch (quote.messageType) {
+            'IMAGE' => context.l10n.photoMessageLabel,
+            'AUDIO' => context.l10n.voiceMessageLabel,
+            _ => context.l10n.attachmentMessageLabel,
+          };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: Space.sm, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border(left: BorderSide(color: accentColor, width: 3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (quote.senderName.isNotEmpty)
+            Text(
+              quote.senderName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: accentColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          Text(
+            summary,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(color: textColor),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MetaRow extends StatelessWidget {
-  const _MetaRow({required this.message});
+  const _MetaRow({required this.message, this.provider = ''});
 
   final Message message;
+  final String provider;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final labels = <String>[
-      if (message.isOutbound && message.senderName.isNotEmpty)
+      if (message.isOutbound && message.sentFromPlatform)
+        context.l10n.sentFromPlatformLabel(
+          ConversationBadges.providerLabel(context, provider),
+        )
+      else if (message.isOutbound && message.senderName.isNotEmpty)
         message.senderName,
       formatTime(context, message.sentAt),
     ];
@@ -233,13 +379,100 @@ class _DeliveryIcon extends StatelessWidget {
       );
     }
 
-    final (icon, color) = switch (message.deliveryStatus) {
-      'READ' => (Icons.done_all, ScenarioColors.info),
-      'DELIVERED' => (Icons.done_all, theme.textTheme.labelSmall?.color),
-      _ => (Icons.done, theme.textTheme.labelSmall?.color),
-    };
+    final (icon, color) = ConversationBadges.deliveryStatusIcon(
+      context,
+      message.deliveryStatus,
+    );
 
     return Icon(icon, size: 12, color: color);
+  }
+}
+
+/// The agent-facing reason a message failed: a known server code is
+/// translated, anything else falls back to the server's English text, so a new
+/// code is never shown as a blank.
+String deliveryErrorText(AppLocalizations l10n, Message message) {
+  final translated = switch (message.deliveryErrorCode) {
+    'channel_unavailable' => l10n.deliveryErrorChannelUnavailable,
+    'tiktok_token_invalid' => l10n.deliveryErrorTiktokTokenInvalid,
+    'tiktok_permission_denied' => l10n.deliveryErrorTiktokPermissionDenied,
+    'tiktok_invalid_request' => l10n.deliveryErrorTiktokInvalidRequest,
+    'tiktok_messaging_limit' => l10n.deliveryErrorTiktokMessagingLimit,
+    'tiktok_rate_limited' => l10n.deliveryErrorTiktokRateLimited,
+    'tiktok_not_eligible' => l10n.deliveryErrorTiktokNotEligible,
+    'tiktok_unavailable' => l10n.deliveryErrorTiktokUnavailable,
+    'tiktok_media_rejected' => l10n.deliveryErrorTiktokMediaRejected,
+    'tiktok_unknown_error' => l10n.deliveryErrorTiktokUnknownError,
+    'tiktok_not_ready' => l10n.deliveryErrorTiktokNotReady,
+    'tiktok_no_customer_message' => l10n.deliveryErrorTiktokNoCustomerMessage,
+    _ => null,
+  };
+  if (translated != null) return translated;
+  if (message.deliveryError.isNotEmpty) return message.deliveryError;
+  return l10n.notDeliveredFallback;
+}
+
+/// What a message shows when its content is neither text nor a file — a
+/// shared TikTok post, a question card, or a type the app cannot display.
+/// Says plainly what arrived rather than leaving an empty bubble.
+class ContentNoticeView extends StatelessWidget {
+  const ContentNoticeView({
+    super.key,
+    required this.notice,
+    required this.color,
+  });
+
+  final ContentNotice notice;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final style = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      color: color.withValues(alpha: 0.85),
+      fontStyle: FontStyle.italic,
+      height: 1.35,
+    );
+
+    if (notice.kind == 'share_post') {
+      final uri = Uri.tryParse(notice.url);
+      final canOpen = uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.tiktokSharedPost, style: style),
+          if (canOpen)
+            TextButton.icon(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 32),
+                foregroundColor: color,
+              ),
+              onPressed: () =>
+                  launchUrl(uri, mode: LaunchMode.externalApplication),
+              icon: const Icon(Icons.open_in_new, size: 16),
+              label: Text(l10n.tiktokOpenOnTikTok),
+            ),
+        ],
+      );
+    }
+
+    final text = notice.kind == 'template'
+        ? (notice.title.isNotEmpty
+              ? l10n.tiktokQuestionCard(notice.title)
+              : l10n.tiktokQuestionCardUntitled)
+        : l10n.tiktokUnsupportedContent;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2, right: 6),
+          child: Icon(Icons.info_outline, size: 16, color: style?.color),
+        ),
+        Flexible(child: Text(text, style: style)),
+      ],
+    );
   }
 }
 
@@ -253,9 +486,7 @@ class _FailureActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final reason = message.deliveryError.isNotEmpty
-        ? message.deliveryError
-        : context.l10n.notDeliveredFallback;
+    final reason = deliveryErrorText(context.l10n, message);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,

@@ -367,4 +367,86 @@ void main() {
       expect(find.text('Actions'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'shows claimed-by, first-response, last-agent-message and resolved-at '
+    'rows when the conversation carries them',
+    (tester) async {
+      final client = _clientFor(
+        extra: (options) {
+          if (options.path.endsWith('/conversations/1/')) {
+            return _json('''{
+                "id": 1,
+                "customer": {
+                  "id": 1,
+                  "display_name": "Sarah Connor",
+                  "initials": "SC",
+                  "phone": "+123456789",
+                  "email": "sarah@example.com",
+                  "country": "USA",
+                  "city": "Los Angeles"
+                },
+                "provider": "WHATSAPP",
+                "channel_name": "Support Line",
+                "status": "CLOSED",
+                "priority": "NORMAL",
+                "unread_count": 0,
+                "message_count": 5,
+                "claimed_by": {
+                  "id": 2,
+                  "full_name": "Ahmed ElQasaby",
+                  "initials": "AE"
+                },
+                "first_response_at": "2026-09-02T12:05:00Z",
+                "last_agent_message_at": "2026-09-02T12:40:00Z",
+                "resolved_at": "2026-09-02T13:00:00Z"
+              }''', 200);
+          }
+          return null;
+        },
+      );
+
+      await tester.pumpWidget(
+        _harness(
+          apiClient: client,
+          child: Builder(builder: _openButton),
+        ),
+      );
+
+      await tester.tap(find.text('open actions'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Claimed by'), findsOneWidget);
+      expect(find.text('Ahmed ElQasaby'), findsOneWidget);
+      expect(find.text('First response'), findsOneWidget);
+      expect(find.text('Last agent message'), findsOneWidget);
+      expect(find.text('Resolved at'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'omits the ownership rows entirely when the conversation carries none '
+    'of them',
+    (tester) async {
+      // The default _clientFor() fixture (used throughout this file) sends
+      // none of claimed_by/first_response_at/last_agent_message_at/resolved_at.
+      final client = _clientFor();
+
+      await tester.pumpWidget(
+        _harness(
+          apiClient: client,
+          child: Builder(builder: _openButton),
+        ),
+      );
+
+      await tester.tap(find.text('open actions'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Claimed by'), findsNothing);
+      expect(find.text('First response'), findsNothing);
+      expect(find.text('Last agent message'), findsNothing);
+      expect(find.text('Resolved at'), findsNothing);
+    },
+  );
 }

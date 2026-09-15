@@ -27,6 +27,41 @@ class _ErrorHandshakeChannel implements WebSocketChannel {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+/// A channel that connects successfully, then closes its stream with a given
+/// close code — simulating the backend rejecting the session right after
+/// accepting the handshake (e.g. deactivation mid-connection).
+class _ClosingChannel implements WebSocketChannel {
+  _ClosingChannel(this._closeCode);
+
+  final int? _closeCode;
+  final _controller = StreamController<dynamic>.broadcast();
+
+  @override
+  Future<void> get ready => Future.value();
+
+  @override
+  Stream<dynamic> get stream => _controller.stream;
+
+  @override
+  WebSocketSink get sink => _NoopSink();
+
+  @override
+  int? get closeCode => _closeCode;
+
+  void closeNow() => _controller.close();
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _NoopSink implements WebSocketSink {
+  @override
+  void add(dynamic data) {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   test(
     'RealtimeClient passes session cookies and ngrok headers in WebSocket connection',
@@ -156,6 +191,82 @@ void main() {
       await client.connect();
 
       expect(sent, contains('{"action":"subscribe","conversation_id":42}'));
+    },
+  );
+
+  group('close codes 4401/4403', _closeCodeTests);
+}
+
+/// A closed socket whose session is dead (4401 unauthenticated, 4403
+/// forbidden/deactivated) must be reported once, immediately — not retried on
+/// the ordinary backoff schedule, which would just replay the same rejected
+/// cookie for minutes before giving up.
+void _closeCodeTests() {
+  for (final closeCode in const [4401, 4403]) {
+    test(
+      'a stream closing with $closeCode calls onUnauthorized and stops '
+      'retrying',
+      () async {
+        final jar = CookieJar();
+        var unauthorizedCalls = 0;
+        late _ClosingChannel channel;
+
+        final client = RealtimeClient(
+          cookieJar: jar,
+          connect: (uri, {protocols, headers}) {
+            channel = _ClosingChannel(closeCode);
+            return channel;
+          },
+          onUnauthorized: () => unauthorizedCalls += 1,
+        );
+
+        await client.connect();
+        expect(client.status, RealtimeStatus.connected);
+
+        channel.closeNow();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(unauthorizedCalls, 1);
+        expect(client.status, RealtimeStatus.disconnected);
+        expect(
+          client.hasGivenUp,
+          isFalse,
+          reason:
+              'given-up is the generic retry-exhaustion state; an '
+              'unauthorized close is reported once and does not touch it',
+        );
+      },
+    );
+  }
+
+  test(
+    'a stream closing with no special code still reconnects as before',
+    () async {
+      final jar = CookieJar();
+      var unauthorizedCalls = 0;
+      var connectCount = 0;
+      late _ClosingChannel channel;
+
+      final client = RealtimeClient(
+        cookieJar: jar,
+        connect: (uri, {protocols, headers}) {
+          connectCount += 1;
+          channel = _ClosingChannel(null);
+          return channel;
+        },
+        onUnauthorized: () => unauthorizedCalls += 1,
+      );
+
+      await client.connect();
+      expect(connectCount, 1);
+
+      channel.closeNow();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(unauthorizedCalls, 0);
+      expect(client.status, RealtimeStatus.disconnected);
+      // A reconnect is scheduled (not immediate — exponential backoff), so
+      // the important assertion is that the unauthorized path was not taken.
     },
   );
 }

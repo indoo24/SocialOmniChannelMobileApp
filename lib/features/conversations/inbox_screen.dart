@@ -14,6 +14,7 @@ import 'package:intl/intl.dart';
 import '../../app/router.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/conversation_group.dart';
+import '../../core/models/employee.dart';
 import '../../core/realtime/realtime_bridge.dart';
 import '../../core/realtime/realtime_client.dart';
 import '../../core/providers.dart';
@@ -21,6 +22,7 @@ import '../../core/theme/tokens.dart';
 import '../../core/widgets/app_drawer.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
+import '../../core/widgets/export_csv_action.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
 import '../../core/widgets/user_account_menu.dart';
@@ -110,6 +112,13 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
             },
           ),
           _FilterButton(active: filters.hasAdvancedFilters),
+          if (employee?.can(Perm.crmExport) ?? false)
+            ExportCsvAction(
+              fileNamePrefix: 'conversations',
+              fetch: () => ref
+                  .read(conversationRepositoryProvider)
+                  .exportCsv(filters: filters, currentEmployeeId: employee?.id),
+            ),
           const NotificationBellButton(),
           const UserAccountMenuButton(),
           const SizedBox(width: Space.xs),
@@ -286,6 +295,12 @@ class ConversationGroupRow extends StatelessWidget {
                   const SizedBox(height: 3),
                   Row(
                     children: [
+                      if (group.lastMessageDirection == 'OUTBOUND') ...[
+                        _RowDeliveryIcon(
+                          status: group.lastMessageDeliveryStatus,
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       Expanded(
                         child: Text(
                           group.lastMessagePreview.isEmpty
@@ -417,6 +432,12 @@ class ConversationRow extends StatelessWidget {
                   const SizedBox(height: 3),
                   Row(
                     children: [
+                      if (conversation.lastMessageDirection == 'OUTBOUND') ...[
+                        _RowDeliveryIcon(
+                          status: conversation.lastMessageDeliveryStatus,
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       Expanded(
                         child: Text(
                           conversation.lastMessagePreview.isEmpty
@@ -518,6 +539,25 @@ class _FollowUpBadge extends StatelessWidget {
       icon: Icons.flag_rounded,
       dense: true,
     );
+  }
+}
+
+/// The inbox row's own delivery tick — only ever shown when
+/// [Conversation.lastMessageDirection] is `OUTBOUND` (the caller checks
+/// that), so a customer's own message never carries a tick meant for the
+/// agent's side of the conversation.
+class _RowDeliveryIcon extends StatelessWidget {
+  const _RowDeliveryIcon({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, color) = ConversationBadges.deliveryStatusIcon(
+      context,
+      status,
+    );
+    return Icon(icon, size: 13, color: color);
   }
 }
 

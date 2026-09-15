@@ -1,7 +1,7 @@
 name: scenario_mobile
 description: "Scenario — omnichannel customer service. Mobile client for the same backend the web app uses."
 publish_to: 'none'
-version: 1.0.3+4
+version: 1.0.4+5
 
 environment:
   sdk: ^3.12.0
@@ -47,6 +47,24 @@ dependencies:
   cached_network_image: ^4.0.0
   connectivity_plus: ^7.0.0
   path_provider: ^2.1.6
+
+  # Grapheme-cluster-safe string slicing (`.characters.first`) for anything
+  # derived from free-form user text — a display name's first "letter" can be
+  # a multi-code-unit emoji, and naive `name[0]` indexing splits it mid
+  # surrogate pair, which crashes the painting library the next time that
+  # broken half-character is rendered. Already a transitive dependency of
+  # `flutter` itself; declared directly because app code now imports it.
+  characters: ^1.4.1
+
+  # CSV export (Customers, Inbox): writes the exported file to a temp path via
+  # path_provider above, then hands it to the platform share sheet so the
+  # employee can save or send it anywhere — the same one-time, outbound flow
+  # composer attachments already use path_provider for, just in reverse.
+  # share_plus registers the platform-specific SharePlatform implementation;
+  # app code calls the platform_interface directly (see csv_export.dart) so a
+  # widget test can swap SharePlatform.instance for a fake.
+  share_plus: ^13.3.0
+  share_plus_platform_interface: ^7.2.0
 
   # Push. Backgrounded/killed-app fallback for the realtime socket above —
   # same two notification types the socket carries, delivered by Firebase

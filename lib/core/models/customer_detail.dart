@@ -11,6 +11,48 @@ library;
 import '../utils/json_safe.dart';
 import 'performance.dart' show CustomerFact;
 
+/// One channel account this customer has been reached on, from
+/// `CustomerDetail.identities` (`GET /customers/{id}/`).
+class CustomerIdentity {
+  const CustomerIdentity({
+    required this.id,
+    required this.provider,
+    required this.externalId,
+    this.username = '',
+    this.displayName = '',
+    this.lastInteractionAt,
+  });
+
+  final int id;
+
+  /// WHATSAPP · FACEBOOK · INSTAGRAM · TIKTOK · MOCK.
+  final String provider;
+
+  /// The account/phone/page identifier on that platform — a WhatsApp number,
+  /// a Facebook PSID, an Instagram-scoped id. Always present; [username] and
+  /// [displayName] are not, depending on what the platform hands back.
+  final String externalId;
+  final String username;
+  final String displayName;
+  final DateTime? lastInteractionAt;
+
+  /// What to show as the account identifier: the human-readable handle when
+  /// the platform gave one, else the raw id.
+  String get accountLabel => username.isNotEmpty ? username : externalId;
+
+  factory CustomerIdentity.fromJson(Map<String, dynamic> json) =>
+      CustomerIdentity(
+        id: JsonSafe.asInt(json['id'], fallback: -1),
+        provider: JsonSafe.asString(json['provider']),
+        externalId: JsonSafe.asString(json['external_id']),
+        username: JsonSafe.asString(json['username']),
+        displayName: JsonSafe.asString(json['display_name']),
+        lastInteractionAt: DateTime.tryParse(
+          JsonSafe.asString(json['last_interaction_at']),
+        )?.toLocal(),
+      );
+}
+
 class CustomerDetail {
   const CustomerDetail({
     required this.id,
@@ -28,6 +70,7 @@ class CustomerDetail {
     this.notes = '',
     this.tags = '',
     this.providers = const [],
+    this.identities = const [],
     this.lastSeenAt,
     this.firstSeenAt,
     this.createdAt,
@@ -59,8 +102,15 @@ class CustomerDetail {
   /// Free-text tags, as the backend stores them — a single string, not a list.
   final String tags;
 
-  /// Channels this customer has been seen on.
+  /// Distinct providers this customer has been seen on — derived from
+  /// [identities]. Kept for callers that only need the channel type, not the
+  /// per-account identifier.
   final List<String> providers;
+
+  /// Every channel account this customer has been reached on, each with its
+  /// own platform and account identifier — what the Customer Details
+  /// screen's Channels section shows.
+  final List<CustomerIdentity> identities;
   final DateTime? lastSeenAt;
   final DateTime? firstSeenAt;
   final DateTime? createdAt;
@@ -73,34 +123,38 @@ class CustomerDetail {
     return '—';
   }
 
-  factory CustomerDetail.fromJson(Map<String, dynamic> json) => CustomerDetail(
-    id: JsonSafe.asInt(json['id'], fallback: -1),
-    displayName: JsonSafe.asString(json['display_name']),
-    lifecycleStage: JsonSafe.asString(
-      json['lifecycle_stage'],
-      fallback: 'UNKNOWN',
-    ),
-    conversationCount: JsonSafe.asInt(json['conversation_count']),
-    confirmedPurchaseCount: JsonSafe.asInt(json['confirmed_purchase_count']),
-    facts: JsonSafe.parseList(json['facts'], CustomerFact.fromJson),
-    avatarUrl: JsonSafe.asString(json['avatar_url']),
-    email: JsonSafe.asString(json['email']),
-    phone: JsonSafe.asString(json['phone']),
-    city: JsonSafe.asString(json['city']),
-    country: JsonSafe.asString(json['country']),
-    preferredLanguage: JsonSafe.asString(json['preferred_language']),
-    notes: JsonSafe.asString(json['notes']),
-    tags: JsonSafe.asString(json['tags']),
-    providers: JsonSafe.asObjectList(json['identities'])
-        .map((i) => i is Map ? JsonSafe.asString(i['provider']) : '')
-        .where((p) => p.isNotEmpty)
-        .toSet()
-        .toList(),
-    lastSeenAt: _parseDate(json['last_seen_at']),
-    firstSeenAt: _parseDate(json['first_seen_at']),
-    createdAt: _parseDate(json['created_at']),
-    updatedAt: _parseDate(json['updated_at']),
-  );
+  factory CustomerDetail.fromJson(Map<String, dynamic> json) {
+    final identities = JsonSafe.asObjectList(json['identities'])
+        .whereType<Map>()
+        .map((i) => CustomerIdentity.fromJson(Map<String, dynamic>.from(i)))
+        .toList();
+
+    return CustomerDetail(
+      id: JsonSafe.asInt(json['id'], fallback: -1),
+      displayName: JsonSafe.asString(json['display_name']),
+      lifecycleStage: JsonSafe.asString(
+        json['lifecycle_stage'],
+        fallback: 'UNKNOWN',
+      ),
+      conversationCount: JsonSafe.asInt(json['conversation_count']),
+      confirmedPurchaseCount: JsonSafe.asInt(json['confirmed_purchase_count']),
+      facts: JsonSafe.parseList(json['facts'], CustomerFact.fromJson),
+      avatarUrl: JsonSafe.asString(json['avatar_url']),
+      email: JsonSafe.asString(json['email']),
+      phone: JsonSafe.asString(json['phone']),
+      city: JsonSafe.asString(json['city']),
+      country: JsonSafe.asString(json['country']),
+      preferredLanguage: JsonSafe.asString(json['preferred_language']),
+      notes: JsonSafe.asString(json['notes']),
+      tags: JsonSafe.asString(json['tags']),
+      providers: identities.map((i) => i.provider).toSet().toList(),
+      identities: identities,
+      lastSeenAt: _parseDate(json['last_seen_at']),
+      firstSeenAt: _parseDate(json['first_seen_at']),
+      createdAt: _parseDate(json['created_at']),
+      updatedAt: _parseDate(json['updated_at']),
+    );
+  }
 }
 
 DateTime? _parseDate(Object? value) {

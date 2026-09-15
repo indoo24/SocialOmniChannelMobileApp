@@ -245,6 +245,29 @@ class Order {
     this.confirmedByName = '',
     this.evidence = '',
     this.note = '',
+    this.placedAt,
+    this.subtotal = '',
+    this.discount = '0.00',
+    this.shippingCost = '0.00',
+    this.recipientName = '',
+    this.recipientPhone = '',
+    this.alternativePhone = '',
+    this.address = '',
+    this.governorate = '',
+    this.city = '',
+    this.landmark = '',
+    this.locationUrl = '',
+    this.deliveryNotes = '',
+    this.expectedDeliveryDate,
+    this.shippingMethod = '',
+    this.paymentMethod = '',
+    this.paymentStatus = '',
+    this.fulfilmentStatus,
+    this.fulfilmentStatusDisplay = '',
+    this.assignedToName = '',
+    this.assignedTeamName = '',
+    this.internalNote = '',
+    this.cancellationReason = '',
   });
 
   final int id;
@@ -270,6 +293,46 @@ class Order {
   final String evidence;
   final String note;
 
+  /// When the order was placed. Null only for an order recorded before this
+  /// field existed on the server.
+  final DateTime? placedAt;
+
+  // ------------------------------------------------------------ richer orders
+  // All tolerant: a server that predates them sends none, and the order still
+  // renders as it always did.
+
+  /// Sum of the lines. `totalAmount` is `subtotal - discount + shippingCost`.
+  final String subtotal;
+  final String discount;
+  final String shippingCost;
+  final String recipientName;
+  final String recipientPhone;
+  final String alternativePhone;
+  final String address;
+  final String governorate;
+  final String city;
+  final String landmark;
+  final String locationUrl;
+  final String deliveryNotes;
+
+  /// `YYYY-MM-DD`, as the server sends it.
+  final String? expectedDeliveryDate;
+  final String shippingMethod;
+
+  /// What was reported about payment — never a verification. Blank when not
+  /// recorded.
+  final String paymentMethod;
+  final String paymentStatus;
+
+  /// Where the parcel is. A separate axis from [status]; never revenue. Null
+  /// when the server predates fulfilment, which hides every control for it.
+  final String? fulfilmentStatus;
+  final String fulfilmentStatusDisplay;
+  final String assignedToName;
+  final String assignedTeamName;
+  final String internalNote;
+  final String cancellationReason;
+
   factory Order.fromJson(Map<String, dynamic> json) => Order(
     id: JsonSafe.asInt(json['id'], fallback: -1),
     customerId: JsonSafe.asInt(json['customer']),
@@ -285,10 +348,50 @@ class Order {
     confirmedByName: JsonSafe.asString(json['confirmed_by_name']),
     evidence: JsonSafe.asString(json['evidence']),
     note: JsonSafe.asString(json['note']),
+    placedAt: DateTime.tryParse(
+      JsonSafe.asString(json['placed_at']),
+    )?.toLocal(),
+    subtotal: JsonSafe.asString(json['subtotal']),
+    discount: JsonSafe.asString(json['discount'], fallback: '0.00'),
+    shippingCost: JsonSafe.asString(json['shipping_cost'], fallback: '0.00'),
+    recipientName: JsonSafe.asString(json['recipient_name']),
+    recipientPhone: JsonSafe.asString(json['recipient_phone']),
+    alternativePhone: JsonSafe.asString(json['alternative_phone']),
+    address: JsonSafe.asString(json['address']),
+    governorate: JsonSafe.asString(json['governorate']),
+    city: JsonSafe.asString(json['city']),
+    landmark: JsonSafe.asString(json['landmark']),
+    locationUrl: JsonSafe.asString(json['location_url']),
+    deliveryNotes: JsonSafe.asString(json['delivery_notes']),
+    expectedDeliveryDate: JsonSafe.asStringOrNull(
+      json['expected_delivery_date'],
+    ),
+    shippingMethod: JsonSafe.asString(json['shipping_method']),
+    paymentMethod: JsonSafe.asString(json['payment_method']),
+    paymentStatus: JsonSafe.asString(json['payment_status']),
+    fulfilmentStatus: JsonSafe.asStringOrNull(json['fulfilment_status']),
+    fulfilmentStatusDisplay: JsonSafe.asString(
+      json['fulfilment_status_display'],
+    ),
+    assignedToName: JsonSafe.asString(json['assigned_to_name']),
+    assignedTeamName: JsonSafe.asString(json['assigned_team_name']),
+    internalNote: JsonSafe.asString(json['internal_note']),
+    cancellationReason: JsonSafe.asString(json['cancellation_reason']),
   );
 
   bool get isSuggestion => status == 'SUGGESTED';
   bool get isConfirmed => status == 'CONFIRMED';
+  bool get isEnded => status == 'CANCELLED' || status == 'REFUNDED';
+
+  /// Mirrors the server: a suggestion nobody recorded and an ended order keep
+  /// their fulfilment, and a server without fulfilment offers nothing to move.
+  bool get canMoveFulfilment =>
+      fulfilmentStatus != null && !isSuggestion && !isEnded;
+
+  bool get hasPricingAdjustments =>
+      isNonZero(discount) || isNonZero(shippingCost);
+
+  static bool isNonZero(String value) => (double.tryParse(value) ?? 0) != 0;
 }
 
 // --------------------------------------------------------------------------- //
@@ -304,6 +407,8 @@ class CustomerFact {
     required this.status,
     required this.needsReview,
     this.reviewedByName = '',
+    this.definitionId,
+    this.validationError,
   });
 
   final int id;
@@ -311,6 +416,14 @@ class CustomerFact {
   final String value;
   final double confidence;
   final String source;
+
+  /// Set when this is a typed custom field value — shown by its field, not in
+  /// the free-form details list. Null for every free-form detail.
+  final int? definitionId;
+
+  /// For an analyzer suggestion on a custom field: why its value would not be
+  /// accepted as it stands. Confirming it then needs a correction.
+  final String? validationError;
 
   /// SUGGESTED · CONFIRMED · REJECTED.
   final String status;
@@ -329,5 +442,9 @@ class CustomerFact {
     status: JsonSafe.asString(json['status'], fallback: 'CONFIRMED'),
     needsReview: JsonSafe.asBool(json['needs_review']),
     reviewedByName: JsonSafe.asString(json['reviewed_by_name']),
+    definitionId: JsonSafe.asIntOrNull(json['definition']),
+    validationError: JsonSafe.asStringOrNull(json['validation_error']),
   );
+
+  bool get isTypedField => definitionId != null;
 }

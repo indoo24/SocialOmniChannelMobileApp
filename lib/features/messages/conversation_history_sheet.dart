@@ -113,7 +113,9 @@ class _HistorySheet extends ConsumerWidget {
                       ),
                     );
                   }
-                  final reversed = events.reversed.toList(growable: false);
+                  final reversed = ConversationEvent.withoutRedundantClaims(
+                    events,
+                  ).reversed.toList(growable: false);
                   return SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) => _HistoryRow(event: reversed[index]),
@@ -140,6 +142,7 @@ class _HistoryRow extends StatelessWidget {
     final theme = Theme.of(context);
     final hasTransition =
         event.fromValue.isNotEmpty || event.toValue.isNotEmpty;
+    final fallbackReasons = _fallbackReasonsFor(context, event);
 
     return Container(
       margin: const EdgeInsets.only(bottom: Space.xs),
@@ -165,7 +168,7 @@ class _HistoryRow extends StatelessWidget {
               const SizedBox(width: Space.xs),
               Expanded(
                 child: Text(
-                  humanizeEnum(event.eventType),
+                  _titleFor(context, event),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -198,8 +201,58 @@ class _HistoryRow extends StatelessWidget {
               child: Text(event.actorName, style: theme.textTheme.labelSmall),
             ),
           ],
+          if (fallbackReasons != null) ...[
+            const SizedBox(height: 2),
+            Padding(
+              padding: const EdgeInsets.only(left: 22),
+              child: Text(
+                fallbackReasons,
+                style: theme.textTheme.labelSmall,
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  /// Words automatic routing outcomes the way web does — a claim is a
+  /// person's own reply, not routing; a fallback placement says it had no
+  /// better option; a reassignment names who it moved the work off of.
+  static String _titleFor(BuildContext context, ConversationEvent event) {
+    if (event.eventType == 'ASSIGNED' && event.actorName.isEmpty) {
+      if (event.mode == 'claim') {
+        return context.l10n.historyClaimedByReplying(event.targetName);
+      }
+      if (event.mode == 'claimed_owner_restored') {
+        return context.l10n.historyClaimedOwnerRestored(event.targetName);
+      }
+      if (event.mode == 'fallback') {
+        return context.l10n.historyFallbackAssigned(event.targetName);
+      }
+    }
+    if (event.mode == 'reassignment' && event.previousEmployeeName.isNotEmpty) {
+      // Automatic TRANSFERRED means rerouted to someone else; UNASSIGNED
+      // means released back to the queue with no one to reroute to.
+      if (event.eventType == 'TRANSFERRED') {
+        return context.l10n.historyRerouted(
+          event.previousEmployeeName,
+          event.targetName,
+        );
+      }
+      if (event.eventType == 'UNASSIGNED') {
+        return context.l10n.historyReleasedFrom(event.previousEmployeeName);
+      }
+    }
+    return humanizeEnum(event.eventType);
+  }
+
+  /// The fallback reasons row, shown under a fallback placement's
+  /// from/to transition — empty for every other event.
+  static String? _fallbackReasonsFor(BuildContext context, ConversationEvent event) {
+    if (event.mode != 'fallback' || event.fallbackReasons.isEmpty) return null;
+    return context.l10n.historyFallbackReasonsLabel(
+      event.fallbackReasons.join(', '),
     );
   }
 

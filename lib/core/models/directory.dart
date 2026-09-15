@@ -170,6 +170,7 @@ class ChannelConnection {
     this.connectedAt,
     this.lastSyncAt,
     this.lastMessageAt,
+    this.tiktokReadiness,
   });
 
   final int id;
@@ -215,6 +216,10 @@ class ChannelConnection {
   final DateTime? lastSyncAt;
   final DateTime? lastMessageAt;
 
+  /// What the check straight after connecting a TikTok account found. Null
+  /// for other providers.
+  final TikTokReadiness? tiktokReadiness;
+
   factory ChannelConnection.fromJson(Map<String, dynamic> json) {
     if (json.containsKey('channel_id') || json.containsKey('customer')) {
       throw const FormatException(
@@ -249,10 +254,56 @@ class ChannelConnection {
       lastMessageAt: DateTime.tryParse(
         JsonSafe.asString(json['last_message_at']),
       ),
+      tiktokReadiness: TikTokReadiness.fromJson(json['tiktok_readiness']),
     );
   }
 
   bool get isConnected => status == 'CONNECTED';
+}
+
+/// Whether a connected TikTok account can use Business Messaging, as the
+/// server's post-connect check found. TikTok authorizes accounts it will not
+/// serve, so an authorization alone is never READY.
+class TikTokReadiness {
+  const TikTokReadiness({
+    required this.state,
+    this.reason = '',
+    this.providerCode,
+    this.requestId = '',
+    this.logId = '',
+    this.missingScopes = const [],
+  });
+
+  /// `READY` | `BLOCKED` | `UNKNOWN`.
+  final String state;
+  final String reason;
+  final int? providerCode;
+  final String requestId;
+  final String logId;
+  final List<String> missingScopes;
+
+  static TikTokReadiness? fromJson(Object? json) {
+    if (json is! Map<String, dynamic>) return null;
+    return TikTokReadiness(
+      state: JsonSafe.asString(json['state'], fallback: 'UNKNOWN'),
+      reason: JsonSafe.asString(json['reason']),
+      providerCode: JsonSafe.asIntOrNull(json['provider_code']),
+      requestId: JsonSafe.asString(json['request_id']),
+      logId: JsonSafe.asString(json['log_id']),
+      missingScopes: json['missing_scopes'] is List
+          ? [for (final s in json['missing_scopes'] as List) '$s']
+          : const [],
+    );
+  }
+
+  bool get isReady => state == 'READY';
+
+  /// TikTok's own reference for support, never its wording.
+  String get reference => [
+    if (providerCode != null) 'code $providerCode',
+    if (requestId.isNotEmpty) 'request $requestId',
+    if (logId.isNotEmpty) 'log $logId',
+  ].join(' · ');
 }
 
 /// The result of `POST /channels/{id}/test/` — always a 200, `ok: false`
@@ -678,6 +729,8 @@ class DirectoryEmployee {
     this.workSchedule,
     this.routingBlocker = '',
     this.isRoutingReady = true,
+    this.routingChannelScope = 'ALL',
+    this.routingProviders = const [],
   });
 
   final int id;
@@ -712,6 +765,17 @@ class DirectoryEmployee {
 
   final String routingBlocker;
   final bool isRoutingReady;
+
+  /// `ALL` or `SELECTED`. A hard limit on which channels' conversations this
+  /// employee can be assigned/routed to — narrower than [teamNames], and
+  /// unrelated to visibility (narrowing it never removes conversations
+  /// already owned).
+  final String routingChannelScope;
+
+  /// The providers this employee handles when [routingChannelScope] is
+  /// `SELECTED` — `FACEBOOK` | `INSTAGRAM` | `WHATSAPP` | `TIKTOK`. Empty
+  /// when the scope is `ALL`.
+  final List<String> routingProviders;
 
   factory DirectoryEmployee.fromJson(
     Map<String, dynamic> json,
@@ -759,5 +823,10 @@ class DirectoryEmployee {
               : null),
     routingBlocker: JsonSafe.asString(json['routing_blocker']),
     isRoutingReady: JsonSafe.asBool(json['is_routing_ready'], fallback: true),
+    routingChannelScope: JsonSafe.asString(
+      json['routing_channel_scope'],
+      fallback: 'ALL',
+    ),
+    routingProviders: JsonSafe.asStringList(json['routing_providers']),
   );
 }

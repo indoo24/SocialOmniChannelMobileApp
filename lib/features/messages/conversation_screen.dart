@@ -25,6 +25,8 @@ import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
 import '../templates/templates_providers.dart';
+import '../saved_replies/saved_reply.dart';
+import '../saved_replies/saved_reply_picker.dart';
 import '../../core/models/template.dart';
 import 'assign_conversation_sheet.dart';
 import 'composer_attachment.dart';
@@ -52,6 +54,19 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   bool _sending = false;
   bool _initialScrollDone = false;
   bool _showScrollToBottom = false;
+
+  /// The message the agent has picked "Reply" on, if any — shown as a quote
+  /// preview above the composer and sent as `reply_to_id`, cleared once the
+  /// send resolves (success or failure) or the agent dismisses it.
+  Message? _replyingTo;
+
+  void _startReplyingTo(Message message) {
+    setState(() => _replyingTo = message);
+  }
+
+  void _cancelReply() {
+    setState(() => _replyingTo = null);
+  }
 
   @override
   void initState() {
@@ -162,6 +177,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   /// attachment/voice flow in [_Composer] — this method only ever
   /// references it, never uploads anything itself. [attachmentPreview]
   /// renders that same local file in the optimistic bubble.
+  ///
+  /// The quote preview ([_replyingTo]) is cleared as soon as the send is
+  /// attempted, win or lose — same as the composer text already clearing
+  /// immediately: a failed send keeps the quote on the failed bubble itself
+  /// (via [Message.replyTo]), so there is nothing left to show above the
+  /// composer either way.
   Future<void> _send({
     String? attachmentId,
     MessageAttachment? attachmentPreview,
@@ -170,7 +191,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final hasAttachment = attachmentId != null;
     if ((text.isEmpty && !hasAttachment) || _sending) return;
 
-    setState(() => _sending = true);
+    final replyTo = _replyingTo;
+    setState(() {
+      _sending = true;
+      _replyingTo = null;
+    });
     _composerController.clear();
 
     try {
@@ -180,6 +205,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             text,
             attachmentId: attachmentId,
             attachmentPreview: attachmentPreview,
+            replyTo: replyTo == null ? null : QuotedMessage.fromMessage(replyTo),
           );
       _scrollToBottom(animated: true);
     } on ApiException catch (error) {
@@ -256,9 +282,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       }
     });
 
-    // A realtime `conversation.access_changed` event resolved to "access
-    // lost" for this conversation — leave rather than keep showing a thread
-    // this employee can no longer see.
+    // A realtime `conversation.access_revoked` event for this conversation —
+    // leave rather than keep showing a thread this employee can no longer see.
     ref.listen<int?>(revokedConversationProvider, (previous, next) {
       if (next != widget.conversationId) return;
       final navigator = Navigator.of(context);
@@ -340,6 +365,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                             onInitialLayout: _initialScrollDone
                                 ? null
                                 : _jumpToBottomInitial,
+                            onReply: canReply ? _startReplyingTo : null,
                           ),
                   ),
                   PositionedDirectional(
@@ -362,6 +388,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 isWhatsApp:
                     async.value?.conversation.provider.toUpperCase() ==
                     'WHATSAPP',
+                replyingTo: _replyingTo,
+                onCancelReply: _cancelReply,
               )
             else
               const _ReadOnlyNotice(),
@@ -913,12 +941,18 @@ class _MessageList extends ConsumerWidget {
     required this.controller,
     required this.conversationId,
     this.onInitialLayout,
+    this.onReply,
   });
 
   final ConversationState state;
   final ScrollController controller;
   final int conversationId;
   final VoidCallback? onInitialLayout;
+
+  /// Null hides the affordance entirely — the caller only supplies this when
+  /// the signed-in employee holds `conversation.reply` (there is nothing to
+  /// quote a message *into* without it).
+  final ValueChanged<Message>? onReply;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -981,16 +1015,8 @@ class _MessageList extends ConsumerWidget {
               else if (entry.message != null)
                 MessageBubble(
                   message: entry.message!,
-                  onRetry:
-                      entry.message!.hasFailed && entry.message!.localId != null
-                      ? () => ref
-                            .read(
-                              conversationControllerProvider(
-                                conversationId,
-                              ).notifier,
-                            )
-                            .retry(entry.message!.localId!)
-                      : null,
+                  provider: state.conversation.provider,
+                  onRetry: _retryHandlerFor(ref, conversationId, entry.message!),
                   onDiscard:
                       entry.message!.hasFailed && entry.message!.localId != null
                       ? () => ref
@@ -1013,6 +1039,14 @@ class _MessageList extends ConsumerWidget {
                           conversationId,
                           entry.message!,
                         )
+                      : null,
+                  onReply:
+                      onReply != null &&
+                          !entry.message!.isSystem &&
+                          !entry.message!.isPending &&
+                          !entry.message!.hasFailed &&
+                          entry.message!.id >= 0
+                      ? () => onReply!(entry.message!)
                       : null,
                 ),
             ],
@@ -1144,6 +1178,32 @@ class _InternalNoteTimelineCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Picks which retry a failed bubble's button should perform.
+///
+/// A message that never reached the server ([Message.hasFailed], identified
+/// by [Message.localId]) resends through the local send path — the same one
+/// [Message.pending] used originally, since nothing server-side has any
+/// record of it yet. A message the server accepted and later marked `FAILED`
+/// ([Message.isDeliveryFailure] with a real server [Message.id]) instead
+/// calls the dedicated retry endpoint, which claims that stored row
+/// atomically rather than sending a fresh `reply()`.
+VoidCallback? _retryHandlerFor(
+  WidgetRef ref,
+  int conversationId,
+  Message message,
+) {
+  ConversationController controller() =>
+      ref.read(conversationControllerProvider(conversationId).notifier);
+
+  if (message.hasFailed && message.localId != null) {
+    return () => controller().retry(message.localId!);
+  }
+  if (message.isDeliveryFailure && !message.hasFailed && message.id >= 0) {
+    return () => controller().retryStoredMessage(message.id);
+  }
+  return null;
 }
 
 /// Confirms, then soft-deletes a message. ADMIN/SUPERVISOR only.
@@ -1327,6 +1387,83 @@ class _SegmentTab extends StatelessWidget {
   }
 }
 
+/// The quote preview shown above the composer while replying to a message —
+/// mirrors [_QuoteBlock]'s content summary (in `message_bubble.dart`) so the
+/// agent sees the same thing here that the sent bubble will show.
+class _ReplyPreviewBar extends StatelessWidget {
+  const _ReplyPreviewBar({required this.message, this.onCancel});
+
+  final Message message;
+  final VoidCallback? onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final summary = message.text.isNotEmpty
+        ? message.text
+        : switch (message.messageType) {
+            'IMAGE' => context.l10n.photoMessageLabel,
+            'AUDIO' => context.l10n.voiceMessageLabel,
+            _ => context.l10n.attachmentMessageLabel,
+          };
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: Space.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.sm,
+        vertical: Space.xs,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border(
+          left: BorderSide(color: theme.colorScheme.primary, width: 3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  context.l10n.replyingToLabel(
+                    message.senderName.isNotEmpty
+                        ? message.senderName
+                        : context.l10n.customerTitle,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  summary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          if (onCancel != null)
+            IconButton(
+              icon: const Icon(Icons.close, size: 18),
+              tooltip: context.l10n.cancelReplyTooltip,
+              onPressed: onCancel,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Sends the composer's current text, plus an optional attachment already
 /// staged (uploaded) via [ConversationRepository.stageAttachment].
 typedef ComposerSendCallback =
@@ -1339,6 +1476,8 @@ class _Composer extends ConsumerStatefulWidget {
     required this.sending,
     required this.onSend,
     this.isWhatsApp = false,
+    this.replyingTo,
+    this.onCancelReply,
   });
 
   final int conversationId;
@@ -1346,6 +1485,11 @@ class _Composer extends ConsumerStatefulWidget {
   final bool sending;
   final ComposerSendCallback onSend;
   final bool isWhatsApp;
+
+  /// The message currently quoted, shown as a preview bar above the
+  /// composer. Null hides the bar entirely.
+  final Message? replyingTo;
+  final VoidCallback? onCancelReply;
 
   @override
   ConsumerState<_Composer> createState() => _ComposerState();
@@ -1381,6 +1525,39 @@ class _ComposerState extends ConsumerState<_Composer> {
     setState(() => _stagedImage = null);
   }
 
+  /// Put a saved reply into the reply box, at the caret.
+  ///
+  /// Never sends: the agent edits the text and sends it with the ordinary Send
+  /// button, through `ConversationRepository.reply()`. Variables are filled
+  /// from what this screen already holds, and an unknown customer name is
+  /// dropped rather than shown to the customer.
+  Future<void> _insertSavedReply() async {
+    final reply = await showSavedReplyPicker(context);
+    if (reply == null || !mounted) return;
+
+    final conversation = ref
+        .read(conversationControllerProvider(widget.conversationId))
+        .value
+        ?.conversation;
+    final text = renderSavedReply(
+      reply.body,
+      customerName: conversation?.customer.displayName,
+      agentName: ref.read(currentEmployeeProvider)?.fullName,
+    );
+
+    final value = widget.controller.value;
+    final result = insertAtSelection(
+      value.text,
+      value.selection.start,
+      value.selection.end,
+      text,
+    );
+    widget.controller.value = TextEditingValue(
+      text: result.text,
+      selection: TextSelection.collapsed(offset: result.caret),
+    );
+  }
+
   void _onVoiceStaged(StagedAttachment staged) {
     // A voice note sends immediately on finishing recording rather than
     // sitting in the composer for a separate Send tap — matching the "Stop
@@ -1408,6 +1585,8 @@ class _ComposerState extends ConsumerState<_Composer> {
         : widget.isWhatsApp;
     final isConversationClosed = convo?.isClosed ?? false;
     final isMessagingWindowClosed = convo?.isMessagingWindowClosed ?? false;
+    final messagingPolicy = convo?.messagingPolicy;
+    final outboundMedia = convo?.outboundMedia ?? true;
 
     // Web useEffect equivalence:
     // y && t === "reply" && u && n("template")
@@ -1457,6 +1636,11 @@ class _ComposerState extends ConsumerState<_Composer> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (widget.replyingTo != null && currentMode == _ComposerMode.reply)
+              _ReplyPreviewBar(
+                message: widget.replyingTo!,
+                onCancel: widget.onCancelReply,
+              ),
             // Mode selector row
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -1511,6 +1695,8 @@ class _ComposerState extends ConsumerState<_Composer> {
             if (currentMode == _ComposerMode.reply) ...[
               if (isConversationClosed)
                 const _ConversationClosedNotice()
+              else if (messagingPolicy != null && !messagingPolicy.allowed)
+                _MessagingLimitNotice(policy: messagingPolicy)
               else if (isMessagingWindowClosed)
                 _WhatsAppWindowClosedCallout(
                   customerName: convo?.customer.displayName ?? '',
@@ -1520,6 +1706,21 @@ class _ComposerState extends ConsumerState<_Composer> {
                   },
                 )
               else ...[
+                if (messagingPolicy != null &&
+                    messagingPolicy.state != 'active' &&
+                    messagingPolicy.remainingCount != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: Space.xs),
+                    child: Text(
+                      context.l10n.tiktokMessagesRemaining(
+                        messagingPolicy.remainingCount!,
+                      ),
+                      key: const Key('tiktokMessagesRemaining'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                 if (_stagedImage != null)
                   Align(
                     alignment: AlignmentDirectional.centerStart,
@@ -1544,12 +1745,30 @@ class _ComposerState extends ConsumerState<_Composer> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // Attachment button on the far left
-                      ComposerAttachmentButton(
-                        conversationId: widget.conversationId,
-                        enabled: !widget.sending,
-                        onStaged: _onImageStaged,
-                        onError: _showMessage,
+                      // Attachment button on the far left, only where the
+                      // platform accepts files, so it never offers a send
+                      // that is certain to fail.
+                      if (outboundMedia)
+                        ComposerAttachmentButton(
+                          conversationId: widget.conversationId,
+                          enabled: !widget.sending,
+                          onStaged: _onImageStaged,
+                          onError: _showMessage,
+                        ),
+                      // Saved replies: inserts text for the agent to edit,
+                      // never sends. Only in this row, which exists only while
+                      // an ordinary reply can reach the customer — past
+                      // WhatsApp's 24-hour window the composer shows the
+                      // template route instead.
+                      SizedBox(
+                        width: 40,
+                        height: 44,
+                        child: IconButton(
+                          key: const Key('savedRepliesButton'),
+                          tooltip: context.l10n.savedRepliesTooltip,
+                          onPressed: widget.sending ? null : _insertSavedReply,
+                          icon: const Icon(Icons.quickreply_outlined, size: 22),
+                        ),
                       ),
                       const SizedBox(width: Space.xs),
                       // Text input in the middle
@@ -1572,16 +1791,19 @@ class _ComposerState extends ConsumerState<_Composer> {
                       ),
                       const SizedBox(width: Space.xs),
                       // Microphone button immediately before Send
-                      ComposerVoiceRecorder(
-                        key: _voiceRecorderKey,
-                        conversationId: widget.conversationId,
-                        enabled: !widget.sending,
-                        onStaged: _onVoiceStaged,
-                        onError: _showMessage,
-                        onRecordingChanged: (recording) {
-                          if (mounted) setState(() => _isRecording = recording);
-                        },
-                      ),
+                      if (outboundMedia)
+                        ComposerVoiceRecorder(
+                          key: _voiceRecorderKey,
+                          conversationId: widget.conversationId,
+                          enabled: !widget.sending,
+                          onStaged: _onVoiceStaged,
+                          onError: _showMessage,
+                          onRecordingChanged: (recording) {
+                            if (mounted) {
+                              setState(() => _isRecording = recording);
+                            }
+                          },
+                        ),
                       const SizedBox(width: Space.xs),
                       // Send button fixed at far right
                       SizedBox(
@@ -2102,6 +2324,56 @@ class _WhatsAppWindowClosedCallout extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// TikTok will not accept another message here right now, and why.
+///
+/// Replaces the input row, as the closed-conversation notice does: an agent is
+/// not invited to type what the server will refuse. The words say what reopens
+/// the conversation (the customer writing) rather than "wait".
+class _MessagingLimitNotice extends StatelessWidget {
+  const _MessagingLimitNotice({required this.policy});
+
+  final MessagingPolicy policy;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final noCustomer = policy.reason == 'tiktok_no_customer_message';
+
+    return Container(
+      key: const Key('tiktokMessagingLimitNotice'),
+      margin: const EdgeInsets.symmetric(vertical: Space.xs),
+      padding: const EdgeInsets.all(Space.md),
+      decoration: BoxDecoration(
+        color: ScenarioColors.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(Radii.md),
+        border: Border.all(
+          color: ScenarioColors.warning.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            noCustomer
+                ? context.l10n.tiktokNoCustomerMessageNotice
+                : context.l10n.tiktokLimitReachedNotice,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (!noCustomer) ...[
+            const SizedBox(height: 2),
+            Text(
+              context.l10n.tiktokLimitReachedDetail,
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
         ],
       ),
     );

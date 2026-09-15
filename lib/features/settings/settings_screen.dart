@@ -30,8 +30,10 @@ import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
 import '../conversations/inbox_controller.dart';
+import '../customer_fields/customer_fields_settings_screen.dart';
 import '../directory/directory_providers.dart';
 import '../messages/conversation_controller.dart';
+import '../saved_replies/saved_replies_settings_screen.dart';
 import 'channel_connect_sheets.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -46,12 +48,18 @@ class SettingsScreen extends ConsumerWidget {
 
     final canSeeChannels = employee.can(Perm.channelView);
     final canManageRouting = employee.can(Perm.routingManage);
+    final canSeeCustomerFields = employee.can(Perm.customerView);
+    final canSeeSavedReplies = employee.can(Perm.conversationReply);
     final tabs = <(String, Widget)>[
       if (canSeeChannels) (context.l10n.tabChannels, const _ChannelsTab()),
       (context.l10n.tabProfile, const ProfileTab()),
       (context.l10n.tabSecurity, const _SecurityTab()),
       if (canManageRouting)
         (context.l10n.tabAssignment, const _AssignmentTab()),
+      if (canSeeCustomerFields)
+        (context.l10n.tabCustomerFields, const CustomerFieldsSettingsTab()),
+      if (canSeeSavedReplies)
+        (context.l10n.tabSavedReplies, const SavedRepliesSettingsTab()),
     ];
 
     return DefaultTabController(
@@ -66,6 +74,8 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(width: Space.xs),
           ],
           bottom: TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [for (final (label, _) in tabs) Tab(text: label)],
           ),
         ),
@@ -119,7 +129,6 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
   @override
   Widget build(BuildContext context) {
     final employee = ref.watch(currentEmployeeProvider);
-    final environment = ref.watch(environmentProvider);
     final theme = Theme.of(context);
 
     if (employee == null) return const LoadingState();
@@ -194,15 +203,6 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
             foregroundColor: theme.colorScheme.error,
           ),
         ),
-
-        if (environment.isDevelopment) ...[
-          const SizedBox(height: Space.xl),
-          Text(
-            '${environment.name.name} · ${environment.apiBaseUrl}',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.labelSmall,
-          ),
-        ],
       ],
     );
   }
@@ -889,11 +889,18 @@ class _PlatformGroupCardState extends ConsumerState<_PlatformGroupCard> {
         icon: const Icon(Icons.refresh, size: 16),
         label: Text(context.l10n.reconnectChannelAction),
       ),
-      'TIKTOK' => OutlinedButton.icon(
-        onPressed: _busy ? null : () => _connectAnother(repo.authorizeTikTok),
-        icon: const Icon(Icons.music_note, size: 16),
-        label: Text(context.l10n.connectAnotherAccountAction),
-      ),
+      // Only for an employee the server has given TikTok — otherwise a
+      // connected row would be a way around "Coming soon".
+      'TIKTOK'
+          when !(ref
+                  .read(currentEmployeeProvider)
+                  ?.isChannelComingSoon('TIKTOK') ??
+              true) =>
+        OutlinedButton.icon(
+          onPressed: _busy ? null : () => _connectAnother(repo.authorizeTikTok),
+          icon: const Icon(Icons.music_note, size: 16),
+          label: Text(context.l10n.connectAnotherAccountAction),
+        ),
       _ => null,
     };
   }
@@ -1062,6 +1069,10 @@ class _PlatformGroupCardState extends ConsumerState<_PlatformGroupCard> {
           // Always accessible even when the platform is collapsed!
           if (platformAction != null) ...[
             const SizedBox(height: Space.md),
+            if (widget.provider.toUpperCase() == 'TIKTOK') ...[
+              const _TikTokRegionNotice(),
+              const SizedBox(height: Space.sm),
+            ],
             platformAction,
           ],
 
@@ -1329,6 +1340,18 @@ class _ChannelOnboardingCardState
         icon: const Icon(Icons.camera_alt, size: 16),
         label: Text(context.l10n.connectInstagramAction),
       ),
+      // Offered only when the server has made TikTok available to this
+      // employee; everyone else sees the Coming soon card instead.
+      'TIKTOK'
+          when !(ref
+                  .read(currentEmployeeProvider)
+                  ?.isChannelComingSoon('TIKTOK') ??
+              true) =>
+        FilledButton.icon(
+          onPressed: _busy ? null : () => _connect(repo.authorizeTikTok),
+          icon: const Icon(Icons.music_note, size: 16),
+          label: Text(context.l10n.connectTikTokAction),
+        ),
       _ => null,
     };
   }
@@ -1369,7 +1392,12 @@ class _ChannelOnboardingCardState
     final platformColor = ConversationBadges.providerColor(widget.provider);
     final title = _platformTitle(context, widget.provider);
     final description = _platformDescription(context, widget.provider);
-    final isComingSoon = widget.provider.toUpperCase() == 'TIKTOK';
+    // The server's per-employee answer, not a hardcoded provider.
+    final isComingSoon =
+        ref
+            .watch(currentEmployeeProvider)
+            ?.isChannelComingSoon(widget.provider) ??
+        widget.provider.toUpperCase() == 'TIKTOK';
     final primaryAction = _buildPrimaryAction(context, canManage);
     final otherWays = _otherWaysToConnect(context);
 
@@ -1477,6 +1505,10 @@ class _ChannelOnboardingCardState
             if (canManage) ...[
               if (primaryAction != null) ...[
                 const SizedBox(height: Space.md),
+                if (widget.provider.toUpperCase() == 'TIKTOK') ...[
+                  const _TikTokRegionNotice(),
+                  const SizedBox(height: Space.sm),
+                ],
                 primaryAction,
               ],
               if (otherWays.isNotEmpty) ...[
@@ -1846,7 +1878,11 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
             ],
           ),
 
-          if (channel.statusDetail.isNotEmpty) ...[
+          if (channel.tiktokReadiness != null &&
+              !channel.tiktokReadiness!.isReady) ...[
+            const SizedBox(height: Space.xs),
+            _TikTokReadinessNote(readiness: channel.tiktokReadiness!),
+          ] else if (channel.statusDetail.isNotEmpty) ...[
             const SizedBox(height: Space.xs),
             Text(
               channel.statusDetail,
@@ -2174,6 +2210,8 @@ class _AssignmentTabContentState extends State<_AssignmentTabContent> {
       children: [
         _AutoAssignmentCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
+        _StrictResponsibilityCard(policy: widget.policy),
+        const SizedBox(height: Space.lg),
         _ChatCapacityCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
         _ReassignmentSettingsCard(policy: widget.policy),
@@ -2279,6 +2317,99 @@ class _AutoAssignmentCardState extends ConsumerState<_AutoAssignmentCard> {
                 ),
                 Switch.adaptive(
                   value: isEnabled,
+                  onChanged: _busy ? null : _toggle,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StrictResponsibilityCard extends ConsumerStatefulWidget {
+  const _StrictResponsibilityCard({required this.policy});
+
+  final RoutingPolicy policy;
+
+  @override
+  ConsumerState<_StrictResponsibilityCard> createState() =>
+      _StrictResponsibilityCardState();
+}
+
+class _StrictResponsibilityCardState
+    extends ConsumerState<_StrictResponsibilityCard> {
+  bool _busy = false;
+
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+      ),
+    );
+  }
+
+  Future<void> _toggle(bool value) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(directoryRepositoryProvider)
+          .updateRoutingPolicy(strictResponsibility: value);
+      ref.invalidate(routingPolicyProvider);
+      if (mounted) {
+        _showMessage(context.l10n.assignmentPolicyUpdatedSnackbar);
+      }
+    } on ApiException catch (error) {
+      _showMessage(error.message, isError: true);
+    } catch (error) {
+      _showMessage(error.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final strict = widget.policy.strictResponsibility;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(Space.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.l10n.strictResponsibilityTitle,
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: Space.sm),
+            Text(
+              context.l10n.strictResponsibilityDescription,
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: Space.md),
+            if (_busy) ...[
+              const LinearProgressIndicator(minHeight: 2),
+              const SizedBox(height: Space.sm),
+            ],
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.l10n.strictResponsibilityToggleLabel,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Switch.adaptive(
+                  value: strict,
                   onChanged: _busy ? null : _toggle,
                 ),
               ],
@@ -2997,6 +3128,76 @@ class _TimezoneCardState extends ConsumerState<_TimezoneCard> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Before connecting TikTok: which accounts TikTok serves. TikTok authorizes
+/// accounts it will not serve, so this is the owner's one chance to learn it
+/// without a dead connection to show for it. Wording from TikTok's own FAQ.
+class _TikTokRegionNotice extends StatelessWidget {
+  const _TikTokRegionNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      context.l10n.tiktokRegionNotice,
+      key: const Key('tiktokRegionNotice'),
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
+/// A TikTok connection that is not confirmed ready: what is wrong, what to
+/// do, and TikTok's reference for support. Never TikTok's raw text.
+class _TikTokReadinessNote extends StatelessWidget {
+  const _TikTokReadinessNote({required this.readiness});
+
+  final TikTokReadiness readiness;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+    final blocked = readiness.state == 'BLOCKED';
+    final text = readiness.reason == 'not_checked'
+        ? l10n.tiktokReadinessNotChecked
+        : !blocked
+        ? l10n.tiktokReadinessUnknown
+        : switch (readiness.reason) {
+            'missing_scopes' => l10n.tiktokReadinessMissingScopes,
+            'tiktok_not_eligible' => l10n.tiktokReadinessNotEligible,
+            'tiktok_permission_denied' => l10n.tiktokReadinessPermissionDenied,
+            'tiktok_token_invalid' => l10n.tiktokReadinessTokenInvalid,
+            _ => l10n.tiktokReadinessUnknown,
+          };
+    final color = blocked
+        ? theme.colorScheme.error
+        : theme.colorScheme.onSurfaceVariant;
+    final reference = readiness.reference;
+
+    return Column(
+      key: const Key('tiktokReadinessNote'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(text, style: theme.textTheme.bodySmall?.copyWith(color: color)),
+        if (readiness.missingScopes.isNotEmpty)
+          Text(
+            readiness.missingScopes.join(', '),
+            style: theme.textTheme.labelSmall?.copyWith(color: color),
+          ),
+        if (reference.isNotEmpty)
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Text(
+              l10n.tiktokReadinessReference(reference),
+              style: theme.textTheme.labelSmall?.copyWith(color: color),
+            ),
+          ),
+      ],
     );
   }
 }

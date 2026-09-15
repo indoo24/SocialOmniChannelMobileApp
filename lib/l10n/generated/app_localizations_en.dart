@@ -113,8 +113,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noChannelsTitle => 'No channels connected';
 
   @override
-  String get noChannelsMessage =>
-      'Connect Instagram, Messenger or WhatsApp from the web app to start receiving conversations.';
+  String get noChannelsMessage => 'No channels recorded for this customer yet.';
 
   @override
   String get channelStatusConnected => 'Connected';
@@ -330,6 +329,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get connectInstagramAction => 'Connect Instagram';
+
+  @override
+  String get connectTikTokAction => 'Connect TikTok';
 
   @override
   String get enterDetailsManuallyAction => 'Enter details manually';
@@ -866,6 +868,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteMessageDeletedSnackbar => 'Message deleted';
 
   @override
+  String get replyMessageAction => 'Reply';
+
+  @override
+  String replyingToLabel(String name) {
+    return 'Replying to $name';
+  }
+
+  @override
+  String get cancelReplyTooltip => 'Cancel reply';
+
+  @override
+  String get quotedMessageDeletedLabel => 'This message was deleted';
+
+  @override
+  String get quotedMessageUnavailableLabel => 'Original message unavailable';
+
+  @override
+  String get photoMessageLabel => 'Photo';
+
+  @override
+  String get attachmentMessageLabel => 'Attachment';
+
+  @override
+  String sentFromPlatformLabel(String provider) {
+    return 'Sent from $provider';
+  }
+
+  @override
   String get customerTitle => 'Customer';
 
   @override
@@ -891,6 +921,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lastMessageFieldLabel => 'Last message';
+
+  @override
+  String get claimedByFieldLabel => 'Claimed by';
+
+  @override
+  String get firstResponseFieldLabel => 'First response';
+
+  @override
+  String get resolvedFieldLabel => 'Resolved at';
+
+  @override
+  String get lastAgentMessageFieldLabel => 'Last agent message';
 
   @override
   String get customerSectionTitle => 'Customer';
@@ -1048,6 +1090,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get autoAssignmentToggleLabel => 'Enable automatic assignment';
 
   @override
+  String get strictResponsibilityTitle => 'Strict responsibility';
+
+  @override
+  String get strictResponsibilityDescription =>
+      'When on, a conversation with nobody responsible for its channel stays unassigned rather than falling back to whoever is available. When off, responsibility is only a preference.';
+
+  @override
+  String get strictResponsibilityToggleLabel =>
+      'Require responsibility to assign';
+
+  @override
   String get defaultChatCapacityTitle => 'Default chat capacity';
 
   @override
@@ -1166,10 +1219,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationFieldLabel => 'Location';
 
   @override
+  String get firstSeenFieldLabel => 'First seen';
+
+  @override
   String get lastSeenFieldLabel => 'Last seen';
 
   @override
   String get confirmedPurchasesFieldLabel => 'Confirmed purchases';
+
+  @override
+  String get confirmedPurchasesSubtitle =>
+      'Verified by an employee, not by a payment system.';
 
   @override
   String get customerNotesFieldLabel => 'Notes';
@@ -1182,6 +1242,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noVisibleConversations => 'No conversations you can see.';
+
+  @override
+  String get channelsCapsSectionTitle => 'CHANNELS';
+
+  @override
+  String get knownFactsCapsSectionTitle => 'KNOWN FACTS';
+
+  @override
+  String get knownFactsSectionSubtitle =>
+      'Extracted from conversations. Confidence shown per fact.';
+
+  @override
+  String get noKnownFactsMessage => 'Nothing known yet.';
+
+  @override
+  String get ordersCapsSectionTitle => 'ORDERS';
+
+  @override
+  String get noOrdersForCustomerMessage =>
+      'No orders recorded for this customer yet.';
 
   @override
   String get searchCustomersHint => 'Search name, email, phone or handle';
@@ -1209,6 +1289,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onlineNowFilter => 'Online now';
+
+  @override
+  String get employeeFilterAllRoles => 'All roles';
+
+  @override
+  String get employeeFilterAllTeams => 'All teams';
+
+  @override
+  String get employeeFilterAllStatus => 'All';
+
+  @override
+  String get employeeFilterActive => 'Active';
+
+  @override
+  String get employeeFilterInactive => 'Inactive';
+
+  @override
+  String get employeeFilterReset => 'Reset filters';
 
   @override
   String totalCountSuffix(int total) {
@@ -1375,6 +1473,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirmedByUnknownEmployee => 'an employee';
 
   @override
+  String orderedAtLabel(String date) {
+    return 'Ordered $date';
+  }
+
+  @override
   String recordedByMessage(String name) {
     return 'Recorded by $name';
   }
@@ -1407,6 +1510,187 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get orderRecordedMessage =>
       'Order recorded. Confirm it once you\'ve checked your own records.';
+
+  @override
+  String get customFieldsSectionTitle => 'Custom fields';
+
+  @override
+  String get customFieldsEditTitle => 'Edit custom fields';
+
+  @override
+  String get customFieldsEditTooltip => 'Edit custom fields';
+
+  @override
+  String get customFieldsSaved => 'Custom fields saved';
+
+  @override
+  String get customFieldYes => 'Yes';
+
+  @override
+  String get customFieldNo => 'No';
+
+  @override
+  String get customFieldNotSet => 'Not set';
+
+  @override
+  String get customFieldRequired => 'This field is required.';
+
+  @override
+  String get customFieldPickDate => 'Choose a date';
+
+  @override
+  String get customFieldPickDateTime => 'Choose a date and time';
+
+  @override
+  String get customFieldClear => 'Clear';
+
+  @override
+  String get customerFieldFilterButton => 'Filter by field';
+
+  @override
+  String get customerFieldFilterTitle => 'Filter by field';
+
+  @override
+  String get customerFieldFilterNoFields =>
+      'No custom fields are set up for this organization.';
+
+  @override
+  String get customerFieldFilterFieldLabel => 'Field';
+
+  @override
+  String get customerFieldFilterValueLabel => 'Value';
+
+  @override
+  String get customerFieldFilterFromLabel => 'From';
+
+  @override
+  String get customerFieldFilterToLabel => 'To';
+
+  @override
+  String get customerFieldFilterReset => 'Reset';
+
+  @override
+  String get customerFieldFilterSelectFieldError => 'Choose a field first.';
+
+  @override
+  String get customerFieldFilterEnterValueError =>
+      'Enter a value to filter by.';
+
+  @override
+  String get customerFieldFilterSelectValueError =>
+      'Choose a value to filter by.';
+
+  @override
+  String get customerFieldFilterInvalidRange =>
+      '\"From\" must be before \"To\".';
+
+  @override
+  String get customerFieldFilterNoResults =>
+      'No customers match this field filter.';
+
+  @override
+  String get orderDeliverySectionTitle => 'Delivery details (optional)';
+
+  @override
+  String get orderRecipientNameLabel => 'Recipient name';
+
+  @override
+  String get orderRecipientPhoneLabel => 'Recipient phone';
+
+  @override
+  String get orderAddressLabel => 'Address';
+
+  @override
+  String get orderGovernorateLabel => 'Governorate';
+
+  @override
+  String get orderCityLabel => 'City / area';
+
+  @override
+  String get orderDeliveryNotesLabel => 'Delivery notes';
+
+  @override
+  String get orderSubtotalLabel => 'Subtotal';
+
+  @override
+  String get orderDiscountLabel => 'Discount';
+
+  @override
+  String get orderShippingLabel => 'Shipping';
+
+  @override
+  String get orderFulfilmentLabel => 'Fulfilment';
+
+  @override
+  String orderFulfilmentValue(String status) {
+    return 'Fulfilment: $status';
+  }
+
+  @override
+  String get orderFulfilmentUpdatedMessage => 'Fulfilment updated';
+
+  @override
+  String orderDeliveryDue(String date) {
+    return 'Delivery expected $date';
+  }
+
+  @override
+  String orderFollowUpValue(String name) {
+    return 'Follow-up: $name';
+  }
+
+  @override
+  String orderCancellationReason(String reason) {
+    return 'Reason: $reason';
+  }
+
+  @override
+  String get fulfilmentNew => 'New';
+
+  @override
+  String get fulfilmentProcessing => 'Processing';
+
+  @override
+  String get fulfilmentPacking => 'Packing';
+
+  @override
+  String get fulfilmentShipped => 'Shipped';
+
+  @override
+  String get fulfilmentDelivered => 'Delivered';
+
+  @override
+  String get fulfilmentOnHold => 'On hold';
+
+  @override
+  String get fulfilmentCancelled => 'Cancelled';
+
+  @override
+  String get paymentMethodCashOnDelivery => 'Cash on delivery';
+
+  @override
+  String get paymentMethodBankTransfer => 'Bank transfer';
+
+  @override
+  String get paymentMethodCard => 'Card';
+
+  @override
+  String get paymentMethodWallet => 'Mobile wallet';
+
+  @override
+  String get paymentMethodOther => 'Other';
+
+  @override
+  String get paymentStatusUnpaid => 'Not paid';
+
+  @override
+  String get paymentStatusPartiallyPaid => 'Partly paid (reported)';
+
+  @override
+  String get paymentStatusPaid => 'Paid (reported)';
+
+  @override
+  String get paymentStatusRefunded => 'Refunded (reported)';
 
   @override
   String get avgResponseLabel => 'Avg response';
@@ -1643,6 +1927,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get employeesLoadFailedMessage => 'Couldn\'t load employees.';
+
+  @override
+  String get teamResponsibilitiesTitle => 'Channel responsibilities';
+
+  @override
+  String get teamResponsibilitiesDescription =>
+      'Which channels this team is offered new conversations from. This decides who is offered work first — it never changes who can see a conversation.';
+
+  @override
+  String get teamResponsibilityNone => 'None';
+
+  @override
+  String get teamResponsibilityAll => 'All accounts';
+
+  @override
+  String get teamResponsibilitySelected => 'Selected accounts';
+
+  @override
+  String get teamResponsibilitiesLoadFailedMessage =>
+      'Couldn\'t load current responsibilities.';
+
+  @override
+  String get teamResponsibilityNoChannelsMessage =>
+      'No connected accounts for this channel yet.';
 
   @override
   String get deactivateTeamConfirmTitle => 'Deactivate team?';
@@ -2128,6 +2436,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'Capacity must be between 0 and 200.';
 
   @override
+  String get routingChannelScopeTitle => 'Channel scope';
+
+  @override
+  String get routingChannelScopeDescription =>
+      'A hard limit on which channels this person can be assigned or routed conversations from. Narrowing this never removes conversations they already own.';
+
+  @override
+  String get routingChannelScopeAll => 'All channels';
+
+  @override
+  String get routingChannelScopeSelected => 'Selected channels';
+
+  @override
+  String get routingChannelScopeRequiredError => 'Choose at least one channel.';
+
+  @override
   String get workingHoursTitle => 'Working hours';
 
   @override
@@ -2283,4 +2607,424 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get statusUpdateFailedMessage =>
       'Couldn\'t update status. Please try again.';
+
+  @override
+  String get savedRepliesTitle => 'Saved replies';
+
+  @override
+  String get savedRepliesTooltip => 'Insert a saved reply';
+
+  @override
+  String get savedRepliesSearchHint => 'Search saved replies';
+
+  @override
+  String get savedRepliesLoading => 'Loading saved replies…';
+
+  @override
+  String get savedRepliesEmpty => 'No saved replies yet.';
+
+  @override
+  String get savedRepliesNoMatch => 'No saved reply matches your search.';
+
+  @override
+  String get savedReplyScopePersonal => 'Personal';
+
+  @override
+  String get savedReplyScopeTeam => 'Team';
+
+  @override
+  String get savedReplyScopeOrganization => 'Everyone';
+
+  @override
+  String get tiktokSharedPost => 'Shared a TikTok post';
+
+  @override
+  String get tiktokOpenOnTikTok => 'Open on TikTok';
+
+  @override
+  String tiktokQuestionCard(String title) {
+    return 'Question card: $title';
+  }
+
+  @override
+  String get tiktokQuestionCardUntitled => 'Question card';
+
+  @override
+  String get tiktokUnsupportedContent =>
+      'This TikTok message can’t be shown here. Open the conversation in TikTok to see it.';
+
+  @override
+  String get deliveryErrorChannelUnavailable =>
+      'TikTok is not available to you yet. The message was not sent.';
+
+  @override
+  String get deliveryErrorTiktokTokenInvalid =>
+      'TikTok no longer accepts this account’s authorization. Ask an administrator to reconnect TikTok.';
+
+  @override
+  String get deliveryErrorTiktokPermissionDenied =>
+      'TikTok refused this action for this account. Ask an administrator to check the TikTok connection.';
+
+  @override
+  String get deliveryErrorTiktokInvalidRequest =>
+      'TikTok could not accept this message. It was not sent.';
+
+  @override
+  String get deliveryErrorTiktokMessagingLimit =>
+      'TikTok’s reply limit for this conversation has been reached. The message was not sent.';
+
+  @override
+  String get deliveryErrorTiktokRateLimited =>
+      'TikTok was busy and the message could not be sent after several tries. Try again.';
+
+  @override
+  String get deliveryErrorTiktokNotEligible =>
+      'TikTok does not allow Business Messaging for this account. The message was not sent.';
+
+  @override
+  String get deliveryErrorTiktokUnavailable =>
+      'TikTok had a temporary problem. The message was not sent; try again.';
+
+  @override
+  String get deliveryErrorTiktokMediaRejected =>
+      'TikTok could not accept this file.';
+
+  @override
+  String get deliveryErrorTiktokUnknownError =>
+      'TikTok refused this message. It was not sent.';
+
+  @override
+  String get deliveryErrorTiktokNotReady =>
+      'This TikTok connection is not ready to send messages. Ask an administrator to check it.';
+
+  @override
+  String get deliveryErrorTiktokNoCustomerMessage =>
+      'TikTok only lets a business message a customer who has written first. The message was not sent.';
+
+  @override
+  String get tiktokLimitReachedNotice =>
+      'TikTok’s reply limit for this conversation has been reached.';
+
+  @override
+  String get tiktokLimitReachedDetail =>
+      'You can send again as soon as the customer writes back.';
+
+  @override
+  String get tiktokNoCustomerMessageNotice =>
+      'TikTok only lets a business message a customer who has written first.';
+
+  @override
+  String tiktokMessagesRemaining(int count) {
+    return 'TikTok allows $count more messages until the customer replies.';
+  }
+
+  @override
+  String get tiktokRegionNotice =>
+      'TikTok Business Messaging is available for all Business Accounts except those signed up in the US, the European Economic Area, Switzerland and the UK. Personal accounts cannot be connected.';
+
+  @override
+  String get tiktokReadinessNotChecked =>
+      'Not verified. Reconnect this account to check that TikTok allows Business Messaging for it.';
+
+  @override
+  String get tiktokReadinessUnknown =>
+      'Connected, but TikTok could not confirm Business Messaging yet. Reconnect later to check again.';
+
+  @override
+  String get tiktokReadinessMissingScopes =>
+      'TikTok did not grant every permission Business Messaging needs. Reconnect and approve all of them.';
+
+  @override
+  String get tiktokReadinessNotEligible =>
+      'TikTok does not allow Business Messaging for this account. Accounts signed up in the US, the EEA, Switzerland or the UK may not be eligible.';
+
+  @override
+  String get tiktokReadinessPermissionDenied =>
+      'TikTok refused Business Messaging for this account. Check that it is a Business Account.';
+
+  @override
+  String get tiktokReadinessTokenInvalid =>
+      'TikTok no longer accepts this authorization. Reconnect TikTok.';
+
+  @override
+  String tiktokReadinessReference(String reference) {
+    return 'TikTok reference: $reference';
+  }
+
+  @override
+  String historyClaimedByReplying(String name) {
+    return '$name took this conversation by replying';
+  }
+
+  @override
+  String historyClaimedOwnerRestored(String name) {
+    return 'Returned to $name, who had already taken this conversation';
+  }
+
+  @override
+  String historyFallbackAssigned(String name) {
+    return 'Assigned to $name (fallback)';
+  }
+
+  @override
+  String historyFallbackReasonsLabel(String reasons) {
+    return 'Reason: $reasons';
+  }
+
+  @override
+  String historyRerouted(String previousName, String name) {
+    return 'Rerouted from $previousName to $name';
+  }
+
+  @override
+  String historyReleasedFrom(String previousName) {
+    return 'Released from $previousName back to the queue';
+  }
+
+  @override
+  String get tabCustomerFields => 'Customer fields';
+
+  @override
+  String get customerFieldsPermissionDenied =>
+      'You don\'t have permission to view customer fields.';
+
+  @override
+  String get customerFieldsTabTitle => 'Customer fields';
+
+  @override
+  String get customerFieldsTabDescription =>
+      'These fields are stored on every customer record and can be filled in from a customer\'s profile. Only authorized admins can add, edit, reorder or disable them.';
+
+  @override
+  String get addFieldAction => 'Add field';
+
+  @override
+  String get noCustomerFieldsTitle => 'No custom fields yet';
+
+  @override
+  String get noCustomerFieldsMessage =>
+      'Add a field to start collecting it on customer profiles.';
+
+  @override
+  String customerFieldKeyLabel(String key) {
+    return 'Key: $key';
+  }
+
+  @override
+  String get customerFieldDisabledBadge => 'Disabled';
+
+  @override
+  String get moveFieldUpAction => 'Move up';
+
+  @override
+  String get moveFieldDownAction => 'Move down';
+
+  @override
+  String get enableFieldAction => 'Enable';
+
+  @override
+  String get disableFieldAction => 'Disable';
+
+  @override
+  String get customerFieldEnabledSnackbar => 'Field enabled';
+
+  @override
+  String get customerFieldDisabledSnackbar => 'Field disabled';
+
+  @override
+  String get customerFieldReorderedSnackbar => 'Field order updated';
+
+  @override
+  String get addFieldTitle => 'Add field';
+
+  @override
+  String get editFieldTitle => 'Edit field';
+
+  @override
+  String get fieldLabelFieldLabel => 'Label';
+
+  @override
+  String get fieldLabelRequiredError => 'Enter a label.';
+
+  @override
+  String get fieldKeyFieldLabel => 'Key';
+
+  @override
+  String get fieldKeyHelperTextGenerated =>
+      'Generated automatically from the label.';
+
+  @override
+  String get fieldKeyHelperTextFixed =>
+      'The key cannot be changed after the field is created.';
+
+  @override
+  String get fieldKeyInvalidError =>
+      'Use only English letters, numbers and underscores.';
+
+  @override
+  String get fieldTypeFieldLabel => 'Type';
+
+  @override
+  String get fieldRequiredToggleLabel => 'Required';
+
+  @override
+  String get fieldRequiredToggleHelper =>
+      'A required field cannot be saved empty.';
+
+  @override
+  String get fieldHelpTextFieldLabel => 'Help text';
+
+  @override
+  String get fieldHelpTextFieldHint =>
+      'Optional guidance shown under the field';
+
+  @override
+  String get fieldPlaceholderFieldLabel => 'Placeholder';
+
+  @override
+  String get fieldPlaceholderFieldHint =>
+      'Optional example text shown inside the field';
+
+  @override
+  String get fieldAddedSnackbar => 'Field added';
+
+  @override
+  String get fieldUpdatedSnackbar => 'Field updated';
+
+  @override
+  String get fieldTypeText => 'Text';
+
+  @override
+  String get fieldTypeLongText => 'Long text';
+
+  @override
+  String get fieldTypeNumber => 'Whole number';
+
+  @override
+  String get fieldTypeDecimal => 'Decimal number';
+
+  @override
+  String get fieldTypeDate => 'Date';
+
+  @override
+  String get fieldTypeDatetime => 'Date & time';
+
+  @override
+  String get fieldTypeBoolean => 'Yes / No';
+
+  @override
+  String get fieldTypeSelect => 'Single choice';
+
+  @override
+  String get fieldTypeMultiSelect => 'Multiple choice';
+
+  @override
+  String get fieldTypePhone => 'Phone';
+
+  @override
+  String get fieldTypeEmail => 'Email';
+
+  @override
+  String get tabSavedReplies => 'Saved replies';
+
+  @override
+  String get savedRepliesPermissionDenied =>
+      'You don\'t have permission to view saved replies.';
+
+  @override
+  String get savedRepliesTabDescription =>
+      'Reusable text you insert into the reply box and edit before sending. These are not WhatsApp templates and do not need Meta approval.';
+
+  @override
+  String get newSavedReplyAction => 'New saved reply';
+
+  @override
+  String get noSavedRepliesTitle => 'No saved replies yet.';
+
+  @override
+  String get noSavedRepliesMessage =>
+      'Add a saved reply to reuse it from the composer.';
+
+  @override
+  String get savedReplyDisabledBadge => 'Disabled';
+
+  @override
+  String savedReplyShortcutLabel(String shortcut) {
+    return 'Shortcut: /$shortcut';
+  }
+
+  @override
+  String savedReplyCategoryLabel(String category) {
+    return 'Category: $category';
+  }
+
+  @override
+  String get addSavedReplyTitle => 'New saved reply';
+
+  @override
+  String get editSavedReplyTitle => 'Edit saved reply';
+
+  @override
+  String get savedReplyTitleFieldLabel => 'Title';
+
+  @override
+  String get savedReplyTitleRequiredError => 'Enter a title.';
+
+  @override
+  String get savedReplyShortcutFieldLabel => 'Shortcut';
+
+  @override
+  String get savedReplyShortcutFieldHint => '/thanks';
+
+  @override
+  String get savedReplyShortcutHelperText =>
+      'Optional. Type / followed by the shortcut in the reply box to insert it.';
+
+  @override
+  String get savedReplyCategoryFieldLabel => 'Category';
+
+  @override
+  String get savedReplyScopeFieldLabel => 'Who can use it';
+
+  @override
+  String get savedReplyBodyFieldLabel => 'Text';
+
+  @override
+  String get savedReplyBodyRequiredError => 'Enter the reply text.';
+
+  @override
+  String savedReplyBodyHelperText(String customerToken, String agentToken) {
+    return 'Use $customerToken or $agentToken to fill in names when the reply is inserted.';
+  }
+
+  @override
+  String get savedReplyAddedSnackbar => 'Saved reply added';
+
+  @override
+  String get savedReplyUpdatedSnackbar => 'Saved reply updated';
+
+  @override
+  String get deleteSavedReplyAction => 'Delete';
+
+  @override
+  String get deleteSavedReplyConfirmTitle => 'Delete saved reply?';
+
+  @override
+  String deleteSavedReplyConfirmBody(String title) {
+    return '\"$title\" will no longer be available to insert. This cannot be undone from here.';
+  }
+
+  @override
+  String get savedReplyDeletedSnackbar => 'Saved reply deleted';
+
+  @override
+  String get exportCsvAction => 'Export CSV';
+
+  @override
+  String get exportRateLimitedMessage =>
+      'Too many exports in the last minute. Please wait and try again.';
+
+  @override
+  String get exportFailedMessage =>
+      'The export could not be completed. Please try again.';
 }

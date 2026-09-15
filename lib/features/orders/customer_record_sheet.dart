@@ -27,11 +27,11 @@ import '../../core/models/performance.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
-import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
+import 'order_details.dart';
 
 /// Opens the record sheet for a conversation.
 Future<void> showCustomerRecordSheet(
@@ -77,8 +77,9 @@ class _CustomerRecordSheet extends ConsumerWidget {
     final suggestedFacts = (facts.value ?? [])
         .where((f) => f.needsReview)
         .toList();
+    // Typed custom field values are shown by their field, not as free-form details.
     final recordedFacts = (facts.value ?? [])
-        .where((f) => !f.needsReview)
+        .where((f) => !f.needsReview && !f.isTypedField)
         .toList();
     final suggestedOrders = (orders.value ?? [])
         .where((o) => o.isSuggestion)
@@ -156,7 +157,7 @@ class _CustomerRecordSheet extends ConsumerWidget {
             style: theme.textTheme.bodySmall,
           )
         else
-          for (final fact in recordedFacts) _RecordedDetail(fact: fact),
+          for (final fact in recordedFacts) RecordedFactTile(fact: fact),
 
         const SizedBox(height: Space.lg),
         Row(
@@ -206,57 +207,6 @@ class _CustomerRecordSheet extends ConsumerWidget {
 // --------------------------------------------------------------------------- //
 // Details
 // --------------------------------------------------------------------------- //
-class _RecordedDetail extends StatelessWidget {
-  const _RecordedDetail({required this.fact});
-
-  final CustomerFact fact;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(bottom: Space.xs),
-      padding: const EdgeInsets.symmetric(
-        horizontal: Space.md,
-        vertical: Space.sm,
-      ),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(Radii.md),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: theme.textTheme.bodySmall,
-                children: [
-                  TextSpan(
-                    text: '${humanizeEnum(fact.key)}: ',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  TextSpan(text: fact.value),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: Space.sm),
-          StatusBadge(
-            label: fact.source == 'EMPLOYEE'
-                ? context.l10n.employeeSourceBadge
-                : context.l10n.autoSourceBadge,
-            tone: fact.source == 'EMPLOYEE'
-                ? BadgeTone.success
-                : BadgeTone.neutral,
-            dense: true,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SuggestedDetail extends ConsumerStatefulWidget {
   const _SuggestedDetail({
     required this.fact,
@@ -459,95 +409,10 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     final theme = Theme.of(context);
     final order = widget.order;
 
-    final tone = switch (order.status) {
-      'CONFIRMED' => BadgeTone.success,
-      'SUGGESTED' => BadgeTone.warning,
-      'CANCELLED' || 'REFUNDED' => BadgeTone.neutral,
-      _ => BadgeTone.info,
-    };
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: Space.sm),
-      padding: const EdgeInsets.all(Space.md),
-      decoration: BoxDecoration(
-        color: order.isSuggestion ? ScenarioColors.warningSurface : null,
-        borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(
-          color: order.isSuggestion
-              ? ScenarioColors.warning.withValues(alpha: 0.35)
-              : theme.dividerColor,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.inventory_2_outlined, size: 16),
-              const SizedBox(width: Space.xs),
-              Expanded(
-                child: Text(
-                  '${order.totalAmount} ${order.currency}',
-                  style: theme.textTheme.titleSmall,
-                ),
-              ),
-              StatusBadge(label: order.statusDisplay, tone: tone, dense: true),
-            ],
-          ),
-          const SizedBox(height: Space.sm),
-          for (final item in order.items)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 2),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${item.quantity}× ${item.productName}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
-                  Text(item.lineTotal, style: theme.textTheme.bodySmall),
-                ],
-              ),
-            ),
-
-          if (order.evidence.isNotEmpty) ...[
-            const SizedBox(height: Space.sm),
-            Container(
-              padding: const EdgeInsets.only(left: Space.sm),
-              decoration: BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: ScenarioColors.warning, width: 2),
-                ),
-              ),
-              child: Text(
-                '“${order.evidence}”',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-          ],
-
-          const SizedBox(height: Space.xs),
-          Text(
-            order.isClaim
-                ? context.l10n.notCountedAsSaleMessage
-                : order.isConfirmed
-                ? context.l10n.confirmedByMessage(
-                    order.confirmedByName.isEmpty
-                        ? context.l10n.confirmedByUnknownEmployee
-                        : order.confirmedByName,
-                  )
-                : '',
-            style: theme.textTheme.labelSmall,
-          ),
-
-          if (widget.canManage && order.isClaim) ...[
-            const SizedBox(height: Space.sm),
-            Row(
+    return OrderSummaryCard(
+      order: order,
+      actions: widget.canManage && order.isClaim
+          ? Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
@@ -581,10 +446,8 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                   ),
                 ),
               ],
-            ),
-          ],
-        ],
-      ),
+            )
+          : null,
     );
   }
 }

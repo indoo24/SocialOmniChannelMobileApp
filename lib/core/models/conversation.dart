@@ -1,3 +1,5 @@
+import 'package:characters/characters.dart';
+
 import '../utils/json_safe.dart';
 
 import 'employee.dart';
@@ -44,7 +46,11 @@ class CustomerBrief {
     final parts = displayName.trim().split(RegExp(r'\s+'))
       ..removeWhere((p) => p.isEmpty);
     if (parts.isEmpty) return '?';
-    return parts.take(2).map((p) => p[0].toUpperCase()).join();
+    // `.characters.first` rather than `p[0]`: a display name can start with
+    // an emoji or other multi-code-unit character, and raw UTF-16 indexing
+    // would split it mid surrogate pair — a string `TextPainter` then throws
+    // "not well-formed UTF-16" trying to render.
+    return parts.take(2).map((p) => p.characters.first.toUpperCase()).join();
   }
 }
 
@@ -106,6 +112,41 @@ class IntelligenceBrief {
       );
 }
 
+/// How many more messages a platform will accept in one conversation.
+///
+/// TikTok only. The server computes it from the conversation's history with
+/// the same engine that refuses a send, so the composer can say no first.
+class MessagingPolicy {
+  const MessagingPolicy({
+    required this.state,
+    required this.allowed,
+    this.remainingCount,
+    this.windowExpiresAt,
+    this.reason = '',
+  });
+
+  /// `no_customer_message` | `initial` | `active` | `inactive`.
+  final String state;
+  final bool allowed;
+
+  /// Null when the platform sets no cap.
+  final int? remainingCount;
+  final DateTime? windowExpiresAt;
+  final String reason;
+
+  static MessagingPolicy? fromJson(Object? json) {
+    if (json is! Map<String, dynamic>) return null;
+    return MessagingPolicy(
+      state: JsonSafe.asString(json['state']),
+      // A malformed answer must not unlock a composer the server would refuse.
+      allowed: JsonSafe.asBool(json['allowed']),
+      remainingCount: JsonSafe.asIntOrNull(json['remaining_count']),
+      windowExpiresAt: _parseDate(json['window_expires_at']),
+      reason: JsonSafe.asString(json['reason']),
+    );
+  }
+}
+
 class Conversation {
   const Conversation({
     required this.id,
@@ -123,6 +164,8 @@ class Conversation {
     this.intelligence,
     this.lastMessagePreview = '',
     this.lastMessageAt,
+    this.lastMessageDirection = '',
+    this.lastMessageDeliveryStatus = '',
     this.lastCustomerMessageAt,
     this.startedAt,
     this.subject = '',
@@ -130,6 +173,12 @@ class Conversation {
     this.followUpDate,
     this.followUpMarkedAt,
     this.followUpMarkedByName = '',
+    this.messagingPolicy,
+    this.outboundMedia = true,
+    this.claimedBy,
+    this.firstResponseAt,
+    this.resolvedAt,
+    this.lastAgentMessageAt,
   });
 
   final int id;
@@ -146,6 +195,15 @@ class Conversation {
   final int messageCount;
   final String lastMessagePreview;
   final DateTime? lastMessageAt;
+
+  /// `INBOUND` | `OUTBOUND`, for the inbox row's delivery tick — empty when
+  /// the conversation has no messages yet.
+  final String lastMessageDirection;
+
+  /// The last message's delivery status (`SENT`, `DELIVERED`, `READ`,
+  /// `FAILED`, ...), shown as a tick only when [lastMessageDirection] is
+  /// `OUTBOUND` — an inbound message has no delivery state of ours to show.
+  final String lastMessageDeliveryStatus;
   final DateTime? lastCustomerMessageAt;
   final DateTime? startedAt;
   final IntelligenceBrief? intelligence;
@@ -154,6 +212,29 @@ class Conversation {
   final DateTime? followUpDate;
   final DateTime? followUpMarkedAt;
   final String followUpMarkedByName;
+
+  /// Who took this conversation by replying to it (claim-by-reply), which
+  /// can differ from [assignedTo] after a reassignment or release — this is
+  /// "who actually answered it first," not "who owns it now."
+  final EmployeeBrief? claimedBy;
+
+  /// When an agent's own first reply went out, if one has.
+  final DateTime? firstResponseAt;
+
+  /// When the conversation was last moved to `RESOLVED`, if it has been.
+  final DateTime? resolvedAt;
+
+  /// When an agent (not the platform, not the customer) last sent a message
+  /// in this conversation.
+  final DateTime? lastAgentMessageAt;
+
+  /// TikTok's messaging allowance; null on every other channel and on list rows.
+  final MessagingPolicy? messagingPolicy;
+
+  /// Whether the platform accepts files from an agent. From the detail's
+  /// `media_capabilities`; a row without it keeps the old behaviour, except
+  /// TikTok, which accepts no outbound media.
+  final bool outboundMedia;
 
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
     id: JsonSafe.asInt(json['id'], fallback: -1),
@@ -176,6 +257,10 @@ class Conversation {
     messageCount: JsonSafe.asInt(json['message_count']),
     lastMessagePreview: JsonSafe.asString(json['last_message_preview']),
     lastMessageAt: _parseDate(json['last_message_at']),
+    lastMessageDirection: JsonSafe.asString(json['last_message_direction']),
+    lastMessageDeliveryStatus: JsonSafe.asString(
+      json['last_message_delivery_status'],
+    ),
     lastCustomerMessageAt: _parseDate(json['last_customer_message_at']),
     startedAt: _parseDate(json['started_at']),
     intelligence: json['intelligence'] is Map
@@ -186,7 +271,23 @@ class Conversation {
     followUpDate: _parseDate(json['follow_up_date']),
     followUpMarkedAt: _parseDate(json['follow_up_marked_at']),
     followUpMarkedByName: JsonSafe.asString(json['follow_up_marked_by_name']),
+    messagingPolicy: MessagingPolicy.fromJson(json['messaging_policy']),
+    outboundMedia: json['media_capabilities'] is Map
+        ? JsonSafe.asBool(
+            JsonSafe.asMap(json['media_capabilities'])['outbound_media'],
+          )
+        : JsonSafe.asString(json['provider']).toUpperCase() != 'TIKTOK',
+    claimedBy: json['claimed_by'] is Map
+        ? EmployeeBrief.fromJson(JsonSafe.asMap(json['claimed_by']))
+        : null,
+    firstResponseAt: _parseDate(json['first_response_at']),
+    resolvedAt: _parseDate(json['resolved_at']),
+    lastAgentMessageAt: _parseDate(json['last_agent_message_at']),
   );
+
+  /// True when the platform's own limits refuse another message right now.
+  bool get isMessagingLimited =>
+      messagingPolicy != null && !messagingPolicy!.allowed;
 
   bool get isUnassigned => assignedTo == null;
   bool get hasUnread => unreadCount > 0;
@@ -226,6 +327,8 @@ class Conversation {
     bool clearFollowUpDate = false,
     DateTime? followUpMarkedAt,
     String? followUpMarkedByName,
+    String? lastMessageDirection,
+    String? lastMessageDeliveryStatus,
   }) => Conversation(
     id: id,
     customer: customer,
@@ -242,6 +345,9 @@ class Conversation {
     intelligence: intelligence,
     lastMessagePreview: lastMessagePreview,
     lastMessageAt: lastMessageAt,
+    lastMessageDirection: lastMessageDirection ?? this.lastMessageDirection,
+    lastMessageDeliveryStatus:
+        lastMessageDeliveryStatus ?? this.lastMessageDeliveryStatus,
     lastCustomerMessageAt: clearLastCustomerMessageAt
         ? null
         : (lastCustomerMessageAt ?? this.lastCustomerMessageAt),
@@ -253,6 +359,12 @@ class Conversation {
         : (followUpDate ?? this.followUpDate),
     followUpMarkedAt: followUpMarkedAt ?? this.followUpMarkedAt,
     followUpMarkedByName: followUpMarkedByName ?? this.followUpMarkedByName,
+    messagingPolicy: messagingPolicy,
+    outboundMedia: outboundMedia,
+    claimedBy: claimedBy,
+    firstResponseAt: firstResponseAt,
+    resolvedAt: resolvedAt,
+    lastAgentMessageAt: lastAgentMessageAt,
   );
 }
 
