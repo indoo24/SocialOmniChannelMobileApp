@@ -15,6 +15,7 @@
 ///   login rather than showing a generic error
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cookie_jar/cookie_jar.dart';
@@ -139,6 +140,63 @@ class ApiClient {
 
   Future<T> get<T>(String path, {Map<String, dynamic>? query}) =>
       _send<T>(() => _dio.get<dynamic>(path, queryParameters: query));
+
+  /// A non-JSON `GET` — the CSV exports (`/conversations/export/`,
+  /// `/customers/export/`) are the only callers. `ResponseType.bytes` keeps
+  /// Dio from trying to `jsonDecode` a `text/csv` body (which would throw
+  /// before this method ever saw the response) and preserves the UTF-8 BOM
+  /// the backend prepends for Excel, which a string response could mangle.
+  Future<List<int>> getBytes(String path, {Map<String, dynamic>? query}) async {
+    late final Response<List<int>> response;
+    try {
+      response = await _dio.get<List<int>>(
+        path,
+        queryParameters: query,
+        options: Options(responseType: ResponseType.bytes),
+      );
+    } on DioException catch (error) {
+      _logTransportError(error);
+      throw _mapTransportError(error);
+    }
+
+    final status = response.statusCode ?? 0;
+    final requestLabel =
+        '${response.requestOptions.method} ${response.requestOptions.path}';
+
+    if (status >= 200 && status < 300) {
+      _log('$requestLabel -> $status');
+      return response.data ?? const [];
+    }
+
+    if (status == 401) {
+      _log('$requestLabel -> 401 (session expired)');
+      _onSessionExpired?.call();
+      throw SessionExpiredException();
+    }
+
+    // An error response is still JSON even though bytes were requested, so
+    // it has to be decoded by hand here — the generic `_send` path above
+    // does this for free because it never leaves ResponseType.json.
+    dynamic decodedBody;
+    try {
+      decodedBody = jsonDecode(utf8.decode(response.data ?? const []));
+    } on Object {
+      decodedBody = null;
+    }
+
+    if (status == 403 &&
+        decodedBody is Map &&
+        decodedBody['error'] is Map &&
+        (decodedBody['error'] as Map)['code'] == 'not_authenticated') {
+      _log('$requestLabel -> 403 not_authenticated (session expired)');
+      _onSessionExpired?.call();
+      throw SessionExpiredException();
+    }
+
+    _log('$requestLabel -> $status');
+    AppLog.debug('ApiClient', '$requestLabel body: $decodedBody');
+    throw ApiException.fromResponse(status, decodedBody);
+  }
 
   Future<T> post<T>(String path, {Object? body}) =>
       _send<T>(() => _dio.post<dynamic>(path, data: body));

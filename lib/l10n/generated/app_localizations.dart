@@ -2102,6 +2102,24 @@ abstract class AppLocalizations {
   /// **'Enable automatic assignment'**
   String get autoAssignmentToggleLabel;
 
+  /// No description provided for @strictResponsibilityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Strict responsibility'**
+  String get strictResponsibilityTitle;
+
+  /// No description provided for @strictResponsibilityDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, a conversation with nobody responsible for its channel stays unassigned rather than falling back to whoever is available. When off, responsibility is only a preference.'**
+  String get strictResponsibilityDescription;
+
+  /// No description provided for @strictResponsibilityToggleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Require responsibility to assign'**
+  String get strictResponsibilityToggleLabel;
+
   /// No description provided for @defaultChatCapacityTitle.
   ///
   /// In en, this message translates to:
@@ -3356,6 +3374,48 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load employees.'**
   String get employeesLoadFailedMessage;
 
+  /// Heading for the team form's channel-responsibilities section
+  ///
+  /// In en, this message translates to:
+  /// **'Channel responsibilities'**
+  String get teamResponsibilitiesTitle;
+
+  /// Explanation text below the team responsibilities section
+  ///
+  /// In en, this message translates to:
+  /// **'Which channels this team is offered new conversations from. This decides who is offered work first — it never changes who can see a conversation.'**
+  String get teamResponsibilitiesDescription;
+
+  /// No description provided for @teamResponsibilityNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get teamResponsibilityNone;
+
+  /// No description provided for @teamResponsibilityAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All accounts'**
+  String get teamResponsibilityAll;
+
+  /// No description provided for @teamResponsibilitySelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected accounts'**
+  String get teamResponsibilitySelected;
+
+  /// No description provided for @teamResponsibilitiesLoadFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load current responsibilities.'**
+  String get teamResponsibilitiesLoadFailedMessage;
+
+  /// No description provided for @teamResponsibilityNoChannelsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No connected accounts for this channel yet.'**
+  String get teamResponsibilityNoChannelsMessage;
+
   /// No description provided for @deactivateTeamConfirmTitle.
   ///
   /// In en, this message translates to:
@@ -4171,6 +4231,36 @@ abstract class AppLocalizations {
   /// **'Capacity must be between 0 and 200.'**
   String get chatCapacityInvalidRangeError;
 
+  /// Heading for the employee form's channel-scope section
+  ///
+  /// In en, this message translates to:
+  /// **'Channel scope'**
+  String get routingChannelScopeTitle;
+
+  /// Explanation text below the channel scope section
+  ///
+  /// In en, this message translates to:
+  /// **'A hard limit on which channels this person can be assigned or routed conversations from. Narrowing this never removes conversations they already own.'**
+  String get routingChannelScopeDescription;
+
+  /// No description provided for @routingChannelScopeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All channels'**
+  String get routingChannelScopeAll;
+
+  /// No description provided for @routingChannelScopeSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected channels'**
+  String get routingChannelScopeSelected;
+
+  /// Error when SELECTED scope is chosen but no provider is picked
+  ///
+  /// In en, this message translates to:
+  /// **'Choose at least one channel.'**
+  String get routingChannelScopeRequiredError;
+
   /// Heading for the working hours section
   ///
   /// In en, this message translates to:
@@ -4486,7 +4576,7 @@ abstract class AppLocalizations {
   /// No description provided for @savedRepliesEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No saved replies yet. Create them on the web in Settings.'**
+  /// **'No saved replies yet.'**
   String get savedRepliesEmpty;
 
   /// No description provided for @savedRepliesNoMatch.
@@ -4722,6 +4812,450 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Released from {previousName} back to the queue'**
   String historyReleasedFrom(String previousName);
+
+  /// No description provided for @tabCustomerFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer fields'**
+  String get tabCustomerFields;
+
+  /// No description provided for @customerFieldsPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to view customer fields.'**
+  String get customerFieldsPermissionDenied;
+
+  /// No description provided for @customerFieldsTabTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer fields'**
+  String get customerFieldsTabTitle;
+
+  /// No description provided for @customerFieldsTabDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'These fields are stored on every customer record and can be filled in from a customer\'s profile. Only authorized admins can add, edit, reorder or disable them.'**
+  String get customerFieldsTabDescription;
+
+  /// No description provided for @addFieldAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add field'**
+  String get addFieldAction;
+
+  /// No description provided for @noCustomerFieldsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No custom fields yet'**
+  String get noCustomerFieldsTitle;
+
+  /// No description provided for @noCustomerFieldsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a field to start collecting it on customer profiles.'**
+  String get noCustomerFieldsMessage;
+
+  /// No description provided for @customerFieldKeyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Key: {key}'**
+  String customerFieldKeyLabel(String key);
+
+  /// No description provided for @customerFieldDisabledBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get customerFieldDisabledBadge;
+
+  /// No description provided for @moveFieldUpAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get moveFieldUpAction;
+
+  /// No description provided for @moveFieldDownAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get moveFieldDownAction;
+
+  /// No description provided for @enableFieldAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get enableFieldAction;
+
+  /// No description provided for @disableFieldAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable'**
+  String get disableFieldAction;
+
+  /// No description provided for @customerFieldEnabledSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Field enabled'**
+  String get customerFieldEnabledSnackbar;
+
+  /// No description provided for @customerFieldDisabledSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Field disabled'**
+  String get customerFieldDisabledSnackbar;
+
+  /// No description provided for @customerFieldReorderedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Field order updated'**
+  String get customerFieldReorderedSnackbar;
+
+  /// No description provided for @addFieldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add field'**
+  String get addFieldTitle;
+
+  /// No description provided for @editFieldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit field'**
+  String get editFieldTitle;
+
+  /// No description provided for @fieldLabelFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Label'**
+  String get fieldLabelFieldLabel;
+
+  /// No description provided for @fieldLabelRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a label.'**
+  String get fieldLabelRequiredError;
+
+  /// No description provided for @fieldKeyFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get fieldKeyFieldLabel;
+
+  /// No description provided for @fieldKeyHelperTextGenerated.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated automatically from the label.'**
+  String get fieldKeyHelperTextGenerated;
+
+  /// No description provided for @fieldKeyHelperTextFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'The key cannot be changed after the field is created.'**
+  String get fieldKeyHelperTextFixed;
+
+  /// No description provided for @fieldKeyInvalidError.
+  ///
+  /// In en, this message translates to:
+  /// **'Use only English letters, numbers and underscores.'**
+  String get fieldKeyInvalidError;
+
+  /// No description provided for @fieldTypeFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get fieldTypeFieldLabel;
+
+  /// No description provided for @fieldRequiredToggleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get fieldRequiredToggleLabel;
+
+  /// No description provided for @fieldRequiredToggleHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'A required field cannot be saved empty.'**
+  String get fieldRequiredToggleHelper;
+
+  /// No description provided for @fieldHelpTextFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Help text'**
+  String get fieldHelpTextFieldLabel;
+
+  /// No description provided for @fieldHelpTextFieldHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional guidance shown under the field'**
+  String get fieldHelpTextFieldHint;
+
+  /// No description provided for @fieldPlaceholderFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Placeholder'**
+  String get fieldPlaceholderFieldLabel;
+
+  /// No description provided for @fieldPlaceholderFieldHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional example text shown inside the field'**
+  String get fieldPlaceholderFieldHint;
+
+  /// No description provided for @fieldAddedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Field added'**
+  String get fieldAddedSnackbar;
+
+  /// No description provided for @fieldUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Field updated'**
+  String get fieldUpdatedSnackbar;
+
+  /// No description provided for @fieldTypeText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get fieldTypeText;
+
+  /// No description provided for @fieldTypeLongText.
+  ///
+  /// In en, this message translates to:
+  /// **'Long text'**
+  String get fieldTypeLongText;
+
+  /// No description provided for @fieldTypeNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole number'**
+  String get fieldTypeNumber;
+
+  /// No description provided for @fieldTypeDecimal.
+  ///
+  /// In en, this message translates to:
+  /// **'Decimal number'**
+  String get fieldTypeDecimal;
+
+  /// No description provided for @fieldTypeDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get fieldTypeDate;
+
+  /// No description provided for @fieldTypeDatetime.
+  ///
+  /// In en, this message translates to:
+  /// **'Date & time'**
+  String get fieldTypeDatetime;
+
+  /// No description provided for @fieldTypeBoolean.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes / No'**
+  String get fieldTypeBoolean;
+
+  /// No description provided for @fieldTypeSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Single choice'**
+  String get fieldTypeSelect;
+
+  /// No description provided for @fieldTypeMultiSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple choice'**
+  String get fieldTypeMultiSelect;
+
+  /// No description provided for @fieldTypePhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get fieldTypePhone;
+
+  /// No description provided for @fieldTypeEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get fieldTypeEmail;
+
+  /// No description provided for @tabSavedReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved replies'**
+  String get tabSavedReplies;
+
+  /// No description provided for @savedRepliesPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to view saved replies.'**
+  String get savedRepliesPermissionDenied;
+
+  /// No description provided for @savedRepliesTabDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Reusable text you insert into the reply box and edit before sending. These are not WhatsApp templates and do not need Meta approval.'**
+  String get savedRepliesTabDescription;
+
+  /// No description provided for @newSavedReplyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'New saved reply'**
+  String get newSavedReplyAction;
+
+  /// No description provided for @noSavedRepliesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved replies yet.'**
+  String get noSavedRepliesTitle;
+
+  /// No description provided for @noSavedRepliesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a saved reply to reuse it from the composer.'**
+  String get noSavedRepliesMessage;
+
+  /// No description provided for @savedReplyDisabledBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get savedReplyDisabledBadge;
+
+  /// No description provided for @savedReplyShortcutLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortcut: /{shortcut}'**
+  String savedReplyShortcutLabel(String shortcut);
+
+  /// No description provided for @savedReplyCategoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category: {category}'**
+  String savedReplyCategoryLabel(String category);
+
+  /// No description provided for @addSavedReplyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New saved reply'**
+  String get addSavedReplyTitle;
+
+  /// No description provided for @editSavedReplyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit saved reply'**
+  String get editSavedReplyTitle;
+
+  /// No description provided for @savedReplyTitleFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get savedReplyTitleFieldLabel;
+
+  /// No description provided for @savedReplyTitleRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a title.'**
+  String get savedReplyTitleRequiredError;
+
+  /// No description provided for @savedReplyShortcutFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortcut'**
+  String get savedReplyShortcutFieldLabel;
+
+  /// No description provided for @savedReplyShortcutFieldHint.
+  ///
+  /// In en, this message translates to:
+  /// **'/thanks'**
+  String get savedReplyShortcutFieldHint;
+
+  /// No description provided for @savedReplyShortcutHelperText.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Type / followed by the shortcut in the reply box to insert it.'**
+  String get savedReplyShortcutHelperText;
+
+  /// No description provided for @savedReplyCategoryFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get savedReplyCategoryFieldLabel;
+
+  /// No description provided for @savedReplyScopeFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Who can use it'**
+  String get savedReplyScopeFieldLabel;
+
+  /// No description provided for @savedReplyBodyFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get savedReplyBodyFieldLabel;
+
+  /// No description provided for @savedReplyBodyRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the reply text.'**
+  String get savedReplyBodyRequiredError;
+
+  /// No description provided for @savedReplyBodyHelperText.
+  ///
+  /// In en, this message translates to:
+  /// **'Use {customerToken} or {agentToken} to fill in names when the reply is inserted.'**
+  String savedReplyBodyHelperText(String customerToken, String agentToken);
+
+  /// No description provided for @savedReplyAddedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved reply added'**
+  String get savedReplyAddedSnackbar;
+
+  /// No description provided for @savedReplyUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved reply updated'**
+  String get savedReplyUpdatedSnackbar;
+
+  /// No description provided for @deleteSavedReplyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteSavedReplyAction;
+
+  /// No description provided for @deleteSavedReplyConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete saved reply?'**
+  String get deleteSavedReplyConfirmTitle;
+
+  /// No description provided for @deleteSavedReplyConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" will no longer be available to insert. This cannot be undone from here.'**
+  String deleteSavedReplyConfirmBody(String title);
+
+  /// No description provided for @savedReplyDeletedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved reply deleted'**
+  String get savedReplyDeletedSnackbar;
+
+  /// No description provided for @exportCsvAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Export CSV'**
+  String get exportCsvAction;
+
+  /// No description provided for @exportRateLimitedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many exports in the last minute. Please wait and try again.'**
+  String get exportRateLimitedMessage;
+
+  /// No description provided for @exportFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The export could not be completed. Please try again.'**
+  String get exportFailedMessage;
 }
 
 class _AppLocalizationsDelegate
