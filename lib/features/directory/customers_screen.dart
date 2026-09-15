@@ -204,6 +204,10 @@ class _CustomerRow extends StatelessWidget {
   static String _initials(String name) {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);
     if (parts.isEmpty) return '?';
-    return parts.take(2).map((p) => p[0].toUpperCase()).join();
+    // `.characters.first` rather than `p[0]`: a display name can start with
+    // an emoji or other multi-code-unit character, and raw UTF-16 indexing
+    // would split it mid surrogate pair — a string `TextPainter` then throws
+    // "not well-formed UTF-16" trying to render.
+    return parts.take(2).map((p) => p.characters.first.toUpperCase()).join();
   }
 }

@@ -401,7 +401,8 @@ class _RecordOrderDialogState extends ConsumerState<_RecordOrderDialog> {
             conversationId: widget.conversationId,
             items: validItems,
             delivery: {
-              for (final field in _delivery.entries) field.key: field.value.text,
+              for (final field in _delivery.entries)
+                field.key: field.value.text,
             },
           );
 

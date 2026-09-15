@@ -461,6 +461,15 @@ class DirectoryRepository {
         .toList();
   }
 
+  /// `GET /orders/export/` — every order the caller may see, as a UTF-8 CSV
+  /// (BOM-prefixed for Excel), regardless of pagination. Needs `crm.export`.
+  /// Filtered to one customer's orders here — the same `customer` param the
+  /// list/export endpoint documents, not a client-side filter over
+  /// [customerOrders].
+  Future<List<int>> exportOrdersCsv({required int customerId}) {
+    return _api.getBytes('/orders/export/', query: {'customer': customerId});
+  }
+
   /// [delivery] carries optional delivery fields keyed by their wire name
   /// (`city`, `address`, …). Blank values are not sent, so a quick order sends
   /// exactly the request it always did.

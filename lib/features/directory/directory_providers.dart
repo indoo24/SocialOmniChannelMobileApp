@@ -205,6 +205,16 @@ final conversationOrdersProvider = FutureProvider.family<List<Order>, int>((
       .conversationOrders(conversationId);
 });
 
+/// Every order for one customer, across every conversation — what the
+/// Customer Details screen's Orders section shows, unlike
+/// [conversationOrdersProvider] which is scoped to a single thread.
+final customerOrdersProvider = FutureProvider.family<List<Order>, int>((
+  ref,
+  customerId,
+) {
+  return ref.watch(directoryRepositoryProvider).customerOrders(customerId);
+});
+
 final customerFactsProvider = FutureProvider.family<List<CustomerFact>, int>((
   ref,
   customerId,

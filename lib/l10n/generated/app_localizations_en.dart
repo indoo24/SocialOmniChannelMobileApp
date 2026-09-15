@@ -113,8 +113,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noChannelsTitle => 'No channels connected';
 
   @override
-  String get noChannelsMessage =>
-      'Connect Instagram, Messenger or WhatsApp from the web app to start receiving conversations.';
+  String get noChannelsMessage => 'No channels recorded for this customer yet.';
 
   @override
   String get channelStatusConnected => 'Connected';
@@ -1220,10 +1219,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationFieldLabel => 'Location';
 
   @override
+  String get firstSeenFieldLabel => 'First seen';
+
+  @override
   String get lastSeenFieldLabel => 'Last seen';
 
   @override
   String get confirmedPurchasesFieldLabel => 'Confirmed purchases';
+
+  @override
+  String get confirmedPurchasesSubtitle =>
+      'Verified by an employee, not by a payment system.';
 
   @override
   String get customerNotesFieldLabel => 'Notes';
@@ -1236,6 +1242,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noVisibleConversations => 'No conversations you can see.';
+
+  @override
+  String get channelsCapsSectionTitle => 'CHANNELS';
+
+  @override
+  String get knownFactsCapsSectionTitle => 'KNOWN FACTS';
+
+  @override
+  String get knownFactsSectionSubtitle =>
+      'Extracted from conversations. Confidence shown per fact.';
+
+  @override
+  String get noKnownFactsMessage => 'Nothing known yet.';
+
+  @override
+  String get ordersCapsSectionTitle => 'ORDERS';
+
+  @override
+  String get noOrdersForCustomerMessage =>
+      'No orders recorded for this customer yet.';
 
   @override
   String get searchCustomersHint => 'Search name, email, phone or handle';
@@ -1445,6 +1471,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmedByUnknownEmployee => 'an employee';
+
+  @override
+  String orderedAtLabel(String date) {
+    return 'Ordered $date';
+  }
 
   @override
   String recordedByMessage(String name) {

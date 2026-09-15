@@ -86,8 +86,7 @@ class RoutingPolicy {
         firstResponseSlaSeconds ?? this.firstResponseSlaSeconds,
     stickyConversationOwnership:
         stickyConversationOwnership ?? this.stickyConversationOwnership,
-    strictResponsibility:
-        strictResponsibility ?? this.strictResponsibility,
+    strictResponsibility: strictResponsibility ?? this.strictResponsibility,
     escalationMaxHops: escalationMaxHops ?? this.escalationMaxHops,
   );
 }

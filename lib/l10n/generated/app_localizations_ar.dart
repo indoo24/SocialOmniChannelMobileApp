@@ -112,8 +112,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noChannelsTitle => 'لا توجد قنوات متصلة';
 
   @override
-  String get noChannelsMessage =>
-      'قم بربط Instagram أو Messenger أو WhatsApp من تطبيق الويب لبدء استقبال المحادثات.';
+  String get noChannelsMessage => 'لا توجد قنوات مسجلة لهذا العميل بعد.';
 
   @override
   String get channelStatusConnected => 'متصل';
@@ -1220,10 +1219,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get locationFieldLabel => 'الموقع';
 
   @override
+  String get firstSeenFieldLabel => 'أول ظهور';
+
+  @override
   String get lastSeenFieldLabel => 'آخر ظهور';
 
   @override
   String get confirmedPurchasesFieldLabel => 'المشتريات المؤكدة';
+
+  @override
+  String get confirmedPurchasesSubtitle =>
+      'تم التحقق منها بواسطة موظف، وليس عبر نظام دفع.';
 
   @override
   String get customerNotesFieldLabel => 'ملاحظات';
@@ -1236,6 +1242,26 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noVisibleConversations => 'لا توجد محادثات يمكنك رؤيتها.';
+
+  @override
+  String get channelsCapsSectionTitle => 'القنوات';
+
+  @override
+  String get knownFactsCapsSectionTitle => 'الحقائق المعروفة';
+
+  @override
+  String get knownFactsSectionSubtitle =>
+      'مستخرجة من المحادثات. مستوى الثقة موضح لكل حقيقة.';
+
+  @override
+  String get noKnownFactsMessage => 'لا يوجد شيء معروف بعد.';
+
+  @override
+  String get ordersCapsSectionTitle => 'الطلبات';
+
+  @override
+  String get noOrdersForCustomerMessage =>
+      'لا توجد طلبات مسجلة لهذا العميل بعد.';
 
   @override
   String get searchCustomersHint =>
@@ -1452,6 +1478,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get confirmedByUnknownEmployee => 'أحد الموظفين';
+
+  @override
+  String orderedAtLabel(String date) {
+    return 'تم الطلب في $date';
+  }
 
   @override
   String recordedByMessage(String name) {

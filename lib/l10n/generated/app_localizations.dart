@@ -299,7 +299,7 @@ abstract class AppLocalizations {
   /// No description provided for @noChannelsMessage.
   ///
   /// In en, this message translates to:
-  /// **'Connect Instagram, Messenger or WhatsApp from the web app to start receiving conversations.'**
+  /// **'No channels recorded for this customer yet.'**
   String get noChannelsMessage;
 
   /// No description provided for @channelStatusConnected.
@@ -2324,6 +2324,12 @@ abstract class AppLocalizations {
   /// **'Location'**
   String get locationFieldLabel;
 
+  /// No description provided for @firstSeenFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'First seen'**
+  String get firstSeenFieldLabel;
+
   /// No description provided for @lastSeenFieldLabel.
   ///
   /// In en, this message translates to:
@@ -2335,6 +2341,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirmed purchases'**
   String get confirmedPurchasesFieldLabel;
+
+  /// No description provided for @confirmedPurchasesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified by an employee, not by a payment system.'**
+  String get confirmedPurchasesSubtitle;
 
   /// No description provided for @customerNotesFieldLabel.
   ///
@@ -2359,6 +2371,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No conversations you can see.'**
   String get noVisibleConversations;
+
+  /// No description provided for @channelsCapsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANNELS'**
+  String get channelsCapsSectionTitle;
+
+  /// No description provided for @knownFactsCapsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'KNOWN FACTS'**
+  String get knownFactsCapsSectionTitle;
+
+  /// No description provided for @knownFactsSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Extracted from conversations. Confidence shown per fact.'**
+  String get knownFactsSectionSubtitle;
+
+  /// No description provided for @noKnownFactsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing known yet.'**
+  String get noKnownFactsMessage;
+
+  /// No description provided for @ordersCapsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'ORDERS'**
+  String get ordersCapsSectionTitle;
+
+  /// No description provided for @noOrdersForCustomerMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No orders recorded for this customer yet.'**
+  String get noOrdersForCustomerMessage;
 
   /// No description provided for @searchCustomersHint.
   ///
@@ -2707,6 +2755,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'an employee'**
   String get confirmedByUnknownEmployee;
+
+  /// No description provided for @orderedAtLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ordered {date}'**
+  String orderedAtLabel(String date);
 
   /// No description provided for @recordedByMessage.
   ///
