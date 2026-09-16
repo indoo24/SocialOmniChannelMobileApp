@@ -77,7 +77,8 @@ Conversation _makeConversation({int id = 1}) => Conversation.fromJson({
   'last_message_at': DateTime.now().toIso8601String(),
 });
 
-String _failedMessageJson({required int id}) => '''
+String _failedMessageJson({required int id}) =>
+    '''
 {
   "id": $id,
   "text": "Sorry, missed this",
@@ -90,17 +91,16 @@ String _failedMessageJson({required int id}) => '''
 }
 ''';
 
-Message _failedMessage({required int id}) =>
-    Message.fromJson({
-      'id': id,
-      'text': 'Sorry, missed this',
-      'direction': 'OUTBOUND',
-      'sender_type': 'AGENT',
-      'sent_at': DateTime.now().toIso8601String(),
-      'delivery_status': 'FAILED',
-      'delivery_error': 'The provider could not be reached.',
-      'delivery_error_code': 'channel_unavailable',
-    });
+Message _failedMessage({required int id}) => Message.fromJson({
+  'id': id,
+  'text': 'Sorry, missed this',
+  'direction': 'OUTBOUND',
+  'sender_type': 'AGENT',
+  'sent_at': DateTime.now().toIso8601String(),
+  'delivery_status': 'FAILED',
+  'delivery_error': 'The provider could not be reached.',
+  'delivery_error_code': 'channel_unavailable',
+});
 
 /// A `ConversationController` seeded with fixed state, so `retryStoredMessage`
 /// can be exercised without driving the real REST-backed `build()`.
@@ -168,36 +168,39 @@ void main() {
   });
 
   group('ConversationController.retryStoredMessage', () {
-    test('replaces the failed message with the server response on success', () async {
-      final controller = _FakeConversationController(
-        1,
-        ConversationState(
-          conversation: _makeConversation(id: 1),
-          messages: [_failedMessage(id: 42)],
-        ),
-      );
-
-      final container = ProviderContainer(
-        overrides: [
-          conversationControllerProvider(1).overrideWith(() => controller),
-          apiClientProvider.overrideWithValue(
-            _stubClient((_) => _json(_failedMessageJson(id: 42), 200)),
+    test(
+      'replaces the failed message with the server response on success',
+      () async {
+        final controller = _FakeConversationController(
+          1,
+          ConversationState(
+            conversation: _makeConversation(id: 1),
+            messages: [_failedMessage(id: 42)],
           ),
-        ],
-      );
-      addTearDown(container.dispose);
-      await container.read(conversationControllerProvider(1).future);
+        );
 
-      await controller.retryStoredMessage(42);
+        final container = ProviderContainer(
+          overrides: [
+            conversationControllerProvider(1).overrideWith(() => controller),
+            apiClientProvider.overrideWithValue(
+              _stubClient((_) => _json(_failedMessageJson(id: 42), 200)),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+        await container.read(conversationControllerProvider(1).future);
 
-      final state = container.read(conversationControllerProvider(1)).value!;
-      final message = state.messages.single;
-      expect(message.id, 42);
-      // The stub always answers FAILED again in this test — the point being
-      // verified is that state was replaced with whatever the server said,
-      // not that it necessarily always flips to success.
-      expect(message.deliveryStatus, 'FAILED');
-    });
+        await controller.retryStoredMessage(42);
+
+        final state = container.read(conversationControllerProvider(1)).value!;
+        final message = state.messages.single;
+        expect(message.id, 42);
+        // The stub always answers FAILED again in this test — the point being
+        // verified is that state was replaced with whatever the server said,
+        // not that it necessarily always flips to success.
+        expect(message.deliveryStatus, 'FAILED');
+      },
+    );
 
     test('a 409 refreshes from the server instead of throwing', () async {
       final controller = _FakeConversationController(
@@ -230,37 +233,40 @@ void main() {
       expect(controller.refreshFromServerCalls, 1);
     });
 
-    test('a non-409 failure rethrows rather than being silently swallowed', () async {
-      final controller = _FakeConversationController(
-        1,
-        ConversationState(
-          conversation: _makeConversation(id: 1),
-          messages: [_failedMessage(id: 42)],
-        ),
-      );
+    test(
+      'a non-409 failure rethrows rather than being silently swallowed',
+      () async {
+        final controller = _FakeConversationController(
+          1,
+          ConversationState(
+            conversation: _makeConversation(id: 1),
+            messages: [_failedMessage(id: 42)],
+          ),
+        );
 
-      final container = ProviderContainer(
-        overrides: [
-          conversationControllerProvider(1).overrideWith(() => controller),
-          apiClientProvider.overrideWithValue(
-            _stubClient(
-              (_) => _json(
-                '{"error": {"code": "message_send_error", "message": '
-                '"The provider refused it again.", "details": {}}}',
-                400,
+        final container = ProviderContainer(
+          overrides: [
+            conversationControllerProvider(1).overrideWith(() => controller),
+            apiClientProvider.overrideWithValue(
+              _stubClient(
+                (_) => _json(
+                  '{"error": {"code": "message_send_error", "message": '
+                  '"The provider refused it again.", "details": {}}}',
+                  400,
+                ),
               ),
             ),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-      await container.read(conversationControllerProvider(1).future);
+          ],
+        );
+        addTearDown(container.dispose);
+        await container.read(conversationControllerProvider(1).future);
 
-      await expectLater(
-        controller.retryStoredMessage(42),
-        throwsA(isA<ApiException>()),
-      );
-      expect(controller.refreshFromServerCalls, 0);
-    });
+        await expectLater(
+          controller.retryStoredMessage(42),
+          throwsA(isA<ApiException>()),
+        );
+        expect(controller.refreshFromServerCalls, 0);
+      },
+    );
   });
 }

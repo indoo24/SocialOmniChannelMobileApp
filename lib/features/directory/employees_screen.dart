@@ -19,6 +19,7 @@ import '../../core/theme/tokens.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
+import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
@@ -86,10 +87,12 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
         await ref.read(employeeDirectoryProvider.future);
       },
       body: employees.when(
-        loading: () => ListView.separated(
-          itemCount: 8,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (_, _) => const ConversationSkeleton(),
+        loading: () => AppShimmer(
+          child: ListView.separated(
+            itemCount: 8,
+            separatorBuilder: (_, _) => const Divider(height: 1),
+            itemBuilder: (_, _) => const ConversationSkeleton(),
+          ),
         ),
         error: (error, _) => ErrorStateView(
           error: error,
@@ -115,7 +118,13 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
               ),
               Expanded(
                 child: rows.when(
-                  loading: () => const LoadingState(),
+                  loading: () => AppShimmer(
+                    child: ListView.separated(
+                      itemCount: 8,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (_, _) => const ConversationSkeleton(),
+                    ),
+                  ),
                   error: (error, _) => ErrorStateView(
                     error: error,
                     onRetry: () => ref.invalidate(onlineEmployeesProvider),

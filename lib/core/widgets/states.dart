@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../api/api_exception.dart';
 import '../theme/tokens.dart';
+import 'shimmer.dart';
 
 class LoadingState extends StatelessWidget {
   const LoadingState({this.label, super.key});
@@ -208,45 +209,50 @@ class InlineError extends StatelessWidget {
   }
 }
 
-/// Skeleton row for the inbox while the first page loads.
+/// Skeleton row for conversation lists while content loads.
 class ConversationSkeleton extends StatelessWidget {
   const ConversationSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final base = Theme.of(context).colorScheme.surfaceContainerHighest;
-    Widget bar(double width, double height) => Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: base,
-        borderRadius: BorderRadius.circular(Radii.sm),
-      ),
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Space.lg,
-        vertical: Space.md,
-      ),
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: Space.lg, vertical: Space.md),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(color: base, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: Space.md),
+          SkeletonCircle(size: 40),
+          SizedBox(width: Space.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                bar(140, 12),
-                const SizedBox(height: Space.sm),
-                bar(double.infinity, 10),
-                const SizedBox(height: 6),
-                bar(200, 10),
+                Row(
+                  children: [
+                    Expanded(child: SkeletonText(width: 140, height: 14)),
+                    SizedBox(width: Space.sm),
+                    SkeletonText(width: 48, height: 11),
+                  ],
+                ),
+                SizedBox(height: 6),
+                SkeletonText(width: double.infinity, height: 12),
+                SizedBox(height: 4),
+                SkeletonText(width: 210, height: 12),
+                SizedBox(height: Space.sm),
+                Row(
+                  children: [
+                    SkeletonBox(
+                      width: 64,
+                      height: 18,
+                      borderRadius: Radii.pill,
+                    ),
+                    SizedBox(width: Space.xs),
+                    SkeletonBox(
+                      width: 80,
+                      height: 18,
+                      borderRadius: Radii.pill,
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

@@ -205,10 +205,7 @@ class _HistoryRow extends StatelessWidget {
             const SizedBox(height: 2),
             Padding(
               padding: const EdgeInsets.only(left: 22),
-              child: Text(
-                fallbackReasons,
-                style: theme.textTheme.labelSmall,
-              ),
+              child: Text(fallbackReasons, style: theme.textTheme.labelSmall),
             ),
           ],
         ],
@@ -249,7 +246,10 @@ class _HistoryRow extends StatelessWidget {
 
   /// The fallback reasons row, shown under a fallback placement's
   /// from/to transition — empty for every other event.
-  static String? _fallbackReasonsFor(BuildContext context, ConversationEvent event) {
+  static String? _fallbackReasonsFor(
+    BuildContext context,
+    ConversationEvent event,
+  ) {
     if (event.mode != 'fallback' || event.fallbackReasons.isEmpty) return null;
     return context.l10n.historyFallbackReasonsLabel(
       event.fallbackReasons.join(', '),

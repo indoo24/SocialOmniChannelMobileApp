@@ -25,6 +25,7 @@ import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
+import '../settings/settings_skeleton.dart';
 import 'delete_saved_reply_dialog.dart';
 import 'saved_replies_providers.dart';
 import 'saved_reply.dart';
@@ -60,10 +61,7 @@ class SavedRepliesSettingsTab extends ConsumerWidget {
 
     if (!scrollable) {
       return repliesAsync.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.symmetric(vertical: Space.xl),
-          child: Center(child: CircularProgressIndicator()),
-        ),
+        loading: () => const SavedRepliesSkeleton(scrollable: false),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(manageableSavedRepliesProvider),
@@ -78,7 +76,7 @@ class SavedRepliesSettingsTab extends ConsumerWidget {
         await ref.read(manageableSavedRepliesProvider.future);
       },
       child: repliesAsync.when(
-        loading: () => const LoadingState(),
+        loading: () => const SavedRepliesSkeleton(),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(manageableSavedRepliesProvider),

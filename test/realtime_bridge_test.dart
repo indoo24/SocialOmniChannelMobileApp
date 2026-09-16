@@ -339,76 +339,70 @@ class _FakeInboxController extends InboxController {
 /// unsubscribe the socket, refresh the inbox, and — only when the revoked
 /// conversation is the one on screen — set `revokedConversationProvider`.
 void _accessRevokedDispatchTests() {
-  test(
-    'revokes the active conversation: unsubscribes, refreshes the inbox, '
-    'and signals the screen to pop',
-    () async {
-      final fakeInbox = _FakeInboxController();
+  test('revokes the active conversation: unsubscribes, refreshes the inbox, '
+      'and signals the screen to pop', () async {
+    final fakeInbox = _FakeInboxController();
 
-      final container = ProviderContainer(
-        overrides: [
-          inboxControllerProvider.overrideWith(() => fakeInbox),
-          conversationCountsProvider.overrideWith((ref) async => {}),
-          realtimeClientProvider.overrideWithValue(
-            RealtimeClient(
-              cookieJar: CookieJar(),
-              connect: (uri, {protocols, headers}) =>
-                  throw UnimplementedError('not used in this test'),
-            ),
+    final container = ProviderContainer(
+      overrides: [
+        inboxControllerProvider.overrideWith(() => fakeInbox),
+        conversationCountsProvider.overrideWith((ref) async => {}),
+        realtimeClientProvider.overrideWithValue(
+          RealtimeClient(
+            cookieJar: CookieJar(),
+            connect: (uri, {protocols, headers}) =>
+                throw UnimplementedError('not used in this test'),
           ),
-        ],
-      );
-      addTearDown(container.dispose);
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
 
-      // The conversation on screen is the one about to be revoked.
-      container.read(activeConversationProvider.notifier).opened(77);
-      expect(container.read(revokedConversationProvider), isNull);
+    // The conversation on screen is the one about to be revoked.
+    container.read(activeConversationProvider.notifier).opened(77);
+    expect(container.read(revokedConversationProvider), isNull);
 
-      applyRealtimeEventForTesting(
-        container.read(_refProvider),
-        RealtimeEvent(RealtimeEvents.accessRevoked, {'conversation_id': 77}),
-      );
-      // _apply() does its work in a microtask (see MICROTASK_SCHEDULED in the
-      // bridge's own logging) rather than synchronously.
-      await Future<void>.delayed(Duration.zero);
+    applyRealtimeEventForTesting(
+      container.read(_refProvider),
+      RealtimeEvent(RealtimeEvents.accessRevoked, {'conversation_id': 77}),
+    );
+    // _apply() does its work in a microtask (see MICROTASK_SCHEDULED in the
+    // bridge's own logging) rather than synchronously.
+    await Future<void>.delayed(Duration.zero);
 
-      expect(container.read(revokedConversationProvider), 77);
-      expect(fakeInbox.refreshQuietlyCalls, 1);
-    },
-  );
+    expect(container.read(revokedConversationProvider), 77);
+    expect(fakeInbox.refreshQuietlyCalls, 1);
+  });
 
-  test(
-    'revoking a conversation that is not on screen refreshes the inbox but '
-    'does not signal any screen to pop',
-    () async {
-      final fakeInbox = _FakeInboxController();
+  test('revoking a conversation that is not on screen refreshes the inbox but '
+      'does not signal any screen to pop', () async {
+    final fakeInbox = _FakeInboxController();
 
-      final container = ProviderContainer(
-        overrides: [
-          inboxControllerProvider.overrideWith(() => fakeInbox),
-          conversationCountsProvider.overrideWith((ref) async => {}),
-          realtimeClientProvider.overrideWithValue(
-            RealtimeClient(
-              cookieJar: CookieJar(),
-              connect: (uri, {protocols, headers}) =>
-                  throw UnimplementedError('not used in this test'),
-            ),
+    final container = ProviderContainer(
+      overrides: [
+        inboxControllerProvider.overrideWith(() => fakeInbox),
+        conversationCountsProvider.overrideWith((ref) async => {}),
+        realtimeClientProvider.overrideWithValue(
+          RealtimeClient(
+            cookieJar: CookieJar(),
+            connect: (uri, {protocols, headers}) =>
+                throw UnimplementedError('not used in this test'),
           ),
-        ],
-      );
-      addTearDown(container.dispose);
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
 
-      // Conversation 100 is on screen; conversation 77 is revoked elsewhere.
-      container.read(activeConversationProvider.notifier).opened(100);
+    // Conversation 100 is on screen; conversation 77 is revoked elsewhere.
+    container.read(activeConversationProvider.notifier).opened(100);
 
-      applyRealtimeEventForTesting(
-        container.read(_refProvider),
-        RealtimeEvent(RealtimeEvents.accessRevoked, {'conversation_id': 77}),
-      );
-      await Future<void>.delayed(Duration.zero);
+    applyRealtimeEventForTesting(
+      container.read(_refProvider),
+      RealtimeEvent(RealtimeEvents.accessRevoked, {'conversation_id': 77}),
+    );
+    await Future<void>.delayed(Duration.zero);
 
-      expect(container.read(revokedConversationProvider), isNull);
-      expect(fakeInbox.refreshQuietlyCalls, 1);
-    },
-  );
+    expect(container.read(revokedConversationProvider), isNull);
+    expect(fakeInbox.refreshQuietlyCalls, 1);
+  });
 }

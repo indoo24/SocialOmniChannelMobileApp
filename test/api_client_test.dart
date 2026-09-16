@@ -255,62 +255,56 @@ void _sessionExpiryTests() {
     );
   });
 
-  test(
-    '403 not_authenticated is treated as session expiry, not a permission '
-    'refusal',
-    () async {
-      var notifications = 0;
+  test('403 not_authenticated is treated as session expiry, not a permission '
+      'refusal', () async {
+    var notifications = 0;
 
-      final client = ApiClient.create(
-        cookieJar: CookieJar(),
-        onSessionExpired: () => notifications += 1,
-      );
-      client.raw.httpClientAdapter = _StubAdapter(
-        (_) => json(
-          '{"error": {"code": "not_authenticated", "message": "Authentication '
-          'credentials were not provided.", "details": {}}}',
-          403,
-        ),
-      );
+    final client = ApiClient.create(
+      cookieJar: CookieJar(),
+      onSessionExpired: () => notifications += 1,
+    );
+    client.raw.httpClientAdapter = _StubAdapter(
+      (_) => json(
+        '{"error": {"code": "not_authenticated", "message": "Authentication '
+        'credentials were not provided.", "details": {}}}',
+        403,
+      ),
+    );
 
-      await expectLater(
-        client.get<Map<String, dynamic>>('/conversations/'),
-        throwsA(isA<SessionExpiredException>()),
-      );
+    await expectLater(
+      client.get<Map<String, dynamic>>('/conversations/'),
+      throwsA(isA<SessionExpiredException>()),
+    );
 
-      expect(notifications, 1);
-    },
-  );
+    expect(notifications, 1);
+  });
 
-  test(
-    '403 permission_denied still surfaces as a plain ApiException and '
-    'leaves the session alone',
-    () async {
-      var notifications = 0;
+  test('403 permission_denied still surfaces as a plain ApiException and '
+      'leaves the session alone', () async {
+    var notifications = 0;
 
-      final client = ApiClient.create(
-        cookieJar: CookieJar(),
-        onSessionExpired: () => notifications += 1,
-      );
-      client.raw.httpClientAdapter = _StubAdapter(
-        (_) => json(
-          '{"error": {"code": "permission_denied", "message": "Not allowed.", '
-          '"details": {}}}',
-          403,
-        ),
-      );
+    final client = ApiClient.create(
+      cookieJar: CookieJar(),
+      onSessionExpired: () => notifications += 1,
+    );
+    client.raw.httpClientAdapter = _StubAdapter(
+      (_) => json(
+        '{"error": {"code": "permission_denied", "message": "Not allowed.", '
+        '"details": {}}}',
+        403,
+      ),
+    );
 
-      try {
-        await client.post<dynamic>('/conversations/1/assign/');
-        fail('should have thrown');
-      } on ApiException catch (error) {
-        expect(error is SessionExpiredException, isFalse);
-        expect(error.code, 'permission_denied');
-      }
+    try {
+      await client.post<dynamic>('/conversations/1/assign/');
+      fail('should have thrown');
+    } on ApiException catch (error) {
+      expect(error is SessionExpiredException, isFalse);
+      expect(error.code, 'permission_denied');
+    }
 
-      expect(notifications, 0);
-    },
-  );
+    expect(notifications, 0);
+  });
 
   test('redirects are capped so a credential cannot be walked onward', () {
     final client = ApiClient.create(cookieJar: CookieJar());

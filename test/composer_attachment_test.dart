@@ -988,32 +988,32 @@ void main() {
       },
     );
 
-    testWidgets(
-      'adding attachments in multiple batches stages both batches',
-      (tester) async {
-        ImagePickerPlatform.instance = _FakeImagePicker(
-          filePath: pickedImagePath,
-        );
+    testWidgets('adding attachments in multiple batches stages both batches', (
+      tester,
+    ) async {
+      ImagePickerPlatform.instance = _FakeImagePicker(
+        filePath: pickedImagePath,
+      );
 
-        final docFile = File('${tempDir.path}/guide.pdf');
-        await docFile.writeAsBytes(List.filled(1024, 0));
-        FilePickerPlatform.instance = _FakeFilePicker(
-          files: [
-            _TestPlatformFile(
-              name: 'guide.pdf',
-              filePath: docFile.path,
-              sizeBytes: 1024,
-            ),
-          ],
-        );
+      final docFile = File('${tempDir.path}/guide.pdf');
+      await docFile.writeAsBytes(List.filled(1024, 0));
+      FilePickerPlatform.instance = _FakeFilePicker(
+        files: [
+          _TestPlatformFile(
+            name: 'guide.pdf',
+            filePath: docFile.path,
+            sizeBytes: 1024,
+          ),
+        ],
+      );
 
-        final adapter = _StubAdapter((options) {
-          if (options.method == 'POST' &&
-              options.path == '/conversations/42/attachments/') {
-            final fd = options.data as FormData;
-            final name = fd.files.first.value.filename ?? 'file';
-            final isImg = name.endsWith('.jpg');
-            return _json('''
+      final adapter = _StubAdapter((options) {
+        if (options.method == 'POST' &&
+            options.path == '/conversations/42/attachments/') {
+          final fd = options.data as FormData;
+          final name = fd.files.first.value.filename ?? 'file';
+          final isImg = name.endsWith('.jpg');
+          return _json('''
 {
   "id": "draft-$name",
   "type": "${isImg ? 'IMAGE' : 'FILE'}",
@@ -1025,40 +1025,39 @@ void main() {
   "expires_at": "2026-09-04T12:00:00Z"
 }
 ''', 201);
-          }
-          if (options.path.contains('/messages/')) {
-            return _json('{"results": []}', 200);
-          }
-          if (options.path.contains('/notes/')) {
-            return _json('[]', 200);
-          }
-          if (options.path.contains('/conversations/42/')) {
-            return _json(_conversationDetail, 200);
-          }
-          return _json('{}', 200);
-        });
-        final client = ApiClient.create(cookieJar: CookieJar());
-        client.raw.httpClientAdapter = adapter;
+        }
+        if (options.path.contains('/messages/')) {
+          return _json('{"results": []}', 200);
+        }
+        if (options.path.contains('/notes/')) {
+          return _json('[]', 200);
+        }
+        if (options.path.contains('/conversations/42/')) {
+          return _json(_conversationDetail, 200);
+        }
+        return _json('{}', 200);
+      });
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
 
-        await _pumpConversation(tester, client);
+      await _pumpConversation(tester, client);
 
-        // Batch 1: Image from gallery
-        await tester.tap(find.byIcon(Icons.attach_file_rounded));
-        await tester.pumpAndSettle();
-        await _tapAndPumpUntilIdle(tester, find.text('Photo from gallery'));
+      // Batch 1: Image from gallery
+      await tester.tap(find.byIcon(Icons.attach_file_rounded));
+      await tester.pumpAndSettle();
+      await _tapAndPumpUntilIdle(tester, find.text('Photo from gallery'));
 
-        expect(find.byIcon(Icons.close), findsOneWidget);
+      expect(find.byIcon(Icons.close), findsOneWidget);
 
-        // Batch 2: Document
-        await tester.tap(find.byIcon(Icons.attach_file_rounded));
-        await tester.pumpAndSettle();
-        await _tapAndPumpUntilIdle(tester, find.text('Document'));
+      // Batch 2: Document
+      await tester.tap(find.byIcon(Icons.attach_file_rounded));
+      await tester.pumpAndSettle();
+      await _tapAndPumpUntilIdle(tester, find.text('Document'));
 
-        // Both items staged!
-        expect(find.byIcon(Icons.close), findsNWidgets(2));
-        expect(find.text('guide.pdf'), findsOneWidget);
-      },
-    );
+      // Both items staged!
+      expect(find.byIcon(Icons.close), findsNWidgets(2));
+      expect(find.text('guide.pdf'), findsOneWidget);
+    });
 
     testWidgets(
       'removing one attachment from a multi-attachment selection leaves others staged',
@@ -1304,61 +1303,56 @@ void main() {
       },
     );
 
-    testWidgets(
-      'capping attachments at 10 shows limit reached message',
-      (tester) async {
-        final files = <PlatformFile>[];
-        for (var i = 1; i <= 11; i++) {
-          final f = File('${tempDir.path}/doc$i.pdf');
-          await f.writeAsBytes(List.filled(64, 0));
-          files.add(
-            _TestPlatformFile(
-              name: 'doc$i.pdf',
-              filePath: f.path,
-              sizeBytes: 64,
-            ),
-          );
-        }
+    testWidgets('capping attachments at 10 shows limit reached message', (
+      tester,
+    ) async {
+      final files = <PlatformFile>[];
+      for (var i = 1; i <= 11; i++) {
+        final f = File('${tempDir.path}/doc$i.pdf');
+        await f.writeAsBytes(List.filled(64, 0));
+        files.add(
+          _TestPlatformFile(name: 'doc$i.pdf', filePath: f.path, sizeBytes: 64),
+        );
+      }
 
-        FilePickerPlatform.instance = _FakeFilePicker(files: files);
+      FilePickerPlatform.instance = _FakeFilePicker(files: files);
 
-        final client = _stubClient((options) {
-          if (options.method == 'POST' &&
-              options.path == '/conversations/42/attachments/') {
-            final fd = options.data as FormData;
-            final name = fd.files.first.value.filename ?? '';
-            return _json('''
+      final client = _stubClient((options) {
+        if (options.method == 'POST' &&
+            options.path == '/conversations/42/attachments/') {
+          final fd = options.data as FormData;
+          final name = fd.files.first.value.filename ?? '';
+          return _json('''
 {
   "id": "draft-$name", "type": "FILE", "mime_type": "application/pdf",
   "file_name": "$name", "size_bytes": 64, "is_voice": false,
   "duration_ms": null, "expires_at": "2026-09-04T12:00:00Z"
 }
 ''', 201);
-          }
-          if (options.path.contains('/messages/')) {
-            return _json('{"results": []}', 200);
-          }
-          if (options.path.contains('/notes/')) {
-            return _json('[]', 200);
-          }
-          if (options.path.contains('/conversations/42/')) {
-            return _json(_conversationDetail, 200);
-          }
-          return _json('{}', 200);
-        });
+        }
+        if (options.path.contains('/messages/')) {
+          return _json('{"results": []}', 200);
+        }
+        if (options.path.contains('/notes/')) {
+          return _json('[]', 200);
+        }
+        if (options.path.contains('/conversations/42/')) {
+          return _json(_conversationDetail, 200);
+        }
+        return _json('{}', 200);
+      });
 
-        await _pumpConversation(tester, client);
-        await tester.tap(find.byIcon(Icons.attach_file_rounded));
-        await tester.pumpAndSettle();
-        await _tapAndPumpUntilIdle(tester, find.text('Document'));
+      await _pumpConversation(tester, client);
+      await tester.tap(find.byIcon(Icons.attach_file_rounded));
+      await tester.pumpAndSettle();
+      await _tapAndPumpUntilIdle(tester, find.text('Document'));
 
-        expect(find.byIcon(Icons.close), findsNWidgets(10));
-        expect(
-          find.text('You can attach up to 10 files per message.'),
-          findsOneWidget,
-        );
-      },
-    );
+      expect(find.byIcon(Icons.close), findsNWidgets(10));
+      expect(
+        find.text('You can attach up to 10 files per message.'),
+        findsOneWidget,
+      );
+    });
 
     testWidgets(
       'document attachment renders properly in message bubble with size and name',

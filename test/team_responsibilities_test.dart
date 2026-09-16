@@ -105,7 +105,10 @@ _StubAdapter _adapter({
       return _json(responsibilitiesJson, 200);
     }
     if (path == '/employees/' && options.method == 'GET') {
-      return _json('{"count": 0, "next": null, "previous": null, "results": []}', 200);
+      return _json(
+        '{"count": 0, "next": null, "previous": null, "results": []}',
+        200,
+      );
     }
     return _json('{}', 200);
   });
@@ -335,52 +338,51 @@ void main() {
   });
 
   group('Team responsibilities — submission', () {
-    testWidgets(
-      'Add Team omits responsibilities when nothing was set',
-      (tester) async {
-        RequestOptions? captured;
-        final adapter = _adapter(
-          extra: (options) {
-            if (options.path == '/teams/' && options.method == 'POST') {
-              captured = options;
-              return _json(
-                '{"id": 9, "name": "New Team", "color": "", "language": "",'
-                ' "is_active": true, "members": [], "leaders": []}',
-                201,
-              );
-            }
-            return ResponseBody.fromString('', 599);
-          },
-        );
-        final client = _clientFrom(adapter);
+    testWidgets('Add Team omits responsibilities when nothing was set', (
+      tester,
+    ) async {
+      RequestOptions? captured;
+      final adapter = _adapter(
+        extra: (options) {
+          if (options.path == '/teams/' && options.method == 'POST') {
+            captured = options;
+            return _json(
+              '{"id": 9, "name": "New Team", "color": "", "language": "",'
+              ' "is_active": true, "members": [], "leaders": []}',
+              201,
+            );
+          }
+          return ResponseBody.fromString('', 599);
+        },
+      );
+      final client = _clientFrom(adapter);
 
-        await tester.pumpWidget(
-          _harness(
-            apiClient: client,
-            child: Builder(
-              builder: (ctx) => TextButton(
-                onPressed: () => showAddTeamSheet(ctx),
-                child: const Text('Open'),
-              ),
+      await tester.pumpWidget(
+        _harness(
+          apiClient: client,
+          child: Builder(
+            builder: (ctx) => TextButton(
+              onPressed: () => showAddTeamSheet(ctx),
+              child: const Text('Open'),
             ),
           ),
-        );
+        ),
+      );
 
-        await tester.tap(find.text('Open'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
 
-        await tester.enterText(
-          find.widgetWithText(TextField, 'Team name'),
-          'New Team',
-        );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Team name'),
+        'New Team',
+      );
 
-        await _scrollToAndTapSave(tester);
+      await _scrollToAndTapSave(tester);
 
-        expect(captured, isNotNull);
-        final data = captured!.data as Map<String, dynamic>;
-        expect(data.containsKey('responsibilities'), isFalse);
-      },
-    );
+      expect(captured, isNotNull);
+      final data = captured!.data as Map<String, dynamic>;
+      expect(data.containsKey('responsibilities'), isFalse);
+    });
 
     testWidgets(
       'Add Team sends an all-accounts rule for a provider set to All',
@@ -438,8 +440,7 @@ void main() {
 
         expect(captured, isNotNull);
         final data = captured!.data as Map<String, dynamic>;
-        final responsibilities =
-            data['responsibilities'] as List<dynamic>;
+        final responsibilities = data['responsibilities'] as List<dynamic>;
         expect(responsibilities, hasLength(1));
         expect(responsibilities.single, {
           'provider': 'WHATSAPP',
@@ -448,49 +449,48 @@ void main() {
       },
     );
 
-    testWidgets(
-      'Selected scope with no channel picked is rejected locally',
-      (tester) async {
-        final client = _clientFrom(_adapter());
+    testWidgets('Selected scope with no channel picked is rejected locally', (
+      tester,
+    ) async {
+      final client = _clientFrom(_adapter());
 
-        await tester.pumpWidget(
-          _harness(
-            apiClient: client,
-            child: Builder(
-              builder: (ctx) => TextButton(
-                onPressed: () => showAddTeamSheet(ctx),
-                child: const Text('Open'),
-              ),
+      await tester.pumpWidget(
+        _harness(
+          apiClient: client,
+          child: Builder(
+            builder: (ctx) => TextButton(
+              onPressed: () => showAddTeamSheet(ctx),
+              child: const Text('Open'),
             ),
           ),
-        );
+        ),
+      );
 
-        await tester.tap(find.text('Open'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
 
-        await tester.enterText(
-          find.widgetWithText(TextField, 'Team name'),
-          'New Team',
-        );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Team name'),
+        'New Team',
+      );
 
-        await tester.dragUntilVisible(
-          find.text('Channel responsibilities'),
-          _sheetScrollable(),
-          const Offset(0, -400),
-        );
-        await tester.pumpAndSettle();
+      await tester.dragUntilVisible(
+        find.text('Channel responsibilities'),
+        _sheetScrollable(),
+        const Offset(0, -400),
+      );
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.text('None').first);
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Selected accounts').last);
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('None').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Selected accounts').last);
+      await tester.pumpAndSettle();
 
-        await _scrollToAndTapSave(tester);
-        await _scrollToErrorBanner(tester);
+      await _scrollToAndTapSave(tester);
+      await _scrollToErrorBanner(tester);
 
-        expect(find.text('Choose at least one channel.'), findsOneWidget);
-      },
-    );
+      expect(find.text('Choose at least one channel.'), findsOneWidget);
+    });
 
     testWidgets(
       'Edit Team omits responsibilities when the section was never touched',

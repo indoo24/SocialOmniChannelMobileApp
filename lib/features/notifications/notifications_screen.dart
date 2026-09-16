@@ -10,6 +10,7 @@ import '../../core/models/notification.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/badges.dart';
+import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../core/widgets/user_account_menu.dart';
 import '../../l10n/l10n_extensions.dart';
@@ -87,7 +88,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ],
       ),
       body: notificationsAsync.when(
-        loading: () => const LoadingState(),
+        loading: () => const _NotificationsSkeleton(),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () =>
@@ -343,6 +344,52 @@ class _NotificationTile extends StatelessWidget {
                           ),
                       ],
                     ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationsSkeleton extends StatelessWidget {
+  const _NotificationsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppShimmer(
+      child: ListView.separated(
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 8,
+        separatorBuilder: (_, _) => const Divider(height: 1),
+        itemBuilder: (context, index) => const Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: Space.lg,
+            vertical: Space.md,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SkeletonCircle(size: 38),
+              SizedBox(width: Space.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: SkeletonText(width: 130, height: 14)),
+                        SizedBox(width: Space.sm),
+                        SkeletonText(width: 48, height: 10),
+                      ],
+                    ),
+                    SizedBox(height: 6),
+                    SkeletonText(width: double.infinity, height: 12),
+                    SizedBox(height: 4),
+                    SkeletonText(width: 180, height: 12),
                   ],
                 ),
               ),

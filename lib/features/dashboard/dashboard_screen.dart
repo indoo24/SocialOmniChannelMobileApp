@@ -25,6 +25,7 @@ import '../conversations/inbox_screen.dart';
 import '../directory/directory_providers.dart';
 import '../performance/performance_card.dart';
 import 'dashboard_date_filter_sheet.dart';
+import 'dashboard_skeleton.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -38,18 +39,27 @@ class DashboardScreen extends ConsumerWidget {
     return SectionScaffold(
       title: context.l10n.dashboardGreeting(firstName),
       onRefresh: () async {
-        ref.invalidate(dashboardProvider);
-        await ref.read(dashboardProvider.future);
+        ref
+          ..invalidate(dashboardProvider)
+          ..invalidate(dashboardPerformanceProvider);
+        await Future.wait([
+          ref.read(dashboardProvider.future),
+          ref.read(dashboardPerformanceProvider.future),
+        ]);
       },
       body: summary.when(
-        loading: () => const LoadingState(),
+        loading: () => const DashboardSkeleton(),
         error: (error, _) => ListView(
           children: [
             SizedBox(
               height: MediaQuery.sizeOf(context).height * 0.6,
               child: ErrorStateView(
                 error: error,
-                onRetry: () => ref.invalidate(dashboardProvider),
+                onRetry: () {
+                  ref
+                    ..invalidate(dashboardProvider)
+                    ..invalidate(dashboardPerformanceProvider);
+                },
               ),
             ),
           ],

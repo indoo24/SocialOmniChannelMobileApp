@@ -33,6 +33,7 @@ import 'composer_attachment.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
 import 'conversation_resolve_button.dart';
+import 'conversation_skeleton.dart';
 import 'message_bubble.dart';
 import 'notes_controller.dart';
 
@@ -195,8 +196,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         : [if (attachmentId != null && attachmentId.isNotEmpty) attachmentId];
     final previews =
         (attachmentPreviews != null && attachmentPreviews.isNotEmpty)
-            ? attachmentPreviews
-            : [?attachmentPreview];
+        ? attachmentPreviews
+        : [?attachmentPreview];
     final hasAttachment = ids.isNotEmpty;
     if ((text.isEmpty && !hasAttachment) || _sending) return;
 
@@ -214,7 +215,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             text,
             attachmentIds: ids,
             attachmentPreviews: previews,
-            replyTo: replyTo == null ? null : QuotedMessage.fromMessage(replyTo),
+            replyTo: replyTo == null
+                ? null
+                : QuotedMessage.fromMessage(replyTo),
           );
       _scrollToBottom(animated: true);
     } on ApiException catch (error) {
@@ -310,7 +313,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         titleSpacing: 0,
         title: async.maybeWhen(
           data: (state) => _Header(conversation: state.conversation),
-          orElse: () => Text(context.l10n.conversationFallbackTitle),
+          orElse: () => const ConversationHeaderSkeleton(),
         ),
         actions: [
           async.maybeWhen(
@@ -318,7 +321,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               conversation: state.conversation,
               canChange: canChangeStatus,
             ),
-            orElse: () => const SizedBox.shrink(),
+            orElse: () => const ConversationActionSkeleton(),
           ),
           async.maybeWhen(
             data: (state) => _FollowUpButton(
@@ -332,13 +335,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               conversation: state.conversation,
               canAssignAny: canAssignAny,
             ),
-            orElse: () => const SizedBox.shrink(),
+            orElse: () => const ConversationAssigneeSkeleton(),
           ),
           const SizedBox(width: Space.xs),
         ],
       ),
       body: async.when(
-        loading: () => LoadingState(label: context.l10n.loadingConversation),
+        loading: () => const ConversationThreadSkeleton(),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(
@@ -1025,7 +1028,11 @@ class _MessageList extends ConsumerWidget {
                 MessageBubble(
                   message: entry.message!,
                   provider: state.conversation.provider,
-                  onRetry: _retryHandlerFor(ref, conversationId, entry.message!),
+                  onRetry: _retryHandlerFor(
+                    ref,
+                    conversationId,
+                    entry.message!,
+                  ),
                   onDiscard:
                       entry.message!.hasFailed && entry.message!.localId != null
                       ? () => ref
@@ -1782,7 +1789,9 @@ class _ComposerState extends ConsumerState<_Composer> {
                           onError: _showMessage,
                           onUploadingChanged: (uploading) {
                             if (mounted) {
-                              setState(() => _isUploadingAttachments = uploading);
+                              setState(
+                                () => _isUploadingAttachments = uploading,
+                              );
                             }
                           },
                         ),

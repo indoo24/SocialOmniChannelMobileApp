@@ -203,40 +203,37 @@ void main() {
 /// cookie for minutes before giving up.
 void _closeCodeTests() {
   for (final closeCode in const [4401, 4403]) {
-    test(
-      'a stream closing with $closeCode calls onUnauthorized and stops '
-      'retrying',
-      () async {
-        final jar = CookieJar();
-        var unauthorizedCalls = 0;
-        late _ClosingChannel channel;
+    test('a stream closing with $closeCode calls onUnauthorized and stops '
+        'retrying', () async {
+      final jar = CookieJar();
+      var unauthorizedCalls = 0;
+      late _ClosingChannel channel;
 
-        final client = RealtimeClient(
-          cookieJar: jar,
-          connect: (uri, {protocols, headers}) {
-            channel = _ClosingChannel(closeCode);
-            return channel;
-          },
-          onUnauthorized: () => unauthorizedCalls += 1,
-        );
+      final client = RealtimeClient(
+        cookieJar: jar,
+        connect: (uri, {protocols, headers}) {
+          channel = _ClosingChannel(closeCode);
+          return channel;
+        },
+        onUnauthorized: () => unauthorizedCalls += 1,
+      );
 
-        await client.connect();
-        expect(client.status, RealtimeStatus.connected);
+      await client.connect();
+      expect(client.status, RealtimeStatus.connected);
 
-        channel.closeNow();
-        await Future<void>.delayed(Duration.zero);
+      channel.closeNow();
+      await Future<void>.delayed(Duration.zero);
 
-        expect(unauthorizedCalls, 1);
-        expect(client.status, RealtimeStatus.disconnected);
-        expect(
-          client.hasGivenUp,
-          isFalse,
-          reason:
-              'given-up is the generic retry-exhaustion state; an '
-              'unauthorized close is reported once and does not touch it',
-        );
-      },
-    );
+      expect(unauthorizedCalls, 1);
+      expect(client.status, RealtimeStatus.disconnected);
+      expect(
+        client.hasGivenUp,
+        isFalse,
+        reason:
+            'given-up is the generic retry-exhaustion state; an '
+            'unauthorized close is reported once and does not touch it',
+      );
+    });
   }
 
   test(

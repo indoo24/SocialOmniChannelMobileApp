@@ -34,6 +34,7 @@ import '../directory/directory_providers.dart';
 import '../messages/conversation_controller.dart';
 import 'channel_connect_sheets.dart';
 import 'more_settings_tab.dart';
+import 'settings_skeleton.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -42,7 +43,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final employee = ref.watch(currentEmployeeProvider);
     if (employee == null) {
-      return const Scaffold(body: LoadingState());
+      return const SettingsSkeleton();
     }
 
     final canSeeChannels = employee.can(Perm.channelView);
@@ -659,7 +660,7 @@ class _ChannelsTabState extends ConsumerState<_ChannelsTab> {
         await ref.read(channelsProvider.future);
       },
       child: channels.when(
-        loading: () => const LoadingState(),
+        loading: () => const ChannelsSkeleton(),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(channelsProvider),
@@ -2182,7 +2183,7 @@ class _AssignmentTab extends ConsumerWidget {
         await ref.read(routingPolicyProvider.future);
       },
       child: policyAsync.when(
-        loading: () => const LoadingState(),
+        loading: () => const AssignmentSkeleton(),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(routingPolicyProvider),

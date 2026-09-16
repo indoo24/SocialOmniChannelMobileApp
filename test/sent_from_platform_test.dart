@@ -163,13 +163,11 @@ void main() {
     },
   );
 
-  testWidgets(
-    'an ordinary outbound message still shows the agent name, not a '
-    'platform label',
-    (tester) async {
-      final client = _stubClient((options) {
-        if (options.path.contains('/conversations/42/messages/')) {
-          return _json('''
+  testWidgets('an ordinary outbound message still shows the agent name, not a '
+      'platform label', (tester) async {
+    final client = _stubClient((options) {
+      if (options.path.contains('/conversations/42/messages/')) {
+        return _json('''
             {
               "results": [
                 {
@@ -183,12 +181,12 @@ void main() {
               ]
             }
           ''', 200);
-        }
-        if (options.path.contains('/conversations/42/notes/')) {
-          return _json('[]', 200);
-        }
-        if (options.path.contains('/conversations/42/')) {
-          return _json('''
+      }
+      if (options.path.contains('/conversations/42/notes/')) {
+        return _json('[]', 200);
+      }
+      if (options.path.contains('/conversations/42/')) {
+        return _json('''
             {
               "id": 42,
               "customer": {
@@ -203,32 +201,31 @@ void main() {
               "status": "OPEN"
             }
           ''', 200);
-        }
-        if (options.path.contains('/facts')) return _json('[]', 200);
-        if (options.path.contains('/orders')) return _json('[]', 200);
-        if (options.path.contains('/channels/')) return _json('[]', 200);
-        return _json('{}', 200);
-      });
+      }
+      if (options.path.contains('/facts')) return _json('[]', 200);
+      if (options.path.contains('/orders')) return _json('[]', 200);
+      if (options.path.contains('/channels/')) return _json('[]', 200);
+      return _json('{}', 200);
+    });
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            apiClientProvider.overrideWithValue(client),
-            currentEmployeeProvider.overrideWithValue(_employee()),
-          ],
-          child: MaterialApp(
-            theme: AppTheme.light,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: const ConversationScreen(conversationId: 42),
-          ),
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          apiClientProvider.overrideWithValue(client),
+          currentEmployeeProvider.overrideWithValue(_employee()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const ConversationScreen(conversationId: 42),
         ),
-      );
+      ),
+    );
 
-      await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-      expect(find.textContaining('Sam Agent'), findsOneWidget);
-      expect(find.textContaining('Sent from'), findsNothing);
-    },
-  );
+    expect(find.textContaining('Sam Agent'), findsOneWidget);
+    expect(find.textContaining('Sent from'), findsNothing);
+  });
 }

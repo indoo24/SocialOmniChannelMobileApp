@@ -298,8 +298,8 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         : [if (attachmentId != null && attachmentId.isNotEmpty) attachmentId];
     final previews =
         (attachmentPreviews != null && attachmentPreviews.isNotEmpty)
-            ? attachmentPreviews
-            : [?attachmentPreview];
+        ? attachmentPreviews
+        : [?attachmentPreview];
 
     final hasAttachments = ids.isNotEmpty;
     if (current == null || (trimmed.isEmpty && !hasAttachments)) return;
@@ -743,12 +743,14 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     if (byId.isEmpty) return;
 
     var changed = false;
-    final patched = current.messages.map((m) {
-      final update = byId[m.id];
-      if (update == null) return m;
-      changed = true;
-      return m.withDeliveryUpdate(update);
-    }).toList(growable: false);
+    final patched = current.messages
+        .map((m) {
+          final update = byId[m.id];
+          if (update == null) return m;
+          changed = true;
+          return m.withDeliveryUpdate(update);
+        })
+        .toList(growable: false);
 
     if (!changed) return;
     state = AsyncData(current.copyWith(messages: patched));

@@ -15,6 +15,7 @@ import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
+import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'customer_field_filter_sheet.dart';
@@ -78,10 +79,12 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           ),
           Expanded(
             child: customers.when(
-              loading: () => ListView.separated(
-                itemCount: 8,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (_, _) => const ConversationSkeleton(),
+              loading: () => AppShimmer(
+                child: ListView.separated(
+                  itemCount: 8,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (_, _) => const ConversationSkeleton(),
+                ),
               ),
               error: (error, _) => ErrorStateView(
                 error: error,

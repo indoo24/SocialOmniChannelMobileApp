@@ -178,13 +178,29 @@ final performanceProvider = FutureProvider<PerformanceReport>((ref) {
       .performance(days: ref.watch(performanceWindowProvider));
 });
 
+/// Performance metrics filtered by the Dashboard's active date-range filter.
+///
+/// Driven by [dashboardDateFilterProvider] so when the user selects Today,
+/// Last 7 days, Last 30 days, This month, Last month, or a Custom range,
+/// the performance numbers update synchronously with the rest of the Dashboard.
+final dashboardPerformanceProvider = FutureProvider<PerformanceReport>((ref) {
+  final filter = ref.watch(dashboardDateFilterProvider);
+  return ref
+      .watch(directoryRepositoryProvider)
+      .performance(
+        preset: filter.preset?.apiValue,
+        from: filter.fromApiString,
+        to: filter.toApiString,
+      );
+});
+
 /// The signed-in employee's own row, or null before it arrives.
 ///
 /// Every employee is entitled to their own numbers, so this needs no
 /// permission check — the endpoint returns exactly one row for an agent.
 final myPerformanceProvider = Provider<EmployeePerformance?>((ref) {
   final me = ref.watch(currentEmployeeProvider);
-  final report = ref.watch(performanceProvider).value;
+  final report = ref.watch(dashboardPerformanceProvider).value;
   if (me == null || report == null) return null;
 
   for (final row in report.results) {

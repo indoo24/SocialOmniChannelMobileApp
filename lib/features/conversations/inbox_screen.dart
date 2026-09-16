@@ -22,6 +22,7 @@ import '../../core/widgets/app_drawer.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
+import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../core/widgets/user_account_menu.dart';
 import '../../core/utils/formatting.dart';
@@ -126,10 +127,13 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               onRefresh: () =>
                   ref.read(inboxControllerProvider.notifier).refresh(),
               child: inbox.when(
-                loading: () => ListView.separated(
-                  itemCount: 8,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (_, _) => const ConversationSkeleton(),
+                loading: () => AppShimmer(
+                  child: ListView.separated(
+                    itemCount: 8,
+                    separatorBuilder: (_, _) =>
+                        const Divider(height: 1, indent: 68),
+                    itemBuilder: (_, _) => const ConversationSkeleton(),
+                  ),
                 ),
                 error: (error, _) => ListView(
                   children: [

@@ -199,9 +199,7 @@ void main() {
 
       expect(find.byKey(_input), findsOneWidget);
       expect(
-        find.text(
-          'TikTok allows 2 more messages until the customer replies.',
-        ),
+        find.text('TikTok allows 2 more messages until the customer replies.'),
         findsOneWidget,
       );
       expect(find.byIcon(Icons.attach_file_rounded), findsNothing);

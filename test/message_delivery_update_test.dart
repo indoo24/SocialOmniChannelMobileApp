@@ -144,14 +144,12 @@ void main() {
     });
 
     test('a read receipt does not clobber an earlier delivered_at', () {
-      final delivered = _sentMessage(
-        id: 5,
-        status: 'DELIVERED',
-      ).withDeliveryUpdate({
-        'id': 5,
-        'delivery_status': 'DELIVERED',
-        'delivered_at': '2026-01-01T00:00:05Z',
-      });
+      final delivered = _sentMessage(id: 5, status: 'DELIVERED')
+          .withDeliveryUpdate({
+            'id': 5,
+            'delivery_status': 'DELIVERED',
+            'delivered_at': '2026-01-01T00:00:05Z',
+          });
 
       // A later read-receipt update that (unusually) omits delivered_at
       // should keep the delivered_at already recorded.
@@ -178,9 +176,7 @@ void main() {
       );
       final container = ProviderContainer(
         overrides: [
-          conversationControllerProvider(
-            1,
-          ).overrideWith(() => controller),
+          conversationControllerProvider(1).overrideWith(() => controller),
         ],
       );
       addTearDown(container.dispose);
@@ -216,9 +212,7 @@ void main() {
       final controller = _FakeConversationController(1, initial);
       final container = ProviderContainer(
         overrides: [
-          conversationControllerProvider(
-            1,
-          ).overrideWith(() => controller),
+          conversationControllerProvider(1).overrideWith(() => controller),
         ],
       );
       addTearDown(container.dispose);
@@ -265,67 +259,76 @@ void main() {
       await container.read(conversationControllerProvider(1).future);
     });
 
-    test('delivery-status payload patches the open conversation in place', () async {
-      container.read(activeConversationProvider.notifier).opened(1);
+    test(
+      'delivery-status payload patches the open conversation in place',
+      () async {
+        container.read(activeConversationProvider.notifier).opened(1);
 
-      applyRealtimeEventForTesting(
-        container.read(_refProvider),
-        RealtimeEvent(RealtimeEvents.messageUpdated, {
-          'reason': 'delivery_status',
-          'message_ids': [42],
-          'messages': [
-            {
-              'id': 42,
-              'delivery_status': 'DELIVERED',
-              'delivered_at': '2026-01-01T00:00:05Z',
-            },
-          ],
-          'last_message_id': 42,
-        }),
-      );
-      await Future<void>.delayed(Duration.zero);
+        applyRealtimeEventForTesting(
+          container.read(_refProvider),
+          RealtimeEvent(RealtimeEvents.messageUpdated, {
+            'reason': 'delivery_status',
+            'message_ids': [42],
+            'messages': [
+              {
+                'id': 42,
+                'delivery_status': 'DELIVERED',
+                'delivered_at': '2026-01-01T00:00:05Z',
+              },
+            ],
+            'last_message_id': 42,
+          }),
+        );
+        await Future<void>.delayed(Duration.zero);
 
-      final state = container.read(conversationControllerProvider(1)).value!;
-      expect(state.messages.single.deliveryStatus, 'DELIVERED');
-      expect(
-        conversationController.refreshFromServerCalls,
-        0,
-        reason: 'a delivery-status update patches directly, no refetch',
-      );
-    });
+        final state = container.read(conversationControllerProvider(1)).value!;
+        expect(state.messages.single.deliveryStatus, 'DELIVERED');
+        expect(
+          conversationController.refreshFromServerCalls,
+          0,
+          reason: 'a delivery-status update patches directly, no refetch',
+        );
+      },
+    );
 
-    test('media-form payload (bare message_id) refetches the open conversation', () async {
-      container.read(activeConversationProvider.notifier).opened(1);
+    test(
+      'media-form payload (bare message_id) refetches the open conversation',
+      () async {
+        container.read(activeConversationProvider.notifier).opened(1);
 
-      applyRealtimeEventForTesting(
-        container.read(_refProvider),
-        RealtimeEvent(RealtimeEvents.messageUpdated, {'message_id': 42}),
-      );
-      await Future<void>.delayed(Duration.zero);
+        applyRealtimeEventForTesting(
+          container.read(_refProvider),
+          RealtimeEvent(RealtimeEvents.messageUpdated, {'message_id': 42}),
+        );
+        await Future<void>.delayed(Duration.zero);
 
-      expect(conversationController.refreshFromServerCalls, 1);
-    });
+        expect(conversationController.refreshFromServerCalls, 1);
+      },
+    );
 
-    test('no active conversation: the event is ignored, not misapplied', () async {
-      // Nothing opened — activeConversationProvider stays null.
-      applyRealtimeEventForTesting(
-        container.read(_refProvider),
-        RealtimeEvent(RealtimeEvents.messageUpdated, {
-          'reason': 'delivery_status',
-          'messages': [
-            {'id': 42, 'delivery_status': 'DELIVERED'},
-          ],
-        }),
-      );
-      await Future<void>.delayed(Duration.zero);
+    test(
+      'no active conversation: the event is ignored, not misapplied',
+      () async {
+        // Nothing opened — activeConversationProvider stays null.
+        applyRealtimeEventForTesting(
+          container.read(_refProvider),
+          RealtimeEvent(RealtimeEvents.messageUpdated, {
+            'reason': 'delivery_status',
+            'messages': [
+              {'id': 42, 'delivery_status': 'DELIVERED'},
+            ],
+          }),
+        );
+        await Future<void>.delayed(Duration.zero);
 
-      final state = container.read(conversationControllerProvider(1)).value!;
-      expect(
-        state.messages.single.deliveryStatus,
-        'SENT',
-        reason: 'nothing is on screen, so nothing should be patched',
-      );
-      expect(conversationController.refreshFromServerCalls, 0);
-    });
+        final state = container.read(conversationControllerProvider(1)).value!;
+        expect(
+          state.messages.single.deliveryStatus,
+          'SENT',
+          reason: 'nothing is on screen, so nothing should be patched',
+        );
+        expect(conversationController.refreshFromServerCalls, 0);
+      },
+    );
   });
 }

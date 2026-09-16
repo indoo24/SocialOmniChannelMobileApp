@@ -25,6 +25,7 @@ import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
+import '../settings/settings_skeleton.dart';
 import 'customer_field_definition_form_sheet.dart';
 
 class CustomerFieldsSettingsTab extends ConsumerWidget {
@@ -58,10 +59,7 @@ class CustomerFieldsSettingsTab extends ConsumerWidget {
 
     if (!scrollable) {
       return fieldsAsync.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.symmetric(vertical: Space.xl),
-          child: Center(child: CircularProgressIndicator()),
-        ),
+        loading: () => const CustomerFieldsSkeleton(scrollable: false),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(customerFieldDefinitionsProvider),
@@ -76,7 +74,7 @@ class CustomerFieldsSettingsTab extends ConsumerWidget {
         await ref.read(customerFieldDefinitionsProvider.future);
       },
       child: fieldsAsync.when(
-        loading: () => const LoadingState(),
+        loading: () => const CustomerFieldsSkeleton(),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(customerFieldDefinitionsProvider),

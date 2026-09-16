@@ -47,8 +47,7 @@ class _FiltersSheet extends ConsumerWidget {
     final employee = ref.watch(currentEmployeeProvider);
     final providers = [
       for (final provider in _providers)
-        if (!(employee?.isChannelComingSoon(provider) ??
-            provider == 'TIKTOK'))
+        if (!(employee?.isChannelComingSoon(provider) ?? provider == 'TIKTOK'))
           provider,
     ];
 
