@@ -1532,6 +1532,12 @@ abstract class AppLocalizations {
   /// **'Attach'**
   String get attachmentTooltip;
 
+  /// No description provided for @attachDocumentAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Document'**
+  String get attachDocumentAction;
+
   /// No description provided for @attachFromGalleryAction.
   ///
   /// In en, this message translates to:
@@ -1555,6 +1561,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Uploading…'**
   String get attachmentUploadingLabel;
+
+  /// No description provided for @uploadingAttachmentsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading {current} of {total}…'**
+  String uploadingAttachmentsProgress(int current, int total);
+
+  /// No description provided for @attachmentLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You can attach up to 10 files per message.'**
+  String get attachmentLimitReached;
+
+  /// No description provided for @attachmentPartialUploadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Some files couldn\'t be uploaded. Please try again.'**
+  String get attachmentPartialUploadError;
 
   /// No description provided for @attachmentUploadFailedError.
   ///
@@ -1730,11 +1754,35 @@ abstract class AppLocalizations {
   /// **'Photo'**
   String get photoMessageLabel;
 
+  /// No description provided for @photosMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get photosMessageLabel;
+
+  /// No description provided for @videoMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get videoMessageLabel;
+
+  /// No description provided for @documentMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Document'**
+  String get documentMessageLabel;
+
   /// No description provided for @attachmentMessageLabel.
   ///
   /// In en, this message translates to:
   /// **'Attachment'**
   String get attachmentMessageLabel;
+
+  /// No description provided for @attachmentsMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments'**
+  String get attachmentsMessageLabel;
 
   /// No description provided for @sentFromPlatformLabel.
   ///
@@ -5424,6 +5472,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The export could not be completed. Please try again.'**
   String get exportFailedMessage;
+
+  /// No description provided for @csvExportSuccessMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV exported successfully'**
+  String get csvExportSuccessMessage;
+
+  /// No description provided for @openFileAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get openFileAction;
+
+  /// No description provided for @downloadAttachmentAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get downloadAttachmentAction;
+
+  /// No description provided for @downloadingAttachmentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get downloadingAttachmentMessage;
+
+  /// No description provided for @attachmentDownloadSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {path}'**
+  String attachmentDownloadSuccess(String path);
+
+  /// No description provided for @attachmentDownloadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t download attachment. Please try again.'**
+  String get attachmentDownloadError;
+
+  /// No description provided for @noAppToOpenFileError.
+  ///
+  /// In en, this message translates to:
+  /// **'No application found to open this file.'**
+  String get noAppToOpenFileError;
+
+  /// No description provided for @shareCsvAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Share CSV'**
+  String get shareCsvAction;
 }
 
 class _AppLocalizationsDelegate

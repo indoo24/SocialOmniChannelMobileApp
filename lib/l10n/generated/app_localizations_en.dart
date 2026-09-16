@@ -779,6 +779,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get attachmentTooltip => 'Attach';
 
   @override
+  String get attachDocumentAction => 'Document';
+
+  @override
   String get attachFromGalleryAction => 'Photo from gallery';
 
   @override
@@ -789,6 +792,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get attachmentUploadingLabel => 'Uploading…';
+
+  @override
+  String uploadingAttachmentsProgress(int current, int total) {
+    return 'Uploading $current of $total…';
+  }
+
+  @override
+  String get attachmentLimitReached =>
+      'You can attach up to 10 files per message.';
+
+  @override
+  String get attachmentPartialUploadError =>
+      'Some files couldn\'t be uploaded. Please try again.';
 
   @override
   String get attachmentUploadFailedError =>
@@ -888,7 +904,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get photoMessageLabel => 'Photo';
 
   @override
+  String get photosMessageLabel => 'Photos';
+
+  @override
+  String get videoMessageLabel => 'Video';
+
+  @override
+  String get documentMessageLabel => 'Document';
+
+  @override
   String get attachmentMessageLabel => 'Attachment';
+
+  @override
+  String get attachmentsMessageLabel => 'Attachments';
 
   @override
   String sentFromPlatformLabel(String provider) {
@@ -3027,4 +3055,31 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exportFailedMessage =>
       'The export could not be completed. Please try again.';
+
+  @override
+  String get csvExportSuccessMessage => 'CSV exported successfully';
+
+  @override
+  String get openFileAction => 'Open';
+
+  @override
+  String get downloadAttachmentAction => 'Download';
+
+  @override
+  String get downloadingAttachmentMessage => 'Downloading…';
+
+  @override
+  String attachmentDownloadSuccess(String path) {
+    return 'Saved to $path';
+  }
+
+  @override
+  String get attachmentDownloadError =>
+      'Couldn\'t download attachment. Please try again.';
+
+  @override
+  String get noAppToOpenFileError => 'No application found to open this file.';
+
+  @override
+  String get shareCsvAction => 'Share CSV';
 }

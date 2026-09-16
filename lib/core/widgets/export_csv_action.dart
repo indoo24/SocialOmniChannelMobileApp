@@ -1,11 +1,9 @@
 /// The "Export CSV" app-bar action Customers and Inbox both use.
 ///
-/// A `PopupMenuButton` with one item today rather than a bare `IconButton`:
-/// both screens' app bars are already close to full (search, filters,
-/// notifications, account menu), and a menu leaves room to add more
-/// per-screen actions later without another icon competing for space —
-/// matching "place the action where it fits naturally" rather than copying
-/// the web toolbar's dedicated button verbatim.
+/// A `PopupMenuButton` with download and optional share items rather than a bare
+/// `IconButton`: both screens' app bars are already close to full (search,
+/// filters, notifications, account menu), and a menu leaves room to add more
+/// per-screen actions later without another icon competing for space.
 library;
 
 import 'package:flutter/material.dart';
@@ -30,7 +28,7 @@ class ExportCsvAction extends StatefulWidget {
 class _ExportCsvActionState extends State<ExportCsvAction> {
   bool _exporting = false;
 
-  Future<void> _export() async {
+  Future<void> _export({bool share = false}) async {
     if (_exporting) return;
     setState(() => _exporting = true);
     try {
@@ -38,6 +36,7 @@ class _ExportCsvActionState extends State<ExportCsvAction> {
         context,
         fetch: widget.fetch,
         fileNamePrefix: widget.fileNamePrefix,
+        share: share,
       );
     } finally {
       if (mounted) setState(() => _exporting = false);
@@ -60,16 +59,27 @@ class _ExportCsvActionState extends State<ExportCsvAction> {
     return PopupMenuButton<void>(
       key: const Key('export-csv-menu'),
       tooltip: context.l10n.exportCsvAction,
-      icon: const Icon(Icons.ios_share_outlined),
+      icon: const Icon(Icons.download_rounded),
       itemBuilder: (context) => [
         PopupMenuItem(
           key: const Key('export-csv-item'),
-          onTap: _export,
+          onTap: () => _export(share: false),
           child: Row(
             children: [
-              const Icon(Icons.description_outlined, size: 18),
+              const Icon(Icons.file_download_outlined, size: 18),
               const SizedBox(width: 12),
               Text(context.l10n.exportCsvAction),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          key: const Key('share-csv-item'),
+          onTap: () => _export(share: true),
+          child: Row(
+            children: [
+              const Icon(Icons.share_outlined, size: 18),
+              const SizedBox(width: 12),
+              Text(context.l10n.shareCsvAction),
             ],
           ),
         ),

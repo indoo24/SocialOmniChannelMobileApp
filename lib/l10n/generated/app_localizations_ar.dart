@@ -778,6 +778,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get attachmentTooltip => 'إرفاق';
 
   @override
+  String get attachDocumentAction => 'مستند';
+
+  @override
   String get attachFromGalleryAction => 'صورة من المعرض';
 
   @override
@@ -788,6 +791,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get attachmentUploadingLabel => 'جارٍ الرفع…';
+
+  @override
+  String uploadingAttachmentsProgress(int current, int total) {
+    return 'جارٍ الرفع $current من $total…';
+  }
+
+  @override
+  String get attachmentLimitReached => 'يمكنك إرفاق حتى 10 ملفات لكل رسالة.';
+
+  @override
+  String get attachmentPartialUploadError =>
+      'تعذّر رفع بعض الملفات. حاول مرة أخرى.';
 
   @override
   String get attachmentUploadFailedError => 'تعذّر رفع الملف. حاول مرة أخرى.';
@@ -885,7 +900,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get photoMessageLabel => 'صورة';
 
   @override
+  String get photosMessageLabel => 'صور';
+
+  @override
+  String get videoMessageLabel => 'فيديو';
+
+  @override
+  String get documentMessageLabel => 'مستند';
+
+  @override
   String get attachmentMessageLabel => 'مرفق';
+
+  @override
+  String get attachmentsMessageLabel => 'مرفقات';
 
   @override
   String sentFromPlatformLabel(String provider) {
@@ -3043,4 +3070,31 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get exportFailedMessage =>
       'تعذّر إكمال التصدير. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get csvExportSuccessMessage => 'تم تصدير ملف CSV بنجاح';
+
+  @override
+  String get openFileAction => 'فتح';
+
+  @override
+  String get downloadAttachmentAction => 'تنزيل';
+
+  @override
+  String get downloadingAttachmentMessage => 'جارٍ التنزيل…';
+
+  @override
+  String attachmentDownloadSuccess(String path) {
+    return 'تم الحفظ في $path';
+  }
+
+  @override
+  String get attachmentDownloadError =>
+      'تعذّر تنزيل المرفق. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get noAppToOpenFileError => 'لم يتم العثور على تطبيق لفتح هذا الملف.';
+
+  @override
+  String get shareCsvAction => 'مشاركة CSV';
 }

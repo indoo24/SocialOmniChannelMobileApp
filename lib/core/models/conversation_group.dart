@@ -1,5 +1,6 @@
 import '../utils/json_safe.dart';
 import 'conversation.dart';
+import 'message.dart';
 
 /// Represents a customer-level grouping of conversations in the Inbox.
 ///
@@ -82,13 +83,20 @@ class CustomerConversationGroup {
   /// than defaulting back to [primaryConversation] independently.
   Conversation get _previewSource {
     for (final c in conversations) {
-      if (c.lastMessagePreview.isNotEmpty) return c;
+      if (c.lastMessagePreview.isNotEmpty ||
+          c.lastMessageAttachments.isNotEmpty) {
+        return c;
+      }
     }
     return primaryConversation;
   }
 
   /// Latest message preview across all conversations in this group.
   String get lastMessagePreview => _previewSource.lastMessagePreview;
+
+  /// Latest message attachments across all conversations in this group.
+  List<MessageAttachment> get lastMessageAttachments =>
+      _previewSource.lastMessageAttachments;
 
   /// Direction of the message [lastMessagePreview] is showing, for the
   /// group row's delivery tick.

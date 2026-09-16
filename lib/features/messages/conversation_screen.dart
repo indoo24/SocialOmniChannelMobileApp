@@ -184,11 +184,20 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   /// (via [Message.replyTo]), so there is nothing left to show above the
   /// composer either way.
   Future<void> _send({
+    List<String>? attachmentIds,
+    List<MessageAttachment>? attachmentPreviews,
     String? attachmentId,
     MessageAttachment? attachmentPreview,
   }) async {
     final text = _composerController.text.trim();
-    final hasAttachment = attachmentId != null;
+    final ids = (attachmentIds != null && attachmentIds.isNotEmpty)
+        ? attachmentIds
+        : [if (attachmentId != null && attachmentId.isNotEmpty) attachmentId];
+    final previews =
+        (attachmentPreviews != null && attachmentPreviews.isNotEmpty)
+            ? attachmentPreviews
+            : [?attachmentPreview];
+    final hasAttachment = ids.isNotEmpty;
     if ((text.isEmpty && !hasAttachment) || _sending) return;
 
     final replyTo = _replyingTo;
@@ -203,8 +212,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           .read(conversationControllerProvider(widget.conversationId).notifier)
           .send(
             text,
-            attachmentId: attachmentId,
-            attachmentPreview: attachmentPreview,
+            attachmentIds: ids,
+            attachmentPreviews: previews,
             replyTo: replyTo == null ? null : QuotedMessage.fromMessage(replyTo),
           );
       _scrollToBottom(animated: true);
@@ -1464,10 +1473,15 @@ class _ReplyPreviewBar extends StatelessWidget {
   }
 }
 
-/// Sends the composer's current text, plus an optional attachment already
+/// Sends the composer's current text, plus optional attachments already
 /// staged (uploaded) via [ConversationRepository.stageAttachment].
 typedef ComposerSendCallback =
-    void Function({String? attachmentId, MessageAttachment? attachmentPreview});
+    void Function({
+      List<String>? attachmentIds,
+      List<MessageAttachment>? attachmentPreviews,
+      String? attachmentId,
+      MessageAttachment? attachmentPreview,
+    });
 
 class _Composer extends ConsumerStatefulWidget {
   const _Composer({
@@ -1502,11 +1516,12 @@ class _ComposerState extends ConsumerState<_Composer> {
   bool _sendingTemplate = false;
   bool _userToggledMode = false;
 
-  /// An image already picked and uploaded, waiting to be sent (or removed).
+  /// Files already picked and uploaded, waiting to be sent (or removed).
   /// Voice notes skip this state entirely — recording finishes and sends in
   /// one motion, matching WhatsApp's own behavior, rather than sitting as a
   /// staged preview the agent could otherwise edit alongside typed text.
-  StagedAttachment? _stagedImage;
+  final List<StagedAttachment> _stagedAttachments = [];
+  bool _isUploadingAttachments = false;
   bool _isRecording = false;
   final _voiceRecorderKey = GlobalKey<ComposerVoiceRecorderState>();
 
@@ -1517,12 +1532,22 @@ class _ComposerState extends ConsumerState<_Composer> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _onImageStaged(StagedAttachment staged) {
-    setState(() => _stagedImage = staged);
+  void _onAttachmentsStaged(List<StagedAttachment> stagedList) {
+    setState(() {
+      for (final s in stagedList) {
+        if (_stagedAttachments.length < 10) {
+          _stagedAttachments.add(s);
+        }
+      }
+    });
   }
 
-  void _onImageRemoved() {
-    setState(() => _stagedImage = null);
+  void _onAttachmentRemoved(int index) {
+    setState(() {
+      if (index >= 0 && index < _stagedAttachments.length) {
+        _stagedAttachments.removeAt(index);
+      }
+    });
   }
 
   /// Put a saved reply into the reply box, at the caret.
@@ -1566,8 +1591,8 @@ class _ComposerState extends ConsumerState<_Composer> {
     // `Reply` endpoint accepts `text` alongside `attachment_ids` in one
     // call, the same combination an image send already uses.
     widget.onSend(
-      attachmentId: staged.draftId,
-      attachmentPreview: staged.attachment,
+      attachmentIds: [staged.draftId],
+      attachmentPreviews: [staged.attachment],
     );
   }
 
@@ -1721,20 +1746,20 @@ class _ComposerState extends ConsumerState<_Composer> {
                       ),
                     ),
                   ),
-                if (_stagedImage != null)
+                if (_stagedAttachments.isNotEmpty)
                   Align(
                     alignment: AlignmentDirectional.centerStart,
-                    child: ComposerAttachmentPreview(
+                    child: ComposerAttachmentsPreviewBar(
                       conversationId: widget.conversationId,
-                      staged: _stagedImage!,
-                      onRemoved: _onImageRemoved,
+                      attachments: _stagedAttachments,
+                      onRemoved: _onAttachmentRemoved,
                     ),
                   ),
                 if (_isRecording)
                   ComposerVoiceRecorder(
                     key: _voiceRecorderKey,
                     conversationId: widget.conversationId,
-                    enabled: !widget.sending,
+                    enabled: !widget.sending && !_isUploadingAttachments,
                     onStaged: _onVoiceStaged,
                     onError: _showMessage,
                     onRecordingChanged: (recording) {
@@ -1751,9 +1776,15 @@ class _ComposerState extends ConsumerState<_Composer> {
                       if (outboundMedia)
                         ComposerAttachmentButton(
                           conversationId: widget.conversationId,
-                          enabled: !widget.sending,
-                          onStaged: _onImageStaged,
+                          enabled: !widget.sending && !_isUploadingAttachments,
+                          currentStagedCount: _stagedAttachments.length,
+                          onStaged: _onAttachmentsStaged,
                           onError: _showMessage,
+                          onUploadingChanged: (uploading) {
+                            if (mounted) {
+                              setState(() => _isUploadingAttachments = uploading);
+                            }
+                          },
                         ),
                       // Saved replies: inserts text for the agent to edit,
                       // never sends. Only in this row, which exists only while
@@ -1766,7 +1797,9 @@ class _ComposerState extends ConsumerState<_Composer> {
                         child: IconButton(
                           key: const Key('savedRepliesButton'),
                           tooltip: context.l10n.savedRepliesTooltip,
-                          onPressed: widget.sending ? null : _insertSavedReply,
+                          onPressed: (widget.sending || _isUploadingAttachments)
+                              ? null
+                              : _insertSavedReply,
                           icon: const Icon(Icons.quickreply_outlined, size: 22),
                         ),
                       ),
@@ -1795,7 +1828,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                         ComposerVoiceRecorder(
                           key: _voiceRecorderKey,
                           conversationId: widget.conversationId,
-                          enabled: !widget.sending,
+                          enabled: !widget.sending && !_isUploadingAttachments,
                           onStaged: _onVoiceStaged,
                           onError: _showMessage,
                           onRecordingChanged: (recording) {
@@ -1810,16 +1843,22 @@ class _ComposerState extends ConsumerState<_Composer> {
                         width: 44,
                         height: 44,
                         child: IconButton.filled(
-                          onPressed: widget.sending
+                          onPressed: (widget.sending || _isUploadingAttachments)
                               ? null
                               : () {
-                                  final staged = _stagedImage;
-                                  if (staged != null) {
-                                    setState(() => _stagedImage = null);
+                                  final staged = List<StagedAttachment>.from(
+                                    _stagedAttachments,
+                                  );
+                                  if (staged.isNotEmpty) {
+                                    setState(() => _stagedAttachments.clear());
                                   }
                                   widget.onSend(
-                                    attachmentId: staged?.draftId,
-                                    attachmentPreview: staged?.attachment,
+                                    attachmentIds: staged
+                                        .map((s) => s.draftId)
+                                        .toList(),
+                                    attachmentPreviews: staged
+                                        .map((s) => s.attachment)
+                                        .toList(),
                                   );
                                 },
                           icon: widget.sending

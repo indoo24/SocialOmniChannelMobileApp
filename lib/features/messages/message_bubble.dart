@@ -26,6 +26,7 @@ import '../../core/utils/formatting.dart';
 import '../../core/widgets/badges.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../../core/utils/attachment_helper.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
@@ -158,7 +159,10 @@ class MessageBubble extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (message.replyTo != null) ...[
-                            _QuoteBlock(quote: message.replyTo!, isMine: isMine),
+                            _QuoteBlock(
+                              quote: message.replyTo!,
+                              isMine: isMine,
+                            ),
                             const SizedBox(height: Space.xs),
                           ],
                           if (message.attachments.isNotEmpty)
@@ -436,7 +440,8 @@ class ContentNoticeView extends StatelessWidget {
 
     if (notice.kind == 'share_post') {
       final uri = Uri.tryParse(notice.url);
-      final canOpen = uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
+      final canOpen =
+          uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -580,13 +585,25 @@ class _Attachment extends ConsumerWidget {
     // inbound (customer) content.
     final localPath = attachment.localFilePath;
     if (attachment.isImage && localPath != null && localPath.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(Radii.md),
-        child: Image.file(
-          File(localPath),
-          width: 220,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => _FileChip(attachment: attachment),
+      return GestureDetector(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => _ImageViewerScreen(
+              url: '',
+              localPath: localPath,
+              headers: const {},
+              attachment: attachment,
+            ),
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(Radii.md),
+          child: Image.file(
+            File(localPath),
+            width: 220,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => _FileChip(attachment: attachment),
+          ),
         ),
       );
     }
@@ -647,8 +664,11 @@ class _AttachmentImage extends ConsumerWidget {
         return GestureDetector(
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) =>
-                  _ImageViewerScreen(url: url, headers: headers ?? const {}),
+              builder: (_) => _ImageViewerScreen(
+                url: url,
+                headers: headers ?? const {},
+                attachment: attachment,
+              ),
             ),
           ),
           child: ClipRRect(
@@ -680,35 +700,63 @@ class _AttachmentImage extends ConsumerWidget {
 
 /// Full-screen, pinch-to-zoom view of an image attachment.
 class _ImageViewerScreen extends StatelessWidget {
-  const _ImageViewerScreen({required this.url, required this.headers});
+  const _ImageViewerScreen({
+    required this.url,
+    required this.headers,
+    this.localPath,
+    this.attachment,
+  });
 
   final String url;
   final Map<String, String> headers;
+  final String? localPath;
+  final MessageAttachment? attachment;
 
   @override
   Widget build(BuildContext context) {
+    final hasLocal =
+        localPath != null &&
+        localPath!.isNotEmpty &&
+        File(localPath!).existsSync();
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          if (attachment != null)
+            Consumer(
+              builder: (context, ref, _) => IconButton(
+                icon: const Icon(Icons.download_rounded),
+                tooltip: context.l10n.downloadAttachmentAction,
+                onPressed: () => AttachmentHelper.saveAttachmentToDownloads(
+                  context: context,
+                  attachment: attachment!,
+                  api: ref.read(apiClientProvider),
+                ),
+              ),
+            ),
+        ],
       ),
       body: Center(
         child: InteractiveViewer(
           minScale: 1,
           maxScale: 4,
-          child: CachedNetworkImage(
-            imageUrl: url,
-            httpHeaders: headers,
-            fit: BoxFit.contain,
-            placeholder: (_, _) => const CircularProgressIndicator(),
-            errorWidget: (_, _, _) => Icon(
-              Icons.broken_image_outlined,
-              color: Colors.white.withValues(alpha: 0.7),
-              size: 48,
-            ),
-          ),
+          child: hasLocal
+              ? Image.file(File(localPath!), fit: BoxFit.contain)
+              : CachedNetworkImage(
+                  imageUrl: url,
+                  httpHeaders: headers,
+                  fit: BoxFit.contain,
+                  placeholder: (_, _) => const CircularProgressIndicator(),
+                  errorWidget: (_, _, _) => Icon(
+                    Icons.broken_image_outlined,
+                    color: Colors.white.withValues(alpha: 0.7),
+                    size: 48,
+                  ),
+                ),
         ),
       ),
     );
@@ -874,7 +922,6 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.mic_rounded,
@@ -882,12 +929,34 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
                       color: textColor.withValues(alpha: 0.90),
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      context.l10n.voiceNoteLabel,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Text(
+                        context.l10n.voiceNoteLabel,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => AttachmentHelper.saveAttachmentToDownloads(
+                        context: context,
+                        attachment: widget.attachment,
+                        api: ref.read(apiClientProvider),
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Tooltip(
+                        message: context.l10n.downloadAttachmentAction,
+                        child: Padding(
+                          padding: const EdgeInsets.all(2),
+                          child: Icon(
+                            Icons.download_rounded,
+                            size: 16,
+                            color: textColor.withValues(alpha: 0.85),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -1134,40 +1203,131 @@ class _WaveformPainter extends CustomPainter {
       oldDelegate.inactiveColor != inactiveColor;
 }
 
-class _FileChip extends StatelessWidget {
+class _FileChip extends ConsumerStatefulWidget {
   const _FileChip({required this.attachment});
 
   final MessageAttachment attachment;
 
   @override
+  ConsumerState<_FileChip> createState() => _FileChipState();
+}
+
+class _FileChipState extends ConsumerState<_FileChip> {
+  bool _isLoading = false;
+
+  Future<void> _handleTap() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      await AttachmentHelper.openAttachment(
+        context: context,
+        attachment: widget.attachment,
+        api: ref.read(apiClientProvider),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final attachment = widget.attachment;
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Space.sm,
-        vertical: Space.xs,
-      ),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
+    final fileName = attachment.isAudio && attachment.durationMs != null
+        ? _formatDuration(attachment.durationMs!)
+        : (attachment.fileName.isEmpty
+              ? attachment.type.toLowerCase()
+              : attachment.fileName);
+
+    final ext = attachment.fileExtension.toUpperCase();
+    final size = attachment.formattedSize;
+    final details = [
+      if (size.isNotEmpty) size,
+      if (ext.isNotEmpty && !fileName.toUpperCase().endsWith('.$ext')) ext,
+    ].join(' · ');
+
+    final hasAction =
+        (attachment.localFilePath != null &&
+            attachment.localFilePath!.isNotEmpty) ||
+        attachment.resolvedUrl.isNotEmpty;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: (hasAction && !_isLoading) ? _handleTap : null,
         borderRadius: BorderRadius.circular(Radii.sm),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(_iconFor(attachment.type), size: 16),
-          const SizedBox(width: Space.xs),
-          Flexible(
-            child: Text(
-              attachment.isAudio && attachment.durationMs != null
-                  ? _formatDuration(attachment.durationMs!)
-                  : (attachment.fileName.isEmpty
-                        ? attachment.type.toLowerCase()
-                        : attachment.fileName),
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall,
-            ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Space.sm,
+            vertical: Space.xs,
           ),
-        ],
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(Radii.sm),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(_iconFor(attachment), size: 18),
+              const SizedBox(width: Space.xs),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      fileName,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (details.isNotEmpty)
+                      Text(
+                        details,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontSize: 10,
+                          color: theme.textTheme.labelSmall?.color?.withValues(
+                            alpha: 0.7,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (_isLoading) ...[
+                const SizedBox(width: Space.xs),
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ] else if (hasAction) ...[
+                const SizedBox(width: Space.xs),
+                IconButton(
+                  icon: const Icon(Icons.download_rounded, size: 16),
+                  tooltip: context.l10n.downloadAttachmentAction,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => AttachmentHelper.saveAttachmentToDownloads(
+                    context: context,
+                    attachment: attachment,
+                    api: ref.read(apiClientProvider),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.open_in_new_rounded,
+                  size: 14,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.7,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1179,13 +1339,54 @@ class _FileChip extends StatelessWidget {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
-  static IconData _iconFor(String type) => switch (type) {
-    'IMAGE' => Icons.image_outlined,
-    'VIDEO' => Icons.videocam_outlined,
-    'AUDIO' => Icons.mic_none,
-    'LOCATION' => Icons.location_on_outlined,
-    _ => Icons.attach_file,
-  };
+  static IconData _iconFor(MessageAttachment attachment) {
+    if (attachment.isAudio) return Icons.mic_none;
+    if (attachment.isImage) return Icons.image_outlined;
+    if (attachment.isVideo) return Icons.videocam_outlined;
+
+    final ext = attachment.fileExtension.toLowerCase();
+    final mime = attachment.mimeType.toLowerCase();
+
+    if (['mp4', 'mov', 'avi', 'mkv', 'webm'].contains(ext) ||
+        mime.startsWith('video/')) {
+      return Icons.videocam_outlined;
+    }
+    if (ext == 'pdf' || mime.contains('pdf')) {
+      return Icons.picture_as_pdf_outlined;
+    }
+    if (['doc', 'docx'].contains(ext) ||
+        mime.contains('word') ||
+        mime.contains('document')) {
+      return Icons.description_outlined;
+    }
+    if (['xls', 'xlsx', 'csv'].contains(ext) ||
+        mime.contains('excel') ||
+        mime.contains('spreadsheet')) {
+      return Icons.table_chart_outlined;
+    }
+    if (['ppt', 'pptx'].contains(ext) ||
+        mime.contains('presentation') ||
+        mime.contains('powerpoint')) {
+      return Icons.slideshow_outlined;
+    }
+    if (['zip', 'rar', '7z', 'tar', 'gz'].contains(ext) ||
+        mime.contains('zip') ||
+        mime.contains('compressed')) {
+      return Icons.folder_zip_outlined;
+    }
+    if (ext == 'txt' || mime.startsWith('text/')) {
+      return Icons.text_snippet_outlined;
+    }
+
+    return switch (attachment.type.toUpperCase()) {
+      'IMAGE' => Icons.image_outlined,
+      'VIDEO' => Icons.videocam_outlined,
+      'AUDIO' || 'VOICE' => Icons.mic_none,
+      'LOCATION' => Icons.location_on_outlined,
+      'FILE' => Icons.insert_drive_file_outlined,
+      _ => Icons.attach_file,
+    };
+  }
 }
 
 class _SystemLine extends StatelessWidget {

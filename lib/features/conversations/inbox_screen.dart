@@ -28,6 +28,7 @@ import '../../core/widgets/states.dart';
 import '../../core/widgets/user_account_menu.dart';
 import '../../core/utils/formatting.dart';
 import '../../l10n/l10n_extensions.dart';
+import 'conversation_preview_formatter.dart';
 import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
 import 'customer_conversation_group_sheet.dart';
@@ -303,9 +304,7 @@ class ConversationGroupRow extends StatelessWidget {
                       ],
                       Expanded(
                         child: Text(
-                          group.lastMessagePreview.isEmpty
-                              ? context.l10n.noMessagesYetPreview
-                              : group.lastMessagePreview,
+                          formatConversationPreview(context, group: group),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -440,9 +439,10 @@ class ConversationRow extends StatelessWidget {
                       ],
                       Expanded(
                         child: Text(
-                          conversation.lastMessagePreview.isEmpty
-                              ? context.l10n.noMessagesYetPreview
-                              : conversation.lastMessagePreview,
+                          formatConversationPreview(
+                            context,
+                            conversation: conversation,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(

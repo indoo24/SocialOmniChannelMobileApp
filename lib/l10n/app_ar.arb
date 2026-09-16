@@ -262,10 +262,20 @@
   "readOnlyLabel": "للقراءة فقط",
 
   "attachmentTooltip": "إرفاق",
+  "attachDocumentAction": "مستند",
   "attachFromGalleryAction": "صورة من المعرض",
   "attachFromCameraAction": "التقاط صورة",
   "removeAttachmentTooltip": "إزالة المرفق",
   "attachmentUploadingLabel": "جارٍ الرفع…",
+  "uploadingAttachmentsProgress": "جارٍ الرفع {current} من {total}…",
+  "@uploadingAttachmentsProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "attachmentLimitReached": "يمكنك إرفاق حتى 10 ملفات لكل رسالة.",
+  "attachmentPartialUploadError": "تعذّر رفع بعض الملفات. حاول مرة أخرى.",
   "attachmentUploadFailedError": "تعذّر رفع الملف. حاول مرة أخرى.",
   "attachmentPermissionDeniedError": "تم رفض الإذن. فعّله من إعدادات جهازك لإرفاق الصور.",
   "recordVoiceTooltip": "تسجيل رسالة صوتية",
@@ -297,7 +307,11 @@
   "quotedMessageDeletedLabel": "تم حذف هذه الرسالة",
   "quotedMessageUnavailableLabel": "الرسالة الأصلية غير متاحة",
   "photoMessageLabel": "صورة",
+  "photosMessageLabel": "صور",
+  "videoMessageLabel": "فيديو",
+  "documentMessageLabel": "مستند",
   "attachmentMessageLabel": "مرفق",
+  "attachmentsMessageLabel": "مرفقات",
   "sentFromPlatformLabel": "أُرسلت من {provider}",
 
   "customerTitle": "العميل",
@@ -928,5 +942,18 @@
   "savedReplyDeletedSnackbar": "تم حذف الرد المحفوظ",
   "exportCsvAction": "تصدير CSV",
   "exportRateLimitedMessage": "عمليات تصدير كثيرة خلال الدقيقة الماضية. يرجى الانتظار والمحاولة مرة أخرى.",
-  "exportFailedMessage": "تعذّر إكمال التصدير. يرجى المحاولة مرة أخرى."
+  "exportFailedMessage": "تعذّر إكمال التصدير. يرجى المحاولة مرة أخرى.",
+  "csvExportSuccessMessage": "تم تصدير ملف CSV بنجاح",
+  "openFileAction": "فتح",
+  "downloadAttachmentAction": "تنزيل",
+  "downloadingAttachmentMessage": "جارٍ التنزيل…",
+  "attachmentDownloadSuccess": "تم الحفظ في {path}",
+  "@attachmentDownloadSuccess": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "attachmentDownloadError": "تعذّر تنزيل المرفق. يرجى المحاولة مرة أخرى.",
+  "noAppToOpenFileError": "لم يتم العثور على تطبيق لفتح هذا الملف.",
+  "shareCsvAction": "مشاركة CSV"
 }

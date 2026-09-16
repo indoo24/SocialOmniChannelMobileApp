@@ -286,12 +286,23 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     String text, {
     String? attachmentId,
     MessageAttachment? attachmentPreview,
+    List<String>? attachmentIds,
+    List<MessageAttachment>? attachmentPreviews,
     QuotedMessage? replyTo,
   }) async {
     final current = state.value;
     final trimmed = text.trim();
-    final hasAttachment = attachmentId != null;
-    if (current == null || (trimmed.isEmpty && !hasAttachment)) return;
+
+    final ids = (attachmentIds != null && attachmentIds.isNotEmpty)
+        ? attachmentIds
+        : [if (attachmentId != null && attachmentId.isNotEmpty) attachmentId];
+    final previews =
+        (attachmentPreviews != null && attachmentPreviews.isNotEmpty)
+            ? attachmentPreviews
+            : [?attachmentPreview];
+
+    final hasAttachments = ids.isNotEmpty;
+    if (current == null || (trimmed.isEmpty && !hasAttachments)) return;
 
     final employee = ref.read(currentEmployeeProvider);
     final localId = 'local-${DateTime.now().microsecondsSinceEpoch}';
@@ -301,8 +312,8 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       text: trimmed,
       senderName: employee?.fullName ?? 'You',
       senderInitials: employee?.initials ?? '',
-      previewAttachment: attachmentPreview,
-      pendingAttachmentId: attachmentId,
+      previewAttachments: previews,
+      pendingAttachmentIds: ids,
       replyTo: replyTo,
     );
 
@@ -313,7 +324,8 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       data: {
         'localId': localId,
         'textLength': trimmed.length,
-        'hasAttachment': hasAttachment,
+        'hasAttachment': hasAttachments,
+        'attachmentCount': ids.length,
       },
     );
 
@@ -327,7 +339,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
           .reply(
             current.conversation.id,
             trimmed,
-            attachmentIds: hasAttachment ? [attachmentId] : const [],
+            attachmentIds: ids,
             clientMessageId: localId,
             replyToId: replyTo?.id,
           );
@@ -446,10 +458,6 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         .firstOrNull;
     if (failed == null) return;
 
-    final preview = failed.attachments.isEmpty
-        ? null
-        : failed.attachments.first;
-
     state = AsyncData(
       current.copyWith(
         messages: current.messages.where((m) => m.localId != localId).toList(),
@@ -458,8 +466,8 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
     await send(
       failed.text,
-      attachmentId: failed.pendingAttachmentId,
-      attachmentPreview: preview,
+      attachmentIds: failed.pendingAttachmentIds,
+      attachmentPreviews: failed.attachments,
       replyTo: failed.replyTo,
     );
   }

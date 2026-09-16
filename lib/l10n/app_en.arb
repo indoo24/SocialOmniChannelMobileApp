@@ -343,10 +343,20 @@
   "readOnlyLabel": "Read only",
 
   "attachmentTooltip": "Attach",
+  "attachDocumentAction": "Document",
   "attachFromGalleryAction": "Photo from gallery",
   "attachFromCameraAction": "Take photo",
   "removeAttachmentTooltip": "Remove attachment",
   "attachmentUploadingLabel": "Uploading…",
+  "uploadingAttachmentsProgress": "Uploading {current} of {total}…",
+  "@uploadingAttachmentsProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "attachmentLimitReached": "You can attach up to 10 files per message.",
+  "attachmentPartialUploadError": "Some files couldn't be uploaded. Please try again.",
   "attachmentUploadFailedError": "Couldn't upload that file. Please try again.",
   "attachmentPermissionDeniedError": "Permission was denied. Enable it in your device settings to attach photos.",
   "recordVoiceTooltip": "Record a voice message",
@@ -388,7 +398,11 @@
   "quotedMessageDeletedLabel": "This message was deleted",
   "quotedMessageUnavailableLabel": "Original message unavailable",
   "photoMessageLabel": "Photo",
+  "photosMessageLabel": "Photos",
+  "videoMessageLabel": "Video",
+  "documentMessageLabel": "Document",
   "attachmentMessageLabel": "Attachment",
+  "attachmentsMessageLabel": "Attachments",
   "sentFromPlatformLabel": "Sent from {provider}",
   "@sentFromPlatformLabel": {
     "placeholders": {
@@ -1566,5 +1580,18 @@
   "savedReplyDeletedSnackbar": "Saved reply deleted",
   "exportCsvAction": "Export CSV",
   "exportRateLimitedMessage": "Too many exports in the last minute. Please wait and try again.",
-  "exportFailedMessage": "The export could not be completed. Please try again."
+  "exportFailedMessage": "The export could not be completed. Please try again.",
+  "csvExportSuccessMessage": "CSV exported successfully",
+  "openFileAction": "Open",
+  "downloadAttachmentAction": "Download",
+  "downloadingAttachmentMessage": "Downloading…",
+  "attachmentDownloadSuccess": "Saved to {path}",
+  "@attachmentDownloadSuccess": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "attachmentDownloadError": "Couldn't download attachment. Please try again.",
+  "noAppToOpenFileError": "No application found to open this file.",
+  "shareCsvAction": "Share CSV"
 }
