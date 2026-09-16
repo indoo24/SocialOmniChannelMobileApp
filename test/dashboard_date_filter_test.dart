@@ -3,7 +3,8 @@
 /// - Custom range: From / To picker, range validation (from <= to, <= 366 days), Cancel and Apply
 /// - API serialization: preset parameter vs from/to query parameters (mutually exclusive)
 /// - Dashboard reload and state update
-/// - UI: trigger button, checkmark on active preset, loading state, error and retry
+/// - UI: filter in Conversations section header (not AppBar), checkmark on active preset, loading
+///   state, error and retry
 /// - Theme, RTL (Arabic), and narrow screen (320px) overflow tests
 library;
 
@@ -272,7 +273,58 @@ void main() {
   });
 
   group('Dashboard Date Filter Widget & Screen Tests', () {
-    testWidgets('Dashboard opens with Today selected in header button', (
+    testWidgets(
+      'Filter button is NOT rendered in the AppBar — it is in the Conversations section header',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.path == '/dashboard/performance/') {
+            return _json(_performanceEmptyJson, 200);
+          }
+          return _json(_sampleDashboardJson, 200);
+        });
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(_buildHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        // The DashboardDateFilterButton must be found exactly once —
+        // in the body (Conversations section), NOT in the AppBar.
+        expect(find.byType(DashboardDateFilterButton), findsOneWidget);
+
+        // Confirm it is NOT inside AppBar: walk the widget tree.
+        final appBar = find.byType(AppBar);
+        expect(
+          find.descendant(
+            of: appBar,
+            matching: find.byType(DashboardDateFilterButton),
+          ),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'Filter button appears next to the Conversations heading in the body',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.path == '/dashboard/performance/') {
+            return _json(_performanceEmptyJson, 200);
+          }
+          return _json(_sampleDashboardJson, 200);
+        });
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(_buildHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        // Both 'Conversations' title and filter button must be present and
+        // the filter button must be inside the row that SectionHeading builds.
+        expect(find.text('Conversations'), findsOneWidget);
+        expect(find.byType(DashboardDateFilterButton), findsOneWidget);
+      },
+    );
+
+    testWidgets('Dashboard opens with Today selected in Conversations filter', (
       tester,
     ) async {
       final adapter = _StubAdapter((options) {
@@ -291,7 +343,7 @@ void main() {
     });
 
     testWidgets(
-      'Tapping header button opens bottom sheet with 5 presets and Custom range',
+      'Tapping Conversations section filter opens bottom sheet with 5 presets and Custom range',
       (tester) async {
         final adapter = _StubAdapter((options) {
           if (options.path == '/dashboard/performance/') {

@@ -37,7 +37,6 @@ class DashboardScreen extends ConsumerWidget {
 
     return SectionScaffold(
       title: context.l10n.dashboardGreeting(firstName),
-      actions: const [DashboardDateFilterButton()],
       onRefresh: () async {
         ref.invalidate(dashboardProvider);
         await ref.read(dashboardProvider.future);
@@ -58,7 +57,10 @@ class DashboardScreen extends ConsumerWidget {
         data: (data) => ListView(
           padding: const EdgeInsets.all(Space.lg),
           children: [
-            SectionHeading(context.l10n.conversationsSectionTitle),
+            SectionHeading(
+              context.l10n.conversationsSectionTitle,
+              trailing: const DashboardDateFilterButton(),
+            ),
             _MetricGrid(
               tiles: [
                 MetricTile(
