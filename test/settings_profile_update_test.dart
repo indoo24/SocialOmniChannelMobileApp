@@ -361,8 +361,12 @@ void main() {
       await tester.tap(find.text('Save profile'));
       await tester.pump();
 
-      // Tap again while in-flight
-      await tester.tap(find.byType(FilledButton));
+      // Tap again while in-flight. `.first` because Profile now also hosts
+      // the Security section, whose "Update password" is a FilledButton too,
+      // so a bare find.byType matches two widgets; Save profile is the first
+      // in the tree. Matching on the label instead would not work here —
+      // while saving, the button swaps its text for a progress spinner.
+      await tester.tap(find.byType(FilledButton).first);
       await tester.pump();
 
       // Complete request

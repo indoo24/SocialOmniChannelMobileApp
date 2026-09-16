@@ -168,7 +168,8 @@ void main() {
 
       expect(find.text('Assignment'), findsNothing);
       expect(find.text('Profile'), findsOneWidget);
-      expect(find.text('Security'), findsOneWidget);
+      // Security is no longer a tab — it is a section inside Profile.
+      expect(find.widgetWithText(Tab, 'Security'), findsNothing);
     });
 
     testWidgets('Assignment tab is shown when routing.manage is held', (

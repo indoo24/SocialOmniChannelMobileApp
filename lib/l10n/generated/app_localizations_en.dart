@@ -70,6 +70,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get preferencesSectionTitle => 'PREFERENCES';
 
   @override
+  String get securitySectionTitle => 'SECURITY';
+
+  @override
   String get themeLabel => 'Theme';
 
   @override
@@ -988,7 +991,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String dashboardGreeting(String name) {
-    return 'Good to see you, $name';
+    return 'Hi $name';
   }
 
   @override

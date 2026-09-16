@@ -26,6 +26,7 @@
   "visibilityLabel": "مستوى الرؤية: {scope}",
 
   "preferencesSectionTitle": "التفضيلات",
+  "securitySectionTitle": "الأمان",
   "themeLabel": "المظهر",
   "themeSystem": "حسب النظام",
   "themeLight": "فاتح",
@@ -336,7 +337,7 @@
   "reviewFieldLabel": "المراجعة",
   "needsHumanReviewValue": "بحاجة إلى مراجعة بشرية",
 
-  "dashboardGreeting": "سعداء برؤيتك، {name}",
+  "dashboardGreeting": "مرحبًا {name}",
   "conversationsSectionTitle": "المحادثات",
   "openMetric": "مفتوحة",
   "waitingMetric": "بانتظار",

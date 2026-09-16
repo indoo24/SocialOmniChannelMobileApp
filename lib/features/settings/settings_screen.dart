@@ -2,9 +2,15 @@
 ///
 /// Tabs mirror the web client's, including the rule that decides which are
 /// shown: Channels needs `channel.view` (ADMIN and SUPERVISOR), while Profile
-/// and Security are self-service and belong to every role. A tab the role
-/// cannot use is not rendered at all rather than rendered onto a 403 — the bug
-/// the web client had, and not one worth porting.
+/// is self-service and belongs to every role. A tab the role cannot use is not
+/// rendered at all rather than rendered onto a 403 — the bug the web client
+/// had, and not one worth porting.
+///
+/// Security (change password, session info) is not a tab of its own: it is a
+/// section at the bottom of Profile. Both are self-service and shown to every
+/// role, so splitting them bought a tab-bar slot's worth of navigation for no
+/// difference in permissions — and on a phone the scrollable tab bar made the
+/// last tab easy to miss entirely.
 library;
 
 import 'package:flutter/material.dart';
@@ -61,7 +67,6 @@ class SettingsScreen extends ConsumerWidget {
       if (canSeeMoreSettings)
         (context.l10n.tabMoreSettings, const MoreSettingsTab()),
       (context.l10n.tabProfile, const ProfileTab()),
-      (context.l10n.tabSecurity, const _SecurityTab()),
     ];
 
     return DefaultTabController(
@@ -104,30 +109,6 @@ class ProfileTab extends ConsumerStatefulWidget {
 }
 
 class _ProfileTabState extends ConsumerState<ProfileTab> {
-  Future<void> _logout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.l10n.signOutDialogTitle),
-        content: Text(context.l10n.signOutDialogMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(context.l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(context.l10n.signOut),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-    await ref.read(authControllerProvider.notifier).logout();
-    // The router redirects to login on auth state change.
-  }
-
   @override
   Widget build(BuildContext context) {
     final employee = ref.watch(currentEmployeeProvider);
@@ -177,34 +158,16 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
         const SizedBox(height: Space.xl),
         const _PreferencesSection(),
 
-        const SizedBox(height: Space.xl),
-        if (employee.organization != null)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.business_outlined),
-            title: Text(employee.organization!.name),
-            subtitle: Text(context.l10n.organizationLabel),
-          ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.badge_outlined),
-          title: Text(
-            employee.roleDisplay.isEmpty ? employee.role : employee.roleDisplay,
-          ),
-          subtitle: Text(
-            context.l10n.visibilityLabel(employee.visibilityScope),
-          ),
-        ),
-
+        // Security lives here rather than in a tab of its own; see the
+        // library comment. It replaces the organization/role/sign-out block
+        // that used to sit at the bottom: role is already in the header
+        // above, and sign-out is in the account menu (top-right, on every
+        // screen) rather than buried one tab deep. Organization name and
+        // visibility scope are no longer surfaced here — neither is
+        // actionable from this screen, and both come back with /auth/me/ if
+        // they are ever wanted again.
         const Divider(height: Space.xxl),
-        OutlinedButton.icon(
-          onPressed: _logout,
-          icon: const Icon(Icons.logout, size: 18),
-          label: Text(context.l10n.signOut),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: theme.colorScheme.error,
-          ),
-        ),
+        const _SecuritySection(),
       ],
     );
   }
@@ -484,14 +447,19 @@ class _PreferencesSection extends ConsumerWidget {
 // --------------------------------------------------------------------------- //
 // Security
 // --------------------------------------------------------------------------- //
-class _SecurityTab extends ConsumerStatefulWidget {
-  const _SecurityTab();
+/// Change password + session info, rendered inline at the bottom of Profile.
+///
+/// A `Column`, not a `ListView`: Profile's own `ListView` is the scrollable,
+/// and nesting a second one inside it gives an unbounded-height error. Same
+/// shape as [_PreferencesSection], so the two read as sibling sections.
+class _SecuritySection extends ConsumerStatefulWidget {
+  const _SecuritySection();
 
   @override
-  ConsumerState<_SecurityTab> createState() => _SecurityTabState();
+  ConsumerState<_SecuritySection> createState() => _SecuritySectionState();
 }
 
-class _SecurityTabState extends ConsumerState<_SecurityTab> {
+class _SecuritySectionState extends ConsumerState<_SecuritySection> {
   final _current = TextEditingController();
   final _next = TextEditingController();
   bool _busy = false;
@@ -533,9 +501,17 @@ class _SecurityTabState extends ConsumerState<_SecurityTab> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return ListView(
-      padding: const EdgeInsets.all(Space.lg),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          context.l10n.securitySectionTitle,
+          style: theme.textTheme.labelSmall?.copyWith(
+            letterSpacing: 0.6,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: Space.md),
         Text(
           context.l10n.changePasswordTitle,
           style: theme.textTheme.titleMedium,
@@ -564,15 +540,20 @@ class _SecurityTabState extends ConsumerState<_SecurityTab> {
           InlineError(message: _error!),
         ],
         const SizedBox(height: Space.lg),
-        FilledButton(
-          onPressed: _busy ? null : _submit,
-          child: _busy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(context.l10n.updatePasswordButton),
+        // Stretched explicitly: the old ListView made this full-width for
+        // free, a Column would shrink-wrap it and change the button's look.
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _busy ? null : _submit,
+            child: _busy
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(context.l10n.updatePasswordButton),
+          ),
         ),
 
         const Divider(height: Space.xxl),

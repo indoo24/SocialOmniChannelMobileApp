@@ -212,6 +212,12 @@ abstract class AppLocalizations {
   /// **'PREFERENCES'**
   String get preferencesSectionTitle;
 
+  /// No description provided for @securitySectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SECURITY'**
+  String get securitySectionTitle;
+
   /// No description provided for @themeLabel.
   ///
   /// In en, this message translates to:
@@ -1919,7 +1925,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashboardGreeting.
   ///
   /// In en, this message translates to:
-  /// **'Good to see you, {name}'**
+  /// **'Hi {name}'**
   String dashboardGreeting(String name);
 
   /// No description provided for @conversationsSectionTitle.

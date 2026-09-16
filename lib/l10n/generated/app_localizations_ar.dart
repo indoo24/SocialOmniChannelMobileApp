@@ -69,6 +69,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get preferencesSectionTitle => 'التفضيلات';
 
   @override
+  String get securitySectionTitle => 'الأمان';
+
+  @override
   String get themeLabel => 'المظهر';
 
   @override
@@ -984,7 +987,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String dashboardGreeting(String name) {
-    return 'سعداء برؤيتك، $name';
+    return 'مرحبًا $name';
   }
 
   @override
