@@ -1593,5 +1593,13 @@
   },
   "attachmentDownloadError": "Couldn't download attachment. Please try again.",
   "noAppToOpenFileError": "No application found to open this file.",
-  "shareCsvAction": "Share CSV"
+  "shareCsvAction": "Share CSV",
+  "tabMoreSettings": "More settings",
+  "exportDataSectionTitle": "Export data",
+  "exportDataSectionDescription": "Export your application data as CSV files.",
+  "exportConversationsCsvAction": "Export conversations CSV",
+  "exportCustomersCsvAction": "Export customers CSV",
+  "exportConversationsSubtitle": "Export all conversations as a CSV file.",
+  "exportCustomersSubtitle": "Export all customers as a CSV file.",
+  "exportActionLabel": "Export"
 }

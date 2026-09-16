@@ -5520,6 +5520,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share CSV'**
   String get shareCsvAction;
+
+  /// No description provided for @tabMoreSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'More settings'**
+  String get tabMoreSettings;
+
+  /// No description provided for @exportDataSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export data'**
+  String get exportDataSectionTitle;
+
+  /// No description provided for @exportDataSectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Export your application data as CSV files.'**
+  String get exportDataSectionDescription;
+
+  /// No description provided for @exportConversationsCsvAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Export conversations CSV'**
+  String get exportConversationsCsvAction;
+
+  /// No description provided for @exportCustomersCsvAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Export customers CSV'**
+  String get exportCustomersCsvAction;
+
+  /// No description provided for @exportConversationsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export all conversations as a CSV file.'**
+  String get exportConversationsSubtitle;
+
+  /// No description provided for @exportCustomersSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export all customers as a CSV file.'**
+  String get exportCustomersSubtitle;
+
+  /// No description provided for @exportActionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportActionLabel;
 }
 
 class _AppLocalizationsDelegate

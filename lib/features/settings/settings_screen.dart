@@ -30,11 +30,10 @@ import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
 import '../conversations/inbox_controller.dart';
-import '../customer_fields/customer_fields_settings_screen.dart';
 import '../directory/directory_providers.dart';
 import '../messages/conversation_controller.dart';
-import '../saved_replies/saved_replies_settings_screen.dart';
 import 'channel_connect_sheets.dart';
+import 'more_settings_tab.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -50,16 +49,18 @@ class SettingsScreen extends ConsumerWidget {
     final canManageRouting = employee.can(Perm.routingManage);
     final canSeeCustomerFields = employee.can(Perm.customerView);
     final canSeeSavedReplies = employee.can(Perm.conversationReply);
+    final canExport = employee.can(Perm.crmExport);
+    final canSeeMoreSettings =
+        canSeeCustomerFields || canSeeSavedReplies || canExport;
+
     final tabs = <(String, Widget)>[
       if (canSeeChannels) (context.l10n.tabChannels, const _ChannelsTab()),
-      (context.l10n.tabProfile, const ProfileTab()),
-      (context.l10n.tabSecurity, const _SecurityTab()),
       if (canManageRouting)
         (context.l10n.tabAssignment, const _AssignmentTab()),
-      if (canSeeCustomerFields)
-        (context.l10n.tabCustomerFields, const CustomerFieldsSettingsTab()),
-      if (canSeeSavedReplies)
-        (context.l10n.tabSavedReplies, const SavedRepliesSettingsTab()),
+      if (canSeeMoreSettings)
+        (context.l10n.tabMoreSettings, const MoreSettingsTab()),
+      (context.l10n.tabProfile, const ProfileTab()),
+      (context.l10n.tabSecurity, const _SecurityTab()),
     ];
 
     return DefaultTabController(

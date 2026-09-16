@@ -955,5 +955,13 @@
   },
   "attachmentDownloadError": "تعذّر تنزيل المرفق. يرجى المحاولة مرة أخرى.",
   "noAppToOpenFileError": "لم يتم العثور على تطبيق لفتح هذا الملف.",
-  "shareCsvAction": "مشاركة CSV"
+  "shareCsvAction": "مشاركة CSV",
+  "tabMoreSettings": "إعدادات إضافية",
+  "exportDataSectionTitle": "تصدير البيانات",
+  "exportDataSectionDescription": "تصدير بيانات تطبيقك كملفات CSV.",
+  "exportConversationsCsvAction": "تصدير المحادثات كـ CSV",
+  "exportCustomersCsvAction": "تصدير العملاء كـ CSV",
+  "exportConversationsSubtitle": "تصدير جميع المحادثات كملف CSV.",
+  "exportCustomersSubtitle": "تصدير جميع العملاء كملف CSV.",
+  "exportActionLabel": "تصدير"
 }

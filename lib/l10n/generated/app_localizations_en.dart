@@ -3082,4 +3082,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareCsvAction => 'Share CSV';
+
+  @override
+  String get tabMoreSettings => 'More settings';
+
+  @override
+  String get exportDataSectionTitle => 'Export data';
+
+  @override
+  String get exportDataSectionDescription =>
+      'Export your application data as CSV files.';
+
+  @override
+  String get exportConversationsCsvAction => 'Export conversations CSV';
+
+  @override
+  String get exportCustomersCsvAction => 'Export customers CSV';
+
+  @override
+  String get exportConversationsSubtitle =>
+      'Export all conversations as a CSV file.';
+
+  @override
+  String get exportCustomersSubtitle => 'Export all customers as a CSV file.';
+
+  @override
+  String get exportActionLabel => 'Export';
 }

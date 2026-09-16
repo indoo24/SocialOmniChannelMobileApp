@@ -135,7 +135,7 @@ base class _TestPlatformFile extends PlatformFile {
 }
 
 class _FakeFilePicker extends FilePickerPlatform {
-  _FakeFilePicker({this.files, this.throwOnPick});
+  _FakeFilePicker({this.files});
 
   List<PlatformFile>? files;
   Object? throwOnPick;

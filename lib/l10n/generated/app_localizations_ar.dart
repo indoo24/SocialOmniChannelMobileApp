@@ -3097,4 +3097,28 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get shareCsvAction => 'مشاركة CSV';
+
+  @override
+  String get tabMoreSettings => 'إعدادات إضافية';
+
+  @override
+  String get exportDataSectionTitle => 'تصدير البيانات';
+
+  @override
+  String get exportDataSectionDescription => 'تصدير بيانات تطبيقك كملفات CSV.';
+
+  @override
+  String get exportConversationsCsvAction => 'تصدير المحادثات كـ CSV';
+
+  @override
+  String get exportCustomersCsvAction => 'تصدير العملاء كـ CSV';
+
+  @override
+  String get exportConversationsSubtitle => 'تصدير جميع المحادثات كملف CSV.';
+
+  @override
+  String get exportCustomersSubtitle => 'تصدير جميع العملاء كملف CSV.';
+
+  @override
+  String get exportActionLabel => 'تصدير';
 }
