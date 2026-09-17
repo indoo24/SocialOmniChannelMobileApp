@@ -68,16 +68,25 @@ Employee _employee() => const Employee(
 );
 
 void main() {
-  String generateLongHistory(int count) {
-    final buffer = StringBuffer('{"results": [');
-    for (var i = 1; i <= count; i++) {
-      if (i > 1) buffer.write(',');
+  String generateLongHistory(
+    int count, {
+    int startId = 1,
+    String? next,
+    String? previous,
+  }) {
+    final buffer = StringBuffer('{"count": $count, ');
+    buffer.write('"next": ${next == null ? 'null' : '"$next"'}, ');
+    buffer.write('"previous": ${previous == null ? 'null' : '"$previous"'}, ');
+    buffer.write('"results": [');
+    for (var i = 0; i < count; i++) {
+      final id = startId + i;
+      if (i > 0) buffer.write(',');
       buffer.write('''{
-        "id": $i,
-        "text": "Message number $i in conversation",
-        "sender_name": "${i % 2 == 0 ? 'Agent' : 'Customer'}",
-        "is_outbound": ${i % 2 == 0},
-        "sent_at": "2026-09-02T14:${(i % 59).toString().padLeft(2, '0')}:00Z",
+        "id": $id,
+        "text": "Message number $id in conversation",
+        "sender_name": "${id % 2 == 0 ? 'Agent' : 'Customer'}",
+        "is_outbound": ${id % 2 == 0},
+        "sent_at": "2026-09-02T14:${(id % 59).toString().padLeft(2, '0')}:00Z",
         "delivery_status": "DELIVERED"
       }''');
     }
@@ -353,4 +362,268 @@ void main() {
       expect(newScrollOffset, equals(currentScrollOffset));
     },
   );
+
+  // -------------------------------------------------------------------- //
+  // Regression tests: keyboard-open scrolling and the initial-position jump
+  // -------------------------------------------------------------------- //
+  //
+  // Bug 1 — scrolling became unreliable while the keyboard was open, because
+  // `_MessageList` rebuilding (new messages, notes, `_onScroll`'s own
+  // `setState`, a keyboard-driven relayout) re-armed a *second*
+  // `addPostFrameCallback` calling `_jumpToBottomInitial` on top of one
+  // already pending. The stale, stacked callback fired later and snapped the
+  // list back to the bottom mid-gesture, fighting the user's own drag.
+  //
+  // Bug 2 — opening a conversation showed one or more frames at the list's
+  // natural (unpositioned) offset before a post-frame `jumpTo` moved it to
+  // the bottom, producing a visible "middle → bottom" jump.
+  //
+  // The fix: `_jumpToBottomInitial` now schedules its post-frame callback at
+  // most once per screen (guarded by `_initialScrollScheduled`), and the
+  // message list stays hidden (`Opacity` 0) until that jump completes, so
+  // the first frame the user ever sees is already positioned.
+
+  Map<String, ResponseBody Function(RequestOptions)> standardStubs({
+    required String Function() messages,
+  }) => {
+    '/conversations/42/messages/': (_) => _json(messages(), 200),
+    '/conversations/42/notes/': (_) => _json('[]', 200),
+    '/conversations/42/': (_) => _json('''{
+        "id": 42,
+        "customer": {
+          "id": 7,
+          "display_name": "Sarah Connor",
+          "avatar_url": "",
+          "initials": "SC",
+          "phone": "+201124868273"
+        },
+        "provider": "WHATSAPP",
+        "channel_name": "Scenario Sales",
+        "status": "OPEN"
+      }''', 200),
+    '/facts': (_) => _json('[]', 200),
+    '/orders': (_) => _json('[]', 200),
+    '/channels/': (_) => _json('[]', 200),
+  };
+
+  ApiClient conversationClient({required String Function() messages}) {
+    final stubs = standardStubs(messages: messages);
+    return _stubClient((options) {
+      for (final entry in stubs.entries) {
+        if (options.path.contains(entry.key)) return entry.value(options);
+      }
+      return _json('{}', 200);
+    });
+  }
+
+  Widget harness(ApiClient client) => ProviderScope(
+    overrides: [
+      apiClientProvider.overrideWithValue(client),
+      currentEmployeeProvider.overrideWithValue(_employee()),
+    ],
+    child: MaterialApp(
+      theme: AppTheme.light,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const ConversationScreen(conversationId: 42),
+    ),
+  );
+
+  testWidgets(
+    'first settled frame is already at the latest message — no visible '
+    'middle-to-bottom transition',
+    (tester) async {
+      final client = conversationClient(
+        messages: () => generateLongHistory(50),
+      );
+
+      await tester.pumpWidget(harness(client));
+
+      // Pump exactly one frame — the first frame the user would ever see.
+      // Bug 2 was a visible frame at the unpositioned (top-anchored) offset
+      // before a later post-frame callback jumped to the bottom. Once
+      // settled, the very first message must never have been visible if the
+      // conversation is longer than one screen.
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Message number 50 in conversation'), findsOneWidget);
+      expect(find.text('Message number 1 in conversation'), findsNothing);
+    },
+  );
+
+  testWidgets('initial positioning happens only once per screen', (
+    tester,
+  ) async {
+    final client = conversationClient(messages: () => generateLongHistory(30));
+
+    await tester.pumpWidget(harness(client));
+    await tester.pumpAndSettle();
+
+    // Scroll away from the bottom, then force several rebuilds (the kind a
+    // realtime message, notes load, or keyboard relayout would cause). If
+    // the initial jump were re-armed by any of these, it would snap the user
+    // back to the bottom on the next settle.
+    await tester.drag(find.byType(ListView), const Offset(0, 800));
+    await tester.pumpAndSettle();
+
+    final offsetAfterManualScroll = tester
+        .widget<ListView>(find.byType(ListView))
+        .controller!
+        .offset;
+
+    for (var i = 0; i < 3; i++) {
+      await tester.pump();
+    }
+    await tester.pumpAndSettle();
+
+    final offsetAfterRebuilds = tester
+        .widget<ListView>(find.byType(ListView))
+        .controller!
+        .offset;
+    expect(offsetAfterRebuilds, equals(offsetAfterManualScroll));
+  });
+
+  testWidgets('opening the keyboard does not reset the scroll position', (
+    tester,
+  ) async {
+    final client = conversationClient(messages: () => generateLongHistory(40));
+
+    addTearDown(() => tester.view.resetViewInsets());
+
+    await tester.pumpWidget(harness(client));
+    await tester.pumpAndSettle();
+
+    // Read older messages first.
+    await tester.drag(find.byType(ListView), const Offset(0, 600));
+    await tester.pumpAndSettle();
+
+    final beforeKeyboard = tester
+        .widget<ListView>(find.byType(ListView))
+        .controller!
+        .offset;
+
+    // Simulate the keyboard opening: the viewport shrinks, which is what a
+    // real on-screen keyboard does via Scaffold's resizeToAvoidBottomInset.
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    await tester.pumpAndSettle();
+
+    final afterKeyboard = tester
+        .widget<ListView>(find.byType(ListView))
+        .controller!
+        .offset;
+
+    // The keyboard opening must not have forced the list back to the bottom
+    // or to any other unrelated position.
+    expect(afterKeyboard, equals(beforeKeyboard));
+  });
+
+  testWidgets('manual scrolling still works while the keyboard is open', (
+    tester,
+  ) async {
+    final client = conversationClient(messages: () => generateLongHistory(40));
+
+    addTearDown(() => tester.view.resetViewInsets());
+
+    await tester.pumpWidget(harness(client));
+    await tester.pumpAndSettle();
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    await tester.pumpAndSettle();
+
+    final offsetWithKeyboardAtBottom = tester
+        .widget<ListView>(find.byType(ListView))
+        .controller!
+        .offset;
+
+    // Swipe upward through old messages while the keyboard stays open.
+    await tester.drag(find.byType(ListView), const Offset(0, 500));
+    await tester.pumpAndSettle();
+
+    final offsetAfterScrollUp = tester
+        .widget<ListView>(find.byType(ListView))
+        .controller!
+        .offset;
+    expect(offsetAfterScrollUp, lessThan(offsetWithKeyboardAtBottom));
+
+    // Swipe back down toward the latest message.
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
+
+    final offsetAfterScrollDown = tester
+        .widget<ListView>(find.byType(ListView))
+        .controller!
+        .offset;
+    expect(offsetAfterScrollDown, greaterThan(offsetAfterScrollUp));
+  });
+
+  testWidgets(
+    'older-message pagination preserves the reading position instead of '
+    'jumping',
+    (tester) async {
+      // Page 2 (the initial load) reports it has an older page 1 available;
+      // loadOlder() then requests page=1 for the earlier history.
+      final stubbedClient = _stubClient((options) {
+        if (options.path.contains('/conversations/42/messages/')) {
+          final page = options.queryParameters['page'];
+          if (page == '1') {
+            return _json(generateLongHistory(10, startId: 1), 200);
+          }
+          return _json(
+            generateLongHistory(
+              30,
+              startId: 11,
+              previous: '/conversations/42/messages/?page=1',
+            ),
+            200,
+          );
+        }
+        final stubs = standardStubs(
+          messages: () => generateLongHistory(30, startId: 11),
+        );
+        for (final entry in stubs.entries) {
+          if (options.path.contains(entry.key)) return entry.value(options);
+        }
+        return _json('{}', 200);
+      });
+
+      await tester.pumpWidget(harness(stubbedClient));
+      await tester.pumpAndSettle();
+
+      // Scroll to the top to trigger loadOlder().
+      await tester.drag(find.byType(ListView), const Offset(0, 5000));
+      await tester.pumpAndSettle();
+
+      // The message that was at the top before pagination must still be on
+      // screen in the same relative reading position, not have been shoved
+      // off-screen or replaced by a jump to the bottom.
+      expect(find.text('Message number 11 in conversation'), findsOneWidget);
+      expect(find.text('Message number 40 in conversation'), findsNothing);
+    },
+  );
+
+  testWidgets('ScrollController and its listener are disposed on teardown', (
+    tester,
+  ) async {
+    final client = conversationClient(messages: () => generateLongHistory(20));
+
+    await tester.pumpWidget(harness(client));
+    await tester.pumpAndSettle();
+
+    final controller = tester
+        .widget<ListView>(find.byType(ListView))
+        .controller!;
+
+    // Replace the screen entirely — disposes ConversationScreen's State,
+    // which must call `_scrollController.dispose()` exactly once. Disposing
+    // an already-disposed ChangeNotifier, or one still holding a listener
+    // that was never removed, throws — either would surface here.
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: Text('Elsewhere'))),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(() => controller.position, throwsA(isA<AssertionError>()));
+  });
 }

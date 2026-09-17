@@ -1,4 +1,4 @@
-/// Tests for Settings > Assignment tab (routing policy management):
+/// Tests for Settings > Routing tab (routing policy management):
 /// - RoutingPolicy JSON parsing
 /// - Tab visibility and capability gating (`routing.manage`)
 /// - Initial GET /api/routing/policy/ and population of controls
@@ -7,6 +7,8 @@
 /// - Capacity validation (rejecting <= 0)
 /// - Updating timezone sends only `timezone`
 /// - API error handling & double-submit protection
+/// - Channel responsibility: real rules, account-specific/all-account/retired
+///   display, Edit in Teams, fallback-behavior control
 /// - Arabic locale rendering
 library;
 
@@ -18,6 +20,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:scenario_mobile/app/router.dart';
 import 'package:scenario_mobile/core/api/api_client.dart';
 import 'package:scenario_mobile/core/models/employee.dart';
 import 'package:scenario_mobile/core/models/routing_policy.dart';
@@ -55,6 +59,13 @@ ResponseBody _json(String body, int status) => ResponseBody.fromString(
   },
 );
 
+/// `/api/routing/responsibilities/` returns a plain JSON array, not a
+/// paginated `{"results": [...]}` envelope — matches
+/// `DirectoryRepository.routingResponsibilities()`, which calls
+/// `_api.get<List<dynamic>>(...)`.
+ResponseBody _responsibilities(String body, {int status = 200}) =>
+    _json(body, status);
+
 final _adminEmployee = Employee(
   id: 1,
   email: 'admin@acme.test',
@@ -91,6 +102,43 @@ const _defaultPolicyJson = '''
 }
 ''';
 
+/// Mirrors the task's example rows: two team rules (an all-accounts rule and
+/// a channel-specific one) plus one retired all-accounts rule.
+const _sampleResponsibilitiesJson = '''
+[
+  {
+    "id": 1,
+    "team": {"id": 10, "name": "Team 2", "is_active": true},
+    "employee": null,
+    "provider": "INSTAGRAM",
+    "channel_connection": {"id": 100, "display_name": "Mohamed", "provider": "INSTAGRAM", "is_active": true},
+    "is_active": true,
+    "created_at": "2026-01-01T00:00:00Z",
+    "updated_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": 2,
+    "team": {"id": 10, "name": "Team 2", "is_active": true},
+    "employee": null,
+    "provider": "WHATSAPP",
+    "channel_connection": null,
+    "is_active": true,
+    "created_at": "2026-01-01T00:00:00Z",
+    "updated_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": 3,
+    "team": {"id": 10, "name": "Team 2", "is_active": true},
+    "employee": null,
+    "provider": "INSTAGRAM",
+    "channel_connection": null,
+    "is_active": false,
+    "created_at": "2026-01-01T00:00:00Z",
+    "updated_at": "2026-01-01T00:00:00Z"
+  }
+]
+''';
+
 Widget _settingsHarness({
   required ApiClient apiClient,
   Employee? employee,
@@ -110,6 +158,68 @@ Widget _settingsHarness({
       home: const SettingsScreen(),
     ),
   );
+}
+
+/// `SettingsScreen` calls `context.push(Routes.teams)` for "Edit in Teams",
+/// which needs a real `GoRouter` ancestor — `_settingsHarness`'s plain
+/// `MaterialApp` has none. `Routes.teams` here renders a bare marker screen
+/// rather than the real `TeamsScreen`, since this harness only needs to
+/// prove the navigation fired, not exercise the Teams screen itself.
+Widget _settingsHarnessWithRouter({
+  required ApiClient apiClient,
+  Employee? employee,
+}) {
+  final router = GoRouter(
+    initialLocation: Routes.settings,
+    routes: [
+      GoRoute(
+        path: Routes.settings,
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: Routes.teams,
+        builder: (context, state) =>
+            const Scaffold(body: Center(child: Text('Teams screen'))),
+      ),
+    ],
+  );
+  return ProviderScope(
+    overrides: [
+      apiClientProvider.overrideWithValue(apiClient),
+      currentEmployeeProvider.overrideWithValue(employee ?? _adminEmployee),
+      cookieJarProvider.overrideWithValue(CookieJar()),
+    ],
+    child: MaterialApp.router(
+      routerConfig: router,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      theme: AppTheme.light,
+    ),
+  );
+}
+
+/// A stub that serves the policy and, by default, an empty responsibilities
+/// list — the common case for tests that don't care about channel
+/// responsibility rows.
+_StubAdapter _adapterWithPolicy(
+  String policyJson, {
+  String responsibilitiesJson = '[]',
+  ResponseBody Function(RequestOptions options)? onPatch,
+}) {
+  return _StubAdapter((options) {
+    if (options.method == 'PATCH' &&
+        options.path.contains('/routing/policy/') &&
+        onPatch != null) {
+      return onPatch(options);
+    }
+    if (options.path.contains('/routing/responsibilities/')) {
+      return _responsibilities(responsibilitiesJson);
+    }
+    if (options.path.contains('/routing/policy/')) {
+      return _json(policyJson, 200);
+    }
+    return _json('{"results": []}', 200);
+  });
 }
 
 void main() {
@@ -147,8 +257,8 @@ void main() {
     });
   });
 
-  group('SettingsScreen — Assignment tab gating', () {
-    testWidgets('Assignment tab is hidden when routing.manage is absent', (
+  group('SettingsScreen — Routing tab gating', () {
+    testWidgets('Routing tab is hidden when routing.manage is absent', (
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
@@ -166,13 +276,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Assignment'), findsNothing);
+      expect(find.text('Routing'), findsNothing);
       expect(find.text('Profile'), findsOneWidget);
       // Security is no longer a tab — it is a section inside Profile.
       expect(find.widgetWithText(Tab, 'Security'), findsNothing);
     });
 
-    testWidgets('Assignment tab is shown when routing.manage is held', (
+    testWidgets('Routing tab is shown when routing.manage is held', (
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
@@ -183,23 +293,46 @@ void main() {
       });
 
       final client = ApiClient.create(cookieJar: CookieJar());
-      client.raw.httpClientAdapter = _StubAdapter((options) {
-        if (options.path.contains('/routing/policy/')) {
-          return _json(_defaultPolicyJson, 200);
-        }
-        return _json('{"results": []}', 200);
-      });
+      client.raw.httpClientAdapter = _adapterWithPolicy(_defaultPolicyJson);
 
       await tester.pumpWidget(
         _settingsHarness(apiClient: client, employee: _adminEmployee),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Assignment'), findsOneWidget);
+      expect(find.text('Routing'), findsOneWidget);
     });
+
+    testWidgets(
+      'unauthorized users cannot edit routing settings (Routing tab absent)',
+      (tester) async {
+        tester.view.devicePixelRatio = 1.0;
+        tester.view.physicalSize = const Size(800, 1600);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final adapter = _adapterWithPolicy(_defaultPolicyJson);
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await tester.pumpWidget(
+          _settingsHarness(apiClient: client, employee: _agentEmployee),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Routing'), findsNothing);
+        // Never fetched: no tab means no policy/responsibilities request.
+        expect(
+          adapter.received.any((r) => r.path.contains('/routing/')),
+          isFalse,
+        );
+      },
+    );
   });
 
-  group('SettingsScreen — Assignment tab controls & interactions', () {
+  group('SettingsScreen — Routing tab controls & interactions', () {
     testWidgets('loads GET /api/routing/policy/ and populates all controls', (
       tester,
     ) async {
@@ -210,20 +343,15 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final adapter = _StubAdapter((options) {
-        if (options.path.contains('/routing/policy/')) {
-          return _json(_defaultPolicyJson, 200);
-        }
-        return _json('{"results": []}', 200);
-      });
+      final adapter = _adapterWithPolicy(_defaultPolicyJson);
       final client = ApiClient.create(cookieJar: CookieJar());
       client.raw.httpClientAdapter = adapter;
 
       await tester.pumpWidget(_settingsHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      // Tap Assignment tab
-      await tester.tap(find.text('Assignment'));
+      // Tap Routing tab
+      await tester.tap(find.text('Routing'));
       await tester.pumpAndSettle();
 
       // Verify GET request was sent
@@ -237,11 +365,10 @@ void main() {
       // Verify controls and values
       expect(find.text('Automatic conversation assignment'), findsOneWidget);
       expect(find.text('Active'), findsOneWidget);
-      // Auto-assignment and strict-responsibility each have their own
-      // switch now.
-      expect(find.byType(Switch), findsNWidgets(2));
-
-      expect(find.text('Strict responsibility'), findsOneWidget);
+      // Strict responsibility is no longer its own card/switch — only
+      // auto-assignment has one.
+      expect(find.byType(Switch), findsNWidgets(1));
+      expect(find.text('Strict responsibility'), findsNothing);
 
       expect(find.text('Default chat capacity'), findsOneWidget);
       expect(find.widgetWithText(TextField, '200'), findsOneWidget);
@@ -271,6 +398,17 @@ void main() {
       expect(find.text('Time zone'), findsOneWidget);
       expect(find.text('Africa/Cairo'), findsOneWidget);
       expect(find.text('Save time zone'), findsOneWidget);
+
+      // Channel responsibility section, scrolled into view.
+      await tester.dragUntilVisible(
+        find.text('Channel responsibility'),
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      expect(find.text('Channel responsibility'), findsOneWidget);
+      expect(find.text('When nobody responsible is available'), findsOneWidget);
+      expect(find.text('Offer to everyone else'), findsOneWidget);
+      expect(find.text('Leave unassigned'), findsOneWidget);
     });
 
     testWidgets('toggling switch sends PATCH with ONLY is_enabled', (
@@ -283,34 +421,27 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final adapter = _StubAdapter((options) {
-        if (options.method == 'GET' &&
-            options.path.contains('/routing/policy/')) {
-          return _json(_defaultPolicyJson, 200);
-        }
-        if (options.method == 'PATCH' &&
-            options.path.contains('/routing/policy/')) {
-          return _json('''
+      final adapter = _adapterWithPolicy(
+        _defaultPolicyJson,
+        onPatch: (_) => _json('''
 {
   "is_enabled": false,
   "max_open_chats_per_agent": 200,
   "timezone": "Africa/Cairo",
   "heartbeat_max_seconds": 0
 }
-''', 200);
-        }
-        return _json('{"results": []}', 200);
-      });
+''', 200),
+      );
       final client = ApiClient.create(cookieJar: CookieJar());
       client.raw.httpClientAdapter = adapter;
 
       await tester.pumpWidget(_settingsHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Assignment'));
+      await tester.tap(find.text('Routing'));
       await tester.pumpAndSettle();
 
-      // Toggle the auto-assignment switch (first of the two on this tab) off
+      // Toggle the auto-assignment switch (the only one on this tab) off
       await tester.tap(find.byType(Switch).first);
       await tester.pumpAndSettle();
 
@@ -323,62 +454,8 @@ void main() {
       expect(body.containsKey('max_open_chats_per_agent'), isFalse);
       expect(body.containsKey('timezone'), isFalse);
 
-      expect(find.text('Assignment settings updated'), findsOneWidget);
+      expect(find.text('Routing settings updated'), findsOneWidget);
     });
-
-    testWidgets(
-      'toggling strict responsibility sends PATCH with ONLY strict_responsibility',
-      (tester) async {
-        tester.view.devicePixelRatio = 1.0;
-        tester.view.physicalSize = const Size(800, 1600);
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
-
-        final adapter = _StubAdapter((options) {
-          if (options.method == 'GET' &&
-              options.path.contains('/routing/policy/')) {
-            return _json(_defaultPolicyJson, 200);
-          }
-          if (options.method == 'PATCH' &&
-              options.path.contains('/routing/policy/')) {
-            return _json('''
-{
-  "is_enabled": true,
-  "max_open_chats_per_agent": 200,
-  "timezone": "Africa/Cairo",
-  "heartbeat_max_seconds": 0,
-  "strict_responsibility": true
-}
-''', 200);
-          }
-          return _json('{"results": []}', 200);
-        });
-        final client = ApiClient.create(cookieJar: CookieJar());
-        client.raw.httpClientAdapter = adapter;
-
-        await tester.pumpWidget(_settingsHarness(apiClient: client));
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('Assignment'));
-        await tester.pumpAndSettle();
-
-        // The strict-responsibility switch is the second on this tab.
-        await tester.tap(find.byType(Switch).at(1));
-        await tester.pumpAndSettle();
-
-        final patchReq = adapter.received.firstWhere(
-          (r) => r.method == 'PATCH' && r.path.contains('/routing/policy/'),
-        );
-        final body = patchReq.data as Map<String, dynamic>;
-        expect(body, {'strict_responsibility': true});
-        expect(body.containsKey('is_enabled'), isFalse);
-        expect(body.containsKey('max_open_chats_per_agent'), isFalse);
-
-        expect(find.text('Assignment settings updated'), findsOneWidget);
-      },
-    );
 
     testWidgets(
       'saving chat capacity sends PATCH with ONLY max_open_chats_per_agent',
@@ -390,31 +467,24 @@ void main() {
           tester.view.resetDevicePixelRatio();
         });
 
-        final adapter = _StubAdapter((options) {
-          if (options.method == 'GET' &&
-              options.path.contains('/routing/policy/')) {
-            return _json(_defaultPolicyJson, 200);
-          }
-          if (options.method == 'PATCH' &&
-              options.path.contains('/routing/policy/')) {
-            return _json('''
+        final adapter = _adapterWithPolicy(
+          _defaultPolicyJson,
+          onPatch: (_) => _json('''
 {
   "is_enabled": true,
   "max_open_chats_per_agent": 120,
   "timezone": "Africa/Cairo",
   "heartbeat_max_seconds": 0
 }
-''', 200);
-          }
-          return _json('{"results": []}', 200);
-        });
+''', 200),
+        );
         final client = ApiClient.create(cookieJar: CookieJar());
         client.raw.httpClientAdapter = adapter;
 
         await tester.pumpWidget(_settingsHarness(apiClient: client));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Assignment'));
+        await tester.tap(find.text('Routing'));
         await tester.pumpAndSettle();
 
         // Enter new capacity
@@ -434,7 +504,7 @@ void main() {
         expect(body.containsKey('is_enabled'), isFalse);
         expect(body.containsKey('timezone'), isFalse);
 
-        expect(find.text('Assignment settings updated'), findsOneWidget);
+        expect(find.text('Routing settings updated'), findsOneWidget);
       },
     );
 
@@ -448,19 +518,14 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final adapter = _StubAdapter((options) {
-        if (options.path.contains('/routing/policy/')) {
-          return _json(_defaultPolicyJson, 200);
-        }
-        return _json('{"results": []}', 200);
-      });
+      final adapter = _adapterWithPolicy(_defaultPolicyJson);
       final client = ApiClient.create(cookieJar: CookieJar());
       client.raw.httpClientAdapter = adapter;
 
       await tester.pumpWidget(_settingsHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Assignment'));
+      await tester.tap(find.text('Routing'));
       await tester.pumpAndSettle();
 
       // Enter 0
@@ -487,31 +552,24 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final adapter = _StubAdapter((options) {
-        if (options.method == 'GET' &&
-            options.path.contains('/routing/policy/')) {
-          return _json(_defaultPolicyJson, 200);
-        }
-        if (options.method == 'PATCH' &&
-            options.path.contains('/routing/policy/')) {
-          return _json('''
+      final adapter = _adapterWithPolicy(
+        _defaultPolicyJson,
+        onPatch: (_) => _json('''
 {
   "is_enabled": true,
   "max_open_chats_per_agent": 200,
   "timezone": "Africa/Casablanca",
   "heartbeat_max_seconds": 0
 }
-''', 200);
-        }
-        return _json('{"results": []}', 200);
-      });
+''', 200),
+      );
       final client = ApiClient.create(cookieJar: CookieJar());
       client.raw.httpClientAdapter = adapter;
 
       await tester.pumpWidget(_settingsHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Assignment'));
+      await tester.tap(find.text('Routing'));
       await tester.pumpAndSettle();
 
       // Open dropdown and select Africa/Casablanca
@@ -540,7 +598,7 @@ void main() {
       expect(body.containsKey('is_enabled'), isFalse);
       expect(body.containsKey('max_open_chats_per_agent'), isFalse);
 
-      expect(find.text('Assignment settings updated'), findsOneWidget);
+      expect(find.text('Routing settings updated'), findsOneWidget);
     });
 
     testWidgets('handles PATCH API error gracefully', (tester) async {
@@ -551,27 +609,20 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final adapter = _StubAdapter((options) {
-        if (options.method == 'GET' &&
-            options.path.contains('/routing/policy/')) {
-          return _json(_defaultPolicyJson, 200);
-        }
-        if (options.method == 'PATCH' &&
-            options.path.contains('/routing/policy/')) {
-          return _json(
-            '{"error": {"code": "invalid", "message": "Timezone is invalid.", "details": {}}}',
-            400,
-          );
-        }
-        return _json('{"results": []}', 200);
-      });
+      final adapter = _adapterWithPolicy(
+        _defaultPolicyJson,
+        onPatch: (_) => _json(
+          '{"error": {"code": "invalid", "message": "Timezone is invalid.", "details": {}}}',
+          400,
+        ),
+      );
       final client = ApiClient.create(cookieJar: CookieJar());
       client.raw.httpClientAdapter = adapter;
 
       await tester.pumpWidget(_settingsHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Assignment'));
+      await tester.tap(find.text('Routing'));
       await tester.pumpAndSettle();
 
       await tester.dragUntilVisible(
@@ -595,12 +646,10 @@ void main() {
       });
 
       final client = ApiClient.create(cookieJar: CookieJar());
-      client.raw.httpClientAdapter = _StubAdapter((options) {
-        if (options.path.contains('/routing/policy/')) {
-          return _json(_defaultPolicyJson, 200);
-        }
-        return _json('{"results": []}', 200);
-      });
+      client.raw.httpClientAdapter = _adapterWithPolicy(
+        _defaultPolicyJson,
+        responsibilitiesJson: _sampleResponsibilitiesJson,
+      );
 
       await tester.pumpWidget(
         _settingsHarness(
@@ -611,9 +660,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap Assignment tab in Arabic
-      expect(find.text('التوزيع'), findsOneWidget);
-      await tester.tap(find.text('التوزيع'));
+      // Tap Routing tab in Arabic
+      expect(find.text('التوجيه'), findsOneWidget);
+      await tester.tap(find.text('التوجيه'));
       await tester.pumpAndSettle();
 
       expect(find.text('التوزيع التلقائي للمحادثات'), findsOneWidget);
@@ -628,10 +677,374 @@ void main() {
       expect(find.text('الحد الأقصى لإعادات التوزيع قبل الرد'), findsOneWidget);
       expect(find.text('المنطقة الزمنية'), findsOneWidget);
       expect(find.text('حفظ المنطقة الزمنية'), findsOneWidget);
+
+      await tester.dragUntilVisible(
+        find.text('مسؤولية القناة'),
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      expect(find.text('مسؤولية القناة'), findsOneWidget);
+      expect(find.text('عندما لا يتوفر أي مسؤول'), findsOneWidget);
+      expect(find.text('عرضها على بقية الفريق'), findsOneWidget);
+      expect(find.text('تركها بدون تعيين'), findsOneWidget);
+      expect(find.textContaining('متقاعد'), findsOneWidget);
     });
   });
 
-  group('SettingsScreen — Assignment tab reassignment and ownership', () {
+  group('SettingsScreen — Channel responsibility', () {
+    testWidgets('displays real backend rules grouped with owner and channel', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(800, 1600);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final adapter = _adapterWithPolicy(
+        _defaultPolicyJson,
+        responsibilitiesJson: _sampleResponsibilitiesJson,
+      );
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await tester.pumpWidget(_settingsHarness(apiClient: client));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Routing'));
+      await tester.pumpAndSettle();
+
+      expect(
+        adapter.received.any(
+          (r) =>
+              r.method == 'GET' &&
+              r.path.contains('/routing/responsibilities/'),
+        ),
+        isTrue,
+      );
+
+      await tester.dragUntilVisible(
+        find.text('Channel responsibility'),
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+
+      // Account-specific rule: Team 2 → Instagram account · Mohamed
+      expect(find.textContaining('Team 2'), findsWidgets);
+      expect(find.textContaining('Mohamed'), findsOneWidget);
+
+      // All-account rule: Team 2 → All WhatsApp accounts
+      expect(find.textContaining('All WhatsApp accounts'), findsOneWidget);
+
+      // Retired all-account Instagram rule shows the Retired badge.
+      expect(find.textContaining('All Instagram accounts'), findsOneWidget);
+      expect(find.text('Retired'), findsOneWidget);
+
+      // Edit in Teams appears once per team-owned rule.
+      expect(find.text('Edit in Teams'), findsNWidgets(3));
+    });
+
+    testWidgets('shows empty state when there are no rules', (tester) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(800, 1600);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _adapterWithPolicy(_defaultPolicyJson);
+
+      await tester.pumpWidget(_settingsHarness(apiClient: client));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Routing'));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Channel responsibility'),
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+
+      expect(find.text('No responsibility rules yet.'), findsOneWidget);
+    });
+
+    testWidgets('shows an error state when the responsibilities GET fails', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(800, 1600);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter((options) {
+        if (options.path.contains('/routing/responsibilities/')) {
+          return _json(
+            '{"error": {"code": "server_error", "message": "Could not load rules.", "details": {}}}',
+            500,
+          );
+        }
+        if (options.path.contains('/routing/policy/')) {
+          return _json(_defaultPolicyJson, 200);
+        }
+        return _json('{"results": []}', 200);
+      });
+
+      await tester.pumpWidget(_settingsHarness(apiClient: client));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Routing'));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Channel responsibility'),
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+
+      expect(find.textContaining('Could not load rules.'), findsOneWidget);
+    });
+
+    testWidgets('tapping Edit in Teams navigates to the Teams screen', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(800, 1600);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _adapterWithPolicy(
+        _defaultPolicyJson,
+        responsibilitiesJson: _sampleResponsibilitiesJson,
+      );
+
+      await tester.pumpWidget(_settingsHarnessWithRouter(apiClient: client));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Routing'));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Edit in Teams').first,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      // dragUntilVisible stops as soon as any part of the target is on
+      // screen, which can leave it right at the bottom edge and outside the
+      // hit-test bounds — scroll a bit further so the tap lands cleanly.
+      await tester.drag(find.byType(ListView), const Offset(0, -200));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit in Teams').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Teams screen'), findsOneWidget);
+    });
+
+    testWidgets(
+      '"Offer to everyone else" sends PATCH with strict_responsibility=false',
+      (tester) async {
+        tester.view.devicePixelRatio = 1.0;
+        tester.view.physicalSize = const Size(800, 1600);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        const strictPolicyJson = '''
+{
+  "is_enabled": true,
+  "max_open_chats_per_agent": 200,
+  "timezone": "Africa/Cairo",
+  "heartbeat_max_seconds": 0,
+  "first_response_sla_seconds": 300,
+  "sticky_conversation_ownership": false,
+  "escalation_max_hops": 3,
+  "strict_responsibility": true
+}
+''';
+
+        final adapter = _adapterWithPolicy(
+          strictPolicyJson,
+          onPatch: (_) => _json('''
+{
+  "is_enabled": true,
+  "max_open_chats_per_agent": 200,
+  "timezone": "Africa/Cairo",
+  "heartbeat_max_seconds": 0,
+  "strict_responsibility": false
+}
+''', 200),
+        );
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await tester.pumpWidget(_settingsHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Routing'));
+        await tester.pumpAndSettle();
+
+        await tester.dragUntilVisible(
+          find.byKey(const ValueKey('offer_to_everyone_button')),
+          find.byType(ListView),
+          const Offset(0, -300),
+        );
+        // The button is the last row on the tab, so dragUntilVisible can
+        // leave it right at the bottom edge — scroll further to be safe.
+        await tester.drag(find.byType(ListView), const Offset(0, -200));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('offer_to_everyone_button')),
+        );
+        await tester.pumpAndSettle();
+
+        final patchReq = adapter.received.firstWhere(
+          (r) => r.method == 'PATCH' && r.path.contains('/routing/policy/'),
+        );
+        expect(patchReq.data, {'strict_responsibility': false});
+        expect(find.text('Fallback behavior updated'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      '"Leave unassigned" sends PATCH with strict_responsibility=true',
+      (tester) async {
+        tester.view.devicePixelRatio = 1.0;
+        tester.view.physicalSize = const Size(800, 1600);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final adapter = _adapterWithPolicy(
+          _defaultPolicyJson,
+          onPatch: (_) => _json('''
+{
+  "is_enabled": true,
+  "max_open_chats_per_agent": 200,
+  "timezone": "Africa/Cairo",
+  "heartbeat_max_seconds": 0,
+  "strict_responsibility": true
+}
+''', 200),
+        );
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await tester.pumpWidget(_settingsHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Routing'));
+        await tester.pumpAndSettle();
+
+        await tester.dragUntilVisible(
+          find.byKey(const ValueKey('leave_unassigned_button')),
+          find.byType(ListView),
+          const Offset(0, -300),
+        );
+        // The button is the last row on the tab, so dragUntilVisible can
+        // leave it right at the bottom edge — scroll further to be safe.
+        await tester.drag(find.byType(ListView), const Offset(0, -200));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('leave_unassigned_button')));
+        await tester.pumpAndSettle();
+
+        final patchReq = adapter.received.firstWhere(
+          (r) => r.method == 'PATCH' && r.path.contains('/routing/policy/'),
+        );
+        expect(patchReq.data, {'strict_responsibility': true});
+        expect(find.text('Fallback behavior updated'), findsOneWidget);
+      },
+    );
+
+    testWidgets('renders on 320px narrow mobile screen without overflow', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(320, 1600);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _adapterWithPolicy(
+        _defaultPolicyJson,
+        responsibilitiesJson: _sampleResponsibilitiesJson,
+      );
+
+      await tester.pumpWidget(_settingsHarness(apiClient: client));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Routing'));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Channel responsibility'),
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('renders in dark mode without error', (tester) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(800, 1600);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _adapterWithPolicy(
+        _defaultPolicyJson,
+        responsibilitiesJson: _sampleResponsibilitiesJson,
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            apiClientProvider.overrideWithValue(client),
+            currentEmployeeProvider.overrideWithValue(_adminEmployee),
+            cookieJarProvider.overrideWithValue(CookieJar()),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.dark,
+            darkTheme: AppTheme.dark,
+            themeMode: ThemeMode.dark,
+            home: const SettingsScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Routing'));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Channel responsibility'),
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+
+      expect(find.text('Channel responsibility'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('SettingsScreen — Routing tab reassignment and ownership', () {
     testWidgets(
       'saving reassign minutes sends PATCH with first_response_sla_seconds in seconds',
       (tester) async {
@@ -642,10 +1055,9 @@ void main() {
           tester.view.resetDevicePixelRatio();
         });
 
-        final adapter = _StubAdapter((options) {
-          if (options.method == 'PATCH' &&
-              options.path.contains('/routing/policy/')) {
-            return _json('''
+        final adapter = _adapterWithPolicy(
+          _defaultPolicyJson,
+          onPatch: (_) => _json('''
 {
   "is_enabled": true,
   "max_open_chats_per_agent": 200,
@@ -655,20 +1067,15 @@ void main() {
   "sticky_conversation_ownership": false,
   "escalation_max_hops": 3
 }
-''', 200);
-          }
-          if (options.path.contains('/routing/policy/')) {
-            return _json(_defaultPolicyJson, 200);
-          }
-          return _json('{"results": []}', 200);
-        });
+''', 200),
+        );
         final client = ApiClient.create(cookieJar: CookieJar());
         client.raw.httpClientAdapter = adapter;
 
         await tester.pumpWidget(_settingsHarness(apiClient: client));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Assignment'));
+        await tester.tap(find.text('Routing'));
         await tester.pumpAndSettle();
 
         final input = find.byKey(const ValueKey('reassign_input'));
@@ -701,19 +1108,14 @@ void main() {
           tester.view.resetDevicePixelRatio();
         });
 
-        final adapter = _StubAdapter((options) {
-          if (options.path.contains('/routing/policy/')) {
-            return _json(_defaultPolicyJson, 200);
-          }
-          return _json('{"results": []}', 200);
-        });
+        final adapter = _adapterWithPolicy(_defaultPolicyJson);
         final client = ApiClient.create(cookieJar: CookieJar());
         client.raw.httpClientAdapter = adapter;
 
         await tester.pumpWidget(_settingsHarness(apiClient: client));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Assignment'));
+        await tester.tap(find.text('Routing'));
         await tester.pumpAndSettle();
 
         final input = find.byKey(const ValueKey('reassign_input'));
@@ -755,26 +1157,20 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final adapter = _StubAdapter((options) {
-        if (options.method == 'PATCH' &&
-            options.path.contains('/routing/policy/')) {
-          return _json(
-            '{"error": {"code": "invalid", "message": "Invalid SLA seconds.", "details": {}}}',
-            400,
-          );
-        }
-        if (options.path.contains('/routing/policy/')) {
-          return _json(_defaultPolicyJson, 200);
-        }
-        return _json('{"results": []}', 200);
-      });
+      final adapter = _adapterWithPolicy(
+        _defaultPolicyJson,
+        onPatch: (_) => _json(
+          '{"error": {"code": "invalid", "message": "Invalid SLA seconds.", "details": {}}}',
+          400,
+        ),
+      );
       final client = ApiClient.create(cookieJar: CookieJar());
       client.raw.httpClientAdapter = adapter;
 
       await tester.pumpWidget(_settingsHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Assignment'));
+      await tester.tap(find.text('Routing'));
       await tester.pumpAndSettle();
 
       final input = find.byKey(const ValueKey('reassign_input'));
@@ -797,10 +1193,9 @@ void main() {
           tester.view.resetDevicePixelRatio();
         });
 
-        final adapter = _StubAdapter((options) {
-          if (options.method == 'PATCH' &&
-              options.path.contains('/routing/policy/')) {
-            return _json('''
+        final adapter = _adapterWithPolicy(
+          _defaultPolicyJson,
+          onPatch: (_) => _json('''
 {
   "is_enabled": true,
   "max_open_chats_per_agent": 200,
@@ -810,20 +1205,15 @@ void main() {
   "sticky_conversation_ownership": true,
   "escalation_max_hops": 3
 }
-''', 200);
-          }
-          if (options.path.contains('/routing/policy/')) {
-            return _json(_defaultPolicyJson, 200);
-          }
-          return _json('{"results": []}', 200);
-        });
+''', 200),
+        );
         final client = ApiClient.create(cookieJar: CookieJar());
         client.raw.httpClientAdapter = adapter;
 
         await tester.pumpWidget(_settingsHarness(apiClient: client));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Assignment'));
+        await tester.tap(find.text('Routing'));
         await tester.pumpAndSettle();
 
         // Initially false (Off)
@@ -855,26 +1245,20 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final adapter = _StubAdapter((options) {
-        if (options.method == 'PATCH' &&
-            options.path.contains('/routing/policy/')) {
-          return _json(
-            '{"error": {"code": "invalid", "message": "Failed to update ownership.", "details": {}}}',
-            400,
-          );
-        }
-        if (options.path.contains('/routing/policy/')) {
-          return _json(_defaultPolicyJson, 200);
-        }
-        return _json('{"results": []}', 200);
-      });
+      final adapter = _adapterWithPolicy(
+        _defaultPolicyJson,
+        onPatch: (_) => _json(
+          '{"error": {"code": "invalid", "message": "Failed to update ownership.", "details": {}}}',
+          400,
+        ),
+      );
       final client = ApiClient.create(cookieJar: CookieJar());
       client.raw.httpClientAdapter = adapter;
 
       await tester.pumpWidget(_settingsHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Assignment'));
+      await tester.tap(find.text('Routing'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('sticky_on_button')));
@@ -893,10 +1277,9 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final adapter = _StubAdapter((options) {
-        if (options.method == 'PATCH' &&
-            options.path.contains('/routing/policy/')) {
-          return _json('''
+      final adapter = _adapterWithPolicy(
+        _defaultPolicyJson,
+        onPatch: (_) => _json('''
 {
   "is_enabled": true,
   "max_open_chats_per_agent": 200,
@@ -906,20 +1289,15 @@ void main() {
   "sticky_conversation_ownership": false,
   "escalation_max_hops": 7
 }
-''', 200);
-        }
-        if (options.path.contains('/routing/policy/')) {
-          return _json(_defaultPolicyJson, 200);
-        }
-        return _json('{"results": []}', 200);
-      });
+''', 200),
+      );
       final client = ApiClient.create(cookieJar: CookieJar());
       client.raw.httpClientAdapter = adapter;
 
       await tester.pumpWidget(_settingsHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Assignment'));
+      await tester.tap(find.text('Routing'));
       await tester.pumpAndSettle();
 
       final input = find.byKey(const ValueKey('max_hops_input'));
@@ -949,19 +1327,14 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final adapter = _StubAdapter((options) {
-        if (options.path.contains('/routing/policy/')) {
-          return _json(_defaultPolicyJson, 200);
-        }
-        return _json('{"results": []}', 200);
-      });
+      final adapter = _adapterWithPolicy(_defaultPolicyJson);
       final client = ApiClient.create(cookieJar: CookieJar());
       client.raw.httpClientAdapter = adapter;
 
       await tester.pumpWidget(_settingsHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Assignment'));
+      await tester.tap(find.text('Routing'));
       await tester.pumpAndSettle();
 
       final input = find.byKey(const ValueKey('max_hops_input'));
@@ -1009,17 +1382,12 @@ void main() {
 ''';
 
         final client = ApiClient.create(cookieJar: CookieJar());
-        client.raw.httpClientAdapter = _StubAdapter((options) {
-          if (options.path.contains('/routing/policy/')) {
-            return _json(disabledPolicyJson, 200);
-          }
-          return _json('{"results": []}', 200);
-        });
+        client.raw.httpClientAdapter = _adapterWithPolicy(disabledPolicyJson);
 
         await tester.pumpWidget(_settingsHarness(apiClient: client));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Assignment'));
+        await tester.tap(find.text('Routing'));
         await tester.pumpAndSettle();
 
         final reassignField = tester.widget<TextField>(
@@ -1055,17 +1423,12 @@ void main() {
       });
 
       final client = ApiClient.create(cookieJar: CookieJar());
-      client.raw.httpClientAdapter = _StubAdapter((options) {
-        if (options.path.contains('/routing/policy/')) {
-          return _json(_defaultPolicyJson, 200);
-        }
-        return _json('{"results": []}', 200);
-      });
+      client.raw.httpClientAdapter = _adapterWithPolicy(_defaultPolicyJson);
 
       await tester.pumpWidget(_settingsHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Assignment'));
+      await tester.tap(find.text('Routing'));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);

@@ -12,7 +12,7 @@
   "tabChannels": "Channels",
   "tabProfile": "Profile",
   "tabSecurity": "Security",
-  "tabAssignment": "Assignment",
+  "tabAssignment": "Routing",
 
   "signOutDialogTitle": "Sign out?",
   "signOutDialogMessage": "You will stop receiving new conversations on this device.",
@@ -487,9 +487,37 @@
   "autoAssignmentStatusActive": "Active",
   "autoAssignmentStatusInactive": "Disabled",
   "autoAssignmentToggleLabel": "Enable automatic assignment",
-  "strictResponsibilityTitle": "Strict responsibility",
-  "strictResponsibilityDescription": "When on, a conversation with nobody responsible for its channel stays unassigned rather than falling back to whoever is available. When off, responsibility is only a preference.",
-  "strictResponsibilityToggleLabel": "Require responsibility to assign",
+  "channelResponsibilityTitle": "Channel responsibility",
+  "channelResponsibilityDescription": "Choose who is offered new conversations from each channel. A rule for one specific account takes precedence over a rule for all accounts, and an employee's own rules take precedence over their team's.",
+  "channelResponsibilityAccessNote": "This decides who receives new conversations, not who can see them. Everyone keeps the access their role gives them.",
+  "channelResponsibilityEditNote": "Team rules are set in each team's form on the Teams page. Which channels an employee handles is set in their form on the Employees page.",
+  "channelResponsibilityEmpty": "No responsibility rules yet.",
+  "channelResponsibilityAllAccounts": "All {provider} accounts",
+  "@channelResponsibilityAllAccounts": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "channelResponsibilityAccountRule": "{provider} account · {account}",
+  "@channelResponsibilityAccountRule": {
+    "placeholders": {
+      "provider": {"type": "String"},
+      "account": {"type": "String"}
+    }
+  },
+  "channelResponsibilityTeamPrefix": "Team {name}",
+  "@channelResponsibilityTeamPrefix": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "channelResponsibilityRetired": "Retired",
+  "channelResponsibilityEditInTeams": "Edit in Teams",
+  "channelResponsibilityFallbackTitle": "When nobody responsible is available",
+  "channelResponsibilityFallbackDescription": "The conversation goes to the rest of the organization, so no customer is left without an owner.",
+  "channelResponsibilityOfferToEveryone": "Offer to everyone else",
+  "channelResponsibilityLeaveUnassigned": "Leave unassigned",
+  "channelResponsibilityFallbackSaved": "Fallback behavior updated",
   "defaultChatCapacityTitle": "Default chat capacity",
   "defaultChatCapacityDescription": "Maximum open conversations assigned to an agent at one time.",
   "maxOpenChatsFieldLabel": "Max open chats per agent",
@@ -499,9 +527,9 @@
   "timezoneDescription": "Organization-level time zone. Changing this reinterprets existing schedules without rewriting them.",
   "timezoneFieldLabel": "Select time zone",
   "saveTimezoneAction": "Save time zone",
-  "assignmentPolicyUpdatedSnackbar": "Assignment settings updated",
-  "routingPolicyLoadFailed": "Couldn't load assignment settings.",
-  "routingPermissionDenied": "You don't have permission to manage assignment settings.",
+  "assignmentPolicyUpdatedSnackbar": "Routing settings updated",
+  "routingPolicyLoadFailed": "Couldn't load routing settings.",
+  "routingPermissionDenied": "You don't have permission to manage routing settings.",
   "openUnreadSummary": "{open} open · {unread} unread",
   "@openUnreadSummary": {
     "placeholders": {
@@ -615,6 +643,17 @@
   "ordersTitle": "Orders",
   "orderButton": "Order",
   "noOrdersRecordedMessage": "No orders recorded from this conversation.",
+  "contactSectionTitle": "Contact",
+  "contactEditButton": "Edit",
+  "customerDataTitle": "Customer data",
+  "customerDataDetailButton": "Detail",
+  "customerDataEmpty": "No customer details recorded yet.",
+  "customerDataMoreCount": "+{count} more",
+  "@customerDataMoreCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "employeeSourceBadge": "Employee",
   "autoSourceBadge": "Auto",
   "saveToCustomerTooltip": "Save to the customer",

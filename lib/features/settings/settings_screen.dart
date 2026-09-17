@@ -16,8 +16,10 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../app/router.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/employee.dart';
@@ -2193,13 +2195,13 @@ class _AssignmentTabContentState extends State<_AssignmentTabContent> {
       children: [
         _AutoAssignmentCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
-        _StrictResponsibilityCard(policy: widget.policy),
-        const SizedBox(height: Space.lg),
         _ChatCapacityCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
         _ReassignmentSettingsCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
         _TimezoneCard(policy: widget.policy),
+        const SizedBox(height: Space.lg),
+        _ChannelResponsibilitySection(policy: widget.policy),
       ],
     );
   }
@@ -2311,18 +2313,194 @@ class _AutoAssignmentCardState extends ConsumerState<_AutoAssignmentCard> {
   }
 }
 
-class _StrictResponsibilityCard extends ConsumerStatefulWidget {
-  const _StrictResponsibilityCard({required this.policy});
+/// Channel responsibility — read-only display of who is offered new
+/// conversations from each channel, plus the fallback-behavior control.
+///
+/// Rule creation/editing lives entirely in the Team and Employee forms (see
+/// `team_form_sheet.dart`'s `_TeamResponsibilitiesCard`); this section only
+/// reads [routingResponsibilitiesProvider] and links out via "Edit in Teams".
+class _ChannelResponsibilitySection extends ConsumerWidget {
+  const _ChannelResponsibilitySection({required this.policy});
 
   final RoutingPolicy policy;
 
   @override
-  ConsumerState<_StrictResponsibilityCard> createState() =>
-      _StrictResponsibilityCardState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rulesAsync = ref.watch(routingResponsibilitiesProvider);
+    final theme = Theme.of(context);
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(Space.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.l10n.channelResponsibilityTitle,
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: Space.sm),
+            Text(
+              context.l10n.channelResponsibilityDescription,
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: Space.sm),
+            Text(
+              context.l10n.channelResponsibilityAccessNote,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: Space.xs),
+            Text(
+              context.l10n.channelResponsibilityEditNote,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: Space.md),
+            rulesAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: Space.lg),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, _) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: Space.sm),
+                child: InlineError(message: error.toString()),
+              ),
+              data: (rules) {
+                if (rules.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: Space.sm),
+                    child: Text(
+                      context.l10n.channelResponsibilityEmpty,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  );
+                }
+                return Column(
+                  children: [
+                    for (var i = 0; i < rules.length; i++) ...[
+                      if (i > 0)
+                        Divider(
+                          height: Space.lg,
+                          color: theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                      _ChannelResponsibilityRow(rule: rules[i]),
+                    ],
+                  ],
+                );
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: Space.lg),
+              child: Divider(
+                height: 1,
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+              ),
+            ),
+            _FallbackBehaviorControl(policy: policy),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _StrictResponsibilityCardState
-    extends ConsumerState<_StrictResponsibilityCard> {
+class _ChannelResponsibilityRow extends StatelessWidget {
+  const _ChannelResponsibilityRow({required this.rule});
+
+  final RoutingResponsibility rule;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final ownerLabel = rule.teamId != null
+        ? context.l10n.channelResponsibilityTeamPrefix(rule.teamName)
+        : rule.employeeName;
+    final channelLabel = rule.isChannelSpecific
+        ? context.l10n.channelResponsibilityAccountRule(
+            ConversationBadges.providerLabel(context, rule.provider),
+            rule.channelConnectionName,
+          )
+        : context.l10n.channelResponsibilityAllAccounts(
+            ConversationBadges.providerLabel(context, rule.provider),
+          );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          ConversationBadges.providerIcon(rule.provider),
+          size: 20,
+          color: ConversationBadges.providerColor(rule.provider),
+        ),
+        const SizedBox(width: Space.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$ownerLabel → $channelLabel',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (!rule.isActive) ...[
+                const SizedBox(height: Space.xs),
+                StatusBadge(
+                  label: context.l10n.channelResponsibilityRetired,
+                  tone: BadgeTone.neutral,
+                  dense: true,
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (rule.teamId != null) ...[
+          const SizedBox(width: Space.sm),
+          TextButton(
+            onPressed: () => context.push(Routes.teams),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, 32),
+              padding: const EdgeInsets.symmetric(horizontal: Space.sm),
+              visualDensity: VisualDensity.compact,
+            ),
+            child: Text(
+              context.l10n.channelResponsibilityEditInTeams,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// "When nobody responsible is available" — reuses [RoutingPolicy.strictResponsibility]
+/// relabeled: `true` keeps an unowned conversation unassigned, `false` offers
+/// it to the rest of the organization. Same field, same
+/// `updateRoutingPolicy(strictResponsibility:)` call the old standalone card
+/// used; only the presentation changed.
+class _FallbackBehaviorControl extends ConsumerStatefulWidget {
+  const _FallbackBehaviorControl({required this.policy});
+
+  final RoutingPolicy policy;
+
+  @override
+  ConsumerState<_FallbackBehaviorControl> createState() =>
+      _FallbackBehaviorControlState();
+}
+
+class _FallbackBehaviorControlState
+    extends ConsumerState<_FallbackBehaviorControl> {
   bool _busy = false;
 
   void _showMessage(String message, {bool isError = false}) {
@@ -2335,8 +2513,8 @@ class _StrictResponsibilityCardState
     );
   }
 
-  Future<void> _toggle(bool value) async {
-    if (_busy) return;
+  Future<void> _setStrict(bool value) async {
+    if (_busy || value == widget.policy.strictResponsibility) return;
     setState(() => _busy = true);
     try {
       await ref
@@ -2344,7 +2522,7 @@ class _StrictResponsibilityCardState
           .updateRoutingPolicy(strictResponsibility: value);
       ref.invalidate(routingPolicyProvider);
       if (mounted) {
-        _showMessage(context.l10n.assignmentPolicyUpdatedSnackbar);
+        _showMessage(context.l10n.channelResponsibilityFallbackSaved);
       }
     } on ApiException catch (error) {
       _showMessage(error.message, isError: true);
@@ -2360,46 +2538,56 @@ class _StrictResponsibilityCardState
     final theme = Theme.of(context);
     final strict = widget.policy.strictResponsibility;
 
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(Space.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.l10n.channelResponsibilityFallbackTitle,
+          style: theme.textTheme.titleMedium,
+        ),
+        const SizedBox(height: Space.sm),
+        Text(
+          context.l10n.channelResponsibilityFallbackDescription,
+          style: theme.textTheme.bodySmall,
+        ),
+        const SizedBox(height: Space.md),
+        if (_busy) ...[
+          const LinearProgressIndicator(minHeight: 2),
+          const SizedBox(height: Space.sm),
+        ],
+        Wrap(
+          spacing: Space.sm,
+          runSpacing: Space.sm,
           children: [
-            Text(
-              context.l10n.strictResponsibilityTitle,
-              style: theme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: Space.sm),
-            Text(
-              context.l10n.strictResponsibilityDescription,
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: Space.md),
-            if (_busy) ...[
-              const LinearProgressIndicator(minHeight: 2),
-              const SizedBox(height: Space.sm),
-            ],
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    context.l10n.strictResponsibilityToggleLabel,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+            FilledButton(
+              key: const ValueKey('offer_to_everyone_button'),
+              onPressed: _busy ? null : () => _setStrict(false),
+              style: !strict
+                  ? FilledButton.styleFrom(minimumSize: const Size(0, 36))
+                  : FilledButton.styleFrom(
+                      minimumSize: const Size(0, 36),
+                      backgroundColor:
+                          theme.colorScheme.surfaceContainerHighest,
+                      foregroundColor: theme.colorScheme.onSurfaceVariant,
                     ),
-                  ),
-                ),
-                Switch.adaptive(
-                  value: strict,
-                  onChanged: _busy ? null : _toggle,
-                ),
-              ],
+              child: Text(context.l10n.channelResponsibilityOfferToEveryone),
+            ),
+            FilledButton(
+              key: const ValueKey('leave_unassigned_button'),
+              onPressed: _busy ? null : () => _setStrict(true),
+              style: strict
+                  ? FilledButton.styleFrom(minimumSize: const Size(0, 36))
+                  : FilledButton.styleFrom(
+                      minimumSize: const Size(0, 36),
+                      backgroundColor:
+                          theme.colorScheme.surfaceContainerHighest,
+                      foregroundColor: theme.colorScheme.onSurfaceVariant,
+                    ),
+              child: Text(context.l10n.channelResponsibilityLeaveUnassigned),
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 }

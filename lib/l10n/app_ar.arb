@@ -8,7 +8,7 @@
   "tabChannels": "القنوات",
   "tabProfile": "الملف الشخصي",
   "tabSecurity": "الأمان",
-  "tabAssignment": "التوزيع",
+  "tabAssignment": "التوجيه",
 
   "signOutDialogTitle": "تسجيل الخروج؟",
   "signOutDialogMessage": "لن تتلقى محادثات جديدة على هذا الجهاز.",
@@ -376,9 +376,37 @@
   "autoAssignmentStatusActive": "نشط",
   "autoAssignmentStatusInactive": "معطّل",
   "autoAssignmentToggleLabel": "تفعيل التوزيع التلقائي",
-  "strictResponsibilityTitle": "المسؤولية الصارمة",
-  "strictResponsibilityDescription": "عند التفعيل، تبقى المحادثة بلا تعيين إذا لم يكن أحد مسؤولاً عن قناتها، بدلاً من إسنادها لأي موظف متاح. عند الإيقاف، تُعامل المسؤولية كتفضيل فقط.",
-  "strictResponsibilityToggleLabel": "اشتراط المسؤولية للتعيين",
+  "channelResponsibilityTitle": "مسؤولية القناة",
+  "channelResponsibilityDescription": "اختر من يتم عرض المحادثات الجديدة عليه من كل قناة. تكون لقاعدة خاصة بحساب واحد الأولوية على قاعدة لكل الحسابات، ولقواعد الموظف الخاصة الأولوية على قواعد فريقه.",
+  "channelResponsibilityAccessNote": "هذا يحدد من يستقبل المحادثات الجديدة، وليس من يمكنه رؤيتها. يحتفظ الجميع بصلاحية الوصول التي يمنحها دورهم.",
+  "channelResponsibilityEditNote": "تُحدَّد قواعد الفريق في نموذج كل فريق ضمن صفحة الفرق. وتُحدَّد القنوات التي يتعامل معها الموظف في نموذجه ضمن صفحة الموظفين.",
+  "channelResponsibilityEmpty": "لا توجد قواعد مسؤولية بعد.",
+  "channelResponsibilityAllAccounts": "كل حسابات {provider}",
+  "@channelResponsibilityAllAccounts": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "channelResponsibilityAccountRule": "حساب {provider} · {account}",
+  "@channelResponsibilityAccountRule": {
+    "placeholders": {
+      "provider": {"type": "String"},
+      "account": {"type": "String"}
+    }
+  },
+  "channelResponsibilityTeamPrefix": "فريق {name}",
+  "@channelResponsibilityTeamPrefix": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "channelResponsibilityRetired": "متقاعد",
+  "channelResponsibilityEditInTeams": "تعديل في الفرق",
+  "channelResponsibilityFallbackTitle": "عندما لا يتوفر أي مسؤول",
+  "channelResponsibilityFallbackDescription": "تنتقل المحادثة إلى بقية أعضاء المؤسسة، حتى لا يبقى أي عميل بلا مسؤول.",
+  "channelResponsibilityOfferToEveryone": "عرضها على بقية الفريق",
+  "channelResponsibilityLeaveUnassigned": "تركها بدون تعيين",
+  "channelResponsibilityFallbackSaved": "تم تحديث سلوك الاحتياط",
   "defaultChatCapacityTitle": "سعة المحادثات الافتراضية",
   "defaultChatCapacityDescription": "الحد الأقصى للمحادثات المفتوحة المسندة للوكيل في وقت واحد.",
   "maxOpenChatsFieldLabel": "الحد الأقصى للمحادثات المفتوحة لكل وكيل",
@@ -388,9 +416,9 @@
   "timezoneDescription": "المنطقة الزمنية للمؤسسة. تغييرها يعيد تفسير الجداول الحالية دون إعادة كتابتها.",
   "timezoneFieldLabel": "اختر المنطقة الزمنية",
   "saveTimezoneAction": "حفظ المنطقة الزمنية",
-  "assignmentPolicyUpdatedSnackbar": "تم تحديث إعدادات التوزيع",
-  "routingPolicyLoadFailed": "تعذر تحميل إعدادات التوزيع.",
-  "routingPermissionDenied": "ليس لديك صلاحية لإدارة إعدادات التوزيع.",
+  "assignmentPolicyUpdatedSnackbar": "تم تحديث إعدادات التوجيه",
+  "routingPolicyLoadFailed": "تعذر تحميل إعدادات التوجيه.",
+  "routingPermissionDenied": "ليس لديك صلاحية لإدارة إعدادات التوجيه.",
   "openUnreadSummary": "{open} مفتوحة · {unread} غير مقروءة",
   "openSummary": "{open} مفتوحة",
 
@@ -462,6 +490,17 @@
   "ordersTitle": "الطلبات",
   "orderButton": "طلب",
   "noOrdersRecordedMessage": "لا توجد طلبات مسجَّلة من هذه المحادثة.",
+  "contactSectionTitle": "جهة الاتصال",
+  "contactEditButton": "تعديل",
+  "customerDataTitle": "بيانات العميل",
+  "customerDataDetailButton": "تفصيل",
+  "customerDataEmpty": "لم يتم تسجيل أي تفاصيل للعميل بعد.",
+  "customerDataMoreCount": "+{count} أخرى",
+  "@customerDataMoreCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "employeeSourceBadge": "موظف",
   "autoSourceBadge": "تلقائي",
   "saveToCustomerTooltip": "حفظ في ملف العميل",

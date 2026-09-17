@@ -54,6 +54,15 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   late ProviderContainer _container;
   bool _sending = false;
   bool _initialScrollDone = false;
+
+  /// True once a single `_jumpToBottomInitial` post-frame callback is
+  /// in flight or has completed. Guards against `_MessageList` rebuilding
+  /// (new messages, notes, keyboard-driven relayout, `_onScroll`'s own
+  /// `setState`) and re-arming another post-frame jump on top of one
+  /// already pending — the stacked, stale callback would otherwise fire
+  /// later and yank the list back to the bottom out from under a user who
+  /// had, by then, manually scrolled away. See `_jumpToBottomInitial`.
+  bool _initialScrollScheduled = false;
   bool _showScrollToBottom = false;
 
   /// The message the agent has picked "Reply" on, if any — shown as a quote
@@ -105,27 +114,73 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     return (pos.maxScrollExtent - pos.pixels) <= threshold;
   }
 
-  void _jumpToBottomInitial() {
+  /// A stable identity for a message regardless of whether it has a real
+  /// server [Message.id] yet — mirrors the id/localId keying the controller
+  /// itself uses to de-duplicate.
+  static Object _messageKey(Message m) => m.localId ?? m.id;
+
+  /// How many messages in [next] were inserted *before* the message that used
+  /// to be first in [previous] — i.e. how much older history `loadOlder()`
+  /// just prepended. Zero for a plain append (a new message at the bottom),
+  /// since that leaves the old first message's index unchanged.
+  int _prependedCount(List<Message> previous, List<Message> next) {
+    if (previous.isEmpty) return 0;
+    final oldFirstKey = _messageKey(previous.first);
+    final newIndex = next.indexWhere((m) => _messageKey(m) == oldFirstKey);
+    return newIndex < 0 ? 0 : newIndex;
+  }
+
+  /// Compensates for `ListView`'s default prepend behavior — inserting items
+  /// above the viewport without moving `pixels` visually shoves everything
+  /// the user was looking at downward by the height of what was just added.
+  /// Adjusts the offset by exactly that delta once the new items are laid
+  /// out, so the message the user was reading stays under their eyes.
+  void _preserveScrollPositionAfterPrepend() {
+    if (!_scrollController.hasClients) return;
+    final before = _scrollController.position.maxScrollExtent;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
-      if (_scrollController.position.hasContentDimensions) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-        _initialScrollDone = true;
-        _onScroll();
-      } else {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted &&
-              _scrollController.hasClients &&
-              _scrollController.position.hasContentDimensions) {
-            _scrollController.jumpTo(
-              _scrollController.position.maxScrollExtent,
-            );
-            _initialScrollDone = true;
-            _onScroll();
-          }
-        });
+      final pos = _scrollController.position;
+      if (!pos.hasContentDimensions) return;
+      final delta = pos.maxScrollExtent - before;
+      if (delta > 0) {
+        _scrollController.jumpTo(pos.pixels + delta);
       }
     });
+  }
+
+  /// Positions the list at the latest message before the user ever sees an
+  /// unpositioned frame. Called at most once per screen instance: the first
+  /// caller flips [_initialScrollScheduled] synchronously, so a rebuild that
+  /// happens before the scheduled callback fires (a realtime message, notes
+  /// loading, `_onScroll`'s own `setState`, a keyboard-driven relayout)
+  /// cannot stack a second, later callback that would yank the list back to
+  /// the bottom out from under a user who has since scrolled away.
+  ///
+  /// The list itself stays invisible (see `_MessageList`'s `Opacity` gate in
+  /// the build method below) until [_initialScrollDone] flips, so the jump
+  /// itself is never visible — there is no middle-of-conversation frame to see.
+  void _jumpToBottomInitial() {
+    if (_initialScrollScheduled) return;
+    _initialScrollScheduled = true;
+
+    void attempt() {
+      if (!mounted) return;
+      if (!_scrollController.hasClients ||
+          !_scrollController.position.hasContentDimensions) {
+        // Layout not ready yet (e.g. the list has no size on this frame) —
+        // retry on the next frame rather than giving up silently. Bounded by
+        // construction: each retry only re-schedules itself, never stacks.
+        WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
+        return;
+      }
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      if (!mounted) return;
+      setState(() => _initialScrollDone = true);
+      _onScroll();
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
   }
 
   void _scrollToBottom({bool animated = false}) {
@@ -276,21 +331,37 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       );
     });
 
-    // Automatically scroll down when a new message arrives.
+    // Scroll decisions on message-count changes — the one place that reacts
+    // to messages being added, whether that's a new message appended at the
+    // bottom (realtime/send) or older history prepended at the top
+    // (pagination). Centralized here rather than in `_MessageList` so a
+    // rebuild of the list widget itself never independently decides to
+    // scroll.
     ref.listen(conversationControllerProvider(widget.conversationId), (
       previous,
       next,
     ) {
-      final prevCount = previous?.value?.messages.length ?? 0;
-      final nextCount = next.value?.messages.length ?? 0;
-      if (nextCount > prevCount) {
-        if (!_initialScrollDone) {
-          _jumpToBottomInitial();
-        } else if (_isNearBottom()) {
-          _scrollToBottom(animated: true);
-        } else {
-          _onScroll();
-        }
+      final prevMessages = previous?.value?.messages ?? const [];
+      final nextMessages = next.value?.messages ?? const [];
+      if (nextMessages.length <= prevMessages.length) return;
+
+      final prependedCount = _prependedCount(prevMessages, nextMessages);
+      if (prependedCount > 0) {
+        // Older history loaded at the top. The list keeps `pixels` constant
+        // by default, which visually shoves the messages the user was
+        // reading downward by the height of everything just inserted above
+        // them — compensate after the new items are laid out so the same
+        // content stays under the user's eyes instead of drifting.
+        _preserveScrollPositionAfterPrepend();
+        return;
+      }
+
+      if (!_initialScrollDone) {
+        _jumpToBottomInitial();
+      } else if (_isNearBottom()) {
+        _scrollToBottom(animated: true);
+      } else {
+        _onScroll();
       }
     });
 
@@ -370,14 +441,23 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                             message: context.l10n.noMessagesYetMessage,
                             icon: Icons.chat_bubble_outline,
                           )
-                        : _MessageList(
-                            state: state,
-                            controller: _scrollController,
-                            conversationId: widget.conversationId,
-                            onInitialLayout: _initialScrollDone
-                                ? null
-                                : _jumpToBottomInitial,
-                            onReply: canReply ? _startReplyingTo : null,
+                        : Opacity(
+                            // Kept in the tree and laid out either way, so
+                            // maxScrollExtent is measurable — only visibility
+                            // is gated. This is what keeps the initial jump
+                            // to the latest message invisible: the user's
+                            // first painted frame is the positioned one, not
+                            // an unpositioned frame followed by a jump.
+                            opacity: _initialScrollDone ? 1 : 0,
+                            child: _MessageList(
+                              state: state,
+                              controller: _scrollController,
+                              conversationId: widget.conversationId,
+                              onInitialLayout: _initialScrollDone
+                                  ? null
+                                  : _jumpToBottomInitial,
+                              onReply: canReply ? _startReplyingTo : null,
+                            ),
                           ),
                   ),
                   PositionedDirectional(
@@ -1019,7 +1099,16 @@ class _MessageList extends ConsumerWidget {
           final showDay =
               previous == null || !_sameDay(previous.time, entry.time);
 
+          // Stable identity so prepending older history (pagination) or
+          // inserting a realtime message reuses existing elements instead of
+          // rebuilding the whole visible range — keeps scroll-position
+          // compensation and reconciliation cheap during a drag.
+          final entryKey = entry.note != null
+              ? ValueKey('note_${entry.note!.id}')
+              : ValueKey('msg_${entry.message!.localId ?? entry.message!.id}');
+
           return Column(
+            key: entryKey,
             children: [
               if (showDay) _DayDivider(date: entry.time),
               if (entry.note != null)

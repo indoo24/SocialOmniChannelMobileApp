@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @tabAssignment.
   ///
   /// In en, this message translates to:
-  /// **'Assignment'**
+  /// **'Routing'**
   String get tabAssignment;
 
   /// No description provided for @signOutDialogTitle.
@@ -2156,23 +2156,95 @@ abstract class AppLocalizations {
   /// **'Enable automatic assignment'**
   String get autoAssignmentToggleLabel;
 
-  /// No description provided for @strictResponsibilityTitle.
+  /// No description provided for @channelResponsibilityTitle.
   ///
   /// In en, this message translates to:
-  /// **'Strict responsibility'**
-  String get strictResponsibilityTitle;
+  /// **'Channel responsibility'**
+  String get channelResponsibilityTitle;
 
-  /// No description provided for @strictResponsibilityDescription.
+  /// No description provided for @channelResponsibilityDescription.
   ///
   /// In en, this message translates to:
-  /// **'When on, a conversation with nobody responsible for its channel stays unassigned rather than falling back to whoever is available. When off, responsibility is only a preference.'**
-  String get strictResponsibilityDescription;
+  /// **'Choose who is offered new conversations from each channel. A rule for one specific account takes precedence over a rule for all accounts, and an employee\'s own rules take precedence over their team\'s.'**
+  String get channelResponsibilityDescription;
 
-  /// No description provided for @strictResponsibilityToggleLabel.
+  /// No description provided for @channelResponsibilityAccessNote.
   ///
   /// In en, this message translates to:
-  /// **'Require responsibility to assign'**
-  String get strictResponsibilityToggleLabel;
+  /// **'This decides who receives new conversations, not who can see them. Everyone keeps the access their role gives them.'**
+  String get channelResponsibilityAccessNote;
+
+  /// No description provided for @channelResponsibilityEditNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Team rules are set in each team\'s form on the Teams page. Which channels an employee handles is set in their form on the Employees page.'**
+  String get channelResponsibilityEditNote;
+
+  /// No description provided for @channelResponsibilityEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No responsibility rules yet.'**
+  String get channelResponsibilityEmpty;
+
+  /// No description provided for @channelResponsibilityAllAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'All {provider} accounts'**
+  String channelResponsibilityAllAccounts(String provider);
+
+  /// No description provided for @channelResponsibilityAccountRule.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider} account · {account}'**
+  String channelResponsibilityAccountRule(String provider, String account);
+
+  /// No description provided for @channelResponsibilityTeamPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Team {name}'**
+  String channelResponsibilityTeamPrefix(String name);
+
+  /// No description provided for @channelResponsibilityRetired.
+  ///
+  /// In en, this message translates to:
+  /// **'Retired'**
+  String get channelResponsibilityRetired;
+
+  /// No description provided for @channelResponsibilityEditInTeams.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit in Teams'**
+  String get channelResponsibilityEditInTeams;
+
+  /// No description provided for @channelResponsibilityFallbackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'When nobody responsible is available'**
+  String get channelResponsibilityFallbackTitle;
+
+  /// No description provided for @channelResponsibilityFallbackDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The conversation goes to the rest of the organization, so no customer is left without an owner.'**
+  String get channelResponsibilityFallbackDescription;
+
+  /// No description provided for @channelResponsibilityOfferToEveryone.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer to everyone else'**
+  String get channelResponsibilityOfferToEveryone;
+
+  /// No description provided for @channelResponsibilityLeaveUnassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave unassigned'**
+  String get channelResponsibilityLeaveUnassigned;
+
+  /// No description provided for @channelResponsibilityFallbackSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Fallback behavior updated'**
+  String get channelResponsibilityFallbackSaved;
 
   /// No description provided for @defaultChatCapacityTitle.
   ///
@@ -2231,19 +2303,19 @@ abstract class AppLocalizations {
   /// No description provided for @assignmentPolicyUpdatedSnackbar.
   ///
   /// In en, this message translates to:
-  /// **'Assignment settings updated'**
+  /// **'Routing settings updated'**
   String get assignmentPolicyUpdatedSnackbar;
 
   /// No description provided for @routingPolicyLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load assignment settings.'**
+  /// **'Couldn\'t load routing settings.'**
   String get routingPolicyLoadFailed;
 
   /// No description provided for @routingPermissionDenied.
   ///
   /// In en, this message translates to:
-  /// **'You don\'t have permission to manage assignment settings.'**
+  /// **'You don\'t have permission to manage routing settings.'**
   String get routingPermissionDenied;
 
   /// No description provided for @openUnreadSummary.
@@ -2635,6 +2707,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No orders recorded from this conversation.'**
   String get noOrdersRecordedMessage;
+
+  /// No description provided for @contactSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get contactSectionTitle;
+
+  /// No description provided for @contactEditButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get contactEditButton;
+
+  /// No description provided for @customerDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer data'**
+  String get customerDataTitle;
+
+  /// No description provided for @customerDataDetailButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Detail'**
+  String get customerDataDetailButton;
+
+  /// No description provided for @customerDataEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No customer details recorded yet.'**
+  String get customerDataEmpty;
+
+  /// No description provided for @customerDataMoreCount.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String customerDataMoreCount(int count);
 
   /// No description provided for @employeeSourceBadge.
   ///

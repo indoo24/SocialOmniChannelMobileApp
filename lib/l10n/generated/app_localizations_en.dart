@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabSecurity => 'Security';
 
   @override
-  String get tabAssignment => 'Assignment';
+  String get tabAssignment => 'Routing';
 
   @override
   String get signOutDialogTitle => 'Sign out?';
@@ -1121,15 +1121,60 @@ class AppLocalizationsEn extends AppLocalizations {
   String get autoAssignmentToggleLabel => 'Enable automatic assignment';
 
   @override
-  String get strictResponsibilityTitle => 'Strict responsibility';
+  String get channelResponsibilityTitle => 'Channel responsibility';
 
   @override
-  String get strictResponsibilityDescription =>
-      'When on, a conversation with nobody responsible for its channel stays unassigned rather than falling back to whoever is available. When off, responsibility is only a preference.';
+  String get channelResponsibilityDescription =>
+      'Choose who is offered new conversations from each channel. A rule for one specific account takes precedence over a rule for all accounts, and an employee\'s own rules take precedence over their team\'s.';
 
   @override
-  String get strictResponsibilityToggleLabel =>
-      'Require responsibility to assign';
+  String get channelResponsibilityAccessNote =>
+      'This decides who receives new conversations, not who can see them. Everyone keeps the access their role gives them.';
+
+  @override
+  String get channelResponsibilityEditNote =>
+      'Team rules are set in each team\'s form on the Teams page. Which channels an employee handles is set in their form on the Employees page.';
+
+  @override
+  String get channelResponsibilityEmpty => 'No responsibility rules yet.';
+
+  @override
+  String channelResponsibilityAllAccounts(String provider) {
+    return 'All $provider accounts';
+  }
+
+  @override
+  String channelResponsibilityAccountRule(String provider, String account) {
+    return '$provider account · $account';
+  }
+
+  @override
+  String channelResponsibilityTeamPrefix(String name) {
+    return 'Team $name';
+  }
+
+  @override
+  String get channelResponsibilityRetired => 'Retired';
+
+  @override
+  String get channelResponsibilityEditInTeams => 'Edit in Teams';
+
+  @override
+  String get channelResponsibilityFallbackTitle =>
+      'When nobody responsible is available';
+
+  @override
+  String get channelResponsibilityFallbackDescription =>
+      'The conversation goes to the rest of the organization, so no customer is left without an owner.';
+
+  @override
+  String get channelResponsibilityOfferToEveryone => 'Offer to everyone else';
+
+  @override
+  String get channelResponsibilityLeaveUnassigned => 'Leave unassigned';
+
+  @override
+  String get channelResponsibilityFallbackSaved => 'Fallback behavior updated';
 
   @override
   String get defaultChatCapacityTitle => 'Default chat capacity';
@@ -1161,14 +1206,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveTimezoneAction => 'Save time zone';
 
   @override
-  String get assignmentPolicyUpdatedSnackbar => 'Assignment settings updated';
+  String get assignmentPolicyUpdatedSnackbar => 'Routing settings updated';
 
   @override
-  String get routingPolicyLoadFailed => 'Couldn\'t load assignment settings.';
+  String get routingPolicyLoadFailed => 'Couldn\'t load routing settings.';
 
   @override
   String get routingPermissionDenied =>
-      'You don\'t have permission to manage assignment settings.';
+      'You don\'t have permission to manage routing settings.';
 
   @override
   String openUnreadSummary(int open, int unread) {
@@ -1405,6 +1450,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noOrdersRecordedMessage =>
       'No orders recorded from this conversation.';
+
+  @override
+  String get contactSectionTitle => 'Contact';
+
+  @override
+  String get contactEditButton => 'Edit';
+
+  @override
+  String get customerDataTitle => 'Customer data';
+
+  @override
+  String get customerDataDetailButton => 'Detail';
+
+  @override
+  String get customerDataEmpty => 'No customer details recorded yet.';
+
+  @override
+  String customerDataMoreCount(int count) {
+    return '+$count more';
+  }
 
   @override
   String get employeeSourceBadge => 'Employee';

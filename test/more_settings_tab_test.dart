@@ -257,29 +257,28 @@ void main() {
   }
 
   group('Settings Navigation & Tab Bar', () {
-    testWidgets(
-      'Settings tabs are Channels, Assignment, More settings, Profile',
-      (tester) async {
-        final adapter = defaultAdapter();
-        final client = ApiClient.create(cookieJar: CookieJar());
-        client.raw.httpClientAdapter = adapter;
+    testWidgets('Settings tabs are Channels, Routing, More settings, Profile', (
+      tester,
+    ) async {
+      final adapter = defaultAdapter();
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
 
-        await tester.pumpWidget(createHarness(apiClient: client));
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(createHarness(apiClient: client));
+      await tester.pumpAndSettle();
 
-        // Check the 4 tabs in order
-        expect(find.text('Channels'), findsOneWidget);
-        expect(find.text('Assignment'), findsOneWidget);
-        expect(find.text('More settings'), findsOneWidget);
-        expect(find.text('Profile'), findsOneWidget);
-        // Security is no longer a tab — it is a section inside Profile.
-        expect(find.widgetWithText(Tab, 'Security'), findsNothing);
+      // Check the 4 tabs in order
+      expect(find.text('Channels'), findsOneWidget);
+      expect(find.text('Routing'), findsOneWidget);
+      expect(find.text('More settings'), findsOneWidget);
+      expect(find.text('Profile'), findsOneWidget);
+      // Security is no longer a tab — it is a section inside Profile.
+      expect(find.widgetWithText(Tab, 'Security'), findsNothing);
 
-        // Separate Customer fields and Saved replies tabs are removed from TabBar
-        expect(find.widgetWithText(Tab, 'Customer fields'), findsNothing);
-        expect(find.widgetWithText(Tab, 'Saved replies'), findsNothing);
-      },
-    );
+      // Separate Customer fields and Saved replies tabs are removed from TabBar
+      expect(find.widgetWithText(Tab, 'Customer fields'), findsNothing);
+      expect(find.widgetWithText(Tab, 'Saved replies'), findsNothing);
+    });
 
     testWidgets(
       'Tab bar scrolls horizontally on narrow mobile screens (320px)',
