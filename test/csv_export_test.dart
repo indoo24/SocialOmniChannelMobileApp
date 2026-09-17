@@ -214,7 +214,9 @@ void main() {
   });
 
   group('Inbox — Export CSV action', () {
-    testWidgets('is hidden without crm.export', (tester) async {
+    testWidgets('is no longer displayed on InboxScreen even with crm.export', (
+      tester,
+    ) async {
       final adapter = _StubAdapter((options) => _csv('id\n'));
       final client = _clientFrom(adapter);
 
@@ -223,7 +225,7 @@ void main() {
           overrides: [
             apiClientProvider.overrideWithValue(client),
             currentEmployeeProvider.overrideWithValue(
-              _employee(permissions: {Perm.conversationView}),
+              _employee(permissions: {Perm.conversationView, Perm.crmExport}),
             ),
           ],
           child: MaterialApp(
@@ -337,7 +339,15 @@ void main() {
             theme: AppTheme.light,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const InboxScreen(),
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, _) => ExportCsvAction(
+                  fileNamePrefix: 'conversations',
+                  fetch: () =>
+                      ref.read(conversationRepositoryProvider).exportCsv(),
+                ),
+              ),
+            ),
           ),
         ),
       );
@@ -358,46 +368,49 @@ void main() {
   });
 
   group('Customers — Export CSV action', () {
-    testWidgets('is hidden without crm.export', (tester) async {
-      final adapter = _StubAdapter((options) {
-        if (options.path == '/customers/') {
-          return ResponseBody.fromString(
-            jsonEncode({
-              'count': 0,
-              'next': null,
-              'previous': null,
-              'results': [],
-            }),
-            200,
-            headers: {
-              Headers.contentTypeHeader: [Headers.jsonContentType],
-            },
-          );
-        }
-        return _csv('', 200);
-      });
-      final client = _clientFrom(adapter);
+    testWidgets(
+      'is no longer displayed on CustomersScreen even with crm.export',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.path == '/customers/') {
+            return ResponseBody.fromString(
+              jsonEncode({
+                'count': 0,
+                'next': null,
+                'previous': null,
+                'results': [],
+              }),
+              200,
+              headers: {
+                Headers.contentTypeHeader: [Headers.jsonContentType],
+              },
+            );
+          }
+          return _csv('', 200);
+        });
+        final client = _clientFrom(adapter);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            apiClientProvider.overrideWithValue(client),
-            currentEmployeeProvider.overrideWithValue(
-              _employee(permissions: {Perm.customerView}),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              apiClientProvider.overrideWithValue(client),
+              currentEmployeeProvider.overrideWithValue(
+                _employee(permissions: {Perm.customerView, Perm.crmExport}),
+              ),
+            ],
+            child: MaterialApp(
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const CustomersScreen(),
             ),
-          ],
-          child: MaterialApp(
-            theme: AppTheme.light,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: const CustomersScreen(),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('export-csv-menu')), findsNothing);
-    });
+        expect(find.byKey(const Key('export-csv-menu')), findsNothing);
+      },
+    );
 
     testWidgets('sends the active search filter on export', (tester) async {
       final requests = <RequestOptions>[];
@@ -513,7 +526,16 @@ void main() {
             theme: AppTheme.light,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const CustomersScreen(),
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, _) => ExportCsvAction(
+                  fileNamePrefix: 'customers',
+                  fetch: () => ref
+                      .read(directoryRepositoryProvider)
+                      .exportCustomersCsv(),
+                ),
+              ),
+            ),
           ),
         ),
       );

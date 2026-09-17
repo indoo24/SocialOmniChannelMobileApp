@@ -25,28 +25,50 @@ import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
+import '../settings/settings_skeleton.dart';
 import 'delete_saved_reply_dialog.dart';
 import 'saved_replies_providers.dart';
 import 'saved_reply.dart';
 import 'saved_reply_form_sheet.dart';
 
 class SavedRepliesSettingsTab extends ConsumerWidget {
-  const SavedRepliesSettingsTab({super.key});
+  const SavedRepliesSettingsTab({super.key, this.scrollable = true});
+
+  final bool scrollable;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canView = ref.watch(canProvider(Perm.conversationReply));
     if (!canView) {
-      return Center(
-        child: EmptyState(
-          title: context.l10n.savedRepliesPermissionDenied,
-          icon: Icons.lock_outline,
-        ),
-      );
+      return scrollable
+          ? Center(
+              child: EmptyState(
+                title: context.l10n.savedRepliesPermissionDenied,
+                icon: Icons.lock_outline,
+              ),
+            )
+          : const SizedBox.shrink();
     }
 
     final canManage = ref.watch(canProvider(Perm.savedReplyManage));
     final repliesAsync = ref.watch(manageableSavedRepliesProvider);
+
+    Widget buildList(List<SavedReply> replies) => _SavedRepliesList(
+      replies: replies,
+      canCreateOrganizationWide: canManage,
+      scrollable: scrollable,
+    );
+
+    if (!scrollable) {
+      return repliesAsync.when(
+        loading: () => const SavedRepliesSkeleton(scrollable: false),
+        error: (error, _) => ErrorStateView(
+          error: error,
+          onRetry: () => ref.invalidate(manageableSavedRepliesProvider),
+        ),
+        data: buildList,
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -54,15 +76,12 @@ class SavedRepliesSettingsTab extends ConsumerWidget {
         await ref.read(manageableSavedRepliesProvider.future);
       },
       child: repliesAsync.when(
-        loading: () => const LoadingState(),
+        loading: () => const SavedRepliesSkeleton(),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(manageableSavedRepliesProvider),
         ),
-        data: (replies) => _SavedRepliesList(
-          replies: replies,
-          canCreateOrganizationWide: canManage,
-        ),
+        data: buildList,
       ),
     );
   }
@@ -72,61 +91,73 @@ class _SavedRepliesList extends StatelessWidget {
   const _SavedRepliesList({
     required this.replies,
     required this.canCreateOrganizationWide,
+    this.scrollable = true,
   });
 
   final List<SavedReply> replies;
   final bool canCreateOrganizationWide;
+  final bool scrollable;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final items = [
+      Text(
+        context.l10n.tabSavedReplies,
+        style: theme.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      const SizedBox(height: Space.sm),
+      Text(
+        context.l10n.savedRepliesTabDescription,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+      const SizedBox(height: Space.lg),
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: FilledButton.icon(
+          key: const Key('add-saved-reply'),
+          onPressed: () => showAddSavedReplySheet(
+            context,
+            canCreateOrganizationWide: canCreateOrganizationWide,
+          ),
+          icon: const Icon(Icons.add, size: 18),
+          label: Text(context.l10n.newSavedReplyAction),
+        ),
+      ),
+      const SizedBox(height: Space.lg),
+      if (replies.isEmpty)
+        SizedBox(
+          height: scrollable ? MediaQuery.sizeOf(context).height * 0.5 : 180,
+          child: EmptyState(
+            icon: Icons.quickreply_outlined,
+            title: context.l10n.noSavedRepliesTitle,
+            message: context.l10n.noSavedRepliesMessage,
+          ),
+        )
+      else
+        for (final reply in replies) ...[
+          _SavedReplyCard(reply: reply),
+          const SizedBox(height: Space.md),
+        ],
+    ];
+
+    if (!scrollable) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: items,
+      );
+    }
+
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(Space.lg),
-      children: [
-        Text(
-          context.l10n.tabSavedReplies,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: Space.sm),
-        Text(
-          context.l10n.savedRepliesTabDescription,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: Space.lg),
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: FilledButton.icon(
-            key: const Key('add-saved-reply'),
-            onPressed: () => showAddSavedReplySheet(
-              context,
-              canCreateOrganizationWide: canCreateOrganizationWide,
-            ),
-            icon: const Icon(Icons.add, size: 18),
-            label: Text(context.l10n.newSavedReplyAction),
-          ),
-        ),
-        const SizedBox(height: Space.lg),
-        if (replies.isEmpty)
-          SizedBox(
-            height: MediaQuery.sizeOf(context).height * 0.5,
-            child: EmptyState(
-              icon: Icons.quickreply_outlined,
-              title: context.l10n.noSavedRepliesTitle,
-              message: context.l10n.noSavedRepliesMessage,
-            ),
-          )
-        else
-          for (final reply in replies) ...[
-            _SavedReplyCard(reply: reply),
-            const SizedBox(height: Space.md),
-          ],
-      ],
+      children: items,
     );
   }
 }

@@ -39,50 +39,44 @@ Future<void> _pumpRow(WidgetTester tester, Conversation conversation) async {
 }
 
 void main() {
-  testWidgets(
-    'an outbound DELIVERED last message shows the double-tick icon',
-    (tester) async {
-      await _pumpRow(
-        tester,
-        _makeConversation(
-          lastMessageDirection: 'OUTBOUND',
-          lastMessageDeliveryStatus: 'DELIVERED',
-        ),
-      );
+  testWidgets('an outbound DELIVERED last message shows the double-tick icon', (
+    tester,
+  ) async {
+    await _pumpRow(
+      tester,
+      _makeConversation(
+        lastMessageDirection: 'OUTBOUND',
+        lastMessageDeliveryStatus: 'DELIVERED',
+      ),
+    );
 
-      expect(find.byIcon(Icons.done_all), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(find.byIcon(Icons.done_all), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
-  testWidgets(
-    'an outbound FAILED last message shows the error icon',
-    (tester) async {
-      await _pumpRow(
-        tester,
-        _makeConversation(
-          lastMessageDirection: 'OUTBOUND',
-          lastMessageDeliveryStatus: 'FAILED',
-        ),
-      );
+  testWidgets('an outbound FAILED last message shows the error icon', (
+    tester,
+  ) async {
+    await _pumpRow(
+      tester,
+      _makeConversation(
+        lastMessageDirection: 'OUTBOUND',
+        lastMessageDeliveryStatus: 'FAILED',
+      ),
+    );
 
-      expect(find.byIcon(Icons.error_outline), findsOneWidget);
-    },
-  );
+    expect(find.byIcon(Icons.error_outline), findsOneWidget);
+  });
 
-  testWidgets(
-    'an inbound last message shows no delivery tick at all',
-    (tester) async {
-      await _pumpRow(
-        tester,
-        _makeConversation(lastMessageDirection: 'INBOUND'),
-      );
+  testWidgets('an inbound last message shows no delivery tick at all', (
+    tester,
+  ) async {
+    await _pumpRow(tester, _makeConversation(lastMessageDirection: 'INBOUND'));
 
-      expect(find.byIcon(Icons.done_all), findsNothing);
-      expect(find.byIcon(Icons.done), findsNothing);
-      expect(find.byIcon(Icons.error_outline), findsNothing);
-    },
-  );
+    expect(find.byIcon(Icons.done_all), findsNothing);
+    expect(find.byIcon(Icons.done), findsNothing);
+    expect(find.byIcon(Icons.error_outline), findsNothing);
+  });
 
   testWidgets(
     'no direction at all (conversation with no messages yet) shows no tick',

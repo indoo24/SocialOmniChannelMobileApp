@@ -12,6 +12,7 @@ import '../../core/models/template.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
+import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
@@ -40,7 +41,7 @@ class TemplatesScreen extends ConsumerWidget {
         await ref.read(whatsappChannelsProvider.future);
       },
       body: channelsAsync.when(
-        loading: () => const LoadingState(),
+        loading: () => const _TemplatesSkeleton(),
         error: (err, _) => ErrorStateView(
           error: err,
           onRetry: () => ref.invalidate(whatsappChannelsProvider),
@@ -266,10 +267,7 @@ class _TemplatesList extends ConsumerWidget {
     final templatesAsync = ref.watch(templatesForChannelProvider(channelId));
 
     return templatesAsync.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: Space.xxl),
-        child: LoadingState(),
-      ),
+      loading: () => const _TemplatesSkeleton(),
       error: (err, _) => Padding(
         padding: const EdgeInsets.symmetric(vertical: Space.xl),
         child: ErrorStateView(
@@ -474,6 +472,49 @@ class _MetaItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TemplatesSkeleton extends StatelessWidget {
+  const _TemplatesSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppShimmer(
+      child: ListView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(Space.lg),
+        itemCount: 3,
+        itemBuilder: (context, index) => const SkeletonCard(
+          margin: EdgeInsets.only(bottom: Space.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: SkeletonText(width: 140, height: 16)),
+                  SkeletonBox(width: 70, height: 20, borderRadius: Radii.pill),
+                ],
+              ),
+              SizedBox(height: Space.md),
+              SkeletonBox(
+                width: double.infinity,
+                height: 60,
+                borderRadius: Radii.sm,
+              ),
+              SizedBox(height: Space.md),
+              Row(
+                children: [
+                  SkeletonText(width: 90, height: 12),
+                  SizedBox(width: Space.lg),
+                  SkeletonText(width: 90, height: 12),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

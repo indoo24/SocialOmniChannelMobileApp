@@ -9,6 +9,7 @@ import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../l10n/l10n_extensions.dart';
+import 'conversation_preview_formatter.dart';
 
 /// Modal bottom sheet showing all WhatsApp conversations for a single customer.
 ///
@@ -267,9 +268,7 @@ class _ConversationOptionCard extends StatelessWidget {
 
               // Message Preview
               Text(
-                conversation.lastMessagePreview.isEmpty
-                    ? context.l10n.noMessagesYetPreview
-                    : conversation.lastMessagePreview,
+                formatConversationPreview(context, conversation: conversation),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(

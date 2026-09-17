@@ -3,6 +3,7 @@ import 'package:characters/characters.dart';
 import '../utils/json_safe.dart';
 
 import 'employee.dart';
+import 'message.dart';
 
 class CustomerBrief {
   const CustomerBrief({
@@ -163,6 +164,7 @@ class Conversation {
     this.category,
     this.intelligence,
     this.lastMessagePreview = '',
+    this.lastMessageAttachments = const [],
     this.lastMessageAt,
     this.lastMessageDirection = '',
     this.lastMessageDeliveryStatus = '',
@@ -194,6 +196,7 @@ class Conversation {
   final int unreadCount;
   final int messageCount;
   final String lastMessagePreview;
+  final List<MessageAttachment> lastMessageAttachments;
   final DateTime? lastMessageAt;
 
   /// `INBOUND` | `OUTBOUND`, for the inbox row's delivery tick — empty when
@@ -256,6 +259,18 @@ class Conversation {
     unreadCount: JsonSafe.asInt(json['unread_count']),
     messageCount: JsonSafe.asInt(json['message_count']),
     lastMessagePreview: JsonSafe.asString(json['last_message_preview']),
+    lastMessageAttachments: JsonSafe.parseList(
+      json['last_message_attachments'] ??
+          json['attachments'] ??
+          (json['last_message'] is Map
+              ? (json['last_message'] as Map)['attachments']
+              : null) ??
+          (json['latest_message'] is Map
+              ? (json['latest_message'] as Map)['attachments']
+              : null) ??
+          json['media'],
+      MessageAttachment.fromJson,
+    ),
     lastMessageAt: _parseDate(json['last_message_at']),
     lastMessageDirection: JsonSafe.asString(json['last_message_direction']),
     lastMessageDeliveryStatus: JsonSafe.asString(
@@ -329,6 +344,7 @@ class Conversation {
     String? followUpMarkedByName,
     String? lastMessageDirection,
     String? lastMessageDeliveryStatus,
+    List<MessageAttachment>? lastMessageAttachments,
   }) => Conversation(
     id: id,
     customer: customer,
@@ -344,6 +360,8 @@ class Conversation {
     category: category ?? this.category,
     intelligence: intelligence,
     lastMessagePreview: lastMessagePreview,
+    lastMessageAttachments:
+        lastMessageAttachments ?? this.lastMessageAttachments,
     lastMessageAt: lastMessageAt,
     lastMessageDirection: lastMessageDirection ?? this.lastMessageDirection,
     lastMessageDeliveryStatus:

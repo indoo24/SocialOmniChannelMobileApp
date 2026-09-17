@@ -82,7 +82,8 @@ Employee _employee() => const Employee(
 /// with no `last_customer_message_at` as closed (routing the composer to
 /// Template mode, which has no free-text field) — a recent timestamp keeps
 /// this test in the ordinary Reply-mode composer it is actually about.
-String _conversationJson() => '''
+String _conversationJson() =>
+    '''
 {
   "id": 42,
   "customer": {

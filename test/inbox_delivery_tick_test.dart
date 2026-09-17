@@ -167,11 +167,15 @@ void main() {
 
       final state = container.read(inboxControllerProvider).value!;
       expect(
-        state.conversations.firstWhere((c) => c.id == 1).lastMessageDeliveryStatus,
+        state.conversations
+            .firstWhere((c) => c.id == 1)
+            .lastMessageDeliveryStatus,
         'DELIVERED',
       );
       expect(
-        state.conversations.firstWhere((c) => c.id == 2).lastMessageDeliveryStatus,
+        state.conversations
+            .firstWhere((c) => c.id == 2)
+            .lastMessageDeliveryStatus,
         isEmpty,
       );
     });
@@ -260,65 +264,62 @@ void main() {
       },
     );
 
-    test(
-      'a delivery-status update whose last_message_id does not match any '
-      'entry leaves the row untouched',
-      () async {
-        final inboxController = _FakeInboxController(
-          InboxState(
-            conversations: [
-              _makeConversation(
-                id: 1,
-                lastMessageDirection: 'OUTBOUND',
-                lastMessageDeliveryStatus: 'SENT',
-              ),
-            ],
-          ),
-        );
-        final conversationController = _FakeConversationController(
-          1,
-          ConversationState(conversation: _makeConversation(id: 1)),
-        );
-        final container = ProviderContainer(
-          overrides: [
-            inboxControllerProvider.overrideWith(() => inboxController),
-            conversationCountsProvider.overrideWith((ref) async => {}),
-            conversationControllerProvider(
-              1,
-            ).overrideWith(() => conversationController),
-            realtimeClientProvider.overrideWithValue(
-              RealtimeClient(
-                cookieJar: CookieJar(),
-                connect: (uri, {protocols, headers}) =>
-                    throw UnimplementedError('not used in this test'),
-              ),
+    test('a delivery-status update whose last_message_id does not match any '
+        'entry leaves the row untouched', () async {
+      final inboxController = _FakeInboxController(
+        InboxState(
+          conversations: [
+            _makeConversation(
+              id: 1,
+              lastMessageDirection: 'OUTBOUND',
+              lastMessageDeliveryStatus: 'SENT',
             ),
           ],
-        );
-        addTearDown(container.dispose);
-        await container.read(inboxControllerProvider.future);
-        await container.read(conversationControllerProvider(1).future);
-        container.read(activeConversationProvider.notifier).opened(1);
+        ),
+      );
+      final conversationController = _FakeConversationController(
+        1,
+        ConversationState(conversation: _makeConversation(id: 1)),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          inboxControllerProvider.overrideWith(() => inboxController),
+          conversationCountsProvider.overrideWith((ref) async => {}),
+          conversationControllerProvider(
+            1,
+          ).overrideWith(() => conversationController),
+          realtimeClientProvider.overrideWithValue(
+            RealtimeClient(
+              cookieJar: CookieJar(),
+              connect: (uri, {protocols, headers}) =>
+                  throw UnimplementedError('not used in this test'),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(inboxControllerProvider.future);
+      await container.read(conversationControllerProvider(1).future);
+      container.read(activeConversationProvider.notifier).opened(1);
 
-        applyRealtimeEventForTesting(
-          container.read(_refProvider),
-          RealtimeEvent(RealtimeEvents.messageUpdated, {
-            'reason': 'delivery_status',
-            'messages': [
-              {'id': 7, 'delivery_status': 'DELIVERED'},
-            ],
-            'last_message_id': 999,
-          }),
-        );
-        await Future<void>.delayed(Duration.zero);
+      applyRealtimeEventForTesting(
+        container.read(_refProvider),
+        RealtimeEvent(RealtimeEvents.messageUpdated, {
+          'reason': 'delivery_status',
+          'messages': [
+            {'id': 7, 'delivery_status': 'DELIVERED'},
+          ],
+          'last_message_id': 999,
+        }),
+      );
+      await Future<void>.delayed(Duration.zero);
 
-        final row = container
-            .read(inboxControllerProvider)
-            .value!
-            .conversations
-            .single;
-        expect(row.lastMessageDeliveryStatus, 'SENT');
-      },
-    );
+      final row = container
+          .read(inboxControllerProvider)
+          .value!
+          .conversations
+          .single;
+      expect(row.lastMessageDeliveryStatus, 'SENT');
+    });
   });
 }

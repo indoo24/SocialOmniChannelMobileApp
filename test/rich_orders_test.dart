@@ -93,44 +93,53 @@ const _richOrder = '''{
       return _json(orderJson.replaceFirst('"PACKING"', '"SHIPPED"'), 200);
     }
     if (path.contains('/cancel/')) return _json(orderJson, 200);
-    if (path == '/orders/' && options.method == 'POST') return _json(_plainOrder, 201);
+    if (path == '/orders/' && options.method == 'POST') {
+      return _json(_plainOrder, 201);
+    }
     if (path.contains('/orders/')) {
       return _json('{"count": 1, "results": [$orderJson]}', 200);
     }
     if (path.contains('/facts/')) return _json('[]', 200);
     if (path.contains('/categories/')) return _json('[]', 200);
-    if (path.contains('/messages/')) return _json('{"results": [], "count": 0}', 200);
+    if (path.contains('/messages/')) {
+      return _json('{"results": [], "count": 0}', 200);
+    }
     return _json('{}', 200);
   });
   return (client, calls);
 }
 
-Employee _employee({Set<String> permissions = const {Perm.orderManage}}) => Employee(
-  id: 1,
-  email: 'agent@acme.test',
-  fullName: 'Agent Alex',
-  initials: 'AA',
-  role: 'AGENT',
-  roleDisplay: 'Agent',
-  availability: 'ONLINE',
-  permissions: permissions,
-  visibilityScope: 'ALL',
-  organization: const Organization(id: 1, name: 'Acme'),
-);
-
-Widget _harness(ApiClient client, Widget child, {Locale locale = const Locale('en'), Employee? employee}) =>
-    ProviderScope(
-      overrides: [
-        apiClientProvider.overrideWithValue(client),
-        currentEmployeeProvider.overrideWithValue(employee ?? _employee()),
-      ],
-      child: MaterialApp(
-        locale: locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(body: child),
-      ),
+Employee _employee({Set<String> permissions = const {Perm.orderManage}}) =>
+    Employee(
+      id: 1,
+      email: 'agent@acme.test',
+      fullName: 'Agent Alex',
+      initials: 'AA',
+      role: 'AGENT',
+      roleDisplay: 'Agent',
+      availability: 'ONLINE',
+      permissions: permissions,
+      visibilityScope: 'ALL',
+      organization: const Organization(id: 1, name: 'Acme'),
     );
+
+Widget _harness(
+  ApiClient client,
+  Widget child, {
+  Locale locale = const Locale('en'),
+  Employee? employee,
+}) => ProviderScope(
+  overrides: [
+    apiClientProvider.overrideWithValue(client),
+    currentEmployeeProvider.overrideWithValue(employee ?? _employee()),
+  ],
+  child: MaterialApp(
+    locale: locale,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Scaffold(body: child),
+  ),
+);
 
 Order _parse(String json) =>
     Order.fromJson(Map<String, dynamic>.from(jsonDecode(json) as Map));
@@ -163,25 +172,36 @@ void main() {
 
     test('an ended order or a suggestion keeps its fulfilment', () {
       expect(
-        _parse(_richOrder.replaceFirst('"RECORDED"', '"CANCELLED"')).canMoveFulfilment,
+        _parse(
+          _richOrder.replaceFirst('"RECORDED"', '"CANCELLED"'),
+        ).canMoveFulfilment,
         isFalse,
       );
       expect(
-        _parse(_richOrder.replaceFirst('"RECORDED"', '"SUGGESTED"')).canMoveFulfilment,
+        _parse(
+          _richOrder.replaceFirst('"RECORDED"', '"SUGGESTED"'),
+        ).canMoveFulfilment,
         isFalse,
       );
     });
   });
 
   group('the details lines', () {
-    testWidgets('render pricing, fulfilment, delivery, payment and follow-up', (tester) async {
+    testWidgets('render pricing, fulfilment, delivery, payment and follow-up', (
+      tester,
+    ) async {
       final (client, _) = _client();
-      await tester.pumpWidget(_harness(client, OrderDetailsLines(order: _parse(_richOrder))));
+      await tester.pumpWidget(
+        _harness(client, OrderDetailsLines(order: _parse(_richOrder))),
+      );
 
       expect(find.text('−10.00'), findsOneWidget);
       expect(find.text('+35.00'), findsOneWidget);
       expect(find.text('Fulfilment: Packing'), findsOneWidget);
-      expect(find.text('Mona · +201000000000 — Tanta، Gharbia'), findsOneWidget);
+      expect(
+        find.text('Mona · +201000000000 — Tanta، Gharbia'),
+        findsOneWidget,
+      );
       expect(find.text('12 Nile St (Near the station)'), findsOneWidget);
       expect(find.text('Cash on delivery · Paid (reported)'), findsOneWidget);
       expect(find.text('Follow-up: Sara'), findsOneWidget);
@@ -190,28 +210,44 @@ void main() {
     testWidgets('read in Arabic', (tester) async {
       final (client, _) = _client();
       await tester.pumpWidget(
-        _harness(client, OrderDetailsLines(order: _parse(_richOrder)), locale: const Locale('ar')),
+        _harness(
+          client,
+          OrderDetailsLines(order: _parse(_richOrder)),
+          locale: const Locale('ar'),
+        ),
       );
 
       expect(find.text('التنفيذ: قيد التغليف'), findsOneWidget);
-      expect(find.text('الدفع عند الاستلام · مدفوع (حسب الإفادة)'), findsOneWidget);
+      expect(
+        find.text('الدفع عند الاستلام · مدفوع (حسب الإفادة)'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('render nothing for a plain order', (tester) async {
       final (client, _) = _client();
-      await tester.pumpWidget(_harness(client, OrderDetailsLines(order: _parse(_plainOrder))));
+      await tester.pumpWidget(
+        _harness(client, OrderDetailsLines(order: _parse(_plainOrder))),
+      );
 
       expect(find.byType(Text), findsNothing);
     });
 
-    testWidgets('show why a cancelled order ended, and no fulfilment', (tester) async {
+    testWidgets('show why a cancelled order ended, and no fulfilment', (
+      tester,
+    ) async {
       final (client, _) = _client();
       final cancelled = _parse(
         _richOrder
             .replaceFirst('"RECORDED"', '"CANCELLED"')
-            .replaceFirst('"cancellation_reason": ""', '"cancellation_reason": "Out of stock"'),
+            .replaceFirst(
+              '"cancellation_reason": ""',
+              '"cancellation_reason": "Out of stock"',
+            ),
       );
-      await tester.pumpWidget(_harness(client, OrderDetailsLines(order: cancelled)));
+      await tester.pumpWidget(
+        _harness(client, OrderDetailsLines(order: cancelled)),
+      );
 
       expect(find.text('Reason: Out of stock'), findsOneWidget);
       expect(find.textContaining('Fulfilment'), findsNothing);
@@ -221,21 +257,32 @@ void main() {
   group('the repository', () {
     test('sends only typed delivery fields and the cancel reason', () async {
       final (client, calls) = _client();
-      final container = ProviderContainer(overrides: [apiClientProvider.overrideWithValue(client)]);
+      final container = ProviderContainer(
+        overrides: [apiClientProvider.overrideWithValue(client)],
+      );
       addTearDown(container.dispose);
       final repository = container.read(directoryRepositoryProvider);
 
       await repository.recordOrder(
         customerId: 42,
         conversationId: 1,
-        items: const [{'product_name': 'Vase', 'quantity': 1, 'unit_price': '9.00'}],
+        items: const [
+          {'product_name': 'Vase', 'quantity': 1, 'unit_price': '9.00'},
+        ],
         delivery: const {'city': ' Tanta ', 'address': '  '},
       );
       await repository.cancelOrder(101, reason: 'Out of stock');
       await repository.updateOrderFulfilment(101, 'SHIPPED');
 
-      final post = calls.firstWhere((c) => c.method == 'POST' && c.path == '/orders/');
-      expect((post.body as Map).keys.toSet(), {'customer', 'conversation', 'items', 'city'});
+      final post = calls.firstWhere(
+        (c) => c.method == 'POST' && c.path == '/orders/',
+      );
+      expect((post.body as Map).keys.toSet(), {
+        'customer',
+        'conversation',
+        'items',
+        'city',
+      });
       expect((post.body as Map)['city'], 'Tanta');
       final cancel = calls.firstWhere((c) => c.path.contains('/cancel/'));
       expect(cancel.body, {'refunded': false, 'reason': 'Out of stock'});
@@ -253,7 +300,12 @@ void main() {
           client,
           Consumer(
             builder: (context, ref, _) => ElevatedButton(
-              onPressed: () => showRecordOrderDialog(context, ref: ref, customerId: 42, conversationId: 1),
+              onPressed: () => showRecordOrderDialog(
+                context,
+                ref: ref,
+                customerId: 42,
+                conversationId: 1,
+              ),
               child: const Text('open'),
             ),
           ),
@@ -264,7 +316,9 @@ void main() {
       return calls;
     }
 
-    testWidgets('keeps delivery collapsed and a quick order unchanged', (tester) async {
+    testWidgets('keeps delivery collapsed and a quick order unchanged', (
+      tester,
+    ) async {
       final calls = await openDialog(tester);
 
       expect(find.byType(TextField), findsNWidgets(3));
@@ -272,11 +326,19 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Record an order'));
       await tester.pumpAndSettle();
 
-      final post = calls.firstWhere((c) => c.method == 'POST' && c.path == '/orders/');
-      expect((post.body as Map).keys.toSet(), {'customer', 'conversation', 'items'});
+      final post = calls.firstWhere(
+        (c) => c.method == 'POST' && c.path == '/orders/',
+      );
+      expect((post.body as Map).keys.toSet(), {
+        'customer',
+        'conversation',
+        'items',
+      });
     });
 
-    testWidgets('sends delivery details typed into the opened section', (tester) async {
+    testWidgets('sends delivery details typed into the opened section', (
+      tester,
+    ) async {
       final calls = await openDialog(tester);
 
       await tester.enterText(find.byType(TextField).at(0), 'Vase');
@@ -284,13 +346,23 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(TextField), findsNWidgets(9));
 
-      await tester.enterText(find.byKey(const Key('order-delivery-city')), 'Tanta');
-      await tester.enterText(find.byKey(const Key('order-delivery-recipient_phone')), '+201000000000');
-      await tester.ensureVisible(find.widgetWithText(FilledButton, 'Record an order'));
+      await tester.enterText(
+        find.byKey(const Key('order-delivery-city')),
+        'Tanta',
+      );
+      await tester.enterText(
+        find.byKey(const Key('order-delivery-recipient_phone')),
+        '+201000000000',
+      );
+      await tester.ensureVisible(
+        find.widgetWithText(FilledButton, 'Record an order'),
+      );
       await tester.tap(find.widgetWithText(FilledButton, 'Record an order'));
       await tester.pumpAndSettle();
 
-      final post = calls.firstWhere((c) => c.method == 'POST' && c.path == '/orders/');
+      final post = calls.firstWhere(
+        (c) => c.method == 'POST' && c.path == '/orders/',
+      );
       expect(post.body, containsPair('city', 'Tanta'));
       expect(post.body, containsPair('recipient_phone', '+201000000000'));
       expect((post.body as Map).containsKey('address'), isFalse);
@@ -298,13 +370,18 @@ void main() {
   });
 
   group('fulfilment in the conversation actions sheet', () {
-    Future<void> openSheet(WidgetTester tester, ApiClient client, {Employee? employee}) async {
+    Future<void> openSheet(
+      WidgetTester tester,
+      ApiClient client, {
+      Employee? employee,
+    }) async {
       await tester.pumpWidget(
         _harness(
           client,
           Builder(
             builder: (context) => ElevatedButton(
-              onPressed: () => showConversationActionsSheet(context, conversationId: 1),
+              onPressed: () =>
+                  showConversationActionsSheet(context, conversationId: 1),
               child: const Text('open sheet'),
             ),
           ),
@@ -315,12 +392,18 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('moves fulfilment with a PATCH and nothing else', (tester) async {
+    testWidgets('moves fulfilment with a PATCH and nothing else', (
+      tester,
+    ) async {
       final (client, calls) = _client();
       await openSheet(tester, client);
 
       final picker = find.byKey(const ValueKey('fulfilment-picker-101'));
-      await tester.scrollUntilVisible(picker, 200, scrollable: find.byType(Scrollable).last);
+      await tester.scrollUntilVisible(
+        picker,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
       // Opened through the button itself: inside the draggable sheet a
       // coordinate tap can land on the sheet's own gesture layer.
       tester.state<PopupMenuButtonState<String>>(picker).showButtonMenu();
@@ -339,7 +422,11 @@ void main() {
 
     testWidgets('is read-only without order.manage', (tester) async {
       final (client, _) = _client();
-      await openSheet(tester, client, employee: _employee(permissions: {Perm.conversationReply}));
+      await openSheet(
+        tester,
+        client,
+        employee: _employee(permissions: {Perm.conversationReply}),
+      );
 
       await tester.scrollUntilVisible(
         find.text('Order #101'),

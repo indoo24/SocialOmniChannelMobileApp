@@ -147,28 +147,31 @@ void main() {
       expect(captured!.data, containsPair('reply_to_id', 42));
     });
 
-    test('omits reply_to_id when no quote is given, rather than sending null', () async {
-      RequestOptions? captured;
-      final repository = _repositoryReturning((options) {
-        captured = options;
-        return _json(
-          '{"id": 99, "text": "Hi", "direction": "OUTBOUND", '
-          '"sent_at": "2026-01-01T00:00:00Z"}',
-          201,
+    test(
+      'omits reply_to_id when no quote is given, rather than sending null',
+      () async {
+        RequestOptions? captured;
+        final repository = _repositoryReturning((options) {
+          captured = options;
+          return _json(
+            '{"id": 99, "text": "Hi", "direction": "OUTBOUND", '
+            '"sent_at": "2026-01-01T00:00:00Z"}',
+            201,
+          );
+        });
+
+        await repository.reply(1, 'Hi');
+
+        expect(
+          (captured!.data as Map).containsKey('reply_to_id'),
+          isFalse,
+          reason:
+              'the backend documents omission and null differently for some '
+              'fields; sending nothing when nothing was quoted is the safe '
+              'default',
         );
-      });
-
-      await repository.reply(1, 'Hi');
-
-      expect(
-        (captured!.data as Map).containsKey('reply_to_id'),
-        isFalse,
-        reason:
-            'the backend documents omission and null differently for some '
-            'fields; sending nothing when nothing was quoted is the safe '
-            'default',
-      );
-    });
+      },
+    );
   });
 
   group('Message.pending with a quote', () {

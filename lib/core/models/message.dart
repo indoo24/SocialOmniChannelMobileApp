@@ -18,6 +18,7 @@ class MessageAttachment {
     this.mimeType = '',
     this.localFilePath,
     this.durationMs,
+    this.sizeBytes,
   });
 
   final String type;
@@ -50,20 +51,88 @@ class MessageAttachment {
   /// can show it without a second lookup.
   final int? durationMs;
 
-  factory MessageAttachment.fromJson(Map<String, dynamic> json) =>
-      MessageAttachment(
-        type: JsonSafe.asString(json['type'], fallback: 'FILE'),
-        url: JsonSafe.asString(json['url']),
-        attachmentId: JsonSafe.asString(
-          json['id'] ?? json['public_id'] ?? json['attachment_id'],
-        ),
-        fileName: JsonSafe.asString(json['file_name']),
-        mimeType: JsonSafe.asString(json['mime_type']),
-        durationMs: JsonSafe.asIntOrNull(json['duration_ms']),
-      );
+  /// Attachment size in bytes, when known from the draft or file metadata.
+  final int? sizeBytes;
+
+  factory MessageAttachment.fromJson(Map<String, dynamic> json) {
+    final mime = JsonSafe.asString(
+      json['mime_type'] ?? json['mimeType'] ?? json['content_type'],
+    );
+    var type = JsonSafe.asString(json['type']);
+    if (type.isEmpty) {
+      if (mime.startsWith('image/')) {
+        type = 'IMAGE';
+      } else if (mime.startsWith('audio/')) {
+        type = 'AUDIO';
+      } else if (mime.startsWith('video/')) {
+        type = 'VIDEO';
+      } else {
+        type = 'FILE';
+      }
+    }
+    return MessageAttachment(
+      type: type,
+      url: JsonSafe.asString(
+        json['url'] ??
+            json['content_url'] ??
+            json['file_url'] ??
+            json['download_url'] ??
+            json['downloadUrl'],
+      ),
+      attachmentId: JsonSafe.asString(
+        json['id'] ?? json['public_id'] ?? json['attachment_id'],
+      ),
+      fileName: JsonSafe.asString(
+        json['file_name'] ??
+            json['fileName'] ??
+            json['name'] ??
+            json['filename'] ??
+            json['title'],
+      ),
+      mimeType: mime,
+      durationMs: JsonSafe.asIntOrNull(json['duration_ms'] ?? json['duration']),
+      sizeBytes: JsonSafe.asIntOrNull(
+        json['size_bytes'] ??
+            json['size'] ??
+            json['file_size'] ??
+            json['bytes'],
+      ),
+    );
+  }
 
   bool get isImage => type == 'IMAGE' || mimeType.startsWith('image/');
-  bool get isAudio => type == 'AUDIO' || mimeType.startsWith('audio/');
+  bool get isAudio =>
+      type == 'AUDIO' ||
+      type == 'VOICE' ||
+      mimeType.startsWith('audio/') ||
+      (durationMs != null && durationMs! > 0);
+  bool get isVideo => type == 'VIDEO' || mimeType.startsWith('video/');
+  bool get isVoice =>
+      type == 'VOICE' || (durationMs != null && durationMs! > 0) || isAudio;
+  bool get isDocument => !isImage && !isAudio && !isVideo;
+
+  String get fileExtension {
+    final dot = fileName.lastIndexOf('.');
+    if (dot != -1 && dot < fileName.length - 1) {
+      return fileName.substring(dot + 1).toLowerCase();
+    }
+    if (mimeType.contains('/')) {
+      final sub = mimeType.split('/').last.trim().toLowerCase();
+      final clean = sub.split('+').first.split(';').first.trim();
+      if (clean == 'jpeg') return 'jpg';
+      return clean;
+    }
+    return '';
+  }
+
+  String get formattedSize {
+    if (sizeBytes == null || sizeBytes! <= 0) return '';
+    if (sizeBytes! < 1024) return '$sizeBytes B';
+    if (sizeBytes! < 1024 * 1024) {
+      return '${(sizeBytes! / 1024).toStringAsFixed(1)} KB';
+    }
+    return '${(sizeBytes! / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
 
   /// A URL actually worth handing to an image/audio loader.
   ///
@@ -249,7 +318,7 @@ class Message {
     this.sentFromPlatform = false,
     this.sendState = SendState.sent,
     this.localId,
-    this.pendingAttachmentId,
+    this.pendingAttachmentIds = const [],
   });
 
   final int id;
@@ -298,46 +367,89 @@ class Message {
   /// Also the idempotency handle when retrying, so a retry cannot double-send.
   final String? localId;
 
-  /// The staged-attachment draft id this pending/failed row references, if
+  /// The staged-attachment draft ids this pending/failed row references, if
   /// any — never present on a server-confirmed [Message], only carried
-  /// through the local send/retry lifecycle so a failed image/voice send can
-  /// be retried against the same already-uploaded draft rather than losing
-  /// track of it.
-  final String? pendingAttachmentId;
+  /// through the local send/retry lifecycle so a failed send can
+  /// be retried against the same already-uploaded drafts rather than losing
+  /// track of them.
+  final List<String> pendingAttachmentIds;
 
-  factory Message.fromJson(Map<String, dynamic> json) => Message(
-    id: JsonSafe.asInt(json['id'], fallback: -1),
-    direction: JsonSafe.asString(json['direction'], fallback: 'INBOUND'),
-    senderType: JsonSafe.asString(json['sender_type'], fallback: 'CUSTOMER'),
-    senderName: JsonSafe.asString(json['sender_name']),
-    senderInitials: JsonSafe.asString(json['sender_initials']),
-    messageType: JsonSafe.asString(json['message_type'], fallback: 'TEXT'),
-    text: JsonSafe.asString(json['text']),
-    attachments: JsonSafe.parseList(
-      json['attachments'],
+  /// Backward-compatible single attachment id getter.
+  String? get pendingAttachmentId => pendingAttachmentIds.firstOrNull;
+
+  factory Message.fromJson(Map<String, dynamic> json) {
+    final rawAttachments = JsonSafe.parseList(
+      json['attachments'] ??
+          json['media'] ??
+          (json['attachment'] is Map ? [json['attachment']] : null),
       MessageAttachment.fromJson,
-    ),
-    deliveryStatus: JsonSafe.asString(
-      json['delivery_status'],
-      fallback: 'SENT',
-    ),
-    deliveryError: JsonSafe.asString(json['delivery_error']),
-    deliveryErrorCode: JsonSafe.asString(json['delivery_error_code']),
-    contentNotice: ContentNotice.fromJson(json['content_notice']),
-    sentAt:
-        DateTime.tryParse(JsonSafe.asString(json['sent_at']))?.toLocal() ??
-        DateTime.now(),
-    deliveredAt: _parseDate(json['delivered_at']),
-    readAt: _parseDate(json['read_at']),
-    replyTo: QuotedMessage.fromJson(json['reply_to']),
-    sentFromPlatform: JsonSafe.asBool(json['sent_from_platform']),
-  );
+    );
+    var text = JsonSafe.asString(json['text']);
+    final attachments = List<MessageAttachment>.from(rawAttachments);
+
+    final markerRegex = RegExp(
+      r'\[{1,2}\s*media:\s*([A-Za-z0-9_-]+)(?:[:,\s]([^\]]+))?\s*\]{1,2}',
+      caseSensitive: false,
+    );
+    final matches = markerRegex.allMatches(text).toList();
+    if (matches.isNotEmpty) {
+      if (attachments.isEmpty) {
+        for (final m in matches) {
+          final type = (m.group(1) ?? 'FILE').toUpperCase();
+          final param = (m.group(2) ?? '').trim();
+          var fileName = '';
+          if (param.isNotEmpty) {
+            fileName = param;
+            if (fileName.toLowerCase().startsWith('name=')) {
+              fileName = fileName.substring(5).trim();
+            } else if (fileName.toLowerCase().startsWith('filename=')) {
+              fileName = fileName.substring(9).trim();
+            }
+            if ((fileName.startsWith('"') && fileName.endsWith('"')) ||
+                (fileName.startsWith("'") && fileName.endsWith("'"))) {
+              fileName = fileName.substring(1, fileName.length - 1).trim();
+            }
+          }
+          attachments.add(MessageAttachment(type: type, fileName: fileName));
+        }
+      }
+      text = text
+          .replaceAll(markerRegex, '')
+          .replaceAll(RegExp(r' {2,}'), ' ')
+          .trim();
+    }
+
+    return Message(
+      id: JsonSafe.asInt(json['id'], fallback: -1),
+      direction: JsonSafe.asString(json['direction'], fallback: 'INBOUND'),
+      senderType: JsonSafe.asString(json['sender_type'], fallback: 'CUSTOMER'),
+      senderName: JsonSafe.asString(json['sender_name']),
+      senderInitials: JsonSafe.asString(json['sender_initials']),
+      messageType: JsonSafe.asString(json['message_type'], fallback: 'TEXT'),
+      text: text,
+      attachments: attachments,
+      deliveryStatus: JsonSafe.asString(
+        json['delivery_status'],
+        fallback: 'SENT',
+      ),
+      deliveryError: JsonSafe.asString(json['delivery_error']),
+      deliveryErrorCode: JsonSafe.asString(json['delivery_error_code']),
+      contentNotice: ContentNotice.fromJson(json['content_notice']),
+      sentAt:
+          DateTime.tryParse(JsonSafe.asString(json['sent_at']))?.toLocal() ??
+          DateTime.now(),
+      deliveredAt: _parseDate(json['delivered_at']),
+      readAt: _parseDate(json['read_at']),
+      replyTo: QuotedMessage.fromJson(json['reply_to']),
+      sentFromPlatform: JsonSafe.asBool(json['sent_from_platform']),
+    );
+  }
 
   /// A message the agent has typed but the server has not accepted yet.
   ///
-  /// [previewAttachment] shows the outgoing image/voice note immediately
-  /// from the agent's own local file, without waiting on the server's own
-  /// (network) URL — the same "optimistic" treatment [text] already gets.
+  /// [previewAttachment] / [previewAttachments] show the outgoing files
+  /// immediately from the agent's own local files, without waiting on the
+  /// server's own (network) URL — the same "optimistic" treatment [text] gets.
   /// [replyTo], when the agent quoted a message before sending, likewise
   /// renders the quote block immediately from the message already on screen
   /// rather than waiting for the server's own echo of it.
@@ -347,30 +459,51 @@ class Message {
     required String senderName,
     required String senderInitials,
     MessageAttachment? previewAttachment,
+    List<MessageAttachment>? previewAttachments,
     String? pendingAttachmentId,
+    List<String>? pendingAttachmentIds,
     QuotedMessage? replyTo,
-  }) => Message(
-    // Negative so it can never collide with a server id, and so ordering
-    // by id keeps pending messages at the end where they belong.
-    id: -DateTime.now().microsecondsSinceEpoch,
-    direction: 'OUTBOUND',
-    senderType: 'AGENT',
-    senderName: senderName,
-    senderInitials: senderInitials,
-    messageType: previewAttachment == null
-        ? 'TEXT'
-        : (previewAttachment.isImage ? 'IMAGE' : 'AUDIO'),
-    text: text,
-    attachments: previewAttachment == null ? const [] : [previewAttachment],
-    deliveryStatus: 'PENDING',
-    sentAt: DateTime.now(),
-    replyTo: replyTo,
-    sendState: SendState.sending,
-    localId: localId,
-    pendingAttachmentId: pendingAttachmentId,
-  );
+  }) {
+    final previews = [?previewAttachment, ...?previewAttachments];
+    final ids = [
+      if (pendingAttachmentId != null && pendingAttachmentId.isNotEmpty)
+        pendingAttachmentId,
+      ...?pendingAttachmentIds,
+    ];
 
-  Message copyWith({SendState? sendState, String? deliveryError}) => Message(
+    String deriveMessageType() {
+      if (previews.isEmpty) return 'TEXT';
+      if (previews.every((a) => a.isImage)) return 'IMAGE';
+      if (previews.every((a) => a.isAudio)) return 'AUDIO';
+      return 'FILE';
+    }
+
+    return Message(
+      // Negative so it can never collide with a server id, and so ordering
+      // by id keeps pending messages at the end where they belong.
+      id: -DateTime.now().microsecondsSinceEpoch,
+      direction: 'OUTBOUND',
+      senderType: 'AGENT',
+      senderName: senderName,
+      senderInitials: senderInitials,
+      messageType: deriveMessageType(),
+      text: text,
+      attachments: previews,
+      deliveryStatus: 'PENDING',
+      sentAt: DateTime.now(),
+      replyTo: replyTo,
+      sendState: SendState.sending,
+      localId: localId,
+      pendingAttachmentIds: ids,
+    );
+  }
+
+  Message copyWith({
+    SendState? sendState,
+    String? deliveryError,
+    List<String>? pendingAttachmentIds,
+    String? pendingAttachmentId,
+  }) => Message(
     id: id,
     direction: direction,
     senderType: senderType,
@@ -390,7 +523,11 @@ class Message {
     sentFromPlatform: sentFromPlatform,
     sendState: sendState ?? this.sendState,
     localId: localId,
-    pendingAttachmentId: pendingAttachmentId,
+    pendingAttachmentIds:
+        pendingAttachmentIds ??
+        (pendingAttachmentId != null
+            ? [pendingAttachmentId]
+            : this.pendingAttachmentIds),
   );
 
   /// Applies one entry of a `message.updated` delivery-status realtime event
@@ -420,9 +557,7 @@ class Message {
     deliveredAt: _parseDate(json['delivered_at']) ?? deliveredAt,
     readAt: _parseDate(json['read_at']) ?? readAt,
     sentFromPlatform: sentFromPlatform,
-    sendState: sendState,
-    localId: localId,
-    pendingAttachmentId: pendingAttachmentId,
+    pendingAttachmentIds: pendingAttachmentIds,
   );
 
   bool get isOutbound => direction == 'OUTBOUND';

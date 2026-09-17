@@ -16,19 +16,36 @@ import '../../core/models/performance.dart';
 import '../../core/models/routing_policy.dart';
 import '../../core/providers.dart';
 import '../authentication/auth_controller.dart';
+import '../dashboard/dashboard_cache.dart';
 import '../dashboard/dashboard_date_filter_state.dart';
 import 'customer_field_filter_state.dart';
 import 'employee_filter_state.dart';
 
+/// The dashboard summary for the active date range, served from
+/// [DashboardCache] when that exact query has already been fetched.
+///
+/// Switching back to a range seen earlier this session is a cache hit and
+/// costs no request; the provider still rebuilds, so the UI updates
+/// immediately with the stored value rather than flashing a loading state.
+///
+/// Refresh is driven from the other side: pull-to-refresh calls
+/// [DashboardCache.invalidateFilter] for the active range and then invalidates
+/// this provider, so the re-run finds no entry and fetches. That keeps "is
+/// this a refresh?" out of the provider, where the two cases are otherwise
+/// indistinguishable.
 final dashboardProvider = FutureProvider<DashboardSummary>((ref) {
   final filter = ref.watch(dashboardDateFilterProvider);
-  return ref
-      .watch(directoryRepositoryProvider)
-      .dashboard(
-        preset: filter.preset?.apiValue,
-        from: filter.fromApiString,
-        to: filter.toApiString,
-      );
+  final repository = ref.watch(directoryRepositoryProvider);
+  final cache = ref.watch(dashboardCacheProvider);
+
+  return cache.summary.run(
+    dashboardSummaryKey(filter),
+    () => repository.dashboard(
+      preset: filter.preset?.apiValue,
+      from: filter.fromApiString,
+      to: filter.toApiString,
+    ),
+  );
 });
 
 final routingPolicyProvider = FutureProvider<RoutingPolicy>((ref) {
@@ -43,8 +60,18 @@ final routingResponsibilitiesProvider =
       return ref.watch(directoryRepositoryProvider).routingResponsibilities();
     });
 
+/// Volume per connected channel, served from [AnalyticsCache].
+///
+/// Takes no date parameters, so it occupies a single cache entry and is
+/// fetched once per session unless the user refreshes Analytics.
 final channelVolumeProvider = FutureProvider<List<ChannelVolume>>((ref) {
-  return ref.watch(directoryRepositoryProvider).channelVolume();
+  final repository = ref.watch(directoryRepositoryProvider);
+  final cache = ref.watch(analyticsCacheProvider);
+
+  return cache.channelVolume.run(
+    channelVolumeKey(),
+    () => repository.channelVolume(),
+  );
 });
 
 final teamsProvider = FutureProvider<List<Team>>((ref) async {
@@ -178,13 +205,33 @@ final performanceProvider = FutureProvider<PerformanceReport>((ref) {
       .performance(days: ref.watch(performanceWindowProvider));
 });
 
+/// Performance metrics filtered by the Dashboard's active date-range filter.
+///
+/// Driven by [dashboardDateFilterProvider] so when the user selects Today,
+/// Last 7 days, Last 30 days, This month, Last month, or a Custom range,
+/// the performance numbers update synchronously with the rest of the Dashboard.
+final dashboardPerformanceProvider = FutureProvider<PerformanceReport>((ref) {
+  final filter = ref.watch(dashboardDateFilterProvider);
+  final repository = ref.watch(directoryRepositoryProvider);
+  final cache = ref.watch(dashboardCacheProvider);
+
+  return cache.performance.run(
+    dashboardPerformanceKey(filter),
+    () => repository.performance(
+      preset: filter.preset?.apiValue,
+      from: filter.fromApiString,
+      to: filter.toApiString,
+    ),
+  );
+});
+
 /// The signed-in employee's own row, or null before it arrives.
 ///
 /// Every employee is entitled to their own numbers, so this needs no
 /// permission check — the endpoint returns exactly one row for an agent.
 final myPerformanceProvider = Provider<EmployeePerformance?>((ref) {
   final me = ref.watch(currentEmployeeProvider);
-  final report = ref.watch(performanceProvider).value;
+  final report = ref.watch(dashboardPerformanceProvider).value;
   if (me == null || report == null) return null;
 
   for (final row in report.results) {

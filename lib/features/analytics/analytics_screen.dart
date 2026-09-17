@@ -20,13 +20,16 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/cache/cached_async_value.dart';
 import '../../core/models/directory.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../dashboard/dashboard_cache.dart';
 import '../dashboard/dashboard_date_filter_sheet.dart';
+import '../dashboard/dashboard_date_filter_state.dart';
 import '../directory/directory_providers.dart';
 import '../performance/performance_card.dart';
 
@@ -43,6 +46,14 @@ class AnalyticsScreen extends ConsumerWidget {
       title: context.l10n.navAnalytics,
       actions: const [DashboardDateFilterButton()],
       onRefresh: () async {
+        // Explicit refresh: drop the cached entries this screen is showing
+        // before refetching. The summary lives in DashboardCache (shared with
+        // the Dashboard screen, which shares the filter too) and volume in
+        // AnalyticsCache; clearing one never touches the other's endpoint.
+        ref
+            .read(dashboardCacheProvider)
+            .invalidateFilter(ref.read(dashboardDateFilterProvider));
+        ref.read(analyticsCacheProvider).invalidateChannelVolume();
         ref
           ..invalidate(dashboardProvider)
           ..invalidate(channelVolumeProvider);
@@ -85,7 +96,10 @@ class AnalyticsScreen extends ConsumerWidget {
             ),
             error: (error, _) => ErrorStateView(
               error: error,
-              onRetry: () => ref.invalidate(channelVolumeProvider),
+              onRetry: () {
+                ref.read(analyticsCacheProvider).invalidateChannelVolume();
+                ref.invalidate(channelVolumeProvider);
+              },
             ),
             data: (rows) => rows.isEmpty
                 ? Card(
@@ -102,14 +116,19 @@ class AnalyticsScreen extends ConsumerWidget {
 
           const SizedBox(height: Space.xl),
           SectionHeading(context.l10n.leadPipelineTitle),
-          summary.when(
+          summary.whenCached(
             loading: () => const Padding(
               padding: EdgeInsets.all(Space.xl),
               child: LoadingState(),
             ),
-            error: (error, _) => ErrorStateView(
+            onError: (error, _) => ErrorStateView(
               error: error,
-              onRetry: () => ref.invalidate(dashboardProvider),
+              onRetry: () {
+                ref
+                    .read(dashboardCacheProvider)
+                    .invalidateFilter(ref.read(dashboardDateFilterProvider));
+                ref.invalidate(dashboardProvider);
+              },
             ),
             data: (data) => Column(
               children: [

@@ -12,7 +12,7 @@
   "tabChannels": "Channels",
   "tabProfile": "Profile",
   "tabSecurity": "Security",
-  "tabAssignment": "Assignment",
+  "tabAssignment": "Routing",
 
   "signOutDialogTitle": "Sign out?",
   "signOutDialogMessage": "You will stop receiving new conversations on this device.",
@@ -36,6 +36,7 @@
   },
 
   "preferencesSectionTitle": "PREFERENCES",
+  "securitySectionTitle": "SECURITY",
   "themeLabel": "Theme",
   "themeSystem": "System",
   "themeLight": "Light",
@@ -343,10 +344,20 @@
   "readOnlyLabel": "Read only",
 
   "attachmentTooltip": "Attach",
+  "attachDocumentAction": "Document",
   "attachFromGalleryAction": "Photo from gallery",
   "attachFromCameraAction": "Take photo",
   "removeAttachmentTooltip": "Remove attachment",
   "attachmentUploadingLabel": "Uploading…",
+  "uploadingAttachmentsProgress": "Uploading {current} of {total}…",
+  "@uploadingAttachmentsProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "attachmentLimitReached": "You can attach up to 10 files per message.",
+  "attachmentPartialUploadError": "Some files couldn't be uploaded. Please try again.",
   "attachmentUploadFailedError": "Couldn't upload that file. Please try again.",
   "attachmentPermissionDeniedError": "Permission was denied. Enable it in your device settings to attach photos.",
   "recordVoiceTooltip": "Record a voice message",
@@ -388,7 +399,11 @@
   "quotedMessageDeletedLabel": "This message was deleted",
   "quotedMessageUnavailableLabel": "Original message unavailable",
   "photoMessageLabel": "Photo",
+  "photosMessageLabel": "Photos",
+  "videoMessageLabel": "Video",
+  "documentMessageLabel": "Document",
   "attachmentMessageLabel": "Attachment",
+  "attachmentsMessageLabel": "Attachments",
   "sentFromPlatformLabel": "Sent from {provider}",
   "@sentFromPlatformLabel": {
     "placeholders": {
@@ -418,7 +433,7 @@
   "reviewFieldLabel": "Review",
   "needsHumanReviewValue": "Needs human review",
 
-  "dashboardGreeting": "Good to see you, {name}",
+  "dashboardGreeting": "Hi {name}",
   "@dashboardGreeting": {
     "placeholders": {
       "name": {"type": "String"}
@@ -472,9 +487,37 @@
   "autoAssignmentStatusActive": "Active",
   "autoAssignmentStatusInactive": "Disabled",
   "autoAssignmentToggleLabel": "Enable automatic assignment",
-  "strictResponsibilityTitle": "Strict responsibility",
-  "strictResponsibilityDescription": "When on, a conversation with nobody responsible for its channel stays unassigned rather than falling back to whoever is available. When off, responsibility is only a preference.",
-  "strictResponsibilityToggleLabel": "Require responsibility to assign",
+  "channelResponsibilityTitle": "Channel responsibility",
+  "channelResponsibilityDescription": "Choose who is offered new conversations from each channel. A rule for one specific account takes precedence over a rule for all accounts, and an employee's own rules take precedence over their team's.",
+  "channelResponsibilityAccessNote": "This decides who receives new conversations, not who can see them. Everyone keeps the access their role gives them.",
+  "channelResponsibilityEditNote": "Team rules are set in each team's form on the Teams page. Which channels an employee handles is set in their form on the Employees page.",
+  "channelResponsibilityEmpty": "No responsibility rules yet.",
+  "channelResponsibilityAllAccounts": "All {provider} accounts",
+  "@channelResponsibilityAllAccounts": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "channelResponsibilityAccountRule": "{provider} account · {account}",
+  "@channelResponsibilityAccountRule": {
+    "placeholders": {
+      "provider": {"type": "String"},
+      "account": {"type": "String"}
+    }
+  },
+  "channelResponsibilityTeamPrefix": "Team {name}",
+  "@channelResponsibilityTeamPrefix": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "channelResponsibilityRetired": "Retired",
+  "channelResponsibilityEditInTeams": "Edit in Teams",
+  "channelResponsibilityFallbackTitle": "When nobody responsible is available",
+  "channelResponsibilityFallbackDescription": "The conversation goes to the rest of the organization, so no customer is left without an owner.",
+  "channelResponsibilityOfferToEveryone": "Offer to everyone else",
+  "channelResponsibilityLeaveUnassigned": "Leave unassigned",
+  "channelResponsibilityFallbackSaved": "Fallback behavior updated",
   "defaultChatCapacityTitle": "Default chat capacity",
   "defaultChatCapacityDescription": "Maximum open conversations assigned to an agent at one time.",
   "maxOpenChatsFieldLabel": "Max open chats per agent",
@@ -484,9 +527,9 @@
   "timezoneDescription": "Organization-level time zone. Changing this reinterprets existing schedules without rewriting them.",
   "timezoneFieldLabel": "Select time zone",
   "saveTimezoneAction": "Save time zone",
-  "assignmentPolicyUpdatedSnackbar": "Assignment settings updated",
-  "routingPolicyLoadFailed": "Couldn't load assignment settings.",
-  "routingPermissionDenied": "You don't have permission to manage assignment settings.",
+  "assignmentPolicyUpdatedSnackbar": "Routing settings updated",
+  "routingPolicyLoadFailed": "Couldn't load routing settings.",
+  "routingPermissionDenied": "You don't have permission to manage routing settings.",
   "openUnreadSummary": "{open} open · {unread} unread",
   "@openUnreadSummary": {
     "placeholders": {
@@ -600,6 +643,17 @@
   "ordersTitle": "Orders",
   "orderButton": "Order",
   "noOrdersRecordedMessage": "No orders recorded from this conversation.",
+  "contactSectionTitle": "Contact",
+  "contactEditButton": "Edit",
+  "customerDataTitle": "Customer data",
+  "customerDataDetailButton": "Detail",
+  "customerDataEmpty": "No customer details recorded yet.",
+  "customerDataMoreCount": "+{count} more",
+  "@customerDataMoreCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "employeeSourceBadge": "Employee",
   "autoSourceBadge": "Auto",
   "saveToCustomerTooltip": "Save to the customer",
@@ -1566,5 +1620,26 @@
   "savedReplyDeletedSnackbar": "Saved reply deleted",
   "exportCsvAction": "Export CSV",
   "exportRateLimitedMessage": "Too many exports in the last minute. Please wait and try again.",
-  "exportFailedMessage": "The export could not be completed. Please try again."
+  "exportFailedMessage": "The export could not be completed. Please try again.",
+  "csvExportSuccessMessage": "CSV exported successfully",
+  "openFileAction": "Open",
+  "downloadAttachmentAction": "Download",
+  "downloadingAttachmentMessage": "Downloading…",
+  "attachmentDownloadSuccess": "Saved to {path}",
+  "@attachmentDownloadSuccess": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "attachmentDownloadError": "Couldn't download attachment. Please try again.",
+  "noAppToOpenFileError": "No application found to open this file.",
+  "shareCsvAction": "Share CSV",
+  "tabMoreSettings": "More settings",
+  "exportDataSectionTitle": "Export data",
+  "exportDataSectionDescription": "Export your application data as CSV files.",
+  "exportConversationsCsvAction": "Export conversations CSV",
+  "exportCustomersCsvAction": "Export customers CSV",
+  "exportConversationsSubtitle": "Export all conversations as a CSV file.",
+  "exportCustomersSubtitle": "Export all customers as a CSV file.",
+  "exportActionLabel": "Export"
 }
