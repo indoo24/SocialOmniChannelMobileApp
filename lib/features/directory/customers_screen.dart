@@ -10,17 +10,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
 import '../../core/models/directory.dart';
-import '../../core/models/employee.dart';
-import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
-import '../../core/widgets/export_csv_action.dart';
 import '../../core/widgets/section_scaffold.dart';
+import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
-import '../authentication/auth_controller.dart';
 import 'customer_field_filter_sheet.dart';
 import 'customer_field_filter_state.dart';
 import 'directory_providers.dart';
@@ -39,7 +36,6 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   @override
   Widget build(BuildContext context) {
     final customers = ref.watch(customerDirectoryProvider);
-    final canExport = ref.watch(canProvider(Perm.crmExport));
     final fieldFilter = ref.watch(customerFieldFilterProvider);
 
     return SectionScaffold(
@@ -62,18 +58,6 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
             if (!_searching) ref.read(customerSearchProvider.notifier).clear();
           },
         ),
-        if (canExport)
-          ExportCsvAction(
-            fileNamePrefix: 'customers',
-            fetch: () => ref
-                .read(directoryRepositoryProvider)
-                .exportCustomersCsv(
-                  search: ref.read(customerSearchProvider),
-                  fieldFilter:
-                      ref.read(customerFieldFilterProvider)?.toQueryParams() ??
-                      const {},
-                ),
-          ),
       ],
       onRefresh: () async {
         ref.invalidate(customerDirectoryProvider);
@@ -95,10 +79,12 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           ),
           Expanded(
             child: customers.when(
-              loading: () => ListView.separated(
-                itemCount: 8,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (_, _) => const ConversationSkeleton(),
+              loading: () => AppShimmer(
+                child: ListView.separated(
+                  itemCount: 8,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (_, _) => const ConversationSkeleton(),
+                ),
               ),
               error: (error, _) => ErrorStateView(
                 error: error,

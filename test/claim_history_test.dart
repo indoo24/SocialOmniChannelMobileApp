@@ -159,7 +159,10 @@ void main() {
     testWidgets('in Arabic', (tester) async {
       await _open(tester, [_placement], locale: const Locale('ar'));
 
-      expect(find.text('استلم Mohamed Gad المحادثة بعد الرد عليها'), findsOneWidget);
+      expect(
+        find.text('استلم Mohamed Gad المحادثة بعد الرد عليها'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a restored claim is distinct from routing', (tester) async {
@@ -180,9 +183,7 @@ void main() {
       );
     });
 
-    testWidgets('a router assignment keeps its ordinary title', (
-      tester,
-    ) async {
+    testWidgets('a router assignment keeps its ordinary title', (tester) async {
       await _open(tester, [
         _row(8, metadata: {'automatic': true}),
       ]);
@@ -191,91 +192,87 @@ void main() {
       expect(find.text('Assigned'), findsOneWidget);
     });
 
-    testWidgets(
-      'a fallback placement says so and shows its reasons',
-      (tester) async {
-        await _open(tester, [
-          _row(
-            9,
-            metadata: {
-              'automatic': true,
-              'mode': 'fallback',
-              'reasons': [
-                'no one on the responsible team was available',
-                'strict responsibility disabled',
-              ],
-            },
-          ),
-        ]);
+    testWidgets('a fallback placement says so and shows its reasons', (
+      tester,
+    ) async {
+      await _open(tester, [
+        _row(
+          9,
+          metadata: {
+            'automatic': true,
+            'mode': 'fallback',
+            'reasons': [
+              'no one on the responsible team was available',
+              'strict responsibility disabled',
+            ],
+          },
+        ),
+      ]);
 
-        expect(find.text('Assigned to Mohamed Gad (fallback)'), findsOneWidget);
-        expect(
-          find.text(
-            'Reason: no one on the responsible team was available, '
-            'strict responsibility disabled',
-          ),
-          findsOneWidget,
-        );
-      },
-    );
+      expect(find.text('Assigned to Mohamed Gad (fallback)'), findsOneWidget);
+      expect(
+        find.text(
+          'Reason: no one on the responsible team was available, '
+          'strict responsibility disabled',
+        ),
+        findsOneWidget,
+      );
+    });
 
-    testWidgets(
-      'a fallback placement with no reasons shows no reasons row',
-      (tester) async {
-        await _open(tester, [
-          _row(10, metadata: {'automatic': true, 'mode': 'fallback'}),
-        ]);
+    testWidgets('a fallback placement with no reasons shows no reasons row', (
+      tester,
+    ) async {
+      await _open(tester, [
+        _row(10, metadata: {'automatic': true, 'mode': 'fallback'}),
+      ]);
 
-        expect(find.text('Assigned to Mohamed Gad (fallback)'), findsOneWidget);
-        expect(find.textContaining('Reason:'), findsNothing);
-      },
-    );
+      expect(find.text('Assigned to Mohamed Gad (fallback)'), findsOneWidget);
+      expect(find.textContaining('Reason:'), findsNothing);
+    });
 
-    testWidgets(
-      'a reassignment to another employee reads as rerouted',
-      (tester) async {
-        await _open(tester, [
-          _row(
-            11,
-            type: 'TRANSFERRED',
-            metadata: {
-              'automatic': true,
-              'mode': 'reassignment',
-              'previous_employee_name': 'Ali Tarek',
-            },
-          ),
-        ]);
+    testWidgets('a reassignment to another employee reads as rerouted', (
+      tester,
+    ) async {
+      await _open(tester, [
+        _row(
+          11,
+          type: 'TRANSFERRED',
+          metadata: {
+            'automatic': true,
+            'mode': 'reassignment',
+            'previous_employee_name': 'Ali Tarek',
+          },
+        ),
+      ]);
 
-        expect(
-          find.text('Rerouted from Ali Tarek to Mohamed Gad'),
-          findsOneWidget,
-        );
-      },
-    );
+      expect(
+        find.text('Rerouted from Ali Tarek to Mohamed Gad'),
+        findsOneWidget,
+      );
+    });
 
-    testWidgets(
-      'a reassignment with no one to reroute to reads as released',
-      (tester) async {
-        await _open(tester, [
-          _row(
-            12,
-            type: 'UNASSIGNED',
-            from: 'Ali Tarek',
-            to: '',
-            target: null,
-            metadata: {
-              'automatic': true,
-              'mode': 'reassignment',
-              'previous_employee_name': 'Ali Tarek',
-            },
-          ),
-        ]);
+    testWidgets('a reassignment with no one to reroute to reads as released', (
+      tester,
+    ) async {
+      await _open(tester, [
+        _row(
+          12,
+          type: 'UNASSIGNED',
+          from: 'Ali Tarek',
+          to: '',
+          target: null,
+          metadata: {
+            'automatic': true,
+            'mode': 'reassignment',
+            'previous_employee_name': 'Ali Tarek',
+          },
+        ),
+      ]);
 
-        expect(
-          find.text('Released from Ali Tarek back to the queue'),
-          findsOneWidget,
-        );
-      },
-    );
+      expect(
+        find.text('Released from Ali Tarek back to the queue'),
+        findsOneWidget,
+      );
+    });
   });
 }

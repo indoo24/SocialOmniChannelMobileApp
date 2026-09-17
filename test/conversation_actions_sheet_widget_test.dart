@@ -219,13 +219,20 @@ void main() {
 
       expect(tester.takeException(), isNull);
 
-      // 1. Customer Details DATA is rendered
-      expect(find.text('Customer details'), findsOneWidget);
+      // 1. Contact DATA is rendered (section renamed from "Customer details")
+      expect(find.text('Contact'), findsOneWidget);
       expect(find.text('Sarah Connor'), findsOneWidget);
       expect(find.text('+123456789'), findsOneWidget);
       expect(find.text('sarah@example.com'), findsOneWidget);
 
-      // 2. Intelligence DATA is rendered
+      // 2. Intelligence DATA is rendered. Scrolled to: the Customer data
+      // card now sits between Contact and Intelligence, pushing it below the
+      // fold on this viewport.
+      await tester.scrollUntilVisible(
+        find.text('Customer intelligence'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
       expect(find.text('Customer intelligence'), findsOneWidget);
       expect(find.text('85'), findsOneWidget);
       expect(
@@ -348,8 +355,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify data sections are rendered
-      expect(find.text('Customer details'), findsOneWidget);
+      expect(find.text('Contact'), findsOneWidget);
       expect(find.text('Sarah Connor'), findsNWidgets(2));
+      await tester.scrollUntilVisible(
+        find.text('Customer intelligence'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
       expect(find.text('Customer intelligence'), findsOneWidget);
 
       await tester.scrollUntilVisible(

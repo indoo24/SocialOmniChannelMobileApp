@@ -30,6 +30,8 @@ import 'customer_intelligence_section.dart';
 import 'intelligence_providers.dart';
 import 'notes_sheet.dart';
 import '../customer_fields/custom_fields_section.dart';
+import '../directory/edit_customer_sheet.dart';
+import '../orders/customer_data_sheet.dart';
 import '../orders/order_and_fact_dialogs.dart';
 import '../orders/order_details.dart';
 
@@ -81,6 +83,41 @@ class _ActionsSheet extends ConsumerStatefulWidget {
 class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
   bool _busy = false;
   bool _analyzing = false;
+  bool _editing = false;
+
+  /// Opens the existing Edit customer sheet for [customerId].
+  ///
+  /// `showEditCustomerSheet` takes a full [CustomerDetail], which a
+  /// conversation does not carry — its `customer` is the lightweight
+  /// list-shaped record. So fetch the detail first (the same
+  /// `GET /customers/{id}/` the profile screen uses) and hand that over,
+  /// rather than reimplementing the form against the thinner model. The PATCH
+  /// and every validation rule stay exactly where they already are.
+  Future<void> _openEditCustomer(int customerId) async {
+    setState(() => _editing = true);
+    try {
+      final customer = await ref
+          .read(directoryRepositoryProvider)
+          .customerDetail(customerId);
+      if (!mounted) return;
+      await showEditCustomerSheet(context, customer: customer);
+      if (!mounted) return;
+      // The sheet saved through updateCustomer(); refresh what this sheet
+      // shows so the new values are visible behind it.
+      ref.invalidate(customerDetailProvider(customerId));
+      ref.invalidate(conversationControllerProvider(widget.conversationId));
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _editing = false);
+    }
+  }
 
   Future<void> _run(Future<void> Function() action, String success) async {
     setState(() => _busy = true);
@@ -148,6 +185,9 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
     final canRefreshIntel =
         employee?.can(Perm.conversationRefreshIntelligence) ?? false;
     final canManageOrders = employee?.can(Perm.orderManage) ?? false;
+    // Editing contact details is `customer.manage`, the same permission the
+    // customer profile screen gates its own edit button on.
+    final canEditCustomer = employee?.can(Perm.customerManage) ?? false;
 
     final conversation = async.value?.conversation;
     final isMine =
@@ -207,36 +247,70 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
         const SizedBox(height: Space.lg),
 
         // ------------------------------------------------------------
-        // 1. CUSTOMER DETAILS SECTION
+        // 1. CONTACT SECTION
         // ------------------------------------------------------------
+        // Contact = how to reach this customer (email, phone, location,
+        // language) plus their custom field values, and the conversation
+        // metadata that has always lived here. Recorded facts moved out to
+        // the Customer data card below — see `customer_data_sheet.dart`.
         _SectionCard(
-          title: context.l10n.customerDetailsTitle,
+          title: context.l10n.contactSectionTitle,
           icon: Icons.person_outline,
-          trailing: (canManageOrders && customerId != null)
-              ? TextButton.icon(
-                  icon: const Icon(Icons.add, size: 16),
-                  label: Text(context.l10n.commonAdd),
+          trailing: (canEditCustomer && customerId != null)
+              ? TextButton(
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: Space.xs,
+                      horizontal: Space.sm,
                       vertical: 2,
                     ),
                     visualDensity: VisualDensity.compact,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  onPressed: () => showRecordCustomerDetailDialog(
-                    context,
-                    ref: ref,
-                    customerId: customerId,
-                    conversationId: widget.conversationId,
-                  ),
+                  onPressed: _editing
+                      ? null
+                      : () => _openEditCustomer(customerId),
+                  child: Text(context.l10n.contactEditButton),
                 )
               : null,
           child: conversation == null
               ? const LoadingState()
-              : _CustomerDetailsView(conversation: conversation, facts: facts),
+              : _CustomerDetailsView(conversation: conversation),
         ),
         const SizedBox(height: Space.lg),
+
+        // ------------------------------------------------------------
+        // 1b. CUSTOMER DATA SECTION
+        // ------------------------------------------------------------
+        // Details a human recorded about the customer. A preview here, the
+        // full scrollable list behind the chevron.
+        if (customerId != null) ...[
+          _SectionCard(
+            title: context.l10n.customerDataTitle,
+            icon: Icons.fact_check_outlined,
+            trailing: IconButton(
+              icon: const Icon(Icons.chevron_right),
+              visualDensity: VisualDensity.compact,
+              tooltip: context.l10n.customerDataTitle,
+              onPressed: () => showCustomerDataSheet(
+                context,
+                customerId: customerId,
+                conversationId: widget.conversationId,
+                canManage: canManageOrders,
+              ),
+            ),
+            child: _CustomerDataPreview(
+              facts: facts,
+              loading: factsAsync?.isLoading ?? false,
+              onOpen: () => showCustomerDataSheet(
+                context,
+                customerId: customerId,
+                conversationId: widget.conversationId,
+                canManage: canManageOrders,
+              ),
+            ),
+          ),
+          const SizedBox(height: Space.lg),
+        ],
 
         // ------------------------------------------------------------
         // 2. INTELLIGENCE SECTION
@@ -738,22 +812,14 @@ class _SectionCardState extends State<_SectionCard> {
 // 1. CUSTOMER DETAILS VIEW
 // ---------------------------------------------------------------------------
 class _CustomerDetailsView extends ConsumerWidget {
-  const _CustomerDetailsView({
-    required this.conversation,
-    this.facts = const [],
-  });
+  const _CustomerDetailsView({required this.conversation});
 
   final Conversation conversation;
-  final List<CustomerFact> facts;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final customer = conversation.customer;
-    // Free-form details only; typed custom field values show by their field.
-    final recordedFacts = facts
-        .where((f) => !f.needsReview && !f.isTypedField)
-        .toList();
 
     final inboxState = ref.watch(inboxControllerProvider).value;
     final groups = inboxState?.groups ?? const [];
@@ -907,59 +973,6 @@ class _CustomerDetailsView extends ConsumerWidget {
           CustomFieldsSection(customerId: customer.id),
         ],
 
-        if (recordedFacts.isNotEmpty) ...[
-          const SizedBox(height: Space.md),
-          const Divider(height: 1),
-          const SizedBox(height: Space.sm),
-          for (final fact in recordedFacts)
-            Padding(
-              padding: const EdgeInsets.only(bottom: Space.xs),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Space.md,
-                  vertical: Space.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.45,
-                  ),
-                  borderRadius: BorderRadius.circular(Radii.md),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text.rich(
-                        TextSpan(
-                          style: theme.textTheme.bodySmall,
-                          children: [
-                            TextSpan(
-                              text: '${humanizeEnum(fact.key)}: ',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            TextSpan(text: fact.value),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: Space.sm),
-                    StatusBadge(
-                      label: fact.source == 'EMPLOYEE'
-                          ? context.l10n.employeeSourceBadge
-                          : fact.source,
-                      tone: fact.source == 'EMPLOYEE'
-                          ? BadgeTone.success
-                          : BadgeTone.neutral,
-                      dense: true,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-
         if (matchingGroup != null) ...[
           const SizedBox(height: Space.md),
           const Divider(height: 1),
@@ -1025,6 +1038,64 @@ class _CustomerDetailsView extends ConsumerWidget {
             ),
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// The first few recorded customer details, inline in the conversation sheet.
+///
+/// A preview, not the list: the full set is in the Customer data sheet behind
+/// the chevron, which scrolls. Capped so a customer with thirty recorded facts
+/// cannot push Intelligence, Orders and Actions off the screen.
+class _CustomerDataPreview extends StatelessWidget {
+  const _CustomerDataPreview({
+    required this.facts,
+    required this.loading,
+    required this.onOpen,
+  });
+
+  final List<CustomerFact> facts;
+  final bool loading;
+  final VoidCallback onOpen;
+
+  static const _previewLimit = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final recorded = recordedCustomerFacts(facts);
+
+    if (recorded.isEmpty) {
+      if (loading) return const LoadingState();
+      return Text(
+        context.l10n.customerDataEmpty,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+
+    final shown = recorded.take(_previewLimit).toList();
+    final hidden = recorded.length - shown.length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final fact in shown) CustomerDataRow(fact: fact),
+        if (hidden > 0)
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: onOpen,
+              child: Text(context.l10n.customerDataMoreCount(hidden)),
+            ),
+          ),
       ],
     );
   }

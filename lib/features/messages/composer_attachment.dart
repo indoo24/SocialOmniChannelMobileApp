@@ -17,10 +17,12 @@ library;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mime/mime.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
@@ -37,33 +39,35 @@ class StagedAttachment {
     required this.draftId,
     required this.localPath,
     required this.attachment,
+    this.fileSize,
   });
 
   final String draftId;
   final String localPath;
   final MessageAttachment attachment;
+  final int? fileSize;
 }
 
 /// The attachment button (left of the text field): opens a sheet offering
-/// gallery selection or camera capture, uploads the result, and reports the
-/// staged draft back to the composer.
-///
-/// Neither permission is requested until the agent actually taps one of the
-/// two sheet options — `image_picker` requests the platform permission
-/// itself at that point, not before.
+/// document selection, gallery selection, or camera capture, uploads the result,
+/// and reports the staged draft(s) back to the composer.
 class ComposerAttachmentButton extends ConsumerStatefulWidget {
   const ComposerAttachmentButton({
     required this.conversationId,
     required this.enabled,
     required this.onStaged,
     required this.onError,
+    this.currentStagedCount = 0,
+    this.onUploadingChanged,
     super.key,
   });
 
   final int conversationId;
   final bool enabled;
-  final ValueChanged<StagedAttachment> onStaged;
+  final ValueChanged<List<StagedAttachment>> onStaged;
   final ValueChanged<String> onError;
+  final int currentStagedCount;
+  final ValueChanged<bool>? onUploadingChanged;
 
   @override
   ConsumerState<ComposerAttachmentButton> createState() =>
@@ -74,59 +78,205 @@ class _ComposerAttachmentButtonState
     extends ConsumerState<ComposerAttachmentButton> {
   bool _busy = false;
 
-  Future<void> _pick(ImageSource source) async {
-    if (_busy) return;
-    Navigator.of(context).pop();
+  static const int _maxAttachments = 10;
+  static const List<String> _allowedDocExtensions = [
+    'pdf',
+    'doc',
+    'docx',
+    'xls',
+    'xlsx',
+    'ppt',
+    'pptx',
+    'txt',
+    'zip',
+    'csv',
+  ];
+
+  Future<void> _uploadBatch(
+    List<({String path, String name, int? size})> items,
+  ) async {
+    if (items.isEmpty) return;
     setState(() => _busy = true);
+    widget.onUploadingChanged?.call(true);
+
+    final stagedList = <StagedAttachment>[];
+    final failedNames = <String>[];
+    String? lastError;
 
     try {
-      final picked = await ImagePicker().pickImage(
-        source: source,
-        imageQuality: 85,
-      );
-      if (picked == null) return;
+      await Future.wait(
+        items.map((item) async {
+          try {
+            final data = await ref
+                .read(conversationRepositoryProvider)
+                .stageAttachment(
+                  widget.conversationId,
+                  filePath: item.path,
+                  fileName: item.name,
+                  mimeType:
+                      lookupMimeType(item.path) ?? lookupMimeType(item.name),
+                );
 
-      final data = await ref
-          .read(conversationRepositoryProvider)
-          .stageAttachment(
-            widget.conversationId,
-            filePath: picked.path,
-            fileName: picked.name,
-          );
-
-      widget.onStaged(
-        StagedAttachment(
-          draftId: data.id,
-          localPath: picked.path,
-          attachment: MessageAttachment(
-            type: data.type,
-            fileName: data.fileName,
-            mimeType: data.mimeType,
-            localFilePath: picked.path,
-          ),
-        ),
+            final staged = StagedAttachment(
+              draftId: data.id,
+              localPath: item.path,
+              fileSize: item.size ?? data.sizeBytes,
+              attachment: MessageAttachment(
+                type: data.type,
+                fileName: data.fileName,
+                mimeType: data.mimeType,
+                localFilePath: item.path,
+                sizeBytes: item.size ?? data.sizeBytes,
+              ),
+            );
+            stagedList.add(staged);
+          } on ApiException catch (error) {
+            failedNames.add(item.name);
+            lastError = error.message;
+          } catch (_) {
+            failedNames.add(item.name);
+          }
+        }),
       );
-    } on ApiException catch (error) {
-      if (!mounted) return;
-      widget.onError(error.message);
+
+      if (stagedList.isNotEmpty) {
+        widget.onStaged(stagedList);
+      }
+
+      if (failedNames.isNotEmpty && mounted) {
+        final err = lastError;
+        if (stagedList.isEmpty && err != null) {
+          widget.onError(err);
+        } else if (stagedList.isEmpty) {
+          widget.onError(context.l10n.attachmentUploadFailedError);
+        } else {
+          widget.onError(context.l10n.attachmentPartialUploadError);
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+      widget.onUploadingChanged?.call(false);
+    }
+  }
+
+  Future<void> _pickGallery() async {
+    if (_busy) return;
+    Navigator.of(context).pop();
+
+    final remaining = _maxAttachments - widget.currentStagedCount;
+    if (remaining <= 0) {
+      widget.onError(context.l10n.attachmentLimitReached);
+      return;
+    }
+
+    List<XFile> pickedList = [];
+    try {
+      pickedList = await ImagePicker().pickMultiImage(imageQuality: 85);
     } on PlatformException catch (error) {
-      // image_picker's own signal for "permission denied" / "no camera" /
-      // similar platform-level refusals — never a bug in this app's own
-      // code, so it is shown as the friendly permission copy rather than
-      // the raw platform error string.
       if (!mounted) return;
       widget.onError(
-        error.code == 'camera_access_denied' ||
-                error.code == 'photo_access_denied'
+        error.code == 'photo_access_denied'
             ? context.l10n.attachmentPermissionDeniedError
             : context.l10n.attachmentUploadFailedError,
       );
+      return;
     } catch (_) {
       if (!mounted) return;
       widget.onError(context.l10n.attachmentUploadFailedError);
-    } finally {
-      if (mounted) setState(() => _busy = false);
+      return;
     }
+
+    if (pickedList.isEmpty) return;
+
+    if (pickedList.length > remaining) {
+      if (mounted) widget.onError(context.l10n.attachmentLimitReached);
+      pickedList = pickedList.take(remaining).toList();
+    }
+
+    await _uploadBatch(
+      pickedList
+          .map((x) => (path: x.path, name: x.name, size: null as int?))
+          .toList(),
+    );
+  }
+
+  Future<void> _pickCamera() async {
+    if (_busy) return;
+    Navigator.of(context).pop();
+
+    final remaining = _maxAttachments - widget.currentStagedCount;
+    if (remaining <= 0) {
+      widget.onError(context.l10n.attachmentLimitReached);
+      return;
+    }
+
+    XFile? picked;
+    try {
+      picked = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+      widget.onError(
+        error.code == 'camera_access_denied'
+            ? context.l10n.attachmentPermissionDeniedError
+            : context.l10n.attachmentUploadFailedError,
+      );
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      widget.onError(context.l10n.attachmentUploadFailedError);
+      return;
+    }
+
+    if (picked == null) return;
+    await _uploadBatch([
+      (path: picked.path, name: picked.name, size: null as int?),
+    ]);
+  }
+
+  Future<void> _pickDocuments() async {
+    if (_busy) return;
+    Navigator.of(context).pop();
+
+    final remaining = _maxAttachments - widget.currentStagedCount;
+    if (remaining <= 0) {
+      widget.onError(context.l10n.attachmentLimitReached);
+      return;
+    }
+
+    List<PlatformFile> pickedFiles = [];
+    try {
+      pickedFiles = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: _allowedDocExtensions,
+      );
+    } on PlatformException catch (_) {
+      if (!mounted) return;
+      widget.onError(context.l10n.attachmentUploadFailedError);
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      widget.onError(context.l10n.attachmentUploadFailedError);
+      return;
+    }
+
+    if (pickedFiles.isEmpty) return;
+
+    var files = pickedFiles.where((f) => f.path != null).toList();
+    if (files.isEmpty) return;
+
+    if (files.length > remaining) {
+      if (mounted) widget.onError(context.l10n.attachmentLimitReached);
+      files = files.take(remaining).toList();
+    }
+
+    await _uploadBatch(
+      files
+          .map((f) => (path: f.path!, name: f.name, size: f.lengthSync()))
+          .toList(),
+    );
   }
 
   Future<void> _openSheet() async {
@@ -134,21 +284,41 @@ class _ComposerAttachmentButtonState
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: Text(sheetContext.l10n.attachFromGalleryAction),
-              onTap: () => _pick(ImageSource.gallery),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: Text(sheetContext.l10n.attachFromCameraAction),
-              onTap: () => _pick(ImageSource.camera),
-            ),
-            const SizedBox(height: Space.sm),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Space.lg,
+            vertical: Space.md,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _AttachmentOption(
+                    icon: Icons.insert_drive_file_rounded,
+                    color: const Color(0xFF5F60B9),
+                    label: sheetContext.l10n.attachDocumentAction,
+                    onTap: _pickDocuments,
+                  ),
+                  _AttachmentOption(
+                    icon: Icons.photo_camera_rounded,
+                    color: const Color(0xFFEC407A),
+                    label: sheetContext.l10n.attachFromCameraAction,
+                    onTap: _pickCamera,
+                  ),
+                  _AttachmentOption(
+                    icon: Icons.photo_library_rounded,
+                    color: const Color(0xFF8B5CF6),
+                    label: sheetContext.l10n.attachFromGalleryAction,
+                    onTap: _pickGallery,
+                  ),
+                ],
+              ),
+              const SizedBox(height: Space.sm),
+            ],
+          ),
         ),
       ),
     );
@@ -180,10 +350,302 @@ class _ComposerAttachmentButtonState
   }
 }
 
-/// The staged-image preview shown above the text field before sending —
-/// nothing is sent to the customer until the agent taps Send; tapping the
-/// remove badge discards the server-side draft too.
-class ComposerAttachmentPreview extends ConsumerStatefulWidget {
+class _AttachmentOption extends StatelessWidget {
+  const _AttachmentOption({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(Radii.md),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Space.sm,
+          vertical: Space.xs,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: Colors.white, size: 26),
+            ),
+            const SizedBox(height: Space.xs),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 90),
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// An individual staged preview item shown above the text field.
+class ComposerAttachmentPreviewItem extends ConsumerStatefulWidget {
+  const ComposerAttachmentPreviewItem({
+    required this.conversationId,
+    required this.staged,
+    required this.onRemoved,
+    super.key,
+  });
+
+  final int conversationId;
+  final StagedAttachment staged;
+  final VoidCallback onRemoved;
+
+  @override
+  ConsumerState<ComposerAttachmentPreviewItem> createState() =>
+      _ComposerAttachmentPreviewItemState();
+}
+
+class _ComposerAttachmentPreviewItemState
+    extends ConsumerState<ComposerAttachmentPreviewItem> {
+  bool _removing = false;
+
+  Future<void> _remove() async {
+    if (_removing) return;
+    setState(() => _removing = true);
+    try {
+      await ref
+          .read(conversationRepositoryProvider)
+          .discardAttachment(widget.conversationId, widget.staged.draftId);
+    } on ApiException catch (_) {
+      // Safe to call on something already gone
+    } finally {
+      if (mounted) widget.onRemoved();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isImage = widget.staged.attachment.isImage;
+
+    final Widget previewCard = isImage
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(Radii.md),
+            child: Image.file(
+              File(widget.staged.localPath),
+              width: 84,
+              height: 84,
+              fit: BoxFit.cover,
+            ),
+          )
+        : Container(
+            width: 148,
+            constraints: const BoxConstraints(minHeight: 84),
+            padding: const EdgeInsets.all(Space.sm),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? theme.colorScheme.surfaceContainerHighest
+                  : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(Radii.md),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant,
+                width: 1,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: _docIconColor(
+                          widget.staged.attachment.fileExtension,
+                        ).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(Radii.sm),
+                      ),
+                      child: Icon(
+                        _docIcon(widget.staged.attachment.fileExtension),
+                        size: 20,
+                        color: _docIconColor(
+                          widget.staged.attachment.fileExtension,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: Space.xs),
+                    Expanded(
+                      child: Text(
+                        widget.staged.attachment.fileExtension.isEmpty
+                            ? 'FILE'
+                            : widget.staged.attachment.fileExtension,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: _docIconColor(
+                            widget.staged.attachment.fileExtension,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: Space.xs),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.staged.attachment.fileName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (widget.staged.attachment.formattedSize.isNotEmpty)
+                      Text(
+                        widget.staged.attachment.formattedSize,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 10,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          );
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        previewCard,
+        PositionedDirectional(
+          top: -8,
+          end: -8,
+          child: Material(
+            color: theme.colorScheme.error,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: _remove,
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: _removing
+                    ? const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Icon(
+                        Icons.close,
+                        size: 16,
+                        color: theme.colorScheme.onError,
+                        semanticLabel: context.l10n.removeAttachmentTooltip,
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static Color _docIconColor(String ext) => switch (ext.toUpperCase()) {
+    'PDF' => const Color(0xFFEF4444),
+    'DOC' || 'DOCX' => const Color(0xFF2563EB),
+    'XLS' || 'XLSX' || 'CSV' => const Color(0xFF059669),
+    'PPT' || 'PPTX' => const Color(0xFFEA580C),
+    'ZIP' || 'RAR' => const Color(0xFFD97706),
+    _ => const Color(0xFF64748B),
+  };
+
+  static IconData _docIcon(String ext) => switch (ext.toUpperCase()) {
+    'PDF' => Icons.picture_as_pdf_rounded,
+    'DOC' || 'DOCX' => Icons.description_rounded,
+    'XLS' || 'XLSX' || 'CSV' => Icons.table_chart_rounded,
+    'PPT' || 'PPTX' => Icons.slideshow_rounded,
+    'ZIP' || 'RAR' => Icons.folder_zip_rounded,
+    _ => Icons.insert_drive_file_rounded,
+  };
+}
+
+/// Horizontal scrolling preview bar of staged attachments.
+class ComposerAttachmentsPreviewBar extends StatelessWidget {
+  const ComposerAttachmentsPreviewBar({
+    required this.conversationId,
+    required this.attachments,
+    required this.onRemoved,
+    super.key,
+  });
+
+  final int conversationId;
+  final List<StagedAttachment> attachments;
+  final ValueChanged<int> onRemoved;
+
+  @override
+  Widget build(BuildContext context) {
+    if (attachments.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Space.sm),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        child: Row(
+          children: [
+            for (var i = 0; i < attachments.length; i++) ...[
+              if (i > 0) const SizedBox(width: Space.sm),
+              ComposerAttachmentPreviewItem(
+                key: ValueKey(attachments[i].draftId),
+                conversationId: conversationId,
+                staged: attachments[i],
+                onRemoved: () => onRemoved(i),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Backward-compatible single-item preview wrapper.
+class ComposerAttachmentPreview extends StatelessWidget {
   const ComposerAttachmentPreview({
     required this.conversationId,
     required this.staged,
@@ -196,79 +658,13 @@ class ComposerAttachmentPreview extends ConsumerStatefulWidget {
   final VoidCallback onRemoved;
 
   @override
-  ConsumerState<ComposerAttachmentPreview> createState() =>
-      _ComposerAttachmentPreviewState();
-}
-
-class _ComposerAttachmentPreviewState
-    extends ConsumerState<ComposerAttachmentPreview> {
-  bool _removing = false;
-
-  Future<void> _remove() async {
-    if (_removing) return;
-    setState(() => _removing = true);
-    try {
-      await ref
-          .read(conversationRepositoryProvider)
-          .discardAttachment(widget.conversationId, widget.staged.draftId);
-    } on ApiException catch (_) {
-      // "Safe to call on something already gone" per the endpoint's own
-      // contract — a failed discard still removes it from the composer;
-      // there is nothing local left over for the agent to be misled by.
-    } finally {
-      if (mounted) widget.onRemoved();
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Padding(
       padding: const EdgeInsets.only(bottom: Space.sm),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(Radii.md),
-            child: Image.file(
-              File(widget.staged.localPath),
-              width: 84,
-              height: 84,
-              fit: BoxFit.cover,
-            ),
-          ),
-          PositionedDirectional(
-            top: -8,
-            end: -8,
-            child: Material(
-              color: theme.colorScheme.error,
-              shape: const CircleBorder(),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: _remove,
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: _removing
-                      ? const Padding(
-                          padding: EdgeInsets.all(4),
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Icon(
-                          Icons.close,
-                          size: 16,
-                          color: theme.colorScheme.onError,
-                          semanticLabel: context.l10n.removeAttachmentTooltip,
-                        ),
-                ),
-              ),
-            ),
-          ),
-        ],
+      child: ComposerAttachmentPreviewItem(
+        conversationId: conversationId,
+        staged: staged,
+        onRemoved: onRemoved,
       ),
     );
   }

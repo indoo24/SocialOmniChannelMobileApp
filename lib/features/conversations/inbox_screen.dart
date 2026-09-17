@@ -14,7 +14,6 @@ import 'package:intl/intl.dart';
 import '../../app/router.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/conversation_group.dart';
-import '../../core/models/employee.dart';
 import '../../core/realtime/realtime_bridge.dart';
 import '../../core/realtime/realtime_client.dart';
 import '../../core/providers.dart';
@@ -22,12 +21,13 @@ import '../../core/theme/tokens.dart';
 import '../../core/widgets/app_drawer.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
-import '../../core/widgets/export_csv_action.dart';
 import '../../core/widgets/section_scaffold.dart';
+import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../core/widgets/user_account_menu.dart';
 import '../../core/utils/formatting.dart';
 import '../../l10n/l10n_extensions.dart';
+import 'conversation_preview_formatter.dart';
 import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
 import 'customer_conversation_group_sheet.dart';
@@ -112,13 +112,6 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
             },
           ),
           _FilterButton(active: filters.hasAdvancedFilters),
-          if (employee?.can(Perm.crmExport) ?? false)
-            ExportCsvAction(
-              fileNamePrefix: 'conversations',
-              fetch: () => ref
-                  .read(conversationRepositoryProvider)
-                  .exportCsv(filters: filters, currentEmployeeId: employee?.id),
-            ),
           const NotificationBellButton(),
           const UserAccountMenuButton(),
           const SizedBox(width: Space.xs),
@@ -134,10 +127,13 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               onRefresh: () =>
                   ref.read(inboxControllerProvider.notifier).refresh(),
               child: inbox.when(
-                loading: () => ListView.separated(
-                  itemCount: 8,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (_, _) => const ConversationSkeleton(),
+                loading: () => AppShimmer(
+                  child: ListView.separated(
+                    itemCount: 8,
+                    separatorBuilder: (_, _) =>
+                        const Divider(height: 1, indent: 68),
+                    itemBuilder: (_, _) => const ConversationSkeleton(),
+                  ),
                 ),
                 error: (error, _) => ListView(
                   children: [
@@ -303,9 +299,7 @@ class ConversationGroupRow extends StatelessWidget {
                       ],
                       Expanded(
                         child: Text(
-                          group.lastMessagePreview.isEmpty
-                              ? context.l10n.noMessagesYetPreview
-                              : group.lastMessagePreview,
+                          formatConversationPreview(context, group: group),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -440,9 +434,10 @@ class ConversationRow extends StatelessWidget {
                       ],
                       Expanded(
                         child: Text(
-                          conversation.lastMessagePreview.isEmpty
-                              ? context.l10n.noMessagesYetPreview
-                              : conversation.lastMessagePreview,
+                          formatConversationPreview(
+                            context,
+                            conversation: conversation,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(

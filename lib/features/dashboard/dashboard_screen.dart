@@ -16,6 +16,7 @@ import '../../app/router.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/directory.dart';
 import '../../core/theme/tokens.dart';
+import '../../core/cache/cached_async_value.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
@@ -24,7 +25,10 @@ import '../authentication/auth_controller.dart';
 import '../conversations/inbox_screen.dart';
 import '../directory/directory_providers.dart';
 import '../performance/performance_card.dart';
+import 'dashboard_cache.dart';
 import 'dashboard_date_filter_sheet.dart';
+import 'dashboard_date_filter_state.dart';
+import 'dashboard_skeleton.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -37,20 +41,45 @@ class DashboardScreen extends ConsumerWidget {
 
     return SectionScaffold(
       title: context.l10n.dashboardGreeting(firstName),
-      actions: const [DashboardDateFilterButton()],
       onRefresh: () async {
-        ref.invalidate(dashboardProvider);
-        await ref.read(dashboardProvider.future);
+        // Explicit refresh: drop this range's cached entries first so the
+        // providers refetch instead of replaying what they already have.
+        // Other ranges stay cached. RefreshIndicator keeps the current
+        // content on screen while this runs.
+        ref
+            .read(dashboardCacheProvider)
+            .invalidateFilter(ref.read(dashboardDateFilterProvider));
+        ref
+          ..invalidate(dashboardProvider)
+          ..invalidate(dashboardPerformanceProvider);
+        await Future.wait([
+          ref.read(dashboardProvider.future),
+          ref.read(dashboardPerformanceProvider.future),
+        ]);
       },
-      body: summary.when(
-        loading: () => const LoadingState(),
-        error: (error, _) => ListView(
+      // whenCached, not when: a cache hit resolves on the next microtask, and
+      // plain `when` would render one frame of skeleton over data that was
+      // never gone. It also keeps the current numbers on screen during a
+      // pull-to-refresh instead of blanking them.
+      body: summary.whenCached(
+        loading: () => const DashboardSkeleton(),
+        onError: (error, _) => ListView(
           children: [
             SizedBox(
               height: MediaQuery.sizeOf(context).height * 0.6,
               child: ErrorStateView(
                 error: error,
-                onRetry: () => ref.invalidate(dashboardProvider),
+                onRetry: () {
+                  // Retry after an error is an explicit ask for fresh data,
+                  // same as a pull — a failed fetch stored nothing, but the
+                  // range may hold an older successful result.
+                  ref
+                      .read(dashboardCacheProvider)
+                      .invalidateFilter(ref.read(dashboardDateFilterProvider));
+                  ref
+                    ..invalidate(dashboardProvider)
+                    ..invalidate(dashboardPerformanceProvider);
+                },
               ),
             ),
           ],
@@ -58,7 +87,10 @@ class DashboardScreen extends ConsumerWidget {
         data: (data) => ListView(
           padding: const EdgeInsets.all(Space.lg),
           children: [
-            SectionHeading(context.l10n.conversationsSectionTitle),
+            SectionHeading(
+              context.l10n.conversationsSectionTitle,
+              trailing: const DashboardDateFilterButton(),
+            ),
             _MetricGrid(
               tiles: [
                 MetricTile(

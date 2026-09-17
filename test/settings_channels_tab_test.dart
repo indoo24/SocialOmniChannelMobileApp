@@ -2852,46 +2852,51 @@ void main() {
       expect(find.text('Coming soon'), findsNothing);
       await tester.drag(find.byType(ListView), const Offset(0, -1200));
       await tester.pumpAndSettle();
-      expect(find.widgetWithText(FilledButton, 'Connect TikTok'), findsOneWidget);
+      expect(
+        find.widgetWithText(FilledButton, 'Connect TikTok'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('a connected TikTok row offers no connect-another without access', (
-      tester,
-    ) async {
-      final client = ApiClient.create(cookieJar: CookieJar());
-      client.raw.httpClientAdapter = _StubAdapter(
-        (_) => _json(_channelsPage([_tiktokChannel]), 200),
-      );
+    testWidgets(
+      'a connected TikTok row offers no connect-another without access',
+      (tester) async {
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = _StubAdapter(
+          (_) => _json(_channelsPage([_tiktokChannel]), 200),
+        );
 
-      await _pumpChannelsTab(
-        tester,
-        apiClient: client,
-        employee: withTikTok('COMING_SOON'),
-      );
-      await tester.drag(find.byType(ListView), const Offset(0, -1200));
-      await tester.pumpAndSettle();
+        await _pumpChannelsTab(
+          tester,
+          apiClient: client,
+          employee: withTikTok('COMING_SOON'),
+        );
+        await tester.drag(find.byType(ListView), const Offset(0, -1200));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Connect another account'), findsNothing);
-    });
+        expect(find.text('Connect another account'), findsNothing);
+      },
+    );
 
-    testWidgets('the pilot is told which accounts TikTok serves before connecting', (
-      tester,
-    ) async {
-      final client = ApiClient.create(cookieJar: CookieJar());
-      client.raw.httpClientAdapter = _StubAdapter(
-        (_) => _json(_channelsPage(const []), 200),
-      );
+    testWidgets(
+      'the pilot is told which accounts TikTok serves before connecting',
+      (tester) async {
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = _StubAdapter(
+          (_) => _json(_channelsPage(const []), 200),
+        );
 
-      await _pumpChannelsTab(
-        tester,
-        apiClient: client,
-        employee: withTikTok('AVAILABLE'),
-      );
-      await tester.drag(find.byType(ListView), const Offset(0, -1200));
-      await tester.pumpAndSettle();
+        await _pumpChannelsTab(
+          tester,
+          apiClient: client,
+          employee: withTikTok('AVAILABLE'),
+        );
+        await tester.drag(find.byType(ListView), const Offset(0, -1200));
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('tiktokRegionNotice')), findsOneWidget);
-    });
+        expect(find.byKey(const Key('tiktokRegionNotice')), findsOneWidget);
+      },
+    );
 
     testWidgets('nobody else sees the region notice', (tester) async {
       final client = ApiClient.create(cookieJar: CookieJar());

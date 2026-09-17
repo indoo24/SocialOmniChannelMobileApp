@@ -25,25 +25,48 @@ import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
+import '../settings/settings_skeleton.dart';
 import 'customer_field_definition_form_sheet.dart';
 
 class CustomerFieldsSettingsTab extends ConsumerWidget {
-  const CustomerFieldsSettingsTab({super.key});
+  const CustomerFieldsSettingsTab({super.key, this.scrollable = true});
+
+  final bool scrollable;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canView = ref.watch(canProvider(Perm.customerView));
     if (!canView) {
-      return Center(
-        child: EmptyState(
-          title: context.l10n.customerFieldsPermissionDenied,
-          icon: Icons.lock_outline,
-        ),
-      );
+      return scrollable
+          ? Center(
+              child: EmptyState(
+                title: context.l10n.customerFieldsPermissionDenied,
+                icon: Icons.lock_outline,
+              ),
+            )
+          : const SizedBox.shrink();
     }
 
     final canManage = ref.watch(canProvider(Perm.customerFieldManage));
     final fieldsAsync = ref.watch(customerFieldDefinitionsProvider);
+
+    Widget buildList(List<CustomerFieldDefinition> fields) =>
+        _CustomerFieldsList(
+          fields: fields,
+          canManage: canManage,
+          scrollable: scrollable,
+        );
+
+    if (!scrollable) {
+      return fieldsAsync.when(
+        loading: () => const CustomerFieldsSkeleton(scrollable: false),
+        error: (error, _) => ErrorStateView(
+          error: error,
+          onRetry: () => ref.invalidate(customerFieldDefinitionsProvider),
+        ),
+        data: buildList,
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -51,23 +74,27 @@ class CustomerFieldsSettingsTab extends ConsumerWidget {
         await ref.read(customerFieldDefinitionsProvider.future);
       },
       child: fieldsAsync.when(
-        loading: () => const LoadingState(),
+        loading: () => const CustomerFieldsSkeleton(),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(customerFieldDefinitionsProvider),
         ),
-        data: (fields) =>
-            _CustomerFieldsList(fields: fields, canManage: canManage),
+        data: buildList,
       ),
     );
   }
 }
 
 class _CustomerFieldsList extends StatelessWidget {
-  const _CustomerFieldsList({required this.fields, required this.canManage});
+  const _CustomerFieldsList({
+    required this.fields,
+    required this.canManage,
+    this.scrollable = true,
+  });
 
   final List<CustomerFieldDefinition> fields;
   final bool canManage;
+  final bool scrollable;
 
   @override
   Widget build(BuildContext context) {
@@ -75,57 +102,67 @@ class _CustomerFieldsList extends StatelessWidget {
     final sorted = [...fields]
       ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
 
+    final items = [
+      Text(
+        context.l10n.customerFieldsTabTitle,
+        style: theme.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      const SizedBox(height: Space.sm),
+      Text(
+        context.l10n.customerFieldsTabDescription,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+      const SizedBox(height: Space.lg),
+      if (canManage)
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: FilledButton.icon(
+            key: const Key('add-customer-field'),
+            onPressed: () => showAddCustomerFieldSheet(context),
+            icon: const Icon(Icons.add, size: 18),
+            label: Text(context.l10n.addFieldAction),
+          ),
+        ),
+      const SizedBox(height: Space.lg),
+      if (sorted.isEmpty)
+        SizedBox(
+          height: scrollable ? MediaQuery.sizeOf(context).height * 0.5 : 180,
+          child: EmptyState(
+            icon: Icons.dashboard_customize_outlined,
+            title: context.l10n.noCustomerFieldsTitle,
+            message: context.l10n.noCustomerFieldsMessage,
+          ),
+        )
+      else
+        for (int i = 0; i < sorted.length; i++) ...[
+          _CustomerFieldCard(
+            field: sorted[i],
+            canManage: canManage,
+            canMoveUp: i > 0,
+            canMoveDown: i < sorted.length - 1,
+            allFieldIds: sorted.map((f) => f.id).toList(),
+            index: i,
+          ),
+          const SizedBox(height: Space.md),
+        ],
+    ];
+
+    if (!scrollable) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: items,
+      );
+    }
+
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(Space.lg),
-      children: [
-        Text(
-          context.l10n.customerFieldsTabTitle,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: Space.sm),
-        Text(
-          context.l10n.customerFieldsTabDescription,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: Space.lg),
-        if (canManage)
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: FilledButton.icon(
-              key: const Key('add-customer-field'),
-              onPressed: () => showAddCustomerFieldSheet(context),
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(context.l10n.addFieldAction),
-            ),
-          ),
-        const SizedBox(height: Space.lg),
-        if (sorted.isEmpty)
-          SizedBox(
-            height: MediaQuery.sizeOf(context).height * 0.5,
-            child: EmptyState(
-              icon: Icons.dashboard_customize_outlined,
-              title: context.l10n.noCustomerFieldsTitle,
-              message: context.l10n.noCustomerFieldsMessage,
-            ),
-          )
-        else
-          for (int i = 0; i < sorted.length; i++) ...[
-            _CustomerFieldCard(
-              field: sorted[i],
-              canManage: canManage,
-              canMoveUp: i > 0,
-              canMoveDown: i < sorted.length - 1,
-              allFieldIds: sorted.map((f) => f.id).toList(),
-              index: i,
-            ),
-            const SizedBox(height: Space.md),
-          ],
-      ],
+      children: items,
     );
   }
 }

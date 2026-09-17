@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @tabAssignment.
   ///
   /// In en, this message translates to:
-  /// **'Assignment'**
+  /// **'Routing'**
   String get tabAssignment;
 
   /// No description provided for @signOutDialogTitle.
@@ -211,6 +211,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PREFERENCES'**
   String get preferencesSectionTitle;
+
+  /// No description provided for @securitySectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SECURITY'**
+  String get securitySectionTitle;
 
   /// No description provided for @themeLabel.
   ///
@@ -1532,6 +1538,12 @@ abstract class AppLocalizations {
   /// **'Attach'**
   String get attachmentTooltip;
 
+  /// No description provided for @attachDocumentAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Document'**
+  String get attachDocumentAction;
+
   /// No description provided for @attachFromGalleryAction.
   ///
   /// In en, this message translates to:
@@ -1555,6 +1567,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Uploading…'**
   String get attachmentUploadingLabel;
+
+  /// No description provided for @uploadingAttachmentsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading {current} of {total}…'**
+  String uploadingAttachmentsProgress(int current, int total);
+
+  /// No description provided for @attachmentLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You can attach up to 10 files per message.'**
+  String get attachmentLimitReached;
+
+  /// No description provided for @attachmentPartialUploadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Some files couldn\'t be uploaded. Please try again.'**
+  String get attachmentPartialUploadError;
 
   /// No description provided for @attachmentUploadFailedError.
   ///
@@ -1730,11 +1760,35 @@ abstract class AppLocalizations {
   /// **'Photo'**
   String get photoMessageLabel;
 
+  /// No description provided for @photosMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get photosMessageLabel;
+
+  /// No description provided for @videoMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get videoMessageLabel;
+
+  /// No description provided for @documentMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Document'**
+  String get documentMessageLabel;
+
   /// No description provided for @attachmentMessageLabel.
   ///
   /// In en, this message translates to:
   /// **'Attachment'**
   String get attachmentMessageLabel;
+
+  /// No description provided for @attachmentsMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments'**
+  String get attachmentsMessageLabel;
 
   /// No description provided for @sentFromPlatformLabel.
   ///
@@ -1871,7 +1925,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashboardGreeting.
   ///
   /// In en, this message translates to:
-  /// **'Good to see you, {name}'**
+  /// **'Hi {name}'**
   String dashboardGreeting(String name);
 
   /// No description provided for @conversationsSectionTitle.
@@ -2102,23 +2156,95 @@ abstract class AppLocalizations {
   /// **'Enable automatic assignment'**
   String get autoAssignmentToggleLabel;
 
-  /// No description provided for @strictResponsibilityTitle.
+  /// No description provided for @channelResponsibilityTitle.
   ///
   /// In en, this message translates to:
-  /// **'Strict responsibility'**
-  String get strictResponsibilityTitle;
+  /// **'Channel responsibility'**
+  String get channelResponsibilityTitle;
 
-  /// No description provided for @strictResponsibilityDescription.
+  /// No description provided for @channelResponsibilityDescription.
   ///
   /// In en, this message translates to:
-  /// **'When on, a conversation with nobody responsible for its channel stays unassigned rather than falling back to whoever is available. When off, responsibility is only a preference.'**
-  String get strictResponsibilityDescription;
+  /// **'Choose who is offered new conversations from each channel. A rule for one specific account takes precedence over a rule for all accounts, and an employee\'s own rules take precedence over their team\'s.'**
+  String get channelResponsibilityDescription;
 
-  /// No description provided for @strictResponsibilityToggleLabel.
+  /// No description provided for @channelResponsibilityAccessNote.
   ///
   /// In en, this message translates to:
-  /// **'Require responsibility to assign'**
-  String get strictResponsibilityToggleLabel;
+  /// **'This decides who receives new conversations, not who can see them. Everyone keeps the access their role gives them.'**
+  String get channelResponsibilityAccessNote;
+
+  /// No description provided for @channelResponsibilityEditNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Team rules are set in each team\'s form on the Teams page. Which channels an employee handles is set in their form on the Employees page.'**
+  String get channelResponsibilityEditNote;
+
+  /// No description provided for @channelResponsibilityEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No responsibility rules yet.'**
+  String get channelResponsibilityEmpty;
+
+  /// No description provided for @channelResponsibilityAllAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'All {provider} accounts'**
+  String channelResponsibilityAllAccounts(String provider);
+
+  /// No description provided for @channelResponsibilityAccountRule.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider} account · {account}'**
+  String channelResponsibilityAccountRule(String provider, String account);
+
+  /// No description provided for @channelResponsibilityTeamPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Team {name}'**
+  String channelResponsibilityTeamPrefix(String name);
+
+  /// No description provided for @channelResponsibilityRetired.
+  ///
+  /// In en, this message translates to:
+  /// **'Retired'**
+  String get channelResponsibilityRetired;
+
+  /// No description provided for @channelResponsibilityEditInTeams.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit in Teams'**
+  String get channelResponsibilityEditInTeams;
+
+  /// No description provided for @channelResponsibilityFallbackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'When nobody responsible is available'**
+  String get channelResponsibilityFallbackTitle;
+
+  /// No description provided for @channelResponsibilityFallbackDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The conversation goes to the rest of the organization, so no customer is left without an owner.'**
+  String get channelResponsibilityFallbackDescription;
+
+  /// No description provided for @channelResponsibilityOfferToEveryone.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer to everyone else'**
+  String get channelResponsibilityOfferToEveryone;
+
+  /// No description provided for @channelResponsibilityLeaveUnassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave unassigned'**
+  String get channelResponsibilityLeaveUnassigned;
+
+  /// No description provided for @channelResponsibilityFallbackSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Fallback behavior updated'**
+  String get channelResponsibilityFallbackSaved;
 
   /// No description provided for @defaultChatCapacityTitle.
   ///
@@ -2177,19 +2303,19 @@ abstract class AppLocalizations {
   /// No description provided for @assignmentPolicyUpdatedSnackbar.
   ///
   /// In en, this message translates to:
-  /// **'Assignment settings updated'**
+  /// **'Routing settings updated'**
   String get assignmentPolicyUpdatedSnackbar;
 
   /// No description provided for @routingPolicyLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load assignment settings.'**
+  /// **'Couldn\'t load routing settings.'**
   String get routingPolicyLoadFailed;
 
   /// No description provided for @routingPermissionDenied.
   ///
   /// In en, this message translates to:
-  /// **'You don\'t have permission to manage assignment settings.'**
+  /// **'You don\'t have permission to manage routing settings.'**
   String get routingPermissionDenied;
 
   /// No description provided for @openUnreadSummary.
@@ -2581,6 +2707,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No orders recorded from this conversation.'**
   String get noOrdersRecordedMessage;
+
+  /// No description provided for @contactSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get contactSectionTitle;
+
+  /// No description provided for @contactEditButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get contactEditButton;
+
+  /// No description provided for @customerDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer data'**
+  String get customerDataTitle;
+
+  /// No description provided for @customerDataDetailButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Detail'**
+  String get customerDataDetailButton;
+
+  /// No description provided for @customerDataEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No customer details recorded yet.'**
+  String get customerDataEmpty;
+
+  /// No description provided for @customerDataMoreCount.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String customerDataMoreCount(int count);
 
   /// No description provided for @employeeSourceBadge.
   ///
@@ -5424,6 +5586,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The export could not be completed. Please try again.'**
   String get exportFailedMessage;
+
+  /// No description provided for @csvExportSuccessMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV exported successfully'**
+  String get csvExportSuccessMessage;
+
+  /// No description provided for @openFileAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get openFileAction;
+
+  /// No description provided for @downloadAttachmentAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get downloadAttachmentAction;
+
+  /// No description provided for @downloadingAttachmentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get downloadingAttachmentMessage;
+
+  /// No description provided for @attachmentDownloadSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {path}'**
+  String attachmentDownloadSuccess(String path);
+
+  /// No description provided for @attachmentDownloadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t download attachment. Please try again.'**
+  String get attachmentDownloadError;
+
+  /// No description provided for @noAppToOpenFileError.
+  ///
+  /// In en, this message translates to:
+  /// **'No application found to open this file.'**
+  String get noAppToOpenFileError;
+
+  /// No description provided for @shareCsvAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Share CSV'**
+  String get shareCsvAction;
+
+  /// No description provided for @tabMoreSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'More settings'**
+  String get tabMoreSettings;
+
+  /// No description provided for @exportDataSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export data'**
+  String get exportDataSectionTitle;
+
+  /// No description provided for @exportDataSectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Export your application data as CSV files.'**
+  String get exportDataSectionDescription;
+
+  /// No description provided for @exportConversationsCsvAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Export conversations CSV'**
+  String get exportConversationsCsvAction;
+
+  /// No description provided for @exportCustomersCsvAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Export customers CSV'**
+  String get exportCustomersCsvAction;
+
+  /// No description provided for @exportConversationsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export all conversations as a CSV file.'**
+  String get exportConversationsSubtitle;
+
+  /// No description provided for @exportCustomersSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export all customers as a CSV file.'**
+  String get exportCustomersSubtitle;
+
+  /// No description provided for @exportActionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportActionLabel;
 }
 
 class _AppLocalizationsDelegate

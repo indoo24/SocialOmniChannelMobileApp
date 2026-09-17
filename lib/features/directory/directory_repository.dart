@@ -434,10 +434,35 @@ class DirectoryRepository {
   /// agent gets a one-row report about themselves, which is why this needs no
   /// permission check here — asking is always allowed and the answer is already
   /// scoped.
-  Future<PerformanceReport> performance({int days = 14}) async {
+  ///
+  /// Supports [preset] ('today', 'last_7_days', 'last_30_days', 'this_month',
+  /// 'last_month') or custom [from] and [to] dates ('YYYY-MM-DD'). When supplied,
+  /// date filters take precedence over [days] (which defaults to 14 when no
+  /// date filter is passed).
+  Future<PerformanceReport> performance({
+    int? days,
+    String? preset,
+    String? from,
+    String? to,
+    int? employeeId,
+  }) async {
+    final query = <String, dynamic>{};
+    if (from != null && to != null) {
+      query['from'] = from;
+      query['to'] = to;
+    } else if (preset != null && preset.isNotEmpty) {
+      query['preset'] = preset;
+    } else if (days != null) {
+      query['days'] = days;
+    } else {
+      query['days'] = 14;
+    }
+    if (employeeId != null) {
+      query['employee'] = employeeId;
+    }
     final data = await _api.get<Map<String, dynamic>>(
       '/dashboard/performance/',
-      query: {'days': days},
+      query: query.isEmpty ? null : query,
     );
     return PerformanceReport.fromJson(data);
   }

@@ -33,6 +33,7 @@ import 'composer_attachment.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
 import 'conversation_resolve_button.dart';
+import 'conversation_skeleton.dart';
 import 'message_bubble.dart';
 import 'notes_controller.dart';
 
@@ -53,6 +54,15 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   late ProviderContainer _container;
   bool _sending = false;
   bool _initialScrollDone = false;
+
+  /// True once a single `_jumpToBottomInitial` post-frame callback is
+  /// in flight or has completed. Guards against `_MessageList` rebuilding
+  /// (new messages, notes, keyboard-driven relayout, `_onScroll`'s own
+  /// `setState`) and re-arming another post-frame jump on top of one
+  /// already pending — the stacked, stale callback would otherwise fire
+  /// later and yank the list back to the bottom out from under a user who
+  /// had, by then, manually scrolled away. See `_jumpToBottomInitial`.
+  bool _initialScrollScheduled = false;
   bool _showScrollToBottom = false;
 
   /// The message the agent has picked "Reply" on, if any — shown as a quote
@@ -104,27 +114,73 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     return (pos.maxScrollExtent - pos.pixels) <= threshold;
   }
 
-  void _jumpToBottomInitial() {
+  /// A stable identity for a message regardless of whether it has a real
+  /// server [Message.id] yet — mirrors the id/localId keying the controller
+  /// itself uses to de-duplicate.
+  static Object _messageKey(Message m) => m.localId ?? m.id;
+
+  /// How many messages in [next] were inserted *before* the message that used
+  /// to be first in [previous] — i.e. how much older history `loadOlder()`
+  /// just prepended. Zero for a plain append (a new message at the bottom),
+  /// since that leaves the old first message's index unchanged.
+  int _prependedCount(List<Message> previous, List<Message> next) {
+    if (previous.isEmpty) return 0;
+    final oldFirstKey = _messageKey(previous.first);
+    final newIndex = next.indexWhere((m) => _messageKey(m) == oldFirstKey);
+    return newIndex < 0 ? 0 : newIndex;
+  }
+
+  /// Compensates for `ListView`'s default prepend behavior — inserting items
+  /// above the viewport without moving `pixels` visually shoves everything
+  /// the user was looking at downward by the height of what was just added.
+  /// Adjusts the offset by exactly that delta once the new items are laid
+  /// out, so the message the user was reading stays under their eyes.
+  void _preserveScrollPositionAfterPrepend() {
+    if (!_scrollController.hasClients) return;
+    final before = _scrollController.position.maxScrollExtent;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
-      if (_scrollController.position.hasContentDimensions) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-        _initialScrollDone = true;
-        _onScroll();
-      } else {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted &&
-              _scrollController.hasClients &&
-              _scrollController.position.hasContentDimensions) {
-            _scrollController.jumpTo(
-              _scrollController.position.maxScrollExtent,
-            );
-            _initialScrollDone = true;
-            _onScroll();
-          }
-        });
+      final pos = _scrollController.position;
+      if (!pos.hasContentDimensions) return;
+      final delta = pos.maxScrollExtent - before;
+      if (delta > 0) {
+        _scrollController.jumpTo(pos.pixels + delta);
       }
     });
+  }
+
+  /// Positions the list at the latest message before the user ever sees an
+  /// unpositioned frame. Called at most once per screen instance: the first
+  /// caller flips [_initialScrollScheduled] synchronously, so a rebuild that
+  /// happens before the scheduled callback fires (a realtime message, notes
+  /// loading, `_onScroll`'s own `setState`, a keyboard-driven relayout)
+  /// cannot stack a second, later callback that would yank the list back to
+  /// the bottom out from under a user who has since scrolled away.
+  ///
+  /// The list itself stays invisible (see `_MessageList`'s `Opacity` gate in
+  /// the build method below) until [_initialScrollDone] flips, so the jump
+  /// itself is never visible — there is no middle-of-conversation frame to see.
+  void _jumpToBottomInitial() {
+    if (_initialScrollScheduled) return;
+    _initialScrollScheduled = true;
+
+    void attempt() {
+      if (!mounted) return;
+      if (!_scrollController.hasClients ||
+          !_scrollController.position.hasContentDimensions) {
+        // Layout not ready yet (e.g. the list has no size on this frame) —
+        // retry on the next frame rather than giving up silently. Bounded by
+        // construction: each retry only re-schedules itself, never stacks.
+        WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
+        return;
+      }
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      if (!mounted) return;
+      setState(() => _initialScrollDone = true);
+      _onScroll();
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
   }
 
   void _scrollToBottom({bool animated = false}) {
@@ -184,11 +240,20 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   /// (via [Message.replyTo]), so there is nothing left to show above the
   /// composer either way.
   Future<void> _send({
+    List<String>? attachmentIds,
+    List<MessageAttachment>? attachmentPreviews,
     String? attachmentId,
     MessageAttachment? attachmentPreview,
   }) async {
     final text = _composerController.text.trim();
-    final hasAttachment = attachmentId != null;
+    final ids = (attachmentIds != null && attachmentIds.isNotEmpty)
+        ? attachmentIds
+        : [if (attachmentId != null && attachmentId.isNotEmpty) attachmentId];
+    final previews =
+        (attachmentPreviews != null && attachmentPreviews.isNotEmpty)
+        ? attachmentPreviews
+        : [?attachmentPreview];
+    final hasAttachment = ids.isNotEmpty;
     if ((text.isEmpty && !hasAttachment) || _sending) return;
 
     final replyTo = _replyingTo;
@@ -203,9 +268,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           .read(conversationControllerProvider(widget.conversationId).notifier)
           .send(
             text,
-            attachmentId: attachmentId,
-            attachmentPreview: attachmentPreview,
-            replyTo: replyTo == null ? null : QuotedMessage.fromMessage(replyTo),
+            attachmentIds: ids,
+            attachmentPreviews: previews,
+            replyTo: replyTo == null
+                ? null
+                : QuotedMessage.fromMessage(replyTo),
           );
       _scrollToBottom(animated: true);
     } on ApiException catch (error) {
@@ -264,21 +331,37 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       );
     });
 
-    // Automatically scroll down when a new message arrives.
+    // Scroll decisions on message-count changes — the one place that reacts
+    // to messages being added, whether that's a new message appended at the
+    // bottom (realtime/send) or older history prepended at the top
+    // (pagination). Centralized here rather than in `_MessageList` so a
+    // rebuild of the list widget itself never independently decides to
+    // scroll.
     ref.listen(conversationControllerProvider(widget.conversationId), (
       previous,
       next,
     ) {
-      final prevCount = previous?.value?.messages.length ?? 0;
-      final nextCount = next.value?.messages.length ?? 0;
-      if (nextCount > prevCount) {
-        if (!_initialScrollDone) {
-          _jumpToBottomInitial();
-        } else if (_isNearBottom()) {
-          _scrollToBottom(animated: true);
-        } else {
-          _onScroll();
-        }
+      final prevMessages = previous?.value?.messages ?? const [];
+      final nextMessages = next.value?.messages ?? const [];
+      if (nextMessages.length <= prevMessages.length) return;
+
+      final prependedCount = _prependedCount(prevMessages, nextMessages);
+      if (prependedCount > 0) {
+        // Older history loaded at the top. The list keeps `pixels` constant
+        // by default, which visually shoves the messages the user was
+        // reading downward by the height of everything just inserted above
+        // them — compensate after the new items are laid out so the same
+        // content stays under the user's eyes instead of drifting.
+        _preserveScrollPositionAfterPrepend();
+        return;
+      }
+
+      if (!_initialScrollDone) {
+        _jumpToBottomInitial();
+      } else if (_isNearBottom()) {
+        _scrollToBottom(animated: true);
+      } else {
+        _onScroll();
       }
     });
 
@@ -301,7 +384,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         titleSpacing: 0,
         title: async.maybeWhen(
           data: (state) => _Header(conversation: state.conversation),
-          orElse: () => Text(context.l10n.conversationFallbackTitle),
+          orElse: () => const ConversationHeaderSkeleton(),
         ),
         actions: [
           async.maybeWhen(
@@ -309,7 +392,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               conversation: state.conversation,
               canChange: canChangeStatus,
             ),
-            orElse: () => const SizedBox.shrink(),
+            orElse: () => const ConversationActionSkeleton(),
           ),
           async.maybeWhen(
             data: (state) => _FollowUpButton(
@@ -323,13 +406,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               conversation: state.conversation,
               canAssignAny: canAssignAny,
             ),
-            orElse: () => const SizedBox.shrink(),
+            orElse: () => const ConversationAssigneeSkeleton(),
           ),
           const SizedBox(width: Space.xs),
         ],
       ),
       body: async.when(
-        loading: () => LoadingState(label: context.l10n.loadingConversation),
+        loading: () => const ConversationThreadSkeleton(),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(
@@ -358,14 +441,23 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                             message: context.l10n.noMessagesYetMessage,
                             icon: Icons.chat_bubble_outline,
                           )
-                        : _MessageList(
-                            state: state,
-                            controller: _scrollController,
-                            conversationId: widget.conversationId,
-                            onInitialLayout: _initialScrollDone
-                                ? null
-                                : _jumpToBottomInitial,
-                            onReply: canReply ? _startReplyingTo : null,
+                        : Opacity(
+                            // Kept in the tree and laid out either way, so
+                            // maxScrollExtent is measurable — only visibility
+                            // is gated. This is what keeps the initial jump
+                            // to the latest message invisible: the user's
+                            // first painted frame is the positioned one, not
+                            // an unpositioned frame followed by a jump.
+                            opacity: _initialScrollDone ? 1 : 0,
+                            child: _MessageList(
+                              state: state,
+                              controller: _scrollController,
+                              conversationId: widget.conversationId,
+                              onInitialLayout: _initialScrollDone
+                                  ? null
+                                  : _jumpToBottomInitial,
+                              onReply: canReply ? _startReplyingTo : null,
+                            ),
                           ),
                   ),
                   PositionedDirectional(
@@ -1007,7 +1099,16 @@ class _MessageList extends ConsumerWidget {
           final showDay =
               previous == null || !_sameDay(previous.time, entry.time);
 
+          // Stable identity so prepending older history (pagination) or
+          // inserting a realtime message reuses existing elements instead of
+          // rebuilding the whole visible range — keeps scroll-position
+          // compensation and reconciliation cheap during a drag.
+          final entryKey = entry.note != null
+              ? ValueKey('note_${entry.note!.id}')
+              : ValueKey('msg_${entry.message!.localId ?? entry.message!.id}');
+
           return Column(
+            key: entryKey,
             children: [
               if (showDay) _DayDivider(date: entry.time),
               if (entry.note != null)
@@ -1016,7 +1117,11 @@ class _MessageList extends ConsumerWidget {
                 MessageBubble(
                   message: entry.message!,
                   provider: state.conversation.provider,
-                  onRetry: _retryHandlerFor(ref, conversationId, entry.message!),
+                  onRetry: _retryHandlerFor(
+                    ref,
+                    conversationId,
+                    entry.message!,
+                  ),
                   onDiscard:
                       entry.message!.hasFailed && entry.message!.localId != null
                       ? () => ref
@@ -1464,10 +1569,15 @@ class _ReplyPreviewBar extends StatelessWidget {
   }
 }
 
-/// Sends the composer's current text, plus an optional attachment already
+/// Sends the composer's current text, plus optional attachments already
 /// staged (uploaded) via [ConversationRepository.stageAttachment].
 typedef ComposerSendCallback =
-    void Function({String? attachmentId, MessageAttachment? attachmentPreview});
+    void Function({
+      List<String>? attachmentIds,
+      List<MessageAttachment>? attachmentPreviews,
+      String? attachmentId,
+      MessageAttachment? attachmentPreview,
+    });
 
 class _Composer extends ConsumerStatefulWidget {
   const _Composer({
@@ -1502,11 +1612,12 @@ class _ComposerState extends ConsumerState<_Composer> {
   bool _sendingTemplate = false;
   bool _userToggledMode = false;
 
-  /// An image already picked and uploaded, waiting to be sent (or removed).
+  /// Files already picked and uploaded, waiting to be sent (or removed).
   /// Voice notes skip this state entirely — recording finishes and sends in
   /// one motion, matching WhatsApp's own behavior, rather than sitting as a
   /// staged preview the agent could otherwise edit alongside typed text.
-  StagedAttachment? _stagedImage;
+  final List<StagedAttachment> _stagedAttachments = [];
+  bool _isUploadingAttachments = false;
   bool _isRecording = false;
   final _voiceRecorderKey = GlobalKey<ComposerVoiceRecorderState>();
 
@@ -1517,12 +1628,22 @@ class _ComposerState extends ConsumerState<_Composer> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _onImageStaged(StagedAttachment staged) {
-    setState(() => _stagedImage = staged);
+  void _onAttachmentsStaged(List<StagedAttachment> stagedList) {
+    setState(() {
+      for (final s in stagedList) {
+        if (_stagedAttachments.length < 10) {
+          _stagedAttachments.add(s);
+        }
+      }
+    });
   }
 
-  void _onImageRemoved() {
-    setState(() => _stagedImage = null);
+  void _onAttachmentRemoved(int index) {
+    setState(() {
+      if (index >= 0 && index < _stagedAttachments.length) {
+        _stagedAttachments.removeAt(index);
+      }
+    });
   }
 
   /// Put a saved reply into the reply box, at the caret.
@@ -1566,8 +1687,8 @@ class _ComposerState extends ConsumerState<_Composer> {
     // `Reply` endpoint accepts `text` alongside `attachment_ids` in one
     // call, the same combination an image send already uses.
     widget.onSend(
-      attachmentId: staged.draftId,
-      attachmentPreview: staged.attachment,
+      attachmentIds: [staged.draftId],
+      attachmentPreviews: [staged.attachment],
     );
   }
 
@@ -1721,20 +1842,20 @@ class _ComposerState extends ConsumerState<_Composer> {
                       ),
                     ),
                   ),
-                if (_stagedImage != null)
+                if (_stagedAttachments.isNotEmpty)
                   Align(
                     alignment: AlignmentDirectional.centerStart,
-                    child: ComposerAttachmentPreview(
+                    child: ComposerAttachmentsPreviewBar(
                       conversationId: widget.conversationId,
-                      staged: _stagedImage!,
-                      onRemoved: _onImageRemoved,
+                      attachments: _stagedAttachments,
+                      onRemoved: _onAttachmentRemoved,
                     ),
                   ),
                 if (_isRecording)
                   ComposerVoiceRecorder(
                     key: _voiceRecorderKey,
                     conversationId: widget.conversationId,
-                    enabled: !widget.sending,
+                    enabled: !widget.sending && !_isUploadingAttachments,
                     onStaged: _onVoiceStaged,
                     onError: _showMessage,
                     onRecordingChanged: (recording) {
@@ -1751,9 +1872,17 @@ class _ComposerState extends ConsumerState<_Composer> {
                       if (outboundMedia)
                         ComposerAttachmentButton(
                           conversationId: widget.conversationId,
-                          enabled: !widget.sending,
-                          onStaged: _onImageStaged,
+                          enabled: !widget.sending && !_isUploadingAttachments,
+                          currentStagedCount: _stagedAttachments.length,
+                          onStaged: _onAttachmentsStaged,
                           onError: _showMessage,
+                          onUploadingChanged: (uploading) {
+                            if (mounted) {
+                              setState(
+                                () => _isUploadingAttachments = uploading,
+                              );
+                            }
+                          },
                         ),
                       // Saved replies: inserts text for the agent to edit,
                       // never sends. Only in this row, which exists only while
@@ -1766,7 +1895,9 @@ class _ComposerState extends ConsumerState<_Composer> {
                         child: IconButton(
                           key: const Key('savedRepliesButton'),
                           tooltip: context.l10n.savedRepliesTooltip,
-                          onPressed: widget.sending ? null : _insertSavedReply,
+                          onPressed: (widget.sending || _isUploadingAttachments)
+                              ? null
+                              : _insertSavedReply,
                           icon: const Icon(Icons.quickreply_outlined, size: 22),
                         ),
                       ),
@@ -1795,7 +1926,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                         ComposerVoiceRecorder(
                           key: _voiceRecorderKey,
                           conversationId: widget.conversationId,
-                          enabled: !widget.sending,
+                          enabled: !widget.sending && !_isUploadingAttachments,
                           onStaged: _onVoiceStaged,
                           onError: _showMessage,
                           onRecordingChanged: (recording) {
@@ -1810,16 +1941,22 @@ class _ComposerState extends ConsumerState<_Composer> {
                         width: 44,
                         height: 44,
                         child: IconButton.filled(
-                          onPressed: widget.sending
+                          onPressed: (widget.sending || _isUploadingAttachments)
                               ? null
                               : () {
-                                  final staged = _stagedImage;
-                                  if (staged != null) {
-                                    setState(() => _stagedImage = null);
+                                  final staged = List<StagedAttachment>.from(
+                                    _stagedAttachments,
+                                  );
+                                  if (staged.isNotEmpty) {
+                                    setState(() => _stagedAttachments.clear());
                                   }
                                   widget.onSend(
-                                    attachmentId: staged?.draftId,
-                                    attachmentPreview: staged?.attachment,
+                                    attachmentIds: staged
+                                        .map((s) => s.draftId)
+                                        .toList(),
+                                    attachmentPreviews: staged
+                                        .map((s) => s.attachment)
+                                        .toList(),
                                   );
                                 },
                           icon: widget.sending

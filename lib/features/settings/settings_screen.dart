@@ -2,16 +2,24 @@
 ///
 /// Tabs mirror the web client's, including the rule that decides which are
 /// shown: Channels needs `channel.view` (ADMIN and SUPERVISOR), while Profile
-/// and Security are self-service and belong to every role. A tab the role
-/// cannot use is not rendered at all rather than rendered onto a 403 — the bug
-/// the web client had, and not one worth porting.
+/// is self-service and belongs to every role. A tab the role cannot use is not
+/// rendered at all rather than rendered onto a 403 — the bug the web client
+/// had, and not one worth porting.
+///
+/// Security (change password, session info) is not a tab of its own: it is a
+/// section at the bottom of Profile. Both are self-service and shown to every
+/// role, so splitting them bought a tab-bar slot's worth of navigation for no
+/// difference in permissions — and on a phone the scrollable tab bar made the
+/// last tab easy to miss entirely.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../app/router.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/employee.dart';
@@ -30,11 +38,11 @@ import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
 import '../conversations/inbox_controller.dart';
-import '../customer_fields/customer_fields_settings_screen.dart';
 import '../directory/directory_providers.dart';
 import '../messages/conversation_controller.dart';
-import '../saved_replies/saved_replies_settings_screen.dart';
 import 'channel_connect_sheets.dart';
+import 'more_settings_tab.dart';
+import 'settings_skeleton.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -43,23 +51,24 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final employee = ref.watch(currentEmployeeProvider);
     if (employee == null) {
-      return const Scaffold(body: LoadingState());
+      return const SettingsSkeleton();
     }
 
     final canSeeChannels = employee.can(Perm.channelView);
     final canManageRouting = employee.can(Perm.routingManage);
     final canSeeCustomerFields = employee.can(Perm.customerView);
     final canSeeSavedReplies = employee.can(Perm.conversationReply);
+    final canExport = employee.can(Perm.crmExport);
+    final canSeeMoreSettings =
+        canSeeCustomerFields || canSeeSavedReplies || canExport;
+
     final tabs = <(String, Widget)>[
       if (canSeeChannels) (context.l10n.tabChannels, const _ChannelsTab()),
-      (context.l10n.tabProfile, const ProfileTab()),
-      (context.l10n.tabSecurity, const _SecurityTab()),
       if (canManageRouting)
         (context.l10n.tabAssignment, const _AssignmentTab()),
-      if (canSeeCustomerFields)
-        (context.l10n.tabCustomerFields, const CustomerFieldsSettingsTab()),
-      if (canSeeSavedReplies)
-        (context.l10n.tabSavedReplies, const SavedRepliesSettingsTab()),
+      if (canSeeMoreSettings)
+        (context.l10n.tabMoreSettings, const MoreSettingsTab()),
+      (context.l10n.tabProfile, const ProfileTab()),
     ];
 
     return DefaultTabController(
@@ -102,30 +111,6 @@ class ProfileTab extends ConsumerStatefulWidget {
 }
 
 class _ProfileTabState extends ConsumerState<ProfileTab> {
-  Future<void> _logout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.l10n.signOutDialogTitle),
-        content: Text(context.l10n.signOutDialogMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(context.l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(context.l10n.signOut),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-    await ref.read(authControllerProvider.notifier).logout();
-    // The router redirects to login on auth state change.
-  }
-
   @override
   Widget build(BuildContext context) {
     final employee = ref.watch(currentEmployeeProvider);
@@ -175,34 +160,16 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
         const SizedBox(height: Space.xl),
         const _PreferencesSection(),
 
-        const SizedBox(height: Space.xl),
-        if (employee.organization != null)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.business_outlined),
-            title: Text(employee.organization!.name),
-            subtitle: Text(context.l10n.organizationLabel),
-          ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.badge_outlined),
-          title: Text(
-            employee.roleDisplay.isEmpty ? employee.role : employee.roleDisplay,
-          ),
-          subtitle: Text(
-            context.l10n.visibilityLabel(employee.visibilityScope),
-          ),
-        ),
-
+        // Security lives here rather than in a tab of its own; see the
+        // library comment. It replaces the organization/role/sign-out block
+        // that used to sit at the bottom: role is already in the header
+        // above, and sign-out is in the account menu (top-right, on every
+        // screen) rather than buried one tab deep. Organization name and
+        // visibility scope are no longer surfaced here — neither is
+        // actionable from this screen, and both come back with /auth/me/ if
+        // they are ever wanted again.
         const Divider(height: Space.xxl),
-        OutlinedButton.icon(
-          onPressed: _logout,
-          icon: const Icon(Icons.logout, size: 18),
-          label: Text(context.l10n.signOut),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: theme.colorScheme.error,
-          ),
-        ),
+        const _SecuritySection(),
       ],
     );
   }
@@ -482,14 +449,19 @@ class _PreferencesSection extends ConsumerWidget {
 // --------------------------------------------------------------------------- //
 // Security
 // --------------------------------------------------------------------------- //
-class _SecurityTab extends ConsumerStatefulWidget {
-  const _SecurityTab();
+/// Change password + session info, rendered inline at the bottom of Profile.
+///
+/// A `Column`, not a `ListView`: Profile's own `ListView` is the scrollable,
+/// and nesting a second one inside it gives an unbounded-height error. Same
+/// shape as [_PreferencesSection], so the two read as sibling sections.
+class _SecuritySection extends ConsumerStatefulWidget {
+  const _SecuritySection();
 
   @override
-  ConsumerState<_SecurityTab> createState() => _SecurityTabState();
+  ConsumerState<_SecuritySection> createState() => _SecuritySectionState();
 }
 
-class _SecurityTabState extends ConsumerState<_SecurityTab> {
+class _SecuritySectionState extends ConsumerState<_SecuritySection> {
   final _current = TextEditingController();
   final _next = TextEditingController();
   bool _busy = false;
@@ -531,9 +503,17 @@ class _SecurityTabState extends ConsumerState<_SecurityTab> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return ListView(
-      padding: const EdgeInsets.all(Space.lg),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          context.l10n.securitySectionTitle,
+          style: theme.textTheme.labelSmall?.copyWith(
+            letterSpacing: 0.6,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: Space.md),
         Text(
           context.l10n.changePasswordTitle,
           style: theme.textTheme.titleMedium,
@@ -562,15 +542,20 @@ class _SecurityTabState extends ConsumerState<_SecurityTab> {
           InlineError(message: _error!),
         ],
         const SizedBox(height: Space.lg),
-        FilledButton(
-          onPressed: _busy ? null : _submit,
-          child: _busy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(context.l10n.updatePasswordButton),
+        // Stretched explicitly: the old ListView made this full-width for
+        // free, a Column would shrink-wrap it and change the button's look.
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _busy ? null : _submit,
+            child: _busy
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(context.l10n.updatePasswordButton),
+          ),
         ),
 
         const Divider(height: Space.xxl),
@@ -658,7 +643,7 @@ class _ChannelsTabState extends ConsumerState<_ChannelsTab> {
         await ref.read(channelsProvider.future);
       },
       child: channels.when(
-        loading: () => const LoadingState(),
+        loading: () => const ChannelsSkeleton(),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(channelsProvider),
@@ -2181,7 +2166,7 @@ class _AssignmentTab extends ConsumerWidget {
         await ref.read(routingPolicyProvider.future);
       },
       child: policyAsync.when(
-        loading: () => const LoadingState(),
+        loading: () => const AssignmentSkeleton(),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(routingPolicyProvider),
@@ -2210,13 +2195,13 @@ class _AssignmentTabContentState extends State<_AssignmentTabContent> {
       children: [
         _AutoAssignmentCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
-        _StrictResponsibilityCard(policy: widget.policy),
-        const SizedBox(height: Space.lg),
         _ChatCapacityCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
         _ReassignmentSettingsCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
         _TimezoneCard(policy: widget.policy),
+        const SizedBox(height: Space.lg),
+        _ChannelResponsibilitySection(policy: widget.policy),
       ],
     );
   }
@@ -2328,18 +2313,194 @@ class _AutoAssignmentCardState extends ConsumerState<_AutoAssignmentCard> {
   }
 }
 
-class _StrictResponsibilityCard extends ConsumerStatefulWidget {
-  const _StrictResponsibilityCard({required this.policy});
+/// Channel responsibility — read-only display of who is offered new
+/// conversations from each channel, plus the fallback-behavior control.
+///
+/// Rule creation/editing lives entirely in the Team and Employee forms (see
+/// `team_form_sheet.dart`'s `_TeamResponsibilitiesCard`); this section only
+/// reads [routingResponsibilitiesProvider] and links out via "Edit in Teams".
+class _ChannelResponsibilitySection extends ConsumerWidget {
+  const _ChannelResponsibilitySection({required this.policy});
 
   final RoutingPolicy policy;
 
   @override
-  ConsumerState<_StrictResponsibilityCard> createState() =>
-      _StrictResponsibilityCardState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rulesAsync = ref.watch(routingResponsibilitiesProvider);
+    final theme = Theme.of(context);
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(Space.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.l10n.channelResponsibilityTitle,
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: Space.sm),
+            Text(
+              context.l10n.channelResponsibilityDescription,
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: Space.sm),
+            Text(
+              context.l10n.channelResponsibilityAccessNote,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: Space.xs),
+            Text(
+              context.l10n.channelResponsibilityEditNote,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: Space.md),
+            rulesAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: Space.lg),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, _) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: Space.sm),
+                child: InlineError(message: error.toString()),
+              ),
+              data: (rules) {
+                if (rules.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: Space.sm),
+                    child: Text(
+                      context.l10n.channelResponsibilityEmpty,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  );
+                }
+                return Column(
+                  children: [
+                    for (var i = 0; i < rules.length; i++) ...[
+                      if (i > 0)
+                        Divider(
+                          height: Space.lg,
+                          color: theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                      _ChannelResponsibilityRow(rule: rules[i]),
+                    ],
+                  ],
+                );
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: Space.lg),
+              child: Divider(
+                height: 1,
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+              ),
+            ),
+            _FallbackBehaviorControl(policy: policy),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _StrictResponsibilityCardState
-    extends ConsumerState<_StrictResponsibilityCard> {
+class _ChannelResponsibilityRow extends StatelessWidget {
+  const _ChannelResponsibilityRow({required this.rule});
+
+  final RoutingResponsibility rule;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final ownerLabel = rule.teamId != null
+        ? context.l10n.channelResponsibilityTeamPrefix(rule.teamName)
+        : rule.employeeName;
+    final channelLabel = rule.isChannelSpecific
+        ? context.l10n.channelResponsibilityAccountRule(
+            ConversationBadges.providerLabel(context, rule.provider),
+            rule.channelConnectionName,
+          )
+        : context.l10n.channelResponsibilityAllAccounts(
+            ConversationBadges.providerLabel(context, rule.provider),
+          );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          ConversationBadges.providerIcon(rule.provider),
+          size: 20,
+          color: ConversationBadges.providerColor(rule.provider),
+        ),
+        const SizedBox(width: Space.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$ownerLabel → $channelLabel',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (!rule.isActive) ...[
+                const SizedBox(height: Space.xs),
+                StatusBadge(
+                  label: context.l10n.channelResponsibilityRetired,
+                  tone: BadgeTone.neutral,
+                  dense: true,
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (rule.teamId != null) ...[
+          const SizedBox(width: Space.sm),
+          TextButton(
+            onPressed: () => context.push(Routes.teams),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, 32),
+              padding: const EdgeInsets.symmetric(horizontal: Space.sm),
+              visualDensity: VisualDensity.compact,
+            ),
+            child: Text(
+              context.l10n.channelResponsibilityEditInTeams,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// "When nobody responsible is available" — reuses [RoutingPolicy.strictResponsibility]
+/// relabeled: `true` keeps an unowned conversation unassigned, `false` offers
+/// it to the rest of the organization. Same field, same
+/// `updateRoutingPolicy(strictResponsibility:)` call the old standalone card
+/// used; only the presentation changed.
+class _FallbackBehaviorControl extends ConsumerStatefulWidget {
+  const _FallbackBehaviorControl({required this.policy});
+
+  final RoutingPolicy policy;
+
+  @override
+  ConsumerState<_FallbackBehaviorControl> createState() =>
+      _FallbackBehaviorControlState();
+}
+
+class _FallbackBehaviorControlState
+    extends ConsumerState<_FallbackBehaviorControl> {
   bool _busy = false;
 
   void _showMessage(String message, {bool isError = false}) {
@@ -2352,8 +2513,8 @@ class _StrictResponsibilityCardState
     );
   }
 
-  Future<void> _toggle(bool value) async {
-    if (_busy) return;
+  Future<void> _setStrict(bool value) async {
+    if (_busy || value == widget.policy.strictResponsibility) return;
     setState(() => _busy = true);
     try {
       await ref
@@ -2361,7 +2522,7 @@ class _StrictResponsibilityCardState
           .updateRoutingPolicy(strictResponsibility: value);
       ref.invalidate(routingPolicyProvider);
       if (mounted) {
-        _showMessage(context.l10n.assignmentPolicyUpdatedSnackbar);
+        _showMessage(context.l10n.channelResponsibilityFallbackSaved);
       }
     } on ApiException catch (error) {
       _showMessage(error.message, isError: true);
@@ -2377,46 +2538,56 @@ class _StrictResponsibilityCardState
     final theme = Theme.of(context);
     final strict = widget.policy.strictResponsibility;
 
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(Space.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.l10n.channelResponsibilityFallbackTitle,
+          style: theme.textTheme.titleMedium,
+        ),
+        const SizedBox(height: Space.sm),
+        Text(
+          context.l10n.channelResponsibilityFallbackDescription,
+          style: theme.textTheme.bodySmall,
+        ),
+        const SizedBox(height: Space.md),
+        if (_busy) ...[
+          const LinearProgressIndicator(minHeight: 2),
+          const SizedBox(height: Space.sm),
+        ],
+        Wrap(
+          spacing: Space.sm,
+          runSpacing: Space.sm,
           children: [
-            Text(
-              context.l10n.strictResponsibilityTitle,
-              style: theme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: Space.sm),
-            Text(
-              context.l10n.strictResponsibilityDescription,
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: Space.md),
-            if (_busy) ...[
-              const LinearProgressIndicator(minHeight: 2),
-              const SizedBox(height: Space.sm),
-            ],
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    context.l10n.strictResponsibilityToggleLabel,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+            FilledButton(
+              key: const ValueKey('offer_to_everyone_button'),
+              onPressed: _busy ? null : () => _setStrict(false),
+              style: !strict
+                  ? FilledButton.styleFrom(minimumSize: const Size(0, 36))
+                  : FilledButton.styleFrom(
+                      minimumSize: const Size(0, 36),
+                      backgroundColor:
+                          theme.colorScheme.surfaceContainerHighest,
+                      foregroundColor: theme.colorScheme.onSurfaceVariant,
                     ),
-                  ),
-                ),
-                Switch.adaptive(
-                  value: strict,
-                  onChanged: _busy ? null : _toggle,
-                ),
-              ],
+              child: Text(context.l10n.channelResponsibilityOfferToEveryone),
+            ),
+            FilledButton(
+              key: const ValueKey('leave_unassigned_button'),
+              onPressed: _busy ? null : () => _setStrict(true),
+              style: strict
+                  ? FilledButton.styleFrom(minimumSize: const Size(0, 36))
+                  : FilledButton.styleFrom(
+                      minimumSize: const Size(0, 36),
+                      backgroundColor:
+                          theme.colorScheme.surfaceContainerHighest,
+                      foregroundColor: theme.colorScheme.onSurfaceVariant,
+                    ),
+              child: Text(context.l10n.channelResponsibilityLeaveUnassigned),
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 }

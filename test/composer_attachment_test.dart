@@ -23,6 +23,7 @@ import 'dart:typed_data';
 
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
+import 'package:file_picker_platform_interface/file_picker_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,12 +56,15 @@ final Uint8List _tinyJpegBytes = base64Decode(
 // ---------------------------------------------------------------------------
 
 class _FakeImagePicker extends ImagePickerPlatform {
-  _FakeImagePicker({this.filePath, this.throwOnPick});
+  _FakeImagePicker({this.filePath, this.filePaths, this.throwOnPick});
 
   /// The path returned for a successful pick; `null` means "cancelled" —
   /// `pickImage` returning `null`, matching what the real plugin does when
   /// the user backs out of the picker.
   String? filePath;
+
+  /// Multiple paths returned for a gallery multi-pick.
+  List<String>? filePaths;
 
   /// If set, thrown from [getImageFromSource] instead of returning a result
   /// — used to simulate a `PlatformException` (permission denied) or any
@@ -78,6 +82,80 @@ class _FakeImagePicker extends ImagePickerPlatform {
     if (throwOnPick != null) throw throwOnPick!;
     if (filePath == null) return null;
     return XFile(filePath!);
+  }
+
+  @override
+  Future<List<XFile>> getMultiImageWithOptions({
+    MultiImagePickerOptions options = const MultiImagePickerOptions(),
+  }) async {
+    if (throwOnPick != null) throw throwOnPick!;
+    if (filePaths != null) {
+      return filePaths!.map((p) => XFile(p)).toList();
+    }
+    if (filePath != null) {
+      return [XFile(filePath!)];
+    }
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fakes: file_picker
+// ---------------------------------------------------------------------------
+
+base class _TestPlatformFile extends PlatformFile {
+  _TestPlatformFile({
+    required this.name,
+    required String filePath,
+    this.sizeBytes,
+  }) : uri = Uri.file(filePath);
+
+  @override
+  final String name;
+
+  @override
+  final Uri uri;
+
+  final int? sizeBytes;
+
+  @override
+  XFile get xFile => XFile(path!, name: name);
+
+  @override
+  int? lengthSync() => sizeBytes;
+
+  @override
+  Future<int?> length() async => sizeBytes;
+
+  @override
+  Future<Uint8List> readAsBytes() async => Uint8List(0);
+
+  @override
+  Stream<Uint8List> readAsByteStream() => const Stream.empty();
+}
+
+class _FakeFilePicker extends FilePickerPlatform {
+  _FakeFilePicker({this.files});
+
+  List<PlatformFile>? files;
+  Object? throwOnPick;
+
+  @override
+  Future<List<PlatformFile>> pickFiles({
+    String? dialogTitle,
+    String? initialDirectory,
+    FileType type = FileType.any,
+    List<String>? allowedExtensions,
+    Function(FilePickerStatus)? onFileLoading,
+    int compressionQuality = 0,
+    AndroidOptions androidOptions = const AndroidOptions(),
+    DarwinOptions darwinOptions = const DarwinOptions(),
+    WindowsOptions windowsOptions = const WindowsOptions(),
+    LinuxOptions linuxOptions = const LinuxOptions(),
+    WebOptions webOptions = const WebOptions(),
+  }) async {
+    if (throwOnPick != null) throw throwOnPick!;
+    return files ?? [];
   }
 }
 
@@ -778,6 +856,553 @@ void main() {
 
       expect(uploadCalls, 1);
     });
+  });
+
+  group('Multiple & Document attachments — WhatsApp flow', () {
+    testWidgets(
+      'selecting 5 images from gallery stages all 5 in the composer',
+      (tester) async {
+        final imagePaths = <String>[];
+        for (var i = 1; i <= 5; i++) {
+          final f = File('${tempDir.path}/img$i.jpg');
+          await f.writeAsBytes(_tinyJpegBytes);
+          imagePaths.add(f.path);
+        }
+
+        ImagePickerPlatform.instance = _FakeImagePicker(filePaths: imagePaths);
+
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path == '/conversations/42/attachments/') {
+            final fd = options.data as FormData;
+            final fileEntry = fd.files.first;
+            final name = fileEntry.value.filename ?? 'photo.jpg';
+            return _json('''
+{
+  "id": "draft-$name",
+  "type": "IMAGE",
+  "mime_type": "image/jpeg",
+  "file_name": "$name",
+  "size_bytes": 16,
+  "is_voice": false,
+  "duration_ms": null,
+  "expires_at": "2026-09-04T12:00:00Z"
+}
+''', 201);
+          }
+          if (options.path.contains('/messages/')) {
+            return _json('{"results": []}', 200);
+          }
+          if (options.path.contains('/notes/')) {
+            return _json('[]', 200);
+          }
+          if (options.path.contains('/conversations/42/')) {
+            return _json(_conversationDetail, 200);
+          }
+          return _json('{}', 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await _pumpConversation(tester, client);
+        await tester.tap(find.byIcon(Icons.attach_file_rounded));
+        await tester.pumpAndSettle();
+
+        await _tapAndPumpUntilIdle(tester, find.text('Photo from gallery'));
+
+        expect(find.byIcon(Icons.close), findsNWidgets(5));
+      },
+    );
+
+    testWidgets(
+      'selecting multiple documents stages file cards with name, extension, and size',
+      (tester) async {
+        final pdfFile = File('${tempDir.path}/spec.pdf');
+        await pdfFile.writeAsBytes(List.filled(2048, 0));
+        final docxFile = File('${tempDir.path}/report.docx');
+        await docxFile.writeAsBytes(List.filled(4096, 0));
+
+        FilePickerPlatform.instance = _FakeFilePicker(
+          files: [
+            _TestPlatformFile(
+              name: 'spec.pdf',
+              filePath: pdfFile.path,
+              sizeBytes: 2048,
+            ),
+            _TestPlatformFile(
+              name: 'report.docx',
+              filePath: docxFile.path,
+              sizeBytes: 4096,
+            ),
+          ],
+        );
+
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path == '/conversations/42/attachments/') {
+            final fd = options.data as FormData;
+            final fileEntry = fd.files.first;
+            final name = fileEntry.value.filename ?? 'doc.pdf';
+            return _json('''
+{
+  "id": "draft-$name",
+  "type": "FILE",
+  "mime_type": "application/octet-stream",
+  "file_name": "$name",
+  "size_bytes": 2048,
+  "is_voice": false,
+  "duration_ms": null,
+  "expires_at": "2026-09-04T12:00:00Z"
+}
+''', 201);
+          }
+          if (options.path.contains('/messages/')) {
+            return _json('{"results": []}', 200);
+          }
+          if (options.path.contains('/notes/')) {
+            return _json('[]', 200);
+          }
+          if (options.path.contains('/conversations/42/')) {
+            return _json(_conversationDetail, 200);
+          }
+          return _json('{}', 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await _pumpConversation(tester, client);
+        await tester.tap(find.byIcon(Icons.attach_file_rounded));
+        await tester.pumpAndSettle();
+
+        await _tapAndPumpUntilIdle(tester, find.text('Document'));
+
+        expect(find.text('spec.pdf'), findsOneWidget);
+        expect(find.text('PDF'), findsOneWidget);
+        expect(find.text('2.0 KB'), findsOneWidget);
+
+        expect(find.text('report.docx'), findsOneWidget);
+        expect(find.text('DOCX'), findsOneWidget);
+        expect(find.text('4.0 KB'), findsOneWidget);
+
+        expect(find.byIcon(Icons.close), findsNWidgets(2));
+      },
+    );
+
+    testWidgets('adding attachments in multiple batches stages both batches', (
+      tester,
+    ) async {
+      ImagePickerPlatform.instance = _FakeImagePicker(
+        filePath: pickedImagePath,
+      );
+
+      final docFile = File('${tempDir.path}/guide.pdf');
+      await docFile.writeAsBytes(List.filled(1024, 0));
+      FilePickerPlatform.instance = _FakeFilePicker(
+        files: [
+          _TestPlatformFile(
+            name: 'guide.pdf',
+            filePath: docFile.path,
+            sizeBytes: 1024,
+          ),
+        ],
+      );
+
+      final adapter = _StubAdapter((options) {
+        if (options.method == 'POST' &&
+            options.path == '/conversations/42/attachments/') {
+          final fd = options.data as FormData;
+          final name = fd.files.first.value.filename ?? 'file';
+          final isImg = name.endsWith('.jpg');
+          return _json('''
+{
+  "id": "draft-$name",
+  "type": "${isImg ? 'IMAGE' : 'FILE'}",
+  "mime_type": "${isImg ? 'image/jpeg' : 'application/pdf'}",
+  "file_name": "$name",
+  "size_bytes": 1024,
+  "is_voice": false,
+  "duration_ms": null,
+  "expires_at": "2026-09-04T12:00:00Z"
+}
+''', 201);
+        }
+        if (options.path.contains('/messages/')) {
+          return _json('{"results": []}', 200);
+        }
+        if (options.path.contains('/notes/')) {
+          return _json('[]', 200);
+        }
+        if (options.path.contains('/conversations/42/')) {
+          return _json(_conversationDetail, 200);
+        }
+        return _json('{}', 200);
+      });
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await _pumpConversation(tester, client);
+
+      // Batch 1: Image from gallery
+      await tester.tap(find.byIcon(Icons.attach_file_rounded));
+      await tester.pumpAndSettle();
+      await _tapAndPumpUntilIdle(tester, find.text('Photo from gallery'));
+
+      expect(find.byIcon(Icons.close), findsOneWidget);
+
+      // Batch 2: Document
+      await tester.tap(find.byIcon(Icons.attach_file_rounded));
+      await tester.pumpAndSettle();
+      await _tapAndPumpUntilIdle(tester, find.text('Document'));
+
+      // Both items staged!
+      expect(find.byIcon(Icons.close), findsNWidgets(2));
+      expect(find.text('guide.pdf'), findsOneWidget);
+    });
+
+    testWidgets(
+      'removing one attachment from a multi-attachment selection leaves others staged',
+      (tester) async {
+        final doc1 = File('${tempDir.path}/a.pdf');
+        await doc1.writeAsBytes(List.filled(512, 0));
+        final doc2 = File('${tempDir.path}/b.pdf');
+        await doc2.writeAsBytes(List.filled(512, 0));
+
+        FilePickerPlatform.instance = _FakeFilePicker(
+          files: [
+            _TestPlatformFile(
+              name: 'a.pdf',
+              filePath: doc1.path,
+              sizeBytes: 512,
+            ),
+            _TestPlatformFile(
+              name: 'b.pdf',
+              filePath: doc2.path,
+              sizeBytes: 512,
+            ),
+          ],
+        );
+
+        final deletedDrafts = <String>[];
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path == '/conversations/42/attachments/') {
+            final fd = options.data as FormData;
+            final name = fd.files.first.value.filename ?? 'file';
+            return _json('''
+{
+  "id": "draft-$name",
+  "type": "FILE",
+  "mime_type": "application/pdf",
+  "file_name": "$name",
+  "size_bytes": 512,
+  "is_voice": false,
+  "duration_ms": null,
+  "expires_at": "2026-09-04T12:00:00Z"
+}
+''', 201);
+          }
+          if (options.method == 'DELETE' &&
+              options.path.contains('/attachments/')) {
+            final parts = options.path.split('/');
+            deletedDrafts.add(parts[parts.length - 2]);
+            return _json('', 204);
+          }
+          if (options.path.contains('/messages/')) {
+            return _json('{"results": []}', 200);
+          }
+          if (options.path.contains('/notes/')) {
+            return _json('[]', 200);
+          }
+          if (options.path.contains('/conversations/42/')) {
+            return _json(_conversationDetail, 200);
+          }
+          return _json('{}', 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await _pumpConversation(tester, client);
+        await tester.tap(find.byIcon(Icons.attach_file_rounded));
+        await tester.pumpAndSettle();
+        await _tapAndPumpUntilIdle(tester, find.text('Document'));
+
+        expect(find.byIcon(Icons.close), findsNWidgets(2));
+        expect(find.text('a.pdf'), findsOneWidget);
+        expect(find.text('b.pdf'), findsOneWidget);
+
+        // Remove the first attachment (a.pdf)
+        await _tapAndPumpUntilIdle(tester, find.byIcon(Icons.close).first);
+
+        expect(deletedDrafts, ['draft-a.pdf']);
+        expect(find.byIcon(Icons.close), findsOneWidget);
+        expect(find.text('a.pdf'), findsNothing);
+        expect(find.text('b.pdf'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'sending multiple attachments sends all attachment_ids in reply payload',
+      (tester) async {
+        final doc1 = File('${tempDir.path}/doc1.pdf');
+        await doc1.writeAsBytes(List.filled(512, 0));
+        final doc2 = File('${tempDir.path}/doc2.pdf');
+        await doc2.writeAsBytes(List.filled(512, 0));
+
+        FilePickerPlatform.instance = _FakeFilePicker(
+          files: [
+            _TestPlatformFile(
+              name: 'doc1.pdf',
+              filePath: doc1.path,
+              sizeBytes: 512,
+            ),
+            _TestPlatformFile(
+              name: 'doc2.pdf',
+              filePath: doc2.path,
+              sizeBytes: 512,
+            ),
+          ],
+        );
+
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path == '/conversations/42/attachments/') {
+            final fd = options.data as FormData;
+            final name = fd.files.first.value.filename ?? 'file';
+            return _json('''
+{
+  "id": "draft-$name",
+  "type": "FILE",
+  "mime_type": "application/pdf",
+  "file_name": "$name",
+  "size_bytes": 512,
+  "is_voice": false,
+  "duration_ms": null,
+  "expires_at": "2026-09-04T12:00:00Z"
+}
+''', 201);
+          }
+          if (options.method == 'POST' &&
+              options.path == '/conversations/42/reply/') {
+            return _json('''
+{
+  "id": 801, "public_id": "p801", "direction": "OUTBOUND",
+  "sender_type": "AGENT", "sender_name": "Sam Agent", "sender_initials": "SA",
+  "message_type": "FILE", "text": "Files attached",
+  "attachments": [
+    {"type": "FILE", "url": "https://cdn.example/doc1.pdf", "file_name": "doc1.pdf", "mime_type": "application/pdf", "size_bytes": 512},
+    {"type": "FILE", "url": "https://cdn.example/doc2.pdf", "file_name": "doc2.pdf", "mime_type": "application/pdf", "size_bytes": 512}
+  ],
+  "delivery_status": "SENT", "delivery_error": "", "client_message_id": "",
+  "sent_at": "2026-09-04T12:00:00Z", "delivered_at": null, "read_at": null
+}
+''', 201);
+          }
+          if (options.path.contains('/messages/')) {
+            return _json('{"results": []}', 200);
+          }
+          if (options.path.contains('/notes/')) {
+            return _json('[]', 200);
+          }
+          if (options.path.contains('/conversations/42/')) {
+            return _json(_conversationDetail, 200);
+          }
+          return _json('{}', 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await _pumpConversation(tester, client);
+        await tester.tap(find.byIcon(Icons.attach_file_rounded));
+        await tester.pumpAndSettle();
+        await _tapAndPumpUntilIdle(tester, find.text('Document'));
+
+        await tester.enterText(
+          find.byKey(const ValueKey('composer_reply_input')),
+          'Files attached',
+        );
+        await tester.tap(find.byIcon(Icons.send_rounded));
+        await tester.pump();
+        for (var i = 0; i < 10; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
+
+        final replyReq = adapter.received.firstWhere(
+          (r) => r.method == 'POST' && r.path == '/conversations/42/reply/',
+        );
+        final body = replyReq.data as Map<String, dynamic>;
+        expect(body['attachment_ids'], ['draft-doc1.pdf', 'draft-doc2.pdf']);
+        expect(body['text'], 'Files attached');
+      },
+    );
+
+    testWidgets(
+      'partial upload failure shows error snackbar while preserving successful files',
+      (tester) async {
+        final goodFile = File('${tempDir.path}/good.pdf');
+        await goodFile.writeAsBytes(List.filled(512, 0));
+        final badFile = File('${tempDir.path}/bad.xyz');
+        await badFile.writeAsBytes(List.filled(512, 0));
+
+        FilePickerPlatform.instance = _FakeFilePicker(
+          files: [
+            _TestPlatformFile(
+              name: 'good.pdf',
+              filePath: goodFile.path,
+              sizeBytes: 512,
+            ),
+            _TestPlatformFile(
+              name: 'bad.xyz',
+              filePath: badFile.path,
+              sizeBytes: 512,
+            ),
+          ],
+        );
+
+        final client = _stubClient((options) {
+          if (options.method == 'POST' &&
+              options.path == '/conversations/42/attachments/') {
+            final fd = options.data as FormData;
+            final name = fd.files.first.value.filename ?? '';
+            if (name == 'bad.xyz') {
+              return _json(
+                '{"error": {"code": "invalid", "message": "Unsupported file."}}',
+                400,
+              );
+            }
+            return _json('''
+{
+  "id": "draft-good", "type": "FILE", "mime_type": "application/pdf",
+  "file_name": "good.pdf", "size_bytes": 512, "is_voice": false,
+  "duration_ms": null, "expires_at": "2026-09-04T12:00:00Z"
+}
+''', 201);
+          }
+          if (options.path.contains('/messages/')) {
+            return _json('{"results": []}', 200);
+          }
+          if (options.path.contains('/notes/')) {
+            return _json('[]', 200);
+          }
+          if (options.path.contains('/conversations/42/')) {
+            return _json(_conversationDetail, 200);
+          }
+          return _json('{}', 200);
+        });
+
+        await _pumpConversation(tester, client);
+        await tester.tap(find.byIcon(Icons.attach_file_rounded));
+        await tester.pumpAndSettle();
+        await _tapAndPumpUntilIdle(tester, find.text('Document'));
+
+        expect(find.text('good.pdf'), findsOneWidget);
+        expect(find.text('bad.xyz'), findsNothing);
+        expect(
+          find.text("Some files couldn't be uploaded. Please try again."),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('capping attachments at 10 shows limit reached message', (
+      tester,
+    ) async {
+      final files = <PlatformFile>[];
+      for (var i = 1; i <= 11; i++) {
+        final f = File('${tempDir.path}/doc$i.pdf');
+        await f.writeAsBytes(List.filled(64, 0));
+        files.add(
+          _TestPlatformFile(name: 'doc$i.pdf', filePath: f.path, sizeBytes: 64),
+        );
+      }
+
+      FilePickerPlatform.instance = _FakeFilePicker(files: files);
+
+      final client = _stubClient((options) {
+        if (options.method == 'POST' &&
+            options.path == '/conversations/42/attachments/') {
+          final fd = options.data as FormData;
+          final name = fd.files.first.value.filename ?? '';
+          return _json('''
+{
+  "id": "draft-$name", "type": "FILE", "mime_type": "application/pdf",
+  "file_name": "$name", "size_bytes": 64, "is_voice": false,
+  "duration_ms": null, "expires_at": "2026-09-04T12:00:00Z"
+}
+''', 201);
+        }
+        if (options.path.contains('/messages/')) {
+          return _json('{"results": []}', 200);
+        }
+        if (options.path.contains('/notes/')) {
+          return _json('[]', 200);
+        }
+        if (options.path.contains('/conversations/42/')) {
+          return _json(_conversationDetail, 200);
+        }
+        return _json('{}', 200);
+      });
+
+      await _pumpConversation(tester, client);
+      await tester.tap(find.byIcon(Icons.attach_file_rounded));
+      await tester.pumpAndSettle();
+      await _tapAndPumpUntilIdle(tester, find.text('Document'));
+
+      expect(find.byIcon(Icons.close), findsNWidgets(10));
+      expect(
+        find.text('You can attach up to 10 files per message.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+      'document attachment renders properly in message bubble with size and name',
+      (tester) async {
+        final client = _stubClient((options) {
+          if (options.path.contains('/messages/')) {
+            return _json('''
+{
+  "results": [
+    {
+      "id": 101,
+      "direction": "INBOUND",
+      "sender_type": "CUSTOMER",
+      "sender_name": "Sarah Connor",
+      "sender_initials": "SC",
+      "message_type": "FILE",
+      "text": "Here is the invoice",
+      "attachments": [
+        {
+          "type": "FILE",
+          "url": "https://cdn.example.com/invoice.pdf",
+          "file_name": "invoice.pdf",
+          "mime_type": "application/pdf",
+          "size_bytes": 1048576
+        }
+      ],
+      "delivery_status": "DELIVERED",
+      "sent_at": "2026-09-04T12:00:00Z"
+    }
+  ]
+}
+''', 200);
+          }
+          if (options.path.contains('/notes/')) {
+            return _json('[]', 200);
+          }
+          if (options.path.contains('/conversations/42/')) {
+            return _json(_conversationDetail, 200);
+          }
+          return _json('{}', 200);
+        });
+
+        await _pumpConversation(tester, client);
+
+        expect(find.text('Here is the invoice'), findsOneWidget);
+        expect(find.text('invoice.pdf'), findsOneWidget);
+        expect(find.text('1.0 MB'), findsOneWidget);
+        expect(find.byIcon(Icons.picture_as_pdf_outlined), findsOneWidget);
+      },
+    );
   });
 
   group('Voice recording — composer UI', () {

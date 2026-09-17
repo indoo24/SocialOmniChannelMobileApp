@@ -75,7 +75,8 @@ Employee _employee() => const Employee(
 /// with no `last_customer_message_at` as closed (routing the composer to
 /// Template mode), so the fixture needs a recent timestamp to exercise the
 /// ordinary Reply-mode composer these tests are about.
-String _conversationJson() => '''
+String _conversationJson() =>
+    '''
 {
   "id": 42,
   "customer": {
@@ -140,7 +141,9 @@ void main() {
         if (options.path.contains('/facts')) return _json('[]', 200);
         if (options.path.contains('/orders')) return _json('[]', 200);
         if (options.path.contains('/channels/')) return _json('[]', 200);
-        if (options.path.contains('/saved-replies/')) return _json('{"results": []}', 200);
+        if (options.path.contains('/saved-replies/')) {
+          return _json('{"results": []}', 200);
+        }
         return _json('{}', 200);
       });
 
@@ -199,7 +202,9 @@ void main() {
         if (options.path.contains('/facts')) return _json('[]', 200);
         if (options.path.contains('/orders')) return _json('[]', 200);
         if (options.path.contains('/channels/')) return _json('[]', 200);
-        if (options.path.contains('/saved-replies/')) return _json('{"results": []}', 200);
+        if (options.path.contains('/saved-replies/')) {
+          return _json('{"results": []}', 200);
+        }
         return _json('{}', 200);
       });
 
