@@ -62,13 +62,17 @@ class SettingsScreen extends ConsumerWidget {
     final canSeeMoreSettings =
         canSeeCustomerFields || canSeeSavedReplies || canExport;
 
+    // Order is Channels, Routing, Profile, More. Profile sits ahead of More
+    // because every role has it, so it lands at a stable position no matter
+    // which of the permission-gated tabs above are present; More is the
+    // catch-all and reads last.
     final tabs = <(String, Widget)>[
       if (canSeeChannels) (context.l10n.tabChannels, const _ChannelsTab()),
       if (canManageRouting)
         (context.l10n.tabAssignment, const _AssignmentTab()),
+      (context.l10n.tabProfile, const ProfileTab()),
       if (canSeeMoreSettings)
         (context.l10n.tabMoreSettings, const MoreSettingsTab()),
-      (context.l10n.tabProfile, const ProfileTab()),
     ];
 
     return DefaultTabController(

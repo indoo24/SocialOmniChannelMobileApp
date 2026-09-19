@@ -158,7 +158,7 @@ void main() {
       // The tabs the change was not supposed to touch.
       expect(find.widgetWithText(Tab, 'Channels'), findsOneWidget);
       expect(find.widgetWithText(Tab, 'Routing'), findsOneWidget);
-      expect(find.widgetWithText(Tab, 'More settings'), findsOneWidget);
+      expect(find.widgetWithText(Tab, 'More'), findsOneWidget);
       expect(find.widgetWithText(Tab, 'Profile'), findsOneWidget);
       expect(find.byType(Tab), findsNWidgets(4));
     });

@@ -21,6 +21,7 @@ import '../../core/models/employee.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/badges.dart';
+import '../../core/widgets/settings_section_header.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
@@ -98,35 +99,22 @@ class _CustomerFieldsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final sorted = [...fields]
       ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
 
     final items = [
-      Text(
-        context.l10n.customerFieldsTabTitle,
-        style: theme.textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
+      SettingsSectionHeader(
+        title: context.l10n.customerFieldsTabTitle,
+        action: canManage
+            ? FilledButton.icon(
+                key: const Key('add-customer-field'),
+                onPressed: () => showAddCustomerFieldSheet(context),
+                style: sectionActionStyle(context),
+                icon: const Icon(Icons.add, size: 18),
+                label: sectionActionLabel(context.l10n.addFieldAction),
+              )
+            : null,
       ),
-      const SizedBox(height: Space.sm),
-      Text(
-        context.l10n.customerFieldsTabDescription,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-      ),
-      const SizedBox(height: Space.lg),
-      if (canManage)
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: FilledButton.icon(
-            key: const Key('add-customer-field'),
-            onPressed: () => showAddCustomerFieldSheet(context),
-            icon: const Icon(Icons.add, size: 18),
-            label: Text(context.l10n.addFieldAction),
-          ),
-        ),
       const SizedBox(height: Space.lg),
       if (sorted.isEmpty)
         SizedBox(

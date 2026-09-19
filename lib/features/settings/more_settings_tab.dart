@@ -44,27 +44,79 @@ class MoreSettingsTab extends ConsumerWidget {
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(Space.lg),
+        // Horizontal padding moves onto each section's own surface below, so
+        // the card edges sit where this padding used to and the content keeps
+        // exactly the width it had before — the inner field/reply cards are
+        // unchanged and must not get narrower on a 320px phone.
+        padding: const EdgeInsets.symmetric(vertical: Space.lg),
         children: [
+          // Each section gets its own surface rather than a shared column
+          // split by a 1px Divider: Customer fields and Saved replies are
+          // unrelated settings that happen to share a tab, and read as one
+          // long list when the only thing between them is a hairline.
           if (canSeeCustomerFields) ...[
-            const CustomerFieldsSettingsTab(scrollable: false),
-            if (canSeeSavedReplies || canExport) ...[
+            const _SettingsSection(
+              key: Key('more-section-customer-fields'),
+              child: CustomerFieldsSettingsTab(scrollable: false),
+            ),
+            if (canSeeSavedReplies || canExport)
               const SizedBox(height: Space.xl),
-              const Divider(),
-              const SizedBox(height: Space.xl),
-            ],
           ],
           if (canSeeSavedReplies) ...[
-            const SavedRepliesSettingsTab(scrollable: false),
-            if (canExport) ...[
-              const SizedBox(height: Space.xl),
-              const Divider(),
-              const SizedBox(height: Space.xl),
-            ],
+            const _SettingsSection(
+              key: Key('more-section-saved-replies'),
+              child: SavedRepliesSettingsTab(scrollable: false),
+            ),
+            if (canExport) const SizedBox(height: Space.xl),
           ],
-          if (canExport) const _ExportDataSection(),
+          if (canExport)
+            const _SettingsSection(
+              key: Key('more-section-export-data'),
+              child: _ExportDataSection(),
+            ),
         ],
       ),
+    );
+  }
+}
+
+/// One self-contained block on the More tab.
+///
+/// The card surface plus the gap between instances is what makes Customer
+/// fields, Saved replies and Export data read as separate settings rather
+/// than one long scroll. The section's own heading and controls come from
+/// [child] — this only supplies the surface, so nothing inside is
+/// restyled or duplicated.
+class _SettingsSection extends StatelessWidget {
+  const _SettingsSection({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      // The card sits where the list's own horizontal padding used to, and
+      // pads its content by the same amount vertically. Horizontal padding is
+      // deliberately smaller than Space.lg: on a 320px screen the inner
+      // customer-field and saved-reply cards are already at their minimum,
+      // and taking another 32px off the content width overflows them.
+      margin: const EdgeInsets.symmetric(horizontal: Space.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.sm,
+        vertical: Space.lg,
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? ScenarioColors.darkCard : ScenarioColors.card,
+        borderRadius: BorderRadius.circular(Radii.lg),
+        border: Border.all(
+          color: isDark ? ScenarioColors.darkBorder : ScenarioColors.border,
+        ),
+      ),
+      child: child,
     );
   }
 }

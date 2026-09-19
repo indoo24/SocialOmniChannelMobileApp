@@ -2353,6 +2353,54 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get sendTemplateAction => 'إرسال';
+
+  @override
+  String sendTemplateSheetTitle(String name) {
+    return 'إرسال \"$name\"';
+  }
+
+  @override
+  String sendTemplateSheetSubtitle(String account) {
+    return 'من $account. سيتم فتح محادثة جديدة إن لم تكن موجودة بالفعل.';
+  }
+
+  @override
+  String get sendTemplateRecipientLabel => 'المستلم';
+
+  @override
+  String get sendTemplateExistingCustomer => 'عميل حالي';
+
+  @override
+  String get sendTemplateNewPhone => 'رقم هاتف جديد';
+
+  @override
+  String get sendTemplateCustomerSearchHint =>
+      'ابحث بالاسم أو الهاتف أو البريد الإلكتروني...';
+
+  @override
+  String get sendTemplateNoCustomersFound =>
+      'لا يوجد عملاء مطابقون لهذا البحث.';
+
+  @override
+  String get sendTemplateNoPhoneOnFile => 'لا يوجد رقم هاتف مسجل';
+
+  @override
+  String get sendTemplatePhoneLabel => 'رقم الهاتف';
+
+  @override
+  String get sendTemplatePhoneHelper =>
+      'أدخل رمز الدولة. الرقم الذي يبدأ بـ 0 يُرفض بدلاً من تخمينه — ويُنشأ العميل تلقائيًا إذا كان جديدًا.';
+
+  @override
+  String get sendTemplatePreviewLabel => 'معاينة';
+
+  @override
+  String sendTemplateSentSnackbar(String name) {
+    return 'تم إرسال القالب إلى $name';
+  }
+
+  @override
   String get loadingTemplates => 'جارٍ تحميل القوالب…';
 
   @override
@@ -3167,7 +3215,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get shareCsvAction => 'مشاركة CSV';
 
   @override
-  String get tabMoreSettings => 'إعدادات إضافية';
+  String get tabMoreSettings => 'المزيد';
 
   @override
   String get exportDataSectionTitle => 'تصدير البيانات';
