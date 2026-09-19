@@ -1089,6 +1089,67 @@
       "components": {"type": "String"}
     }
   },
+  "sendTemplateAction": "Send",
+  "@sendTemplateAction": {
+    "description": "Button on each template row that opens the send sheet"
+  },
+  "sendTemplateSheetTitle": "Send \"{name}\"",
+  "@sendTemplateSheetTitle": {
+    "description": "Title of the send-template sheet, naming the template",
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "sendTemplateSheetSubtitle": "From {account}. This opens a conversation if there isn't one already.",
+  "@sendTemplateSheetSubtitle": {
+    "description": "Subtitle naming the sending WhatsApp Business account",
+    "placeholders": {
+      "account": {"type": "String"}
+    }
+  },
+  "sendTemplateRecipientLabel": "Recipient",
+  "@sendTemplateRecipientLabel": {
+    "description": "Section label above the recipient type selector"
+  },
+  "sendTemplateExistingCustomer": "Existing customer",
+  "@sendTemplateExistingCustomer": {
+    "description": "Recipient option: pick a customer already in the system"
+  },
+  "sendTemplateNewPhone": "New phone number",
+  "@sendTemplateNewPhone": {
+    "description": "Recipient option: type a phone number by hand"
+  },
+  "sendTemplateCustomerSearchHint": "Search by name, phone or email...",
+  "@sendTemplateCustomerSearchHint": {
+    "description": "Placeholder in the customer search field"
+  },
+  "sendTemplateNoCustomersFound": "No customers match that search.",
+  "@sendTemplateNoCustomersFound": {
+    "description": "Empty state when the customer search returns nothing"
+  },
+  "sendTemplateNoPhoneOnFile": "No phone number on file",
+  "@sendTemplateNoPhoneOnFile": {
+    "description": "Shown under a customer who has no phone number stored"
+  },
+  "sendTemplatePhoneLabel": "Phone number",
+  "@sendTemplatePhoneLabel": {
+    "description": "Label for the manual phone number field"
+  },
+  "sendTemplatePhoneHelper": "Include the country code. A number starting with 0 is refused rather than guessed at — the customer is created automatically if they are new.",
+  "@sendTemplatePhoneHelper": {
+    "description": "Helper text explaining the backend phone rules"
+  },
+  "sendTemplatePreviewLabel": "PREVIEW",
+  "@sendTemplatePreviewLabel": {
+    "description": "Label above the template body preview"
+  },
+  "sendTemplateSentSnackbar": "Template sent to {name}",
+  "@sendTemplateSentSnackbar": {
+    "description": "Success message after an outbound template send",
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
   "loadingTemplates": "Loading templates…",
   "noTemplatesAvailable": "No templates available",
   "groupedConversationsCount": "{count, plural, one{1 conversation} other{{count} conversations}}",
@@ -1634,7 +1695,7 @@
   "attachmentDownloadError": "Couldn't download attachment. Please try again.",
   "noAppToOpenFileError": "No application found to open this file.",
   "shareCsvAction": "Share CSV",
-  "tabMoreSettings": "More settings",
+  "tabMoreSettings": "More",
   "exportDataSectionTitle": "Export data",
   "exportDataSectionDescription": "Export your application data as CSV files.",
   "exportConversationsCsvAction": "Export conversations CSV",

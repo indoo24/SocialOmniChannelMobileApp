@@ -56,6 +56,26 @@ final templatesForChannelProvider =
       return repository.listTemplates(channelId);
     });
 
+/// Customer lookup for the "Send template" sheet's *Existing customer* option.
+///
+/// Keyed on the search term and `autoDispose`, deliberately separate from
+/// [customerDirectoryProvider]: that one reads the shared
+/// [customerSearchProvider] notifier the Customers screen also writes to, so
+/// reusing it would make typing here silently re-filter that screen. This
+/// still goes through the same `DirectoryRepository.customers()` method and
+/// the same `GET /api/customers/?search=` endpoint — one search
+/// implementation, two independently-scoped call sites.
+///
+/// The server does the matching (name, phone, email); the sheet debounces
+/// keystrokes so each character is not its own request.
+final templateRecipientSearchProvider = FutureProvider.autoDispose
+    .family<List<Customer>, String>((ref, search) async {
+      final page = await ref
+          .watch(directoryRepositoryProvider)
+          .customers(search: search);
+      return page.results;
+    });
+
 /// Templates available for an in-conversation template picker.
 ///
 /// Looks up the conversation's channel, or falls back to the active WhatsApp

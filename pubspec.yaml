@@ -1,7 +1,7 @@
 name: scenario_mobile
 description: "Scenario — omnichannel customer service. Mobile client for the same backend the web app uses."
 publish_to: 'none'
-version: 1.0.5+6
+version: 1.0.6+8
 
 environment:
   sdk: ^3.12.0

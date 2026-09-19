@@ -4231,6 +4231,84 @@ abstract class AppLocalizations {
   /// **'Unsupported components: {components}'**
   String templateUnsupportedNotice(String components);
 
+  /// Button on each template row that opens the send sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get sendTemplateAction;
+
+  /// Title of the send-template sheet, naming the template
+  ///
+  /// In en, this message translates to:
+  /// **'Send \"{name}\"'**
+  String sendTemplateSheetTitle(String name);
+
+  /// Subtitle naming the sending WhatsApp Business account
+  ///
+  /// In en, this message translates to:
+  /// **'From {account}. This opens a conversation if there isn\'t one already.'**
+  String sendTemplateSheetSubtitle(String account);
+
+  /// Section label above the recipient type selector
+  ///
+  /// In en, this message translates to:
+  /// **'Recipient'**
+  String get sendTemplateRecipientLabel;
+
+  /// Recipient option: pick a customer already in the system
+  ///
+  /// In en, this message translates to:
+  /// **'Existing customer'**
+  String get sendTemplateExistingCustomer;
+
+  /// Recipient option: type a phone number by hand
+  ///
+  /// In en, this message translates to:
+  /// **'New phone number'**
+  String get sendTemplateNewPhone;
+
+  /// Placeholder in the customer search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name, phone or email...'**
+  String get sendTemplateCustomerSearchHint;
+
+  /// Empty state when the customer search returns nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No customers match that search.'**
+  String get sendTemplateNoCustomersFound;
+
+  /// Shown under a customer who has no phone number stored
+  ///
+  /// In en, this message translates to:
+  /// **'No phone number on file'**
+  String get sendTemplateNoPhoneOnFile;
+
+  /// Label for the manual phone number field
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get sendTemplatePhoneLabel;
+
+  /// Helper text explaining the backend phone rules
+  ///
+  /// In en, this message translates to:
+  /// **'Include the country code. A number starting with 0 is refused rather than guessed at — the customer is created automatically if they are new.'**
+  String get sendTemplatePhoneHelper;
+
+  /// Label above the template body preview
+  ///
+  /// In en, this message translates to:
+  /// **'PREVIEW'**
+  String get sendTemplatePreviewLabel;
+
+  /// Success message after an outbound template send
+  ///
+  /// In en, this message translates to:
+  /// **'Template sent to {name}'**
+  String sendTemplateSentSnackbar(String name);
+
   /// No description provided for @loadingTemplates.
   ///
   /// In en, this message translates to:
@@ -5638,7 +5716,7 @@ abstract class AppLocalizations {
   /// No description provided for @tabMoreSettings.
   ///
   /// In en, this message translates to:
-  /// **'More settings'**
+  /// **'More'**
   String get tabMoreSettings;
 
   /// No description provided for @exportDataSectionTitle.
