@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -11,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:scenario_mobile/core/api/api_client.dart';
 import 'package:scenario_mobile/core/models/employee.dart';
+import 'package:scenario_mobile/core/widgets/settings_section_header.dart';
 import 'package:scenario_mobile/core/providers.dart';
 import 'package:scenario_mobile/core/theme/app_theme.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
@@ -257,7 +259,7 @@ void main() {
   }
 
   group('Settings Navigation & Tab Bar', () {
-    testWidgets('Settings tabs are Channels, Routing, More settings, Profile', (
+    testWidgets('Settings tabs are Channels, Routing, Profile, More in order', (
       tester,
     ) async {
       final adapter = defaultAdapter();
@@ -267,11 +269,23 @@ void main() {
       await tester.pumpWidget(createHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      // Check the 4 tabs in order
+      // All four present...
       expect(find.text('Channels'), findsOneWidget);
       expect(find.text('Routing'), findsOneWidget);
-      expect(find.text('More settings'), findsOneWidget);
       expect(find.text('Profile'), findsOneWidget);
+      expect(find.text('More'), findsOneWidget);
+
+      // ...and in this exact left-to-right order. Presence alone would still
+      // pass if Profile and More were swapped back, which is the thing this
+      // test exists to catch.
+      final labels = tester
+          .widgetList<Tab>(find.byType(Tab))
+          .map((t) => t.text)
+          .toList();
+      expect(labels, ['Channels', 'Routing', 'Profile', 'More']);
+
+      // The old label is gone entirely.
+      expect(find.text('More settings'), findsNothing);
       // Security is no longer a tab — it is a section inside Profile.
       expect(find.widgetWithText(Tab, 'Security'), findsNothing);
 
@@ -305,7 +319,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // More settings tab is accessible
-        final moreSettingsTab = find.text('More settings');
+        final moreSettingsTab = find.text('More');
         expect(moreSettingsTab, findsOneWidget);
         await tester.tap(moreSettingsTab);
         await tester.pumpAndSettle();
@@ -335,7 +349,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Switch to More settings tab
-        await tester.tap(find.text('More settings'));
+        await tester.tap(find.text('More'));
         await tester.pumpAndSettle();
 
         // Section A: Customer fields
@@ -367,6 +381,106 @@ void main() {
       },
     );
 
+    testWidgets(
+      'Customer fields and Saved replies are separate section containers',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final adapter = defaultAdapter();
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await tester.pumpWidget(createHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('More'));
+        await tester.pumpAndSettle();
+
+        final customerFields = find.byKey(
+          const Key('more-section-customer-fields'),
+        );
+        final savedReplies = find.byKey(
+          const Key('more-section-saved-replies'),
+        );
+
+        // Each is its own container, not one shared block.
+        expect(customerFields, findsOneWidget);
+        expect(savedReplies, findsOneWidget);
+
+        // Neither contains the other — that would make them one section
+        // again, however they are styled.
+        expect(
+          find.descendant(of: customerFields, matching: savedReplies),
+          findsNothing,
+        );
+
+        // Each section owns its own heading and primary action.
+        expect(
+          find.descendant(
+            of: customerFields,
+            matching: find.widgetWithText(FilledButton, 'Add field'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: savedReplies,
+            matching: find.byKey(const Key('add-saved-reply')),
+          ),
+          findsOneWidget,
+        );
+
+        // And they are visually apart rather than flush against each other.
+        final gap =
+            tester.getTopLeft(savedReplies).dy -
+            tester.getBottomLeft(customerFields).dy;
+        expect(gap, greaterThan(8.0));
+      },
+    );
+
+    testWidgets('each section is drawn on its own bordered surface', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final adapter = defaultAdapter();
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await tester.pumpWidget(createHarness(apiClient: client));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('More'));
+      await tester.pumpAndSettle();
+
+      // The separation has to be a real surface — a border and a fill — not
+      // just whitespace, which is what a bare Divider amounted to.
+      for (final key in const [
+        Key('more-section-customer-fields'),
+        Key('more-section-saved-replies'),
+      ]) {
+        final container = tester.widget<Container>(
+          find
+              .descendant(of: find.byKey(key), matching: find.byType(Container))
+              .first,
+        );
+        final decoration = container.decoration as BoxDecoration;
+        expect(decoration.border, isNotNull, reason: '$key needs a border');
+        expect(decoration.color, isNotNull, reason: '$key needs a fill');
+        expect(decoration.borderRadius, isNotNull);
+      }
+    });
+
     testWidgets('Tapping Add field opens the Customer field dialog', (
       tester,
     ) async {
@@ -377,7 +491,7 @@ void main() {
       await tester.pumpWidget(createHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('More settings'));
+      await tester.tap(find.text('More'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('add-customer-field')));
@@ -406,7 +520,7 @@ void main() {
       await tester.pumpWidget(createHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('More settings'));
+      await tester.tap(find.text('More'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('add-saved-reply')));
@@ -437,7 +551,7 @@ void main() {
       await tester.pumpWidget(createHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('More settings'));
+      await tester.tap(find.text('More'));
       await tester.pumpAndSettle();
 
       // Tap Export conversations CSV under runAsync for real IO
@@ -475,7 +589,7 @@ void main() {
       await tester.pumpWidget(createHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('More settings'));
+      await tester.tap(find.text('More'));
       await tester.pumpAndSettle();
 
       await tester.runAsync(() async {
@@ -513,7 +627,7 @@ void main() {
       await tester.pumpWidget(createHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('More settings'));
+      await tester.tap(find.text('More'));
       await tester.pumpAndSettle();
 
       await tester.tap(
@@ -550,7 +664,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('More settings'));
+      await tester.tap(find.text('More'));
       await tester.pumpAndSettle();
 
       // Export section is omitted when user lacks crm.export
@@ -574,7 +688,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Channels'), findsOneWidget);
-      expect(find.text('More settings'), findsNothing);
+      expect(find.text('More'), findsNothing);
       expect(find.text('Profile'), findsOneWidget);
       expect(find.widgetWithText(Tab, 'Security'), findsNothing);
     });
@@ -631,7 +745,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Arabic More settings tab
-      final moreSettingsTab = find.text('إعدادات إضافية');
+      final moreSettingsTab = find.text('المزيد');
       expect(moreSettingsTab, findsOneWidget);
       await tester.tap(moreSettingsTab);
       await tester.pumpAndSettle();
@@ -666,10 +780,156 @@ void main() {
       await tester.drag(find.byType(TabBar), const Offset(250, 0));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('إعدادات إضافية'));
+      await tester.tap(find.text('المزيد'));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+      'section actions are compact and sit at the top-right of the header',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final adapter = defaultAdapter();
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await tester.pumpWidget(createHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('More'));
+        await tester.pumpAndSettle();
+
+        for (final probe in [
+          (
+            section: const Key('more-section-customer-fields'),
+            button: const Key('add-customer-field'),
+            title: 'Customer fields',
+          ),
+          (
+            section: const Key('more-section-saved-replies'),
+            button: const Key('add-saved-reply'),
+            title: 'Saved replies',
+          ),
+        ]) {
+          final section = find.byKey(probe.section);
+          final button = find.descendant(
+            of: section,
+            matching: find.byKey(probe.button),
+          );
+          expect(button, findsOneWidget);
+
+          final sectionBox = tester.getRect(section);
+          final buttonBox = tester.getRect(button);
+          final titleBox = tester.getRect(
+            find.descendant(of: section, matching: find.text(probe.title)),
+          );
+
+          // Content-sized, not stretched across the section.
+          expect(buttonBox.width, lessThan(sectionBox.width / 2));
+
+          // On the right-hand side, not centered and not on the left.
+          expect(buttonBox.left, greaterThan(sectionBox.center.dx));
+
+          // On the header line rather than a row of its own below it.
+          expect(buttonBox.top, lessThan(titleBox.bottom));
+
+          // A section action, not a full-height primary button.
+          expect(buttonBox.height, lessThanOrEqualTo(40.0));
+        }
+
+        // The headings carry no explanatory text any more — the cards follow
+        // the heading directly.
+        expect(
+          find.text('Fields your team records for every customer.'),
+          findsNothing,
+        );
+        expect(
+          find.text('Reusable text you insert into the reply box.'),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets('section actions stay compact on a narrow screen', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(320, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final adapter = defaultAdapter();
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await tester.pumpWidget(createHarness(apiClient: client));
+      await tester.pumpAndSettle();
+
+      // The tab bar itself overflows 320px, so scroll it before tapping.
+      await tester.drag(find.byType(TabBar), const Offset(-250, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('More'));
+      await tester.pumpAndSettle();
+
+      final list = find.descendant(
+        of: find.byType(MoreSettingsTab),
+        matching: find.byType(Scrollable),
+      );
+
+      // No overflow, and the buttons never stretch to the full width even
+      // when they have to wrap under the description.
+      expect(tester.takeException(), isNull);
+      for (final key in [
+        const Key('add-customer-field'),
+        const Key('add-saved-reply'),
+      ]) {
+        // The saved-replies action sits below the fold on a 320px screen, so
+        // scroll it into the viewport before measuring it.
+        await tester.scrollUntilVisible(
+          find.byKey(key),
+          200,
+          scrollable: list.first,
+        );
+        await tester.pumpAndSettle();
+
+        // Compact means three things, all of which the old full-width bar
+        // failed: sized by its own label rather than stretched by the
+        // layout, no taller than a section action should be, and never
+        // wrapped onto a second line.
+        final box = tester.renderObject<RenderBox>(find.byKey(key));
+        final available = tester
+            .getRect(
+              find.ancestor(
+                of: find.byKey(key),
+                matching: find.byType(SettingsSectionHeader),
+              ),
+            )
+            .width;
+        final intrinsic = box.getMaxIntrinsicWidth(double.infinity);
+        expect(box.size.width, min(intrinsic, available));
+        expect(box.size.height, lessThanOrEqualTo(40.0));
+
+        // One line: a wrapped label would paint at least twice as tall as
+        // the height it reports for unbounded width.
+        final label = tester.renderObject<RenderBox>(
+          find
+              .descendant(of: find.byKey(key), matching: find.byType(RichText))
+              .last,
+        );
+        expect(
+          label.size.height,
+          lessThan(2 * label.getMinIntrinsicHeight(double.infinity)),
+        );
+      }
     });
 
     testWidgets('Dark theme renders properly', (tester) async {
@@ -682,7 +942,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('More settings'));
+      await tester.tap(find.text('More'));
       await tester.pumpAndSettle();
 
       expect(find.byType(MoreSettingsTab), findsOneWidget);

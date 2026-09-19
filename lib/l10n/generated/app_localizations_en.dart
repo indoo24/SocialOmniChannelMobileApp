@@ -2335,6 +2335,53 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get sendTemplateAction => 'Send';
+
+  @override
+  String sendTemplateSheetTitle(String name) {
+    return 'Send \"$name\"';
+  }
+
+  @override
+  String sendTemplateSheetSubtitle(String account) {
+    return 'From $account. This opens a conversation if there isn\'t one already.';
+  }
+
+  @override
+  String get sendTemplateRecipientLabel => 'Recipient';
+
+  @override
+  String get sendTemplateExistingCustomer => 'Existing customer';
+
+  @override
+  String get sendTemplateNewPhone => 'New phone number';
+
+  @override
+  String get sendTemplateCustomerSearchHint =>
+      'Search by name, phone or email...';
+
+  @override
+  String get sendTemplateNoCustomersFound => 'No customers match that search.';
+
+  @override
+  String get sendTemplateNoPhoneOnFile => 'No phone number on file';
+
+  @override
+  String get sendTemplatePhoneLabel => 'Phone number';
+
+  @override
+  String get sendTemplatePhoneHelper =>
+      'Include the country code. A number starting with 0 is refused rather than guessed at — the customer is created automatically if they are new.';
+
+  @override
+  String get sendTemplatePreviewLabel => 'PREVIEW';
+
+  @override
+  String sendTemplateSentSnackbar(String name) {
+    return 'Template sent to $name';
+  }
+
+  @override
   String get loadingTemplates => 'Loading templates…';
 
   @override
@@ -3152,7 +3199,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareCsvAction => 'Share CSV';
 
   @override
-  String get tabMoreSettings => 'More settings';
+  String get tabMoreSettings => 'More';
 
   @override
   String get exportDataSectionTitle => 'Export data';
