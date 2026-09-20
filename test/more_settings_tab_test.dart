@@ -15,6 +15,7 @@ import 'package:scenario_mobile/core/models/employee.dart';
 import 'package:scenario_mobile/core/widgets/settings_section_header.dart';
 import 'package:scenario_mobile/core/providers.dart';
 import 'package:scenario_mobile/core/theme/app_theme.dart';
+import 'package:scenario_mobile/core/theme/tokens.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
 import 'package:scenario_mobile/features/conversations/inbox_screen.dart';
 import 'package:scenario_mobile/features/directory/customers_screen.dart';
@@ -755,6 +756,50 @@ void main() {
       expect(find.text('الردود المحفوظة'), findsWidgets);
       expect(find.text('تصدير البيانات'), findsOneWidget);
 
+      for (final probe in [
+        (
+          section: const Key('more-section-customer-fields'),
+          button: const Key('add-customer-field'),
+          title: 'حقول العملاء',
+        ),
+        (
+          section: const Key('more-section-saved-replies'),
+          button: const Key('add-saved-reply'),
+          title: 'الردود المحفوظة',
+        ),
+      ]) {
+        final section = find.byKey(probe.section);
+        final button = find.descendant(
+          of: section,
+          matching: find.byKey(probe.button),
+        );
+        expect(button, findsOneWidget);
+
+        final header = find.descendant(
+          of: section,
+          matching: find.byType(SettingsSectionHeader),
+        );
+        final sectionBox = tester.getRect(section);
+        final headerBox = tester.getRect(header);
+        final buttonBox = tester.getRect(button);
+        final titleBox = tester.getRect(
+          find.descendant(of: header, matching: find.text(probe.title)),
+        );
+
+        // Action button is at the far left edge of the section header in RTL
+        expect((buttonBox.left - headerBox.left).abs(), lessThanOrEqualTo(1.0));
+
+        // Section title is at the far right edge in RTL
+        expect((headerBox.right - titleBox.right).abs(), lessThanOrEqualTo(1.0));
+
+        // The button does NOT sit close to the title; space is distributed between them
+        expect(titleBox.left - buttonBox.right, greaterThan(Space.md));
+
+        // Compact, content-sized button, not full-width
+        expect(buttonBox.width, lessThan(sectionBox.width / 2));
+        expect(buttonBox.height, lessThanOrEqualTo(40.0));
+      }
+
       expect(tester.takeException(), isNull);
     });
 
@@ -830,12 +875,23 @@ void main() {
           final titleBox = tester.getRect(
             find.descendant(of: section, matching: find.text(probe.title)),
           );
+          final header = find.descendant(
+            of: section,
+            matching: find.byType(SettingsSectionHeader),
+          );
+          final headerBox = tester.getRect(header);
 
           // Content-sized, not stretched across the section.
           expect(buttonBox.width, lessThan(sectionBox.width / 2));
 
-          // On the right-hand side, not centered and not on the left.
-          expect(buttonBox.left, greaterThan(sectionBox.center.dx));
+          // On the far right edge in LTR
+          expect((headerBox.right - buttonBox.right).abs(), lessThanOrEqualTo(1.0));
+
+          // Title is at the far left edge in LTR
+          expect((titleBox.left - headerBox.left).abs(), lessThanOrEqualTo(1.0));
+
+          // Space is distributed between title and button
+          expect(buttonBox.left - titleBox.right, greaterThan(Space.md));
 
           // On the header line rather than a row of its own below it.
           expect(buttonBox.top, lessThan(titleBox.bottom));

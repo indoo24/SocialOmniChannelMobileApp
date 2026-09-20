@@ -2395,14 +2395,83 @@ void main() {
 
   group('SettingsScreen — Channels tab: Channel Onboarding & Mixed States', () {
     testWidgets(
-      'WhatsApp onboarding card primary button calls startWhatsAppEmbeddedSignupMobile',
+      'WhatsApp onboarding card (no connected number) "Connect WhatsApp" opens bottom sheet with both options and does not start before selection',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path.contains('/embedded-signup/mobile/start/')) {
+            return _json(
+              '{"authorization_url": "https://facebook.com/v19.0/dialog/oauth?wa=1"}',
+              200,
+            );
+          }
+          return _json(_channelsPage(const []), 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        expect(find.text('Connect WhatsApp'), findsOneWidget);
+        await tester.tap(find.text('Connect WhatsApp'));
+        await tester.pumpAndSettle();
+
+        // Bottom sheet is shown with both options
+        expect(find.text('Connect WhatsApp'), findsNWidgets(2)); // Card + sheet title
+        expect(
+          find.text(
+            "You will finish signing in on Meta's own page. Nothing to copy or paste.",
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.text('I already use this number in WhatsApp Business'),
+          findsOneWidget,
+        );
+        expect(find.text('Use my existing number'), findsOneWidget);
+        expect(find.text('I want to set up a new number'), findsOneWidget);
+        expect(find.text('Set up a new number'), findsOneWidget);
+
+        // Before selection, no start call is made
+        expect(
+          adapter.received.any(
+            (r) =>
+                r.method == 'POST' &&
+                r.path ==
+                    '/integrations/whatsapp/embedded-signup/mobile/start/',
+          ),
+          isFalse,
+        );
+
+        // Dismiss modal
+        final navigator = Navigator.of(
+          tester.element(find.text('Set up a new number')),
+        );
+        navigator.pop();
+        await tester.pumpAndSettle();
+
+        // Still no start call made
+        expect(
+          adapter.received.any(
+            (r) =>
+                r.method == 'POST' &&
+                r.path ==
+                    '/integrations/whatsapp/embedded-signup/mobile/start/',
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    testWidgets(
+      'WhatsApp onboarding card (no connected number) -> "Set up a new number" calls start with cloud_api mode',
       (tester) async {
         final adapter = _StubAdapter((options) {
           if (options.method == 'POST' &&
               options.path ==
                   '/integrations/whatsapp/embedded-signup/mobile/start/') {
             return _json(
-              '{"authorization_url": "https://facebook.com/v19.0/dialog/oauth?wa=1"}',
+              '{"authorization_url": "https://facebook.com/v19.0/dialog/oauth?wa=cloud"}',
               200,
             );
           }
@@ -2421,17 +2490,59 @@ void main() {
         await tester.tap(find.text('Connect WhatsApp'));
         await tester.pumpAndSettle();
 
-        expect(
-          adapter.received.any(
-            (r) =>
-                r.method == 'POST' &&
-                r.path ==
-                    '/integrations/whatsapp/embedded-signup/mobile/start/',
-          ),
-          isTrue,
+        await tester.tap(find.text('Set up a new number'));
+        await tester.pumpAndSettle();
+
+        final request = adapter.received.firstWhere(
+          (r) =>
+              r.method == 'POST' &&
+              r.path == '/integrations/whatsapp/embedded-signup/mobile/start/',
         );
+        expect(request.data, {'mode': 'cloud_api'});
         expect(fakeLauncher.launchedUrls, [
-          'https://facebook.com/v19.0/dialog/oauth?wa=1',
+          'https://facebook.com/v19.0/dialog/oauth?wa=cloud',
+        ]);
+      },
+    );
+
+    testWidgets(
+      'WhatsApp onboarding card (no connected number) -> "Use my existing number" calls start with coexistence mode',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path ==
+                  '/integrations/whatsapp/embedded-signup/mobile/start/') {
+            return _json(
+              '{"authorization_url": "https://facebook.com/v19.0/dialog/oauth?wa=coexistence"}',
+              200,
+            );
+          }
+          return _json(_channelsPage(const []), 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final fakeLauncher = _FakeUrlLauncher();
+        final previousLauncher = UrlLauncherPlatform.instance;
+        UrlLauncherPlatform.instance = fakeLauncher;
+        addTearDown(() => UrlLauncherPlatform.instance = previousLauncher);
+
+        await _pumpChannelsTab(tester, apiClient: client);
+
+        await tester.tap(find.text('Connect WhatsApp'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Use my existing number'));
+        await tester.pumpAndSettle();
+
+        final request = adapter.received.firstWhere(
+          (r) =>
+              r.method == 'POST' &&
+              r.path == '/integrations/whatsapp/embedded-signup/mobile/start/',
+        );
+        expect(request.data, {'mode': 'coexistence'});
+        expect(fakeLauncher.launchedUrls, [
+          'https://facebook.com/v19.0/dialog/oauth?wa=coexistence',
         ]);
       },
     );
