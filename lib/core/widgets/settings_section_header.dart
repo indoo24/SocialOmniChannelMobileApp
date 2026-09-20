@@ -65,6 +65,7 @@ class SettingsSectionHeader extends StatelessWidget {
     final titleText = Text(
       title,
       style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+      textAlign: TextAlign.start,
     );
 
     if (action == null) return titleText;
@@ -93,17 +94,11 @@ class SettingsSectionHeader extends StatelessWidget {
         }
 
         return Row(
-          // Centered, not top-aligned: with the description gone the title is
-          // a single line, and the two should share one baseline band.
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(child: titleText),
-            const SizedBox(width: Space.md),
-            // Flexible, not a bare child: a Row lays non-flex children out
-            // against an unbounded main axis, and a FilledButton.icon asserts
-            // on infinite width. Loose fit leaves it at its natural width and
-            // only narrows it if a long label would otherwise not fit.
-            Flexible(child: action!),
+            Flexible(child: titleText),
+            action!,
           ],
         );
       },
