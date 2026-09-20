@@ -1311,7 +1311,13 @@ class _ChannelOnboardingCardState
       'WHATSAPP' => FilledButton.icon(
         onPressed: _busy
             ? null
-            : () => _connect(repo.startWhatsAppEmbeddedSignupMobile),
+            : () async {
+                final mode = await showWhatsAppModeSelectionSheet(context);
+                if (mode == null || !context.mounted) return;
+                _connect(
+                  () => repo.startWhatsAppEmbeddedSignupMobile(mode: mode),
+                );
+              },
         icon: const Icon(Icons.link, size: 16),
         label: Text(context.l10n.connectWhatsAppAction),
       ),
