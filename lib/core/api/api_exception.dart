@@ -26,30 +26,67 @@ class ApiException implements Exception {
   factory ApiException.fromResponse(int status, dynamic body) {
     if (body is Map && body['error'] is Map) {
       final error = Map<String, dynamic>.from(body['error'] as Map);
+      final rawDetails = error['details'] is Map
+          ? Map<String, dynamic>.from(error['details'] as Map)
+          : const <String, dynamic>{};
+      final rawMessage = error['message'] as String?;
+
+      // If the backend envelope provided the generic headline "The submitted data was invalid."
+      // (or empty), check whether details contains specific field-level validation errors.
+      // If so, surface the first specific field error as the message fallback, so components
+      // relying on error.message show helpful advice rather than the generic placeholder.
+      String resolvedMessage = rawMessage ?? _fallbackFor(status);
+      if ((rawMessage == null ||
+              rawMessage.trim().isEmpty ||
+              rawMessage == 'The submitted data was invalid.') &&
+          rawDetails.isNotEmpty) {
+        final firstFieldMsg = _extractFirstMessage(rawDetails);
+        if (firstFieldMsg != null && firstFieldMsg.isNotEmpty) {
+          resolvedMessage = firstFieldMsg;
+        }
+      }
+
       return ApiException(
         statusCode: status,
-        message: (error['message'] as String?) ?? _fallbackFor(status),
+        message: resolvedMessage,
         code: (error['code'] as String?) ?? 'error',
-        details: error['details'] is Map
-            ? Map<String, dynamic>.from(error['details'] as Map)
-            : const {},
+        details: rawDetails,
       );
     }
 
     // DRF's own validation errors are a flat field->messages map rather than
     // Scenario's envelope. Surface the first one instead of "error".
     if (body is Map && body.isNotEmpty) {
-      final first = body.values.first;
-      final text = first is List && first.isNotEmpty ? first.first : first;
+      final details = Map<String, dynamic>.from(body);
+      final firstMsg = _extractFirstMessage(details);
       return ApiException(
         statusCode: status,
-        message: text?.toString() ?? _fallbackFor(status),
+        message: firstMsg ?? _fallbackFor(status),
         code: 'invalid',
-        details: Map<String, dynamic>.from(body),
+        details: details,
       );
     }
 
     return ApiException(statusCode: status, message: _fallbackFor(status));
+  }
+
+  static String? _extractFirstMessage(Map<String, dynamic> map) {
+    for (final entry in map.entries) {
+      final val = entry.value;
+      if (val is List && val.isNotEmpty) {
+        final strings = val
+            .map((e) => e.toString().trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+        if (strings.isNotEmpty) return strings.join('\n');
+      } else if (val is String && val.trim().isNotEmpty) {
+        return val.trim();
+      } else if (val is Map) {
+        final nested = _extractFirstMessage(Map<String, dynamic>.from(val));
+        if (nested != null) return nested;
+      }
+    }
+    return null;
   }
 
   /// True when the backend refused on permission grounds.
@@ -61,14 +98,73 @@ class ApiException implements Exception {
   bool get isNotFound => statusCode == 404;
 
   /// Per-field messages, for rendering next to form inputs.
+  ///
+  /// Multiple errors for a single field are joined with `\n` so that all
+  /// validation requirements from the server are visible to the user.
   Map<String, String> fieldErrors() {
     final result = <String, String>{};
     details.forEach((field, value) {
-      result[field] = value is List && value.isNotEmpty
-          ? value.first.toString()
-          : value.toString();
+      if (value is List && value.isNotEmpty) {
+        final strings = value
+            .map((e) => e.toString().trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+        if (strings.isNotEmpty) {
+          result[field] = strings.join('\n');
+        }
+      } else if (value is String && value.trim().isNotEmpty) {
+        result[field] = value.trim();
+      } else if (value != null && value is! Map) {
+        result[field] = value.toString();
+      }
     });
     return result;
+  }
+
+  /// Returns a list of all validation messages for [field].
+  List<String> fieldErrorList(String field) {
+    final val = details[field];
+    if (val is List) {
+      return val
+          .map((e) => e.toString().trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+    } else if (val is String && val.trim().isNotEmpty) {
+      return [val.trim()];
+    } else if (val != null && val is! Map) {
+      return [val.toString()];
+    }
+    return const [];
+  }
+
+  /// Returns the joined validation message for [field], or null if no error.
+  String? fieldError(String field) {
+    final list = fieldErrorList(field);
+    return list.isEmpty ? null : list.join('\n');
+  }
+
+  /// Convenience helper to extract password validation errors from [details].
+  ///
+  /// Checks `password`, `new_password` (if [includeNewPassword]), and
+  /// `current_password` (if [includeCurrentPassword]).
+  String? passwordError({
+    bool includeNewPassword = true,
+    bool includeCurrentPassword = false,
+  }) {
+    final pass = fieldError('password');
+    if (pass != null) return pass;
+
+    if (includeNewPassword) {
+      final newPass = fieldError('new_password');
+      if (newPass != null) return newPass;
+    }
+
+    if (includeCurrentPassword) {
+      final currPass = fieldError('current_password');
+      if (currPass != null) return currPass;
+    }
+
+    return null;
   }
 
   static String _fallbackFor(int status) => switch (status) {

@@ -790,7 +790,10 @@ void main() {
         expect((buttonBox.left - headerBox.left).abs(), lessThanOrEqualTo(1.0));
 
         // Section title is at the far right edge in RTL
-        expect((headerBox.right - titleBox.right).abs(), lessThanOrEqualTo(1.0));
+        expect(
+          (headerBox.right - titleBox.right).abs(),
+          lessThanOrEqualTo(1.0),
+        );
 
         // The button does NOT sit close to the title; space is distributed between them
         expect(titleBox.left - buttonBox.right, greaterThan(Space.md));
@@ -885,10 +888,16 @@ void main() {
           expect(buttonBox.width, lessThan(sectionBox.width / 2));
 
           // On the far right edge in LTR
-          expect((headerBox.right - buttonBox.right).abs(), lessThanOrEqualTo(1.0));
+          expect(
+            (headerBox.right - buttonBox.right).abs(),
+            lessThanOrEqualTo(1.0),
+          );
 
           // Title is at the far left edge in LTR
-          expect((titleBox.left - headerBox.left).abs(), lessThanOrEqualTo(1.0));
+          expect(
+            (titleBox.left - headerBox.left).abs(),
+            lessThanOrEqualTo(1.0),
+          );
 
           // Space is distributed between title and button
           expect(buttonBox.left - titleBox.right, greaterThan(Space.md));

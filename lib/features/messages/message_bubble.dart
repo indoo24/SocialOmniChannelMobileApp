@@ -27,6 +27,7 @@ import '../../core/widgets/badges.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../core/utils/attachment_helper.dart';
+import 'voice_playback_coordinator.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
@@ -785,26 +786,93 @@ class _VoicePlayer extends ConsumerStatefulWidget {
 
 enum _PlaybackLoad { idle, loading, ready, error }
 
-class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
+class _VoicePlayerState extends ConsumerState<_VoicePlayer>
+    with AutomaticKeepAliveClientMixin {
+  late final String _playbackId =
+      '${identityHashCode(this)}_${widget.attachment.attachmentId}';
+
   AudioPlayer? _player;
   StreamSubscription<PlayerState>? _stateSub;
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<Duration>? _durationSub;
+  StreamSubscription<void>? _completeSub;
 
   _PlaybackLoad _load = _PlaybackLoad.idle;
   bool _playing = false;
   Duration _position = Duration.zero;
   Duration? _duration;
+  Uint8List? _cachedBytes;
 
   @override
-  void dispose() {
+  bool get wantKeepAlive => _playing || _load == _PlaybackLoad.loading;
+
+  @override
+  void didUpdateWidget(_VoicePlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.url != oldWidget.url ||
+        widget.localPath != oldWidget.localPath) {
+      _stopAndReset();
+    }
+  }
+
+  void _safePause() {
+    final p = _player;
+    if (p != null &&
+        p.state != PlayerState.disposed &&
+        p.state != PlayerState.stopped) {
+      try {
+        p.pause();
+      } catch (_) {}
+    }
+  }
+
+  void _disposePlayerOnly() {
     unawaited(_stateSub?.cancel());
     unawaited(_positionSub?.cancel());
     unawaited(_durationSub?.cancel());
-    // Best-effort, unawaited: nothing on screen still needs this once the
-    // widget is gone, and it must not hold the conversation screen's
-    // teardown open on a slow platform call.
-    unawaited(_player?.dispose());
+    unawaited(_completeSub?.cancel());
+    _stateSub = null;
+    _positionSub = null;
+    _durationSub = null;
+    _completeSub = null;
+    final p = _player;
+    _player = null;
+    unawaited(p?.dispose());
+  }
+
+  void _stopAndReset() {
+    try {
+      ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
+    } catch (_) {}
+    _disposePlayerOnly();
+    _cachedBytes = null;
+    _load = _PlaybackLoad.idle;
+    _playing = false;
+    _position = Duration.zero;
+    _duration = null;
+    if (mounted) setState(() {});
+  }
+
+  void _onCompleted() {
+    if (!mounted) return;
+    try {
+      ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
+    } catch (_) {}
+    if (_playing || _position != Duration.zero) {
+      setState(() {
+        _playing = false;
+        _position = Duration.zero;
+      });
+      updateKeepAlive();
+    }
+  }
+
+  @override
+  void dispose() {
+    try {
+      ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
+    } catch (_) {}
+    _disposePlayerOnly();
     super.dispose();
   }
 
@@ -812,27 +880,70 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
     if (_load == _PlaybackLoad.loading) return;
 
     if (_playing) {
-      await _player?.pause();
+      _safePause();
+      try {
+        ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
+      } catch (_) {}
+      if (mounted) {
+        setState(() => _playing = false);
+        updateKeepAlive();
+      }
       return;
     }
 
+    // If currently paused mid-track or completed at 0:00, and player is still active, resume:
     if (_player != null && _load == _PlaybackLoad.ready) {
-      await _player!.resume();
-      return;
+      try {
+        ref
+            .read(activeVoicePlaybackProvider.notifier)
+            .setActive(
+              _playbackId,
+              onPause: () {
+                _safePause();
+                if (mounted) {
+                  setState(() => _playing = false);
+                  updateKeepAlive();
+                }
+              },
+            );
+      } catch (_) {}
+
+      try {
+        if (_position == Duration.zero) {
+          try {
+            await _player!
+                .seek(Duration.zero)
+                .timeout(const Duration(milliseconds: 300));
+          } catch (_) {}
+        }
+        await _player!.resume();
+        if (mounted) {
+          setState(() => _playing = true);
+          updateKeepAlive();
+        }
+        return;
+      } catch (_) {
+        _disposePlayerOnly();
+      }
     }
 
     final localPath = widget.localPath;
     final url = widget.url;
-    if ((localPath == null || localPath.isEmpty) && url.isEmpty) {
+    if (_cachedBytes == null &&
+        (localPath == null || localPath.isEmpty) &&
+        url.isEmpty) {
       if (mounted) setState(() => _load = _PlaybackLoad.error);
       return;
     }
 
     setState(() => _load = _PlaybackLoad.loading);
+    updateKeepAlive();
 
     try {
       Uint8List bytes;
-      if (localPath != null &&
+      if (_cachedBytes != null) {
+        bytes = _cachedBytes!;
+      } else if (localPath != null &&
           localPath.isNotEmpty &&
           File(localPath).existsSync()) {
         bytes = await File(localPath).readAsBytes();
@@ -849,22 +960,49 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
         }
         bytes = Uint8List.fromList(data);
       }
+      _cachedBytes = bytes;
 
       if (!mounted) return;
 
       final player = AudioPlayer();
+      await player.setReleaseMode(ReleaseMode.stop);
+
       _stateSub = player.onPlayerStateChanged.listen((state) {
         if (!mounted) return;
-        setState(() => _playing = state == PlayerState.playing);
+        if (state == PlayerState.completed) {
+          _onCompleted();
+        } else {
+          setState(() => _playing = state == PlayerState.playing);
+          updateKeepAlive();
+        }
       });
       _positionSub = player.onPositionChanged.listen((position) {
         if (!mounted) return;
+        if (!_playing && _position == Duration.zero) return;
         setState(() => _position = position);
       });
       _durationSub = player.onDurationChanged.listen((duration) {
         if (!mounted) return;
         setState(() => _duration = duration);
       });
+      _completeSub = player.onPlayerComplete.listen((_) {
+        _onCompleted();
+      });
+
+      try {
+        ref
+            .read(activeVoicePlaybackProvider.notifier)
+            .setActive(
+              _playbackId,
+              onPause: () {
+                _safePause();
+                if (mounted) {
+                  setState(() => _playing = false);
+                  updateKeepAlive();
+                }
+              },
+            );
+      } catch (_) {}
 
       await player.play(BytesSource(bytes));
 
@@ -874,9 +1012,16 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
       }
 
       _player = player;
-      setState(() => _load = _PlaybackLoad.ready);
+      setState(() {
+        _load = _PlaybackLoad.ready;
+        _playing = true;
+      });
+      updateKeepAlive();
     } catch (_) {
-      if (mounted) setState(() => _load = _PlaybackLoad.error);
+      if (mounted) {
+        setState(() => _load = _PlaybackLoad.error);
+        updateKeepAlive();
+      }
     }
   }
 
@@ -888,6 +1033,8 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     final theme = Theme.of(context);
     final total = _duration ?? _durationFromAttachment();
     final progress = total != null && total.inMilliseconds > 0
@@ -988,7 +1135,9 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
                                   total != null) {
                                 final targetMs =
                                     (total.inMilliseconds * fraction).round();
-                                _player!.seek(Duration(milliseconds: targetMs));
+                                final target = Duration(milliseconds: targetMs);
+                                setState(() => _position = target);
+                                _player!.seek(target);
                               }
                             },
                           ),
@@ -998,7 +1147,11 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
                       Text(
                         _format(
                           total != null
-                              ? (_playing ? _position : total)
+                              ? (_playing ||
+                                        (_position > Duration.zero &&
+                                            _position < total)
+                                    ? _position
+                                    : total)
                               : _position,
                         ),
                         style: TextStyle(

@@ -2417,7 +2417,10 @@ void main() {
         await tester.pumpAndSettle();
 
         // Bottom sheet is shown with both options
-        expect(find.text('Connect WhatsApp'), findsNWidgets(2)); // Card + sheet title
+        expect(
+          find.text('Connect WhatsApp'),
+          findsNWidgets(2),
+        ); // Card + sheet title
         expect(
           find.text(
             "You will finish signing in on Meta's own page. Nothing to copy or paste.",
