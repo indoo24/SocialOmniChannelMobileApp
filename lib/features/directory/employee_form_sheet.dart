@@ -120,6 +120,7 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
 
   bool _submitting = false;
   String? _error;
+  String? _passwordError;
 
   @override
   void initState() {
@@ -175,11 +176,17 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
     final firstName = _firstName.text.trim();
     final lastName = _lastName.text.trim();
     if (email.isEmpty || firstName.isEmpty || lastName.isEmpty) {
-      setState(() => _error = context.l10n.employeeFormRequiredFieldsError);
+      setState(() {
+        _error = context.l10n.employeeFormRequiredFieldsError;
+        _passwordError = null;
+      });
       return;
     }
     if (!widget.isEdit && _password.text.isEmpty) {
-      setState(() => _error = context.l10n.employeeFormPasswordRequiredError);
+      setState(() {
+        _passwordError = context.l10n.employeeFormPasswordRequiredError;
+        _error = null;
+      });
       return;
     }
 
@@ -188,7 +195,10 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
     if (rawCapacity.isNotEmpty) {
       final parsed = int.tryParse(rawCapacity);
       if (parsed == null || parsed < 0 || parsed > 200) {
-        setState(() => _error = context.l10n.chatCapacityInvalidRangeError);
+        setState(() {
+          _error = context.l10n.chatCapacityInvalidRangeError;
+          _passwordError = null;
+        });
         return;
       }
       maxOpenChats = parsed;
@@ -196,7 +206,10 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
 
     if (_routingChannelScope == 'SELECTED' &&
         _routingProvidersSelected.isEmpty) {
-      setState(() => _error = context.l10n.routingChannelScopeRequiredError);
+      setState(() {
+        _error = context.l10n.routingChannelScopeRequiredError;
+        _passwordError = null;
+      });
       return;
     }
 
@@ -205,6 +218,7 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
     setState(() {
       _submitting = true;
       _error = null;
+      _passwordError = null;
     });
     try {
       if (widget.isEdit) {
@@ -240,7 +254,23 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
       );
     } on ApiException catch (error) {
       if (!mounted) return;
-      setState(() => _error = error.message);
+      final fieldErrors = error.fieldErrors();
+      final passwordErr =
+          error.fieldError('password') ?? error.fieldError('new_password');
+      final nonPasswordErrors = Map<String, String>.from(fieldErrors)
+        ..remove('password')
+        ..remove('new_password');
+
+      setState(() {
+        _passwordError = passwordErr;
+        if (nonPasswordErrors.isNotEmpty) {
+          _error = nonPasswordErrors.values.join('\n');
+        } else if (passwordErr == null) {
+          _error = error.message;
+        } else {
+          _error = null;
+        }
+      });
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -507,6 +537,10 @@ class _EmployeeFormSheetState extends ConsumerState<_EmployeeFormSheet> {
                 : context.l10n.passwordLabel,
           ),
         ),
+        if (_passwordError != null) ...[
+          const SizedBox(height: Space.sm),
+          InlineError(message: _passwordError!),
+        ],
         const SizedBox(height: Space.md),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
