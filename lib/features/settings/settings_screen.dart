@@ -469,7 +469,9 @@ class _SecuritySectionState extends ConsumerState<_SecuritySection> {
   final _current = TextEditingController();
   final _next = TextEditingController();
   bool _busy = false;
-  String? _error;
+  String? _currentPasswordError;
+  String? _newPasswordError;
+  String? _generalError;
 
   @override
   void dispose() {
@@ -481,7 +483,9 @@ class _SecuritySectionState extends ConsumerState<_SecuritySection> {
   Future<void> _submit() async {
     setState(() {
       _busy = true;
-      _error = null;
+      _currentPasswordError = null;
+      _newPasswordError = null;
+      _generalError = null;
     });
     try {
       await ref
@@ -497,7 +501,22 @@ class _SecuritySectionState extends ConsumerState<_SecuritySection> {
         SnackBar(content: Text(context.l10n.passwordChangedMessage)),
       );
     } on ApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (!mounted) return;
+      final newPassErr =
+          error.fieldError('new_password') ?? error.fieldError('password');
+      final currentPassErr = error.fieldError('current_password');
+      final nonFieldErr =
+          error.fieldError('non_field_errors') ?? error.fieldError('detail');
+
+      setState(() {
+        _newPasswordError = newPassErr;
+        _currentPasswordError = currentPassErr;
+        if (newPassErr == null && currentPassErr == null) {
+          _generalError = nonFieldErr ?? error.message;
+        } else {
+          _generalError = nonFieldErr;
+        }
+      });
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -531,6 +550,10 @@ class _SecuritySectionState extends ConsumerState<_SecuritySection> {
             labelText: context.l10n.currentPasswordLabel,
           ),
         ),
+        if (_currentPasswordError != null) ...[
+          const SizedBox(height: Space.sm),
+          InlineError(message: _currentPasswordError!),
+        ],
         const SizedBox(height: Space.md),
         TextField(
           controller: _next,
@@ -541,9 +564,13 @@ class _SecuritySectionState extends ConsumerState<_SecuritySection> {
             helperText: context.l10n.newPasswordHint,
           ),
         ),
-        if (_error != null) ...[
+        if (_newPasswordError != null) ...[
+          const SizedBox(height: Space.sm),
+          InlineError(message: _newPasswordError!),
+        ],
+        if (_generalError != null) ...[
           const SizedBox(height: Space.md),
-          InlineError(message: _error!),
+          InlineError(message: _generalError!),
         ],
         const SizedBox(height: Space.lg),
         // Stretched explicitly: the old ListView made this full-width for
