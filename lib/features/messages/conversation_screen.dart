@@ -36,6 +36,7 @@ import 'conversation_resolve_button.dart';
 import 'conversation_skeleton.dart';
 import 'message_bubble.dart';
 import 'notes_controller.dart';
+import 'voice_playback_coordinator.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({required this.conversationId, super.key});
@@ -223,6 +224,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         // Provider or scope unmounted/disposed during tear down.
       }
     });
+
+    try {
+      container.read(activeVoicePlaybackProvider.notifier).stopAll();
+    } catch (_) {}
 
     _composerController.dispose();
     _scrollController.dispose();
