@@ -35,6 +35,8 @@ import 'conversation_controller.dart';
 import 'conversation_resolve_button.dart';
 import 'conversation_skeleton.dart';
 import 'message_bubble.dart';
+import 'package:flutter/rendering.dart';
+import 'highlight_message_coordinator.dart';
 import 'notes_controller.dart';
 import 'voice_playback_coordinator.dart';
 
@@ -50,11 +52,17 @@ class ConversationScreen extends ConsumerStatefulWidget {
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _composerController = TextEditingController();
   final _scrollController = ScrollController();
+  final Map<int, GlobalKey> _bubbleKeys = {};
   late final ActiveConversation _activeNotifier;
   late final InboxController _inboxNotifier;
   late ProviderContainer _container;
   bool _sending = false;
   bool _initialScrollDone = false;
+
+  GlobalKey _bubbleKeyFor(int messageId) => _bubbleKeys.putIfAbsent(
+    messageId,
+    () => GlobalKey(debugLabel: 'msg_bubble_$messageId'),
+  );
 
   /// True once a single `_jumpToBottomInitial` post-frame callback is
   /// in flight or has completed. Guards against `_MessageList` rebuilding
@@ -200,6 +208,120 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     });
   }
 
+  bool _isWidgetFullyVisible(BuildContext targetContext) {
+    final renderObject = targetContext.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return false;
+    final viewport = RenderAbstractViewport.of(renderObject);
+    if (!_scrollController.hasClients ||
+        !_scrollController.position.hasContentDimensions) {
+      return false;
+    }
+
+    final offsetToReveal = viewport.getOffsetToReveal(renderObject, 0.0);
+    final itemTop = offsetToReveal.offset;
+    final itemBottom = itemTop + renderObject.size.height;
+    final viewportTop = _scrollController.offset;
+    final viewportBottom =
+        viewportTop + _scrollController.position.viewportDimension;
+
+    return itemTop >= viewportTop && itemBottom <= viewportBottom;
+  }
+
+  Future<void> _scrollToQuotedMessage(int targetMessageId) async {
+    if (targetMessageId <= 0) return;
+
+    final conversationId = widget.conversationId;
+    var convoState = ref
+        .read(conversationControllerProvider(conversationId))
+        .value;
+    if (convoState == null) return;
+
+    // 1. If not yet loaded in messages, fetch older history via existing pagination.
+    int attempts = 0;
+    while (convoState != null &&
+        !convoState.messages.any((m) => m.id == targetMessageId) &&
+        convoState.hasMore &&
+        attempts < 10) {
+      attempts++;
+      await ref
+          .read(conversationControllerProvider(conversationId).notifier)
+          .loadOlder();
+      if (!mounted) return;
+      convoState = ref
+          .read(conversationControllerProvider(conversationId))
+          .value;
+    }
+
+    if (convoState == null ||
+        !convoState.messages.any((m) => m.id == targetMessageId)) {
+      // Referenced message does not exist or was deleted; graceful exit.
+      return;
+    }
+
+    final targetKey = _bubbleKeyFor(targetMessageId);
+    final targetContext = targetKey.currentContext;
+
+    // 2. If the message is already mounted and completely visible in viewport.
+    if (targetContext != null &&
+        targetContext.mounted &&
+        _isWidgetFullyVisible(targetContext)) {
+      ref.read(highlightedMessageProvider.notifier).highlight(targetMessageId);
+      return;
+    }
+
+    // 3. If mounted but partially/fully out of the viewport.
+    if (targetContext != null && targetContext.mounted) {
+      await Scrollable.ensureVisible(
+        targetContext,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOutCubic,
+        alignment: 0.25,
+      );
+      if (!mounted) return;
+      ref.read(highlightedMessageProvider.notifier).highlight(targetMessageId);
+      return;
+    }
+
+    // 4. Target message is loaded in memory but not currently mounted in ListView.
+    // Approximate its offset, animate towards it to trigger layout, then ensureVisible.
+    if (!_scrollController.hasClients ||
+        !_scrollController.position.hasContentDimensions) {
+      return;
+    }
+
+    final sortedMessages = convoState.messages;
+    final targetIdx = sortedMessages.indexWhere((m) => m.id == targetMessageId);
+    if (targetIdx < 0) return;
+
+    final fraction = (targetIdx / sortedMessages.length).clamp(0.0, 1.0);
+    final approxOffset = fraction * _scrollController.position.maxScrollExtent;
+
+    await _scrollController.animateTo(
+      approxOffset,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+    );
+    if (!mounted) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final mountedContext = targetKey.currentContext;
+      if (mountedContext != null) {
+        await Scrollable.ensureVisible(
+          mountedContext,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOutCubic,
+          alignment: 0.25,
+        );
+      }
+      if (mounted) {
+        ref
+            .read(highlightedMessageProvider.notifier)
+            .highlight(targetMessageId);
+      }
+    });
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -227,8 +349,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
     try {
       container.read(activeVoicePlaybackProvider.notifier).stopAll();
+      container.read(highlightedMessageProvider.notifier).clear();
     } catch (_) {}
 
+    _bubbleKeys.clear();
     _composerController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -462,6 +586,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                                   ? null
                                   : _jumpToBottomInitial,
                               onReply: canReply ? _startReplyingTo : null,
+                              onQuoteTap: _scrollToQuotedMessage,
+                              keyForMessage: _bubbleKeyFor,
                             ),
                           ),
                   ),
@@ -1039,6 +1165,8 @@ class _MessageList extends ConsumerWidget {
     required this.conversationId,
     this.onInitialLayout,
     this.onReply,
+    this.onQuoteTap,
+    this.keyForMessage,
   });
 
   final ConversationState state;
@@ -1050,6 +1178,12 @@ class _MessageList extends ConsumerWidget {
   /// the signed-in employee holds `conversation.reply` (there is nothing to
   /// quote a message *into* without it).
   final ValueChanged<Message>? onReply;
+
+  /// Invoked when the user taps a reply preview inside any message bubble.
+  final ValueChanged<int>? onQuoteTap;
+
+  /// Provides stable GlobalKeys for message bubbles so they can be scrolled to.
+  final GlobalKey Function(int messageId)? keyForMessage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1120,6 +1254,9 @@ class _MessageList extends ConsumerWidget {
                 _InternalNoteTimelineCard(note: entry.note!)
               else if (entry.message != null)
                 MessageBubble(
+                  key: entry.message!.id > 0
+                      ? keyForMessage?.call(entry.message!.id)
+                      : null,
                   message: entry.message!,
                   provider: state.conversation.provider,
                   onRetry: _retryHandlerFor(
@@ -1158,6 +1295,7 @@ class _MessageList extends ConsumerWidget {
                           entry.message!.id >= 0
                       ? () => onReply!(entry.message!)
                       : null,
+                  onQuoteTap: onQuoteTap,
                 ),
             ],
           );

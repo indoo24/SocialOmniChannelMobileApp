@@ -19,6 +19,8 @@ class MessageAttachment {
     this.localFilePath,
     this.durationMs,
     this.sizeBytes,
+    this.status = 'READY',
+    this.metadata,
   });
 
   final String type;
@@ -54,6 +56,12 @@ class MessageAttachment {
   /// Attachment size in bytes, when known from the draft or file metadata.
   final int? sizeBytes;
 
+  /// Attachment readiness status from backend (READY, UNAVAILABLE, FETCHING, FAILED).
+  final String status;
+
+  /// Optional platform metadata from backend (e.g. `whatsapp_type: "document"`).
+  final Map<String, dynamic>? metadata;
+
   factory MessageAttachment.fromJson(Map<String, dynamic> json) {
     final mime = JsonSafe.asString(
       json['mime_type'] ?? json['mimeType'] ?? json['content_type'],
@@ -70,6 +78,11 @@ class MessageAttachment {
         type = 'FILE';
       }
     }
+    final rawMeta = json['metadata'];
+    final Map<String, dynamic>? metadata = rawMeta is Map<String, dynamic>
+        ? rawMeta
+        : (rawMeta is Map ? Map<String, dynamic>.from(rawMeta) : null);
+
     return MessageAttachment(
       type: type,
       url: JsonSafe.asString(
@@ -80,7 +93,7 @@ class MessageAttachment {
             json['downloadUrl'],
       ),
       attachmentId: JsonSafe.asString(
-        json['id'] ?? json['public_id'] ?? json['attachment_id'],
+        json['public_id'] ?? json['id'] ?? json['attachment_id'],
       ),
       fileName: JsonSafe.asString(
         json['file_name'] ??
@@ -97,8 +110,16 @@ class MessageAttachment {
             json['file_size'] ??
             json['bytes'],
       ),
+      status: JsonSafe.asString(json['status'], fallback: 'READY'),
+      metadata: metadata,
     );
   }
+
+  /// Platform-reported type (e.g. 'document', 'voice', 'image').
+  String get whatsappType => JsonSafe.asString(metadata?['whatsapp_type']);
+
+  /// Whether the file is ready to be fetched/downloaded according to backend.
+  bool get isReady => status.isEmpty || status.toUpperCase() == 'READY';
 
   bool get isImage => type == 'IMAGE' || mimeType.startsWith('image/');
   bool get isAudio =>
@@ -109,7 +130,31 @@ class MessageAttachment {
   bool get isVideo => type == 'VIDEO' || mimeType.startsWith('video/');
   bool get isVoice =>
       type == 'VOICE' || (durationMs != null && durationMs! > 0) || isAudio;
-  bool get isDocument => !isImage && !isAudio && !isVideo;
+
+  /// True if the attachment was sent as a document/file attachment.
+  /// Decouples the transport/message type from the underlying file MIME type.
+  bool get isDocument =>
+      type.toUpperCase() == 'FILE' ||
+      type.toUpperCase() == 'DOCUMENT' ||
+      whatsappType.toLowerCase() == 'document' ||
+      (!isImage && !isAudio && !isVideo);
+
+  /// True if this attachment represents an inline image preview.
+  /// Document attachments remain document attachments rather than being rendered inline.
+  bool get isInlineImage => !isDocument && isImage;
+
+  /// True if the underlying file is an image based on MIME type or file extension.
+  bool get hasImageFile {
+    if (mimeType.toLowerCase().startsWith('image/')) return true;
+    final ext = fileExtension.toLowerCase();
+    return ext == 'jpg' ||
+        ext == 'jpeg' ||
+        ext == 'png' ||
+        ext == 'webp' ||
+        ext == 'gif' ||
+        ext == 'bmp' ||
+        ext == 'svg';
+  }
 
   String get fileExtension {
     final dot = fileName.lastIndexOf('.');

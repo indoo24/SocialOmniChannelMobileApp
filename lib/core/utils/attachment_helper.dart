@@ -10,6 +10,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../api/api_client.dart';
+import '../logging/app_log.dart';
 import '../models/message.dart';
 import '../../l10n/l10n_extensions.dart';
 
@@ -70,8 +71,16 @@ class AttachmentHelper {
 
   /// Suggests a filename for [attachment] based on its name, type, and MIME.
   static String suggestFileName(MessageAttachment attachment) {
-    if (attachment.fileName.trim().isNotEmpty) {
-      return attachment.fileName.trim();
+    final rawName = attachment.fileName.trim();
+    if (rawName.isNotEmpty) {
+      if (rawName.contains('.')) {
+        return rawName;
+      }
+      final ext = _extensionFromMime(attachment.mimeType);
+      if (ext.isNotEmpty) {
+        return '$rawName$ext';
+      }
+      return rawName;
     }
 
     final ext = switch (attachment.type.toUpperCase()) {
@@ -85,7 +94,7 @@ class AttachmentHelper {
       'IMAGE' => 'photo',
       'AUDIO' || 'VOICE' => 'voice_note',
       'VIDEO' => 'video',
-      _ => 'document',
+      _ => attachment.hasImageFile ? 'image' : 'document',
     };
 
     final id = attachment.attachmentId.isNotEmpty
@@ -110,7 +119,12 @@ class AttachmentHelper {
     if (lower.contains('zip')) return '.zip';
     if (lower.contains('jpeg') || lower.contains('jpg')) return '.jpg';
     if (lower.contains('png')) return '.png';
+    if (lower.contains('webp')) return '.webp';
+    if (lower.contains('gif')) return '.gif';
+    if (lower.contains('bmp')) return '.bmp';
+    if (lower.contains('svg')) return '.svg';
     if (lower.contains('text') || lower.contains('txt')) return '.txt';
+    if (lower.contains('csv')) return '.csv';
     return '';
   }
 
@@ -141,6 +155,10 @@ class AttachmentHelper {
     if (lowerPath.endsWith('.jpg') || lowerPath.endsWith('.jpeg')) {
       return 'image/jpeg';
     }
+    if (lowerPath.endsWith('.webp')) return 'image/webp';
+    if (lowerPath.endsWith('.gif')) return 'image/gif';
+    if (lowerPath.endsWith('.bmp')) return 'image/bmp';
+    if (lowerPath.endsWith('.svg')) return 'image/svg+xml';
     if (lowerPath.endsWith('.mp4')) return 'video/mp4';
     if (lowerPath.endsWith('.mp3')) return 'audio/mpeg';
     if (lowerPath.endsWith('.m4a')) return 'audio/mp4';
@@ -203,26 +221,80 @@ class AttachmentHelper {
   static Future<File?> downloadAttachmentFile({
     required MessageAttachment attachment,
     required ApiClient api,
+    int? messageId,
   }) async {
     // Return existing local or cached file immediately without re-downloading
     final local = await findLocalAttachment(attachment);
     if (local != null) return local;
 
     final url = attachment.resolvedUrl;
-    if (url.isEmpty) return null;
+    if (url.isEmpty) {
+      AppLog.debug(
+        'AttachmentHelper',
+        'Download aborted: missing URL for attachmentId=${attachment.attachmentId}, '
+        'messageId=$messageId, mimeType=${attachment.mimeType}, fileName=${attachment.fileName}',
+      );
+      return null;
+    }
 
-    final response = await api.raw.get<List<int>>(
-      url,
-      options: Options(responseType: ResponseType.bytes),
-    );
+    try {
+      final response = await api.raw.get<List<int>>(
+        url,
+        options: Options(
+          responseType: ResponseType.bytes,
+          followRedirects: true,
+        ),
+      );
 
-    final bytes = response.data;
-    if (response.statusCode != 200 && response.statusCode != 206) return null;
-    if (bytes == null || bytes.isEmpty) return null;
+      final status = response.statusCode ?? 0;
+      final bytes = response.data;
 
-    final targetFile = await getCachedAttachmentFile(attachment);
-    targetFile.writeAsBytesSync(bytes, flush: true);
-    return targetFile;
+      if (status != 200 && status != 206) {
+        AppLog.debug(
+          'AttachmentHelper',
+          'Download failed: status=$status, attachmentId=${attachment.attachmentId}, '
+          'messageId=$messageId, mimeType=${attachment.mimeType}, fileName=${attachment.fileName}',
+        );
+        AppLog.warn(
+          'AttachmentHelper',
+          'Attachment download failed (HTTP status $status)',
+        );
+        return null;
+      }
+
+      if (bytes == null || bytes.isEmpty) {
+        AppLog.debug(
+          'AttachmentHelper',
+          'Download returned empty payload: status=$status, attachmentId=${attachment.attachmentId}, '
+          'messageId=$messageId, mimeType=${attachment.mimeType}, fileName=${attachment.fileName}',
+        );
+        return null;
+      }
+
+      final targetFile = await getCachedAttachmentFile(attachment);
+      targetFile.writeAsBytesSync(bytes, flush: true);
+      return targetFile;
+    } on DioException catch (e) {
+      final status = e.response?.statusCode ?? 0;
+      AppLog.debug(
+        'AttachmentHelper',
+        'Download transport failure: status=$status, type=${e.type}, '
+        'attachmentId=${attachment.attachmentId}, messageId=$messageId, '
+        'mimeType=${attachment.mimeType}, fileName=${attachment.fileName}',
+      );
+      AppLog.warn(
+        'AttachmentHelper',
+        'Attachment download transport error ($status)',
+      );
+      return null;
+    } catch (e) {
+      AppLog.debug(
+        'AttachmentHelper',
+        'Download unexpected exception: $e, attachmentId=${attachment.attachmentId}, '
+        'messageId=$messageId, mimeType=${attachment.mimeType}, fileName=${attachment.fileName}',
+      );
+      return null;
+    }
   }
 
   /// Downloads [attachment] (if not already local) and immediately opens it
@@ -231,6 +303,7 @@ class AttachmentHelper {
     required BuildContext context,
     required MessageAttachment attachment,
     required ApiClient api,
+    int? messageId,
   }) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -247,6 +320,7 @@ class AttachmentHelper {
       final file = await downloadAttachmentFile(
         attachment: attachment,
         api: api,
+        messageId: messageId,
       );
 
       if (file == null || !file.existsSync() || file.lengthSync() == 0) {
@@ -284,6 +358,11 @@ class AttachmentHelper {
         );
       } else if (openResult.type == ResultType.error ||
           openResult.type == ResultType.permissionDenied) {
+        AppLog.debug(
+          'AttachmentHelper',
+          'Open file error: resultType=${openResult.type}, message=${openResult.message}, '
+          'filePath=${file.path}, mime=$mime, attachmentId=${attachment.attachmentId}, messageId=$messageId',
+        );
         if (!context.mounted) return;
         messenger.hideCurrentSnackBar();
         messenger.showSnackBar(
@@ -301,7 +380,11 @@ class AttachmentHelper {
           messenger.hideCurrentSnackBar();
         }
       }
-    } catch (_) {
+    } catch (e) {
+      AppLog.debug(
+        'AttachmentHelper',
+        'openAttachment exception: $e, attachmentId=${attachment.attachmentId}, messageId=$messageId',
+      );
       if (!context.mounted) return;
       messenger.hideCurrentSnackBar();
       messenger.showSnackBar(
@@ -318,6 +401,7 @@ class AttachmentHelper {
     required BuildContext context,
     required MessageAttachment attachment,
     required ApiClient api,
+    int? messageId,
   }) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -338,6 +422,7 @@ class AttachmentHelper {
         final downloaded = await downloadAttachmentFile(
           attachment: attachment,
           api: api,
+          messageId: messageId,
         );
 
         if (downloaded == null || !downloaded.existsSync()) {
@@ -366,7 +451,11 @@ class AttachmentHelper {
           ),
         ),
       );
-    } catch (_) {
+    } catch (e) {
+      AppLog.debug(
+        'AttachmentHelper',
+        'saveAttachmentToDownloads exception: $e, attachmentId=${attachment.attachmentId}, messageId=$messageId',
+      );
       if (!context.mounted) return;
       messenger.hideCurrentSnackBar();
       messenger.showSnackBar(
