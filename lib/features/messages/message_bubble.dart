@@ -28,6 +28,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../core/utils/attachment_helper.dart';
 import 'highlight_message_coordinator.dart';
+import 'media_group_grid.dart';
 import 'swipe_to_reply.dart';
 import 'voice_playback_coordinator.dart';
 
@@ -607,22 +608,76 @@ class _Attachments extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (var i = 0; i < message.attachments.length; i++)
-          Padding(
-            padding: EdgeInsets.only(
-              bottom:
-                  i == message.attachments.length - 1 && message.text.isEmpty
-                  ? 0
-                  : Space.sm,
+    final widgets = <Widget>[];
+    final attachments = message.attachments;
+
+    var i = 0;
+    while (i < attachments.length) {
+      final current = attachments[i];
+      if (current.isInlineImage) {
+        final imageGroup = <MessageAttachment>[current];
+        var j = i + 1;
+        while (j < attachments.length && attachments[j].isInlineImage) {
+          imageGroup.add(attachments[j]);
+          j++;
+        }
+
+        if (imageGroup.length >= 2) {
+          widgets.add(
+            MediaGroupGrid(
+              attachments: imageGroup,
+              messageId: message.id,
+              isOutbound: message.isOutbound,
+              onTapImage: (index) async {
+                final headers =
+                    await ref.read(apiClientProvider).mediaAuthHeaders();
+                if (!context.mounted) return;
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => _ImageViewerScreen(
+                      attachments: imageGroup,
+                      initialIndex: index,
+                      headers: headers,
+                      messageId: message.id,
+                    ),
+                  ),
+                );
+              },
             ),
-            child: _Attachment(
-              attachment: message.attachments[i],
+          );
+        } else {
+          widgets.add(
+            _Attachment(
+              attachment: current,
               isOutbound: message.isOutbound,
               messageId: message.id,
             ),
+          );
+        }
+        i = j;
+      } else {
+        widgets.add(
+          _Attachment(
+            attachment: current,
+            isOutbound: message.isOutbound,
+            messageId: message.id,
+          ),
+        );
+        i++;
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var idx = 0; idx < widgets.length; idx++)
+          Padding(
+            padding: EdgeInsets.only(
+              bottom: idx == widgets.length - 1 && message.text.isEmpty
+                  ? 0
+                  : Space.sm,
+            ),
+            child: widgets[idx],
           ),
       ],
     );
@@ -781,16 +836,20 @@ class _AttachmentImage extends ConsumerWidget {
   }
 }
 
-/// Full-screen, pinch-to-zoom view of an image attachment.
-class _ImageViewerScreen extends StatelessWidget {
+/// Full-screen, pinch-to-zoom view of an image attachment or multi-image gallery.
+class _ImageViewerScreen extends StatefulWidget {
   const _ImageViewerScreen({
-    required this.url,
-    required this.headers,
+    this.attachments = const [],
+    this.initialIndex = 0,
+    this.url = '',
+    this.headers = const {},
     this.localPath,
     this.attachment,
     this.messageId,
   });
 
+  final List<MessageAttachment> attachments;
+  final int initialIndex;
   final String url;
   final Map<String, String> headers;
   final String? localPath;
@@ -798,11 +857,46 @@ class _ImageViewerScreen extends StatelessWidget {
   final int? messageId;
 
   @override
+  State<_ImageViewerScreen> createState() => _ImageViewerScreenState();
+}
+
+class _ImageViewerScreenState extends State<_ImageViewerScreen> {
+  late final PageController _pageController;
+  late int _currentIndex;
+  late final List<MessageAttachment> _galleryItems;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.attachments.isNotEmpty) {
+      _galleryItems = widget.attachments;
+      _currentIndex = widget.initialIndex.clamp(0, _galleryItems.length - 1);
+    } else if (widget.attachment != null) {
+      _galleryItems = [widget.attachment!];
+      _currentIndex = 0;
+    } else {
+      _galleryItems = [
+        MessageAttachment(
+          type: 'IMAGE',
+          url: widget.url,
+          localFilePath: widget.localPath,
+        ),
+      ];
+      _currentIndex = 0;
+    }
+    _pageController = PageController(initialPage: _currentIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final hasLocal =
-        localPath != null &&
-        localPath!.isNotEmpty &&
-        File(localPath!).existsSync();
+    final currentAttachment =
+        _currentIndex < _galleryItems.length ? _galleryItems[_currentIndex] : null;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -810,40 +904,72 @@ class _ImageViewerScreen extends StatelessWidget {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
+        title: _galleryItems.length > 1
+            ? Text(
+                '${_currentIndex + 1} / ${_galleryItems.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
+            : null,
         actions: [
-          if (attachment != null)
+          if (currentAttachment != null)
             Consumer(
               builder: (context, ref, _) => IconButton(
                 icon: const Icon(Icons.download_rounded),
                 tooltip: context.l10n.downloadAttachmentAction,
                 onPressed: () => AttachmentHelper.saveAttachmentToDownloads(
                   context: context,
-                  attachment: attachment!,
+                  attachment: currentAttachment,
                   api: ref.read(apiClientProvider),
-                  messageId: messageId,
+                  messageId: widget.messageId,
                 ),
               ),
             ),
         ],
       ),
-      body: Center(
-        child: InteractiveViewer(
-          minScale: 1,
-          maxScale: 4,
-          child: hasLocal
-              ? Image.file(File(localPath!), fit: BoxFit.contain)
-              : CachedNetworkImage(
-                  imageUrl: url,
-                  httpHeaders: headers,
-                  fit: BoxFit.contain,
-                  placeholder: (_, _) => const CircularProgressIndicator(),
-                  errorWidget: (_, _, _) => Icon(
-                    Icons.broken_image_outlined,
-                    color: Colors.white.withValues(alpha: 0.7),
-                    size: 48,
-                  ),
-                ),
-        ),
+      body: PageView.builder(
+        controller: _pageController,
+        itemCount: _galleryItems.length,
+        onPageChanged: (idx) => setState(() => _currentIndex = idx),
+        itemBuilder: (context, index) {
+          final item = _galleryItems[index];
+          final localPath = item.localFilePath ??
+              (index == 0 && widget.localPath != null ? widget.localPath : null);
+          final hasLocal = localPath != null &&
+              localPath.isNotEmpty &&
+              File(localPath).existsSync();
+          final rawUrl = item.resolvedUrl.isNotEmpty ? item.resolvedUrl : widget.url;
+          final safeUrl = SafeUrl.forImage(rawUrl);
+
+          return Center(
+            child: InteractiveViewer(
+              minScale: 1,
+              maxScale: 4,
+              child: hasLocal
+                  ? Image.file(File(localPath), fit: BoxFit.contain)
+                  : CachedNetworkImage(
+                      imageUrl: safeUrl,
+                      httpHeaders: widget.headers,
+                      fit: BoxFit.contain,
+                      placeholder: (_, _) => const Center(
+                        child: Icon(
+                          Icons.image_outlined,
+                          color: Colors.white38,
+                          size: 48,
+                        ),
+                      ),
+                      errorWidget: (_, _, _) => Icon(
+                        Icons.broken_image_outlined,
+                        color: Colors.white.withValues(alpha: 0.7),
+                        size: 48,
+                      ),
+                    ),
+            ),
+          );
+        },
       ),
     );
   }

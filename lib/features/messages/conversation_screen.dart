@@ -34,6 +34,7 @@ import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
 import 'conversation_resolve_button.dart';
 import 'conversation_skeleton.dart';
+import 'media_group_grid.dart';
 import 'message_bubble.dart';
 import 'package:flutter/rendering.dart';
 import 'highlight_message_coordinator.dart';
@@ -252,20 +253,31 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           .value;
     }
 
-    if (convoState == null ||
-        !convoState.messages.any((m) => m.id == targetMessageId)) {
+    if (convoState == null) return;
+
+    final grouped = groupMediaBatchMessages(convoState.messages);
+    final targetGroup = grouped.where(
+      (m) =>
+          m.id == targetMessageId ||
+          m.memberMessageIds.contains(targetMessageId),
+    ).firstOrNull;
+
+    if (targetGroup == null) {
       // Referenced message does not exist or was deleted; graceful exit.
       return;
     }
 
-    final targetKey = _bubbleKeyFor(targetMessageId);
+    final resolvedMessageId = targetGroup.id;
+    final targetKey = _bubbleKeyFor(resolvedMessageId);
     final targetContext = targetKey.currentContext;
 
     // 2. If the message is already mounted and completely visible in viewport.
     if (targetContext != null &&
         targetContext.mounted &&
         _isWidgetFullyVisible(targetContext)) {
-      ref.read(highlightedMessageProvider.notifier).highlight(targetMessageId);
+      ref
+          .read(highlightedMessageProvider.notifier)
+          .highlight(resolvedMessageId);
       return;
     }
 
@@ -278,7 +290,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         alignment: 0.25,
       );
       if (!mounted) return;
-      ref.read(highlightedMessageProvider.notifier).highlight(targetMessageId);
+      ref
+          .read(highlightedMessageProvider.notifier)
+          .highlight(resolvedMessageId);
       return;
     }
 
@@ -289,11 +303,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       return;
     }
 
-    final sortedMessages = convoState.messages;
-    final targetIdx = sortedMessages.indexWhere((m) => m.id == targetMessageId);
+    final targetIdx = grouped.indexWhere((m) => m.id == resolvedMessageId);
     if (targetIdx < 0) return;
 
-    final fraction = (targetIdx / sortedMessages.length).clamp(0.0, 1.0);
+    final fraction = (targetIdx / grouped.length).clamp(0.0, 1.0);
     final approxOffset = fraction * _scrollController.position.maxScrollExtent;
 
     await _scrollController.animateTo(
@@ -313,11 +326,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           curve: Curves.easeInOutCubic,
           alignment: 0.25,
         );
-      }
-      if (mounted) {
+        if (!mounted) return;
         ref
             .read(highlightedMessageProvider.notifier)
-            .highlight(targetMessageId);
+            .highlight(resolvedMessageId);
       }
     });
   }
@@ -1191,8 +1203,9 @@ class _MessageList extends ConsumerWidget {
     final notes =
         ref.watch(notesControllerProvider(conversationId)).value ?? const [];
 
+    final groupedMessages = groupMediaBatchMessages(state.messages);
     final entries = <_TimelineEntry>[
-      for (final m in state.messages)
+      for (final m in groupedMessages)
         _TimelineEntry(message: m, time: m.sentAt),
       for (final n in notes) _TimelineEntry(note: n, time: n.createdAt),
     ]..sort((a, b) => a.time.compareTo(b.time));
@@ -1449,7 +1462,14 @@ VoidCallback? _retryHandlerFor(
     return () => controller().retry(message.localId!);
   }
   if (message.isDeliveryFailure && !message.hasFailed && message.id >= 0) {
-    return () => controller().retryStoredMessage(message.id);
+    return () async {
+      final ids = message.memberMessageIds.isNotEmpty
+          ? message.memberMessageIds
+          : [message.id];
+      for (final id in ids) {
+        await controller().retryStoredMessage(id);
+      }
+    };
   }
   return null;
 }
@@ -1500,13 +1520,18 @@ Future<void> _confirmDeleteMessage(
   if (confirmed != true) return;
 
   try {
-    await ref
-        .read(conversationRepositoryProvider)
-        .deleteMessage(conversationId, message.id, reason: reason);
-    if (!context.mounted) return;
-    ref
-        .read(conversationControllerProvider(conversationId).notifier)
-        .removeMessage(message.id);
+    final idsToDelete = message.memberMessageIds.isNotEmpty
+        ? message.memberMessageIds
+        : [message.id];
+    for (final id in idsToDelete) {
+      await ref
+          .read(conversationRepositoryProvider)
+          .deleteMessage(conversationId, id, reason: reason);
+      if (!context.mounted) return;
+      ref
+          .read(conversationControllerProvider(conversationId).notifier)
+          .removeMessage(id);
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(context.l10n.deleteMessageDeletedSnackbar)),
     );
