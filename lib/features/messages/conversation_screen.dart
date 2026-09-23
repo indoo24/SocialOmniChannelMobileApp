@@ -34,7 +34,10 @@ import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
 import 'conversation_resolve_button.dart';
 import 'conversation_skeleton.dart';
+import 'media_group_grid.dart';
 import 'message_bubble.dart';
+import 'package:flutter/rendering.dart';
+import 'highlight_message_coordinator.dart';
 import 'notes_controller.dart';
 import 'voice_playback_coordinator.dart';
 
@@ -50,11 +53,24 @@ class ConversationScreen extends ConsumerStatefulWidget {
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _composerController = TextEditingController();
   final _scrollController = ScrollController();
+  final Map<int, GlobalKey> _bubbleKeys = {};
   late final ActiveConversation _activeNotifier;
   late final InboxController _inboxNotifier;
   late ProviderContainer _container;
   bool _sending = false;
   bool _initialScrollDone = false;
+  int _currentScrollOpId = 0;
+  bool _isNavigatingToReply = false;
+
+  void _onUserScroll() {
+    _currentScrollOpId++;
+    _isNavigatingToReply = false;
+  }
+
+  GlobalKey _bubbleKeyFor(int messageId) => _bubbleKeys.putIfAbsent(
+    messageId,
+    () => GlobalKey(debugLabel: 'msg_bubble_$messageId'),
+  );
 
   /// True once a single `_jumpToBottomInitial` post-frame callback is
   /// in flight or has completed. Guards against `_MessageList` rebuilding
@@ -137,10 +153,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   /// Adjusts the offset by exactly that delta once the new items are laid
   /// out, so the message the user was reading stays under their eyes.
   void _preserveScrollPositionAfterPrepend() {
+    if (_isNavigatingToReply) return;
     if (!_scrollController.hasClients) return;
     final before = _scrollController.position.maxScrollExtent;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollController.hasClients) return;
+      if (!mounted || !_scrollController.hasClients || _isNavigatingToReply) return;
       final pos = _scrollController.position;
       if (!pos.hasContentDimensions) return;
       final delta = pos.maxScrollExtent - before;
@@ -165,39 +182,350 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     if (_initialScrollScheduled) return;
     _initialScrollScheduled = true;
 
-    void attempt() {
+    void attempt([int retries = 0]) {
       if (!mounted) return;
       if (!_scrollController.hasClients ||
           !_scrollController.position.hasContentDimensions) {
         // Layout not ready yet (e.g. the list has no size on this frame) —
         // retry on the next frame rather than giving up silently. Bounded by
         // construction: each retry only re-schedules itself, never stacks.
-        WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
+        WidgetsBinding.instance.addPostFrameCallback((_) => attempt(retries));
         return;
       }
       _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-      if (!mounted) return;
-      setState(() => _initialScrollDone = true);
-      _onScroll();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (!_scrollController.hasClients ||
+            !_scrollController.position.hasContentDimensions) {
+          return;
+        }
+        // If jumping to maxScrollExtent caused lower/unmounted dynamic children
+        // to layout and expand maxScrollExtent, repeat the jump until stable
+        // before revealing the list.
+        final remaining = _scrollController.position.maxScrollExtent -
+            _scrollController.position.pixels;
+        if (remaining > 1.0 && retries < 5) {
+          attempt(retries + 1);
+          return;
+        }
+        if (!_initialScrollDone) {
+          setState(() => _initialScrollDone = true);
+        }
+        _onScroll();
+      });
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
   }
 
   void _scrollToBottom({bool animated = false}) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      final target = _scrollController.position.maxScrollExtent;
-      if (animated) {
-        _scrollController.animateTo(
-          target,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-        );
-      } else {
-        _scrollController.jumpTo(target);
+    final opId = ++_currentScrollOpId;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || opId != _currentScrollOpId || !_scrollController.hasClients) {
+        return;
+      }
+      if (!_scrollController.position.hasContentDimensions) return;
+
+      int retries = 0;
+      while (mounted &&
+          opId == _currentScrollOpId &&
+          _scrollController.hasClients &&
+          _scrollController.position.hasContentDimensions &&
+          retries < 8) {
+        retries++;
+        final target = _scrollController.position.maxScrollExtent;
+        final currentPixels = _scrollController.position.pixels;
+        final remaining = target - currentPixels;
+
+        if (remaining <= 1.0) {
+          break;
+        }
+
+        if (animated) {
+          final durationMs = (remaining * 0.25).clamp(80.0, 250.0).toInt();
+          await _scrollController.animateTo(
+            target,
+            duration: Duration(milliseconds: durationMs),
+            curve: Curves.easeOutCubic,
+          );
+        } else {
+          _scrollController.jumpTo(target);
+        }
+
+        if (!mounted || opId != _currentScrollOpId || !_scrollController.hasClients) {
+          return;
+        }
+
+        // Wait for next frame so any newly mounted bottom items have laid out.
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted || opId != _currentScrollOpId || !_scrollController.hasClients) {
+          return;
+        }
+
+        final newTarget = _scrollController.position.maxScrollExtent;
+        if ((newTarget - _scrollController.position.pixels).abs() <= 1.0) {
+          break;
+        }
+      }
+
+      if (mounted && opId == _currentScrollOpId) {
+        _onScroll();
       }
     });
+  }
+
+  bool _isWidgetFullyVisible(BuildContext targetContext) {
+    final renderObject = targetContext.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return false;
+    final viewport = RenderAbstractViewport.of(renderObject);
+    if (!_scrollController.hasClients ||
+        !_scrollController.position.hasContentDimensions) {
+      return false;
+    }
+
+    final offsetToReveal = viewport.getOffsetToReveal(renderObject, 0.0);
+    final itemTop = offsetToReveal.offset;
+    final itemBottom = itemTop + renderObject.size.height;
+    final viewportTop = _scrollController.offset;
+    final viewportBottom =
+        viewportTop + _scrollController.position.viewportDimension;
+
+    return itemTop >= viewportTop && itemBottom <= viewportBottom;
+  }
+
+  Future<void> _scrollToQuotedMessage(int targetMessageId) async {
+    if (targetMessageId <= 0) return;
+
+    final opId = ++_currentScrollOpId;
+    _isNavigatingToReply = true;
+
+    try {
+      final conversationId = widget.conversationId;
+      var convoState = ref
+          .read(conversationControllerProvider(conversationId))
+          .value;
+      if (convoState == null) return;
+
+      // 1. If not yet loaded in messages, fetch older history via existing pagination.
+      int attempts = 0;
+      while (convoState != null &&
+          !convoState.messages.any((m) => m.id == targetMessageId) &&
+          convoState.hasMore &&
+          attempts < 10) {
+        if (!mounted || opId != _currentScrollOpId) return;
+        attempts++;
+        await ref
+            .read(conversationControllerProvider(conversationId).notifier)
+            .loadOlder();
+        if (!mounted || opId != _currentScrollOpId) return;
+        convoState = ref
+            .read(conversationControllerProvider(conversationId))
+            .value;
+      }
+
+      if (convoState == null || !mounted || opId != _currentScrollOpId) return;
+
+      final grouped = groupMediaBatchMessages(convoState.messages);
+      final targetGroup = grouped.where(
+        (m) =>
+            m.id == targetMessageId ||
+            m.memberMessageIds.contains(targetMessageId),
+      ).firstOrNull;
+
+      if (targetGroup == null) {
+        // Referenced message does not exist or was deleted; graceful exit.
+        return;
+      }
+
+      final resolvedMessageId = targetGroup.id;
+      final targetKey = _bubbleKeyFor(resolvedMessageId);
+
+      // Wait for layout to settle after potential pagination
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted || opId != _currentScrollOpId) return;
+
+      // 2. If the message is already mounted and completely visible in viewport.
+      var targetContext = targetKey.currentContext;
+      if (targetContext != null &&
+          targetContext.mounted &&
+          _isWidgetFullyVisible(targetContext)) {
+        ref
+            .read(highlightedMessageProvider.notifier)
+            .highlight(resolvedMessageId);
+        return;
+      }
+
+      if (!_scrollController.hasClients ||
+          !_scrollController.position.hasContentDimensions) {
+        return;
+      }
+
+      // 3. If mounted but partially/fully out of the viewport.
+      if (targetContext != null && targetContext.mounted) {
+        final renderObject = targetContext.findRenderObject();
+        if (renderObject is RenderBox && renderObject.hasSize) {
+          final viewport = RenderAbstractViewport.of(renderObject);
+          final offsetToReveal = viewport.getOffsetToReveal(renderObject, 0.25).offset.clamp(
+            0.0,
+            _scrollController.position.maxScrollExtent,
+          );
+          await _scrollController.animateTo(
+            offsetToReveal,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOutCubic,
+          );
+          if (!mounted || opId != _currentScrollOpId) return;
+          await WidgetsBinding.instance.endOfFrame;
+          if (!mounted || opId != _currentScrollOpId) return;
+
+          // Verify visibility after layout settle and adjust if needed
+          final updatedContext = targetKey.currentContext;
+          if (updatedContext != null && updatedContext.mounted) {
+            if (!_isWidgetFullyVisible(updatedContext)) {
+              final ro2 = updatedContext.findRenderObject();
+              if (ro2 is RenderBox && ro2.hasSize) {
+                final vp2 = RenderAbstractViewport.of(ro2);
+                final adjOffset = vp2.getOffsetToReveal(ro2, 0.25).offset.clamp(
+                  0.0,
+                  _scrollController.position.maxScrollExtent,
+                );
+                _scrollController.jumpTo(adjOffset);
+                await WidgetsBinding.instance.endOfFrame;
+              }
+            }
+          }
+
+          ref
+              .read(highlightedMessageProvider.notifier)
+              .highlight(resolvedMessageId);
+          return;
+        }
+      }
+
+      // 4. Target message is loaded in memory but not currently mounted in ListView.
+      // Progressively move towards it using measured average heights of mounted items
+      // until the target message enters the viewport and becomes mounted.
+      final notes = ref
+              .read(notesControllerProvider(conversationId))
+              .value ??
+          const [];
+      final entries = <_TimelineEntry>[
+        for (final m in grouped) _TimelineEntry(message: m, time: m.sentAt),
+        for (final n in notes) _TimelineEntry(note: n, time: n.createdAt),
+      ]..sort((a, b) => a.time.compareTo(b.time));
+
+      final targetIdx = entries.indexWhere((e) =>
+          e.message != null &&
+          (e.message!.id == resolvedMessageId ||
+              e.message!.memberMessageIds.contains(resolvedMessageId)));
+      if (targetIdx < 0) return;
+
+      int mountAttempts = 0;
+      while (mountAttempts < 8 &&
+          mounted &&
+          opId == _currentScrollOpId &&
+          (targetKey.currentContext == null || !targetKey.currentContext!.mounted)) {
+        mountAttempts++;
+
+        // Find mounted entries range and measure average height
+        int? firstMountedIdx;
+        int? lastMountedIdx;
+        double totalMountedHeight = 0.0;
+        int mountedCount = 0;
+
+        for (int i = 0; i < entries.length; i++) {
+          final m = entries[i].message;
+          if (m != null && m.id > 0) {
+            final ctx = _bubbleKeys[m.id]?.currentContext;
+            if (ctx != null && ctx.mounted) {
+              firstMountedIdx ??= i;
+              lastMountedIdx = i;
+              final ro = ctx.findRenderObject();
+              if (ro is RenderBox && ro.hasSize) {
+                totalMountedHeight += ro.size.height;
+                mountedCount++;
+              }
+            }
+          }
+        }
+
+        final avgHeight = mountedCount > 0
+            ? (totalMountedHeight / mountedCount).clamp(30.0, 400.0)
+            : 80.0;
+        final currentOffset = _scrollController.offset;
+        final maxOffset = _scrollController.position.maxScrollExtent;
+        double nextOffset;
+
+        if (firstMountedIdx != null && targetIdx < firstMountedIdx) {
+          // Target is above mounted items
+          final itemsAway = firstMountedIdx - targetIdx;
+          final estimatedDistance = itemsAway * avgHeight;
+          nextOffset = (currentOffset - estimatedDistance - _scrollController.position.viewportDimension * 0.25)
+              .clamp(0.0, maxOffset);
+        } else if (lastMountedIdx != null && targetIdx > lastMountedIdx) {
+          // Target is below mounted items
+          final itemsAway = targetIdx - lastMountedIdx;
+          final estimatedDistance = itemsAway * avgHeight;
+          nextOffset = (currentOffset + estimatedDistance + _scrollController.position.viewportDimension * 0.25)
+              .clamp(0.0, maxOffset);
+        } else {
+          // Fallback if no mounted items found
+          final fraction = (targetIdx / entries.length).clamp(0.0, 1.0);
+          nextOffset = (fraction * maxOffset).clamp(0.0, maxOffset);
+        }
+
+        // Jump towards the target to trigger layout of items around nextOffset
+        _scrollController.jumpTo(nextOffset);
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted || opId != _currentScrollOpId) return;
+      }
+
+      // Now the target is mounted.
+      final finalContext = targetKey.currentContext;
+      if (finalContext != null && finalContext.mounted) {
+        final ro = finalContext.findRenderObject();
+        if (ro is RenderBox && ro.hasSize) {
+          final viewport = RenderAbstractViewport.of(ro);
+          final exactOffset = viewport.getOffsetToReveal(ro, 0.25).offset.clamp(
+            0.0,
+            _scrollController.position.maxScrollExtent,
+          );
+          await _scrollController.animateTo(
+            exactOffset,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubic,
+          );
+          if (!mounted || opId != _currentScrollOpId) return;
+          await WidgetsBinding.instance.endOfFrame;
+          if (!mounted || opId != _currentScrollOpId) return;
+
+          // Post-layout settlement verification: ensure target is visible
+          final settledContext = targetKey.currentContext;
+          if (settledContext != null && settledContext.mounted) {
+            if (!_isWidgetFullyVisible(settledContext)) {
+              final settledRo = settledContext.findRenderObject();
+              if (settledRo is RenderBox && settledRo.hasSize) {
+                final settledVp = RenderAbstractViewport.of(settledRo);
+                final adj = settledVp.getOffsetToReveal(settledRo, 0.25).offset.clamp(
+                  0.0,
+                  _scrollController.position.maxScrollExtent,
+                );
+                _scrollController.jumpTo(adj);
+                await WidgetsBinding.instance.endOfFrame;
+              }
+            }
+          }
+        }
+
+        ref
+            .read(highlightedMessageProvider.notifier)
+            .highlight(resolvedMessageId);
+      }
+    } finally {
+      if (opId == _currentScrollOpId) {
+        _isNavigatingToReply = false;
+      }
+    }
   }
 
   @override
@@ -227,8 +555,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
     try {
       container.read(activeVoicePlaybackProvider.notifier).stopAll();
+      container.read(highlightedMessageProvider.notifier).clear();
     } catch (_) {}
 
+    _bubbleKeys.clear();
     _composerController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -363,7 +693,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
       if (!_initialScrollDone) {
         _jumpToBottomInitial();
-      } else if (_isNearBottom()) {
+      } else if (!_isNavigatingToReply && _isNearBottom()) {
         _scrollToBottom(animated: true);
       } else {
         _onScroll();
@@ -454,14 +784,28 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                             // first painted frame is the positioned one, not
                             // an unpositioned frame followed by a jump.
                             opacity: _initialScrollDone ? 1 : 0,
-                            child: _MessageList(
-                              state: state,
-                              controller: _scrollController,
-                              conversationId: widget.conversationId,
-                              onInitialLayout: _initialScrollDone
-                                  ? null
-                                  : _jumpToBottomInitial,
-                              onReply: canReply ? _startReplyingTo : null,
+                            child: NotificationListener<ScrollNotification>(
+                              onNotification: (notification) {
+                                if ((notification is ScrollStartNotification &&
+                                        notification.dragDetails != null) ||
+                                    (notification is UserScrollNotification &&
+                                        notification.direction !=
+                                            ScrollDirection.idle)) {
+                                  _onUserScroll();
+                                }
+                                return false;
+                              },
+                              child: _MessageList(
+                                state: state,
+                                controller: _scrollController,
+                                conversationId: widget.conversationId,
+                                onInitialLayout: _initialScrollDone
+                                    ? null
+                                    : _jumpToBottomInitial,
+                                onReply: canReply ? _startReplyingTo : null,
+                                onQuoteTap: _scrollToQuotedMessage,
+                                keyForMessage: _bubbleKeyFor,
+                              ),
                             ),
                           ),
                   ),
@@ -1039,6 +1383,8 @@ class _MessageList extends ConsumerWidget {
     required this.conversationId,
     this.onInitialLayout,
     this.onReply,
+    this.onQuoteTap,
+    this.keyForMessage,
   });
 
   final ConversationState state;
@@ -1051,14 +1397,21 @@ class _MessageList extends ConsumerWidget {
   /// quote a message *into* without it).
   final ValueChanged<Message>? onReply;
 
+  /// Invoked when the user taps a reply preview inside any message bubble.
+  final ValueChanged<int>? onQuoteTap;
+
+  /// Provides stable GlobalKeys for message bubbles so they can be scrolled to.
+  final GlobalKey Function(int messageId)? keyForMessage;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canDelete = ref.watch(canProvider(Perm.conversationDeleteMessage));
     final notes =
         ref.watch(notesControllerProvider(conversationId)).value ?? const [];
 
+    final groupedMessages = groupMediaBatchMessages(state.messages);
     final entries = <_TimelineEntry>[
-      for (final m in state.messages)
+      for (final m in groupedMessages)
         _TimelineEntry(message: m, time: m.sentAt),
       for (final n in notes) _TimelineEntry(note: n, time: n.createdAt),
     ]..sort((a, b) => a.time.compareTo(b.time));
@@ -1120,6 +1473,9 @@ class _MessageList extends ConsumerWidget {
                 _InternalNoteTimelineCard(note: entry.note!)
               else if (entry.message != null)
                 MessageBubble(
+                  key: entry.message!.id > 0
+                      ? keyForMessage?.call(entry.message!.id)
+                      : null,
                   message: entry.message!,
                   provider: state.conversation.provider,
                   onRetry: _retryHandlerFor(
@@ -1158,6 +1514,7 @@ class _MessageList extends ConsumerWidget {
                           entry.message!.id >= 0
                       ? () => onReply!(entry.message!)
                       : null,
+                  onQuoteTap: onQuoteTap,
                 ),
             ],
           );
@@ -1311,7 +1668,14 @@ VoidCallback? _retryHandlerFor(
     return () => controller().retry(message.localId!);
   }
   if (message.isDeliveryFailure && !message.hasFailed && message.id >= 0) {
-    return () => controller().retryStoredMessage(message.id);
+    return () async {
+      final ids = message.memberMessageIds.isNotEmpty
+          ? message.memberMessageIds
+          : [message.id];
+      for (final id in ids) {
+        await controller().retryStoredMessage(id);
+      }
+    };
   }
   return null;
 }
@@ -1362,13 +1726,19 @@ Future<void> _confirmDeleteMessage(
   if (confirmed != true) return;
 
   try {
-    await ref
-        .read(conversationRepositoryProvider)
-        .deleteMessage(conversationId, message.id, reason: reason);
+    final idsToDelete = message.memberMessageIds.isNotEmpty
+        ? message.memberMessageIds
+        : [message.id];
+    for (final id in idsToDelete) {
+      await ref
+          .read(conversationRepositoryProvider)
+          .deleteMessage(conversationId, id, reason: reason);
+      if (!context.mounted) return;
+      ref
+          .read(conversationControllerProvider(conversationId).notifier)
+          .removeMessage(id);
+    }
     if (!context.mounted) return;
-    ref
-        .read(conversationControllerProvider(conversationId).notifier)
-        .removeMessage(message.id);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(context.l10n.deleteMessageDeletedSnackbar)),
     );

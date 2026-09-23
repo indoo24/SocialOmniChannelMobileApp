@@ -746,6 +746,12 @@ abstract class AppLocalizations {
   /// **'Please try again.'**
   String get genericErrorFallbackMessage;
 
+  /// Sign-in failed with backend code invalid_credentials. Covers wrong password, unknown address and deactivated account alike — the backend deliberately does not say which.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email or password. Please check your credentials and try again.'**
+  String get loginInvalidCredentialsError;
+
   /// No description provided for @retryButton.
   ///
   /// In en, this message translates to:

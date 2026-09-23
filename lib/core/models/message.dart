@@ -19,6 +19,8 @@ class MessageAttachment {
     this.localFilePath,
     this.durationMs,
     this.sizeBytes,
+    this.status = 'READY',
+    this.metadata,
   });
 
   final String type;
@@ -54,6 +56,12 @@ class MessageAttachment {
   /// Attachment size in bytes, when known from the draft or file metadata.
   final int? sizeBytes;
 
+  /// Attachment readiness status from backend (READY, UNAVAILABLE, FETCHING, FAILED).
+  final String status;
+
+  /// Optional platform metadata from backend (e.g. `whatsapp_type: "document"`).
+  final Map<String, dynamic>? metadata;
+
   factory MessageAttachment.fromJson(Map<String, dynamic> json) {
     final mime = JsonSafe.asString(
       json['mime_type'] ?? json['mimeType'] ?? json['content_type'],
@@ -70,6 +78,11 @@ class MessageAttachment {
         type = 'FILE';
       }
     }
+    final rawMeta = json['metadata'];
+    final Map<String, dynamic>? metadata = rawMeta is Map<String, dynamic>
+        ? rawMeta
+        : (rawMeta is Map ? Map<String, dynamic>.from(rawMeta) : null);
+
     return MessageAttachment(
       type: type,
       url: JsonSafe.asString(
@@ -80,7 +93,7 @@ class MessageAttachment {
             json['downloadUrl'],
       ),
       attachmentId: JsonSafe.asString(
-        json['id'] ?? json['public_id'] ?? json['attachment_id'],
+        json['public_id'] ?? json['id'] ?? json['attachment_id'],
       ),
       fileName: JsonSafe.asString(
         json['file_name'] ??
@@ -97,8 +110,16 @@ class MessageAttachment {
             json['file_size'] ??
             json['bytes'],
       ),
+      status: JsonSafe.asString(json['status'], fallback: 'READY'),
+      metadata: metadata,
     );
   }
+
+  /// Platform-reported type (e.g. 'document', 'voice', 'image').
+  String get whatsappType => JsonSafe.asString(metadata?['whatsapp_type']);
+
+  /// Whether the file is ready to be fetched/downloaded according to backend.
+  bool get isReady => status.isEmpty || status.toUpperCase() == 'READY';
 
   bool get isImage => type == 'IMAGE' || mimeType.startsWith('image/');
   bool get isAudio =>
@@ -109,7 +130,31 @@ class MessageAttachment {
   bool get isVideo => type == 'VIDEO' || mimeType.startsWith('video/');
   bool get isVoice =>
       type == 'VOICE' || (durationMs != null && durationMs! > 0) || isAudio;
-  bool get isDocument => !isImage && !isAudio && !isVideo;
+
+  /// True if the attachment was sent as a document/file attachment.
+  /// Decouples the transport/message type from the underlying file MIME type.
+  bool get isDocument =>
+      type.toUpperCase() == 'FILE' ||
+      type.toUpperCase() == 'DOCUMENT' ||
+      whatsappType.toLowerCase() == 'document' ||
+      (!isImage && !isAudio && !isVideo);
+
+  /// True if this attachment represents an inline image preview.
+  /// Document attachments remain document attachments rather than being rendered inline.
+  bool get isInlineImage => !isDocument && isImage;
+
+  /// True if the underlying file is an image based on MIME type or file extension.
+  bool get hasImageFile {
+    if (mimeType.toLowerCase().startsWith('image/')) return true;
+    final ext = fileExtension.toLowerCase();
+    return ext == 'jpg' ||
+        ext == 'jpeg' ||
+        ext == 'png' ||
+        ext == 'webp' ||
+        ext == 'gif' ||
+        ext == 'bmp' ||
+        ext == 'svg';
+  }
 
   String get fileExtension {
     final dot = fileName.lastIndexOf('.');
@@ -307,6 +352,8 @@ class Message {
     required this.text,
     required this.deliveryStatus,
     required this.sentAt,
+    this.clientMessageId = '',
+    this.memberMessageIds = const [],
     this.senderInitials = '',
     this.attachments = const [],
     this.deliveryError = '',
@@ -367,6 +414,13 @@ class Message {
   /// Also the idempotency handle when retrying, so a retry cannot double-send.
   final String? localId;
 
+  /// Server-echoed client message identifier (e.g. `local-123` or `local-123:1`).
+  final String clientMessageId;
+
+  /// When multiple messages in the same send batch are visually grouped into a
+  /// collage bubble, this lists the server message IDs of all members in the group.
+  final List<int> memberMessageIds;
+
   /// The staged-attachment draft ids this pending/failed row references, if
   /// any — never present on a server-confirmed [Message], only carried
   /// through the local send/retry lifecycle so a failed send can
@@ -405,23 +459,25 @@ class Message {
             } else if (fileName.toLowerCase().startsWith('filename=')) {
               fileName = fileName.substring(9).trim();
             }
-            if ((fileName.startsWith('"') && fileName.endsWith('"')) ||
-                (fileName.startsWith("'") && fileName.endsWith("'"))) {
-              fileName = fileName.substring(1, fileName.length - 1).trim();
-            }
           }
-          attachments.add(MessageAttachment(type: type, fileName: fileName));
+          attachments.add(
+            MessageAttachment(
+              type: type,
+              fileName: fileName,
+              status: 'READY',
+            ),
+          );
         }
       }
-      text = text
-          .replaceAll(markerRegex, '')
-          .replaceAll(RegExp(r' {2,}'), ' ')
-          .trim();
+      text = text.replaceAll(markerRegex, '').trim();
     }
 
+    final id = JsonSafe.asInt(json['id'], fallback: -1);
+    final direction = JsonSafe.asString(json['direction'], fallback: 'INBOUND');
+
     return Message(
-      id: JsonSafe.asInt(json['id'], fallback: -1),
-      direction: JsonSafe.asString(json['direction'], fallback: 'INBOUND'),
+      id: id,
+      direction: direction,
       senderType: JsonSafe.asString(json['sender_type'], fallback: 'CUSTOMER'),
       senderName: JsonSafe.asString(json['sender_name']),
       senderInitials: JsonSafe.asString(json['sender_initials']),
@@ -442,6 +498,9 @@ class Message {
       readAt: _parseDate(json['read_at']),
       replyTo: QuotedMessage.fromJson(json['reply_to']),
       sentFromPlatform: JsonSafe.asBool(json['sent_from_platform']),
+      clientMessageId: JsonSafe.asString(
+        json['client_message_id'] ?? json['clientMessageId'],
+      ),
     );
   }
 
@@ -473,15 +532,13 @@ class Message {
 
     String deriveMessageType() {
       if (previews.isEmpty) return 'TEXT';
-      if (previews.every((a) => a.isImage)) return 'IMAGE';
-      if (previews.every((a) => a.isAudio)) return 'AUDIO';
+      if (previews.any((p) => p.isAudio)) return 'AUDIO';
+      if (previews.any((p) => p.isInlineImage)) return 'IMAGE';
       return 'FILE';
     }
 
     return Message(
-      // Negative so it can never collide with a server id, and so ordering
-      // by id keeps pending messages at the end where they belong.
-      id: -DateTime.now().microsecondsSinceEpoch,
+      id: -1,
       direction: 'OUTBOUND',
       senderType: 'AGENT',
       senderName: senderName,
@@ -494,13 +551,22 @@ class Message {
       replyTo: replyTo,
       sendState: SendState.sending,
       localId: localId,
+      clientMessageId: localId,
       pendingAttachmentIds: ids,
     );
   }
 
   Message copyWith({
+    String? text,
+    List<MessageAttachment>? attachments,
+    String? deliveryStatus,
     SendState? sendState,
     String? deliveryError,
+    String? deliveryErrorCode,
+    DateTime? deliveredAt,
+    DateTime? readAt,
+    String? clientMessageId,
+    List<int>? memberMessageIds,
     List<String>? pendingAttachmentIds,
     String? pendingAttachmentId,
   }) => Message(
@@ -510,19 +576,21 @@ class Message {
     senderName: senderName,
     senderInitials: senderInitials,
     messageType: messageType,
-    text: text,
-    attachments: attachments,
-    deliveryStatus: deliveryStatus,
+    text: text ?? this.text,
+    attachments: attachments ?? this.attachments,
+    deliveryStatus: deliveryStatus ?? this.deliveryStatus,
     deliveryError: deliveryError ?? this.deliveryError,
-    deliveryErrorCode: deliveryError != null ? '' : deliveryErrorCode,
+    deliveryErrorCode: deliveryErrorCode ?? (deliveryError != null ? '' : this.deliveryErrorCode),
     contentNotice: contentNotice,
     replyTo: replyTo,
     sentAt: sentAt,
-    deliveredAt: deliveredAt,
-    readAt: readAt,
+    deliveredAt: deliveredAt ?? this.deliveredAt,
+    readAt: readAt ?? this.readAt,
     sentFromPlatform: sentFromPlatform,
     sendState: sendState ?? this.sendState,
     localId: localId,
+    clientMessageId: clientMessageId ?? this.clientMessageId,
+    memberMessageIds: memberMessageIds ?? this.memberMessageIds,
     pendingAttachmentIds:
         pendingAttachmentIds ??
         (pendingAttachmentId != null
@@ -557,6 +625,8 @@ class Message {
     deliveredAt: _parseDate(json['delivered_at']) ?? deliveredAt,
     readAt: _parseDate(json['read_at']) ?? readAt,
     sentFromPlatform: sentFromPlatform,
+    clientMessageId: clientMessageId,
+    memberMessageIds: memberMessageIds,
     pendingAttachmentIds: pendingAttachmentIds,
   );
 
@@ -566,6 +636,22 @@ class Message {
   bool get hasFailed => sendState == SendState.failed;
   bool get isPending => sendState == SendState.sending;
   bool get isDeliveryFailure => deliveryStatus == 'FAILED';
+
+  /// When multiple messages are sent together (e.g. 4 photos), the backend
+  /// stamps client_message_id as "<base>" on the first message, and "<base>:<index>"
+  /// on subsequent messages. This returns the common base client message ID.
+  String? get baseClientMessageId {
+    final raw = clientMessageId.isNotEmpty ? clientMessageId : (localId ?? '');
+    if (raw.isEmpty) return null;
+    final colonIdx = raw.indexOf(':');
+    return colonIdx > 0 ? raw.substring(0, colonIdx) : raw;
+  }
+
+  /// True when this message contains only image attachments (or has message_type == 'IMAGE').
+  bool get hasOnlyImages {
+    if (attachments.isEmpty) return messageType == 'IMAGE';
+    return attachments.every((a) => a.type == 'IMAGE' || a.mimeType.startsWith('image/'));
+  }
 }
 
 class InternalNote {

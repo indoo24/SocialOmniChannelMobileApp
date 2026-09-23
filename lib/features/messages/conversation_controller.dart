@@ -215,6 +215,12 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     dynamic matchKey;
     for (final entry in mergedMap.entries) {
       final existing = entry.value;
+      if (existing.isPending &&
+          incoming.baseClientMessageId != null &&
+          existing.baseClientMessageId == incoming.baseClientMessageId) {
+        matchKey = entry.key;
+        break;
+      }
       if ((existing.isPending || existing.hasFailed || existing.id < 0) &&
           existing.direction == incoming.direction &&
           existing.text.trim() == incoming.text.trim()) {
@@ -352,6 +358,13 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         data: {'localId': localId},
       );
       _replaceLocal(localId, sent);
+
+      // When multiple attachments were sent together, the backend creates one
+      // message per attachment (e.g. `client_message_id`, `client_message_id:1`, ...).
+      // Immediately refresh from server so all messages in the batch are in state.
+      if (ids.length > 1) {
+        await refreshFromServer();
+      }
     } on ApiException catch (error) {
       RealtimeLogger.log(
         'CONTROLLER',
@@ -577,16 +590,26 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
     var foundPending = false;
     final Map<dynamic, Message> mergedMap = {};
+
+    final existingPending = current.messages.firstWhere(
+      (m) => m.localId == localId,
+      orElse: () => replacement,
+    );
+    final effectiveReplacement = (existingPending.attachments.length > 1 &&
+            replacement.attachments.length == 1)
+        ? replacement.copyWith(attachments: existingPending.attachments)
+        : replacement;
+
     for (final m in current.messages) {
       final isMatch = m.localId == localId;
       if (isMatch) foundPending = true;
       final key = isMatch
-          ? (replacement.localId ?? replacement.id)
+          ? (effectiveReplacement.localId ?? effectiveReplacement.id)
           : (m.localId ?? m.id);
-      mergedMap[key] = isMatch ? replacement : m;
+      mergedMap[key] = isMatch ? effectiveReplacement : m;
     }
-    if (!mergedMap.containsKey(replacement.localId ?? replacement.id)) {
-      mergedMap[replacement.localId ?? replacement.id] = replacement;
+    if (!mergedMap.containsKey(effectiveReplacement.localId ?? effectiveReplacement.id)) {
+      mergedMap[effectiveReplacement.localId ?? effectiveReplacement.id] = effectiveReplacement;
     }
 
     // A miss here means the pending row this call was meant to resolve is

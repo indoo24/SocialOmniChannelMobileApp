@@ -5,7 +5,22 @@ import '../../core/api/api_exception.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/l10n_extensions.dart';
 import 'auth_controller.dart';
+
+/// What the sign-in form shows for a failed attempt.
+///
+/// Known backend codes get their own localized wording, chosen by
+/// [ApiException.code] rather than the server's English message, so the text
+/// follows the app's language. Anything else shows [ApiException.message],
+/// which `fromResponse` has already stripped of server-side object dumps —
+/// falling back to plain wording when that is all the server sent.
+String loginErrorMessage(AppLocalizations l10n, ApiException error) =>
+    switch (error.code) {
+      'invalid_credentials' => l10n.loginInvalidCredentialsError,
+      _ => error.message,
+    };
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -57,7 +72,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           );
       // Navigation is the router's job — it redirects on auth state change.
     } on ApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted) {
+        setState(() => _error = loginErrorMessage(context.l10n, error));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

@@ -27,9 +27,12 @@ import '../../core/widgets/badges.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../core/utils/attachment_helper.dart';
+import 'highlight_message_coordinator.dart';
+import 'media_group_grid.dart';
+import 'swipe_to_reply.dart';
 import 'voice_playback_coordinator.dart';
 
-class MessageBubble extends StatelessWidget {
+class MessageBubble extends ConsumerWidget {
   const MessageBubble({
     required this.message,
     this.provider = '',
@@ -37,6 +40,8 @@ class MessageBubble extends StatelessWidget {
     this.onDiscard,
     this.onDelete,
     this.onReply,
+    this.onQuoteTap,
+    this.isHighlighted,
     super.key,
   });
 
@@ -59,8 +64,16 @@ class MessageBubble extends StatelessWidget {
   /// quote a message *into* without it).
   final VoidCallback? onReply;
 
+  /// Tapping the quoted message preview inside this bubble jumps to and
+  /// highlights the referenced message.
+  final ValueChanged<int>? onQuoteTap;
+
+  /// Optional highlight override, primarily for testing. When null, observes
+  /// [highlightedMessageProvider] for matching message.id.
+  final bool? isHighlighted;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final msgIdStr = message.id.toString();
     final trace = RealtimeLogger.findTraceByMessageOrConvo(msgIdStr, null);
     if (trace != null) {
@@ -96,18 +109,36 @@ class MessageBubble extends StatelessWidget {
         ? Colors.white
         : theme.colorScheme.onSurface;
 
-    return Padding(
+    final isTarget = ref.watch(
+      highlightedMessageProvider.select((id) => id == message.id),
+    );
+    final bool activeHighlight = isHighlighted ?? (isTarget == true);
+    final highlightColor = theme.brightness == Brightness.dark
+        ? theme.colorScheme.primary.withValues(alpha: 0.25)
+        : theme.colorScheme.primary.withValues(alpha: 0.12);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+      margin: const EdgeInsets.symmetric(vertical: 1),
       padding: const EdgeInsets.symmetric(horizontal: Space.md, vertical: 3),
+      decoration: BoxDecoration(
+        color: activeHighlight ? highlightColor : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         mainAxisAlignment: isMine
             ? MainAxisAlignment.end
             : MainAxisAlignment.start,
         children: [
           Flexible(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.sizeOf(context).width * 0.78,
-              ),
+            child: SwipeToReply(
+              onReply: onReply,
+              isMine: isMine,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.sizeOf(context).width * 0.78,
+                ),
               child: Column(
                 crossAxisAlignment: isMine
                     ? CrossAxisAlignment.end
@@ -145,15 +176,24 @@ class MessageBubble extends StatelessWidget {
                                     : theme.colorScheme.outline,
                               ),
                         boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: theme.brightness == Brightness.dark
-                                  ? 0.15
-                                  : 0.03,
+                          if (activeHighlight)
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.35,
+                              ),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            )
+                          else
+                            BoxShadow(
+                              color: Colors.black.withValues(
+                                alpha: theme.brightness == Brightness.dark
+                                    ? 0.15
+                                    : 0.03,
+                              ),
+                              blurRadius: 3,
+                              offset: const Offset(0, 1),
                             ),
-                            blurRadius: 3,
-                            offset: const Offset(0, 1),
-                          ),
                         ],
                       ),
                       child: Column(
@@ -163,6 +203,9 @@ class MessageBubble extends StatelessWidget {
                             _QuoteBlock(
                               quote: message.replyTo!,
                               isMine: isMine,
+                              onTap: onQuoteTap != null
+                                  ? () => onQuoteTap!(message.replyTo!.id)
+                                  : null,
                             ),
                             const SizedBox(height: Space.xs),
                           ],
@@ -202,9 +245,10 @@ class MessageBubble extends StatelessWidget {
               ),
             ),
           ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
   }
 }
 
@@ -255,10 +299,11 @@ void _showBubbleMenu(
 /// message it answers, rendered the same whether the original is still
 /// loaded, deleted, or (rarely) outside this employee's visibility.
 class _QuoteBlock extends StatelessWidget {
-  const _QuoteBlock({required this.quote, required this.isMine});
+  const _QuoteBlock({required this.quote, required this.isMine, this.onTap});
 
   final QuotedMessage quote;
   final bool isMine;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -285,34 +330,46 @@ class _QuoteBlock extends StatelessWidget {
             _ => context.l10n.attachmentMessageLabel,
           };
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Space.sm, vertical: 6),
-      decoration: BoxDecoration(
-        color: backgroundColor,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(8),
-        border: Border(left: BorderSide(color: accentColor, width: 3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (quote.senderName.isNotEmpty)
-            Text(
-              quote.senderName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: accentColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          Text(
-            summary,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(color: textColor),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Space.sm,
+            vertical: 6,
           ),
-        ],
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(8),
+            border: BorderDirectional(
+              start: BorderSide(color: accentColor, width: 3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (quote.senderName.isNotEmpty)
+                Text(
+                  quote.senderName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: accentColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              Text(
+                summary,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(color: textColor),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -551,21 +608,76 @@ class _Attachments extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final widgets = <Widget>[];
+    final attachments = message.attachments;
+
+    var i = 0;
+    while (i < attachments.length) {
+      final current = attachments[i];
+      if (current.isInlineImage) {
+        final imageGroup = <MessageAttachment>[current];
+        var j = i + 1;
+        while (j < attachments.length && attachments[j].isInlineImage) {
+          imageGroup.add(attachments[j]);
+          j++;
+        }
+
+        if (imageGroup.length >= 2) {
+          widgets.add(
+            MediaGroupGrid(
+              attachments: imageGroup,
+              messageId: message.id,
+              isOutbound: message.isOutbound,
+              onTapImage: (index) async {
+                final headers =
+                    await ref.read(apiClientProvider).mediaAuthHeaders();
+                if (!context.mounted) return;
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => _ImageViewerScreen(
+                      attachments: imageGroup,
+                      initialIndex: index,
+                      headers: headers,
+                      messageId: message.id,
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        } else {
+          widgets.add(
+            _Attachment(
+              attachment: current,
+              isOutbound: message.isOutbound,
+              messageId: message.id,
+            ),
+          );
+        }
+        i = j;
+      } else {
+        widgets.add(
+          _Attachment(
+            attachment: current,
+            isOutbound: message.isOutbound,
+            messageId: message.id,
+          ),
+        );
+        i++;
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < message.attachments.length; i++)
+        for (var idx = 0; idx < widgets.length; idx++)
           Padding(
             padding: EdgeInsets.only(
-              bottom:
-                  i == message.attachments.length - 1 && message.text.isEmpty
+              bottom: idx == widgets.length - 1 && message.text.isEmpty
                   ? 0
                   : Space.sm,
             ),
-            child: _Attachment(
-              attachment: message.attachments[i],
-              isOutbound: message.isOutbound,
-            ),
+            child: widgets[idx],
           ),
       ],
     );
@@ -573,10 +685,15 @@ class _Attachments extends ConsumerWidget {
 }
 
 class _Attachment extends ConsumerWidget {
-  const _Attachment({required this.attachment, this.isOutbound = true});
+  const _Attachment({
+    required this.attachment,
+    this.isOutbound = true,
+    this.messageId,
+  });
 
   final MessageAttachment attachment;
   final bool isOutbound;
+  final int? messageId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -585,7 +702,7 @@ class _Attachment extends ConsumerWidget {
     // on a server-sourced attachment, so this branch cannot apply to
     // inbound (customer) content.
     final localPath = attachment.localFilePath;
-    if (attachment.isImage && localPath != null && localPath.isNotEmpty) {
+    if (attachment.isInlineImage && localPath != null && localPath.isNotEmpty) {
       return GestureDetector(
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute<void>(
@@ -603,7 +720,10 @@ class _Attachment extends ConsumerWidget {
             File(localPath),
             width: 220,
             fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => _FileChip(attachment: attachment),
+            errorBuilder: (_, _, _) => _FileChip(
+              attachment: attachment,
+              messageId: messageId,
+            ),
           ),
         ),
       );
@@ -622,22 +742,35 @@ class _Attachment extends ConsumerWidget {
       );
     }
 
-    final safeUrl = SafeUrl.forImage(resolvedUrl);
-    if (attachment.isImage && safeUrl.isNotEmpty) {
-      return _AttachmentImage(attachment: attachment, url: safeUrl);
+    // Document attachments (such as images sent as WhatsApp documents) remain
+    // visually represented as document attachments.
+    if (!attachment.isDocument) {
+      final safeUrl = SafeUrl.forImage(resolvedUrl);
+      if (attachment.isImage && safeUrl.isNotEmpty) {
+        return _AttachmentImage(
+          attachment: attachment,
+          url: safeUrl,
+          messageId: messageId,
+        );
+      }
     }
 
-    return _FileChip(attachment: attachment);
+    return _FileChip(attachment: attachment, messageId: messageId);
   }
 }
 
 /// A received/sent image, rendered inline with a loading placeholder and an
 /// error fallback, and opening full-screen on tap.
 class _AttachmentImage extends ConsumerWidget {
-  const _AttachmentImage({required this.attachment, required this.url});
+  const _AttachmentImage({
+    required this.attachment,
+    required this.url,
+    this.messageId,
+  });
 
   final MessageAttachment attachment;
   final String url;
+  final int? messageId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -669,6 +802,7 @@ class _AttachmentImage extends ConsumerWidget {
                 url: url,
                 headers: headers ?? const {},
                 attachment: attachment,
+                messageId: messageId,
               ),
             ),
           ),
@@ -690,7 +824,10 @@ class _AttachmentImage extends ConsumerWidget {
                   ),
                 ),
               ),
-              errorWidget: (_, _, _) => _FileChip(attachment: attachment),
+              errorWidget: (_, _, _) => _FileChip(
+                attachment: attachment,
+                messageId: messageId,
+              ),
             ),
           ),
         );
@@ -699,26 +836,67 @@ class _AttachmentImage extends ConsumerWidget {
   }
 }
 
-/// Full-screen, pinch-to-zoom view of an image attachment.
-class _ImageViewerScreen extends StatelessWidget {
+/// Full-screen, pinch-to-zoom view of an image attachment or multi-image gallery.
+class _ImageViewerScreen extends StatefulWidget {
   const _ImageViewerScreen({
-    required this.url,
-    required this.headers,
+    this.attachments = const [],
+    this.initialIndex = 0,
+    this.url = '',
+    this.headers = const {},
     this.localPath,
     this.attachment,
+    this.messageId,
   });
 
+  final List<MessageAttachment> attachments;
+  final int initialIndex;
   final String url;
   final Map<String, String> headers;
   final String? localPath;
   final MessageAttachment? attachment;
+  final int? messageId;
+
+  @override
+  State<_ImageViewerScreen> createState() => _ImageViewerScreenState();
+}
+
+class _ImageViewerScreenState extends State<_ImageViewerScreen> {
+  late final PageController _pageController;
+  late int _currentIndex;
+  late final List<MessageAttachment> _galleryItems;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.attachments.isNotEmpty) {
+      _galleryItems = widget.attachments;
+      _currentIndex = widget.initialIndex.clamp(0, _galleryItems.length - 1);
+    } else if (widget.attachment != null) {
+      _galleryItems = [widget.attachment!];
+      _currentIndex = 0;
+    } else {
+      _galleryItems = [
+        MessageAttachment(
+          type: 'IMAGE',
+          url: widget.url,
+          localFilePath: widget.localPath,
+        ),
+      ];
+      _currentIndex = 0;
+    }
+    _pageController = PageController(initialPage: _currentIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final hasLocal =
-        localPath != null &&
-        localPath!.isNotEmpty &&
-        File(localPath!).existsSync();
+    final currentAttachment =
+        _currentIndex < _galleryItems.length ? _galleryItems[_currentIndex] : null;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -726,39 +904,72 @@ class _ImageViewerScreen extends StatelessWidget {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
+        title: _galleryItems.length > 1
+            ? Text(
+                '${_currentIndex + 1} / ${_galleryItems.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
+            : null,
         actions: [
-          if (attachment != null)
+          if (currentAttachment != null)
             Consumer(
               builder: (context, ref, _) => IconButton(
                 icon: const Icon(Icons.download_rounded),
                 tooltip: context.l10n.downloadAttachmentAction,
                 onPressed: () => AttachmentHelper.saveAttachmentToDownloads(
                   context: context,
-                  attachment: attachment!,
+                  attachment: currentAttachment,
                   api: ref.read(apiClientProvider),
+                  messageId: widget.messageId,
                 ),
               ),
             ),
         ],
       ),
-      body: Center(
-        child: InteractiveViewer(
-          minScale: 1,
-          maxScale: 4,
-          child: hasLocal
-              ? Image.file(File(localPath!), fit: BoxFit.contain)
-              : CachedNetworkImage(
-                  imageUrl: url,
-                  httpHeaders: headers,
-                  fit: BoxFit.contain,
-                  placeholder: (_, _) => const CircularProgressIndicator(),
-                  errorWidget: (_, _, _) => Icon(
-                    Icons.broken_image_outlined,
-                    color: Colors.white.withValues(alpha: 0.7),
-                    size: 48,
-                  ),
-                ),
-        ),
+      body: PageView.builder(
+        controller: _pageController,
+        itemCount: _galleryItems.length,
+        onPageChanged: (idx) => setState(() => _currentIndex = idx),
+        itemBuilder: (context, index) {
+          final item = _galleryItems[index];
+          final localPath = item.localFilePath ??
+              (index == 0 && widget.localPath != null ? widget.localPath : null);
+          final hasLocal = localPath != null &&
+              localPath.isNotEmpty &&
+              File(localPath).existsSync();
+          final rawUrl = item.resolvedUrl.isNotEmpty ? item.resolvedUrl : widget.url;
+          final safeUrl = SafeUrl.forImage(rawUrl);
+
+          return Center(
+            child: InteractiveViewer(
+              minScale: 1,
+              maxScale: 4,
+              child: hasLocal
+                  ? Image.file(File(localPath), fit: BoxFit.contain)
+                  : CachedNetworkImage(
+                      imageUrl: safeUrl,
+                      httpHeaders: widget.headers,
+                      fit: BoxFit.contain,
+                      placeholder: (_, _) => const Center(
+                        child: Icon(
+                          Icons.image_outlined,
+                          color: Colors.white38,
+                          size: 48,
+                        ),
+                      ),
+                      errorWidget: (_, _, _) => Icon(
+                        Icons.broken_image_outlined,
+                        color: Colors.white.withValues(alpha: 0.7),
+                        size: 48,
+                      ),
+                    ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -1357,9 +1568,10 @@ class _WaveformPainter extends CustomPainter {
 }
 
 class _FileChip extends ConsumerStatefulWidget {
-  const _FileChip({required this.attachment});
+  const _FileChip({required this.attachment, this.messageId});
 
   final MessageAttachment attachment;
+  final int? messageId;
 
   @override
   ConsumerState<_FileChip> createState() => _FileChipState();
@@ -1376,6 +1588,7 @@ class _FileChipState extends ConsumerState<_FileChip> {
         context: context,
         attachment: widget.attachment,
         api: ref.read(apiClientProvider),
+        messageId: widget.messageId,
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -1467,6 +1680,7 @@ class _FileChipState extends ConsumerState<_FileChip> {
                     context: context,
                     attachment: attachment,
                     api: ref.read(apiClientProvider),
+                    messageId: widget.messageId,
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -1494,7 +1708,9 @@ class _FileChipState extends ConsumerState<_FileChip> {
 
   static IconData _iconFor(MessageAttachment attachment) {
     if (attachment.isAudio) return Icons.mic_none;
-    if (attachment.isImage) return Icons.image_outlined;
+    if (attachment.hasImageFile || attachment.isImage) {
+      return Icons.image_outlined;
+    }
     if (attachment.isVideo) return Icons.videocam_outlined;
 
     final ext = attachment.fileExtension.toLowerCase();

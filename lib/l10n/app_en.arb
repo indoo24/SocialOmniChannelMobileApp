@@ -185,6 +185,10 @@
   "noConnectionTitle": "No connection",
   "genericErrorTitle": "Something went wrong",
   "genericErrorFallbackMessage": "Please try again.",
+  "loginInvalidCredentialsError": "Invalid email or password. Please check your credentials and try again.",
+  "@loginInvalidCredentialsError": {
+    "description": "Sign-in failed with backend code invalid_credentials. Covers wrong password, unknown address and deactivated account alike — the backend deliberately does not say which."
+  },
   "retryButton": "Try again",
 
   "commonSave": "Save",
