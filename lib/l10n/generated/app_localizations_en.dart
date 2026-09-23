@@ -378,6 +378,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get genericErrorFallbackMessage => 'Please try again.';
 
   @override
+  String get loginInvalidCredentialsError =>
+      'Invalid email or password. Please check your credentials and try again.';
+
+  @override
   String get retryButton => 'Try again';
 
   @override

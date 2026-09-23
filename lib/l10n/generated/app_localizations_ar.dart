@@ -378,6 +378,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get genericErrorFallbackMessage => 'يرجى المحاولة مرة أخرى.';
 
   @override
+  String get loginInvalidCredentialsError =>
+      'البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى التحقق من بياناتك والمحاولة مرة أخرى.';
+
+  @override
   String get retryButton => 'إعادة المحاولة';
 
   @override
