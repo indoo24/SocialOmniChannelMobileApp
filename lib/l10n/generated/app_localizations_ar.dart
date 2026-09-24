@@ -890,6 +890,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get replyMessageAction => 'رد';
 
   @override
+  String get copyMessageAction => 'نسخ';
+
+  @override
+  String get messageCopiedSnackbar => 'تم النسخ';
+
+  @override
   String replyingToLabel(String name) {
     return 'الرد على $name';
   }

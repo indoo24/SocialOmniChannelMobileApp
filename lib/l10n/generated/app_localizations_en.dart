@@ -894,6 +894,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get replyMessageAction => 'Reply';
 
   @override
+  String get copyMessageAction => 'Copy';
+
+  @override
+  String get messageCopiedSnackbar => 'Copied';
+
+  @override
   String replyingToLabel(String name) {
     return 'Replying to $name';
   }

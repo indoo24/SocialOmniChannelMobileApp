@@ -393,6 +393,8 @@
   "deleteMessageDeletedSnackbar": "Message deleted",
 
   "replyMessageAction": "Reply",
+  "copyMessageAction": "Copy",
+  "messageCopiedSnackbar": "Copied",
   "replyingToLabel": "Replying to {name}",
   "@replyingToLabel": {
     "placeholders": {

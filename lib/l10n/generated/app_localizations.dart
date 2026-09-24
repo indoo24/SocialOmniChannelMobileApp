@@ -1736,6 +1736,18 @@ abstract class AppLocalizations {
   /// **'Reply'**
   String get replyMessageAction;
 
+  /// No description provided for @copyMessageAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copyMessageAction;
+
+  /// No description provided for @messageCopiedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get messageCopiedSnackbar;
+
   /// No description provided for @replyingToLabel.
   ///
   /// In en, this message translates to:
