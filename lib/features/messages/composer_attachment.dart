@@ -79,18 +79,6 @@ class _ComposerAttachmentButtonState
   bool _busy = false;
 
   static const int _maxAttachments = 10;
-  static const List<String> _allowedDocExtensions = [
-    'pdf',
-    'doc',
-    'docx',
-    'xls',
-    'xlsx',
-    'ppt',
-    'pptx',
-    'txt',
-    'zip',
-    'csv',
-  ];
 
   Future<void> _uploadBatch(
     List<({String path, String name, int? size})> items,
@@ -246,12 +234,13 @@ class _ComposerAttachmentButtonState
       return;
     }
 
+    // Any file on the device, as WhatsApp's own picker allows. Whether the
+    // conversation's platform can actually carry it is the backend's call:
+    // the upload re-derives the type from the bytes and rejects what the
+    // platform does not accept, and that reason is shown to the agent.
     List<PlatformFile> pickedFiles = [];
     try {
-      pickedFiles = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: _allowedDocExtensions,
-      );
+      pickedFiles = await FilePicker.pickFiles(type: FileType.any);
     } on PlatformException catch (_) {
       if (!mounted) return;
       widget.onError(context.l10n.attachmentUploadFailedError);
