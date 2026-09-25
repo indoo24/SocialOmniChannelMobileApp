@@ -219,6 +219,9 @@ class ApiException implements Exception {
     400 => 'That request was not valid.',
     403 => 'You do not have permission to do that.',
     404 => 'Not found.',
+    // Usually the reverse proxy's own refusal (an HTML page, not the
+    // envelope), so there is no server message to show instead.
+    413 => 'That file is too large to send.',
     429 => 'Too many requests. Please wait a moment.',
     >= 500 => 'The server had a problem. Please try again.',
     _ => 'Something went wrong.',
@@ -250,4 +253,12 @@ class NetworkException extends ApiException {
     : super(statusCode: 0, code: 'network', message: message);
 
   bool get isRetryable => true;
+}
+
+/// The caller abandoned the request on purpose (a cancelled upload, a
+/// screen that closed mid-transfer). Not a failure: nothing to show, nothing
+/// to retry.
+class RequestCancelledException extends ApiException {
+  RequestCancelledException()
+    : super(statusCode: 0, code: 'cancelled', message: 'Cancelled.');
 }

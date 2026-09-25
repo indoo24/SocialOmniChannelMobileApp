@@ -157,7 +157,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     if (!_scrollController.hasClients) return;
     final before = _scrollController.position.maxScrollExtent;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollController.hasClients || _isNavigatingToReply) return;
+      if (!mounted || !_scrollController.hasClients || _isNavigatingToReply) {
+        return;
+      }
       final pos = _scrollController.position;
       if (!pos.hasContentDimensions) return;
       final delta = pos.maxScrollExtent - before;
@@ -202,7 +204,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         // If jumping to maxScrollExtent caused lower/unmounted dynamic children
         // to layout and expand maxScrollExtent, repeat the jump until stable
         // before revealing the list.
-        final remaining = _scrollController.position.maxScrollExtent -
+        final remaining =
+            _scrollController.position.maxScrollExtent -
             _scrollController.position.pixels;
         if (remaining > 1.0 && retries < 5) {
           attempt(retries + 1);
@@ -221,7 +224,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   void _scrollToBottom({bool animated = false}) {
     final opId = ++_currentScrollOpId;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted || opId != _currentScrollOpId || !_scrollController.hasClients) {
+      if (!mounted ||
+          opId != _currentScrollOpId ||
+          !_scrollController.hasClients) {
         return;
       }
       if (!_scrollController.position.hasContentDimensions) return;
@@ -252,13 +257,17 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           _scrollController.jumpTo(target);
         }
 
-        if (!mounted || opId != _currentScrollOpId || !_scrollController.hasClients) {
+        if (!mounted ||
+            opId != _currentScrollOpId ||
+            !_scrollController.hasClients) {
           return;
         }
 
         // Wait for next frame so any newly mounted bottom items have laid out.
         await WidgetsBinding.instance.endOfFrame;
-        if (!mounted || opId != _currentScrollOpId || !_scrollController.hasClients) {
+        if (!mounted ||
+            opId != _currentScrollOpId ||
+            !_scrollController.hasClients) {
           return;
         }
 
@@ -326,11 +335,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       if (convoState == null || !mounted || opId != _currentScrollOpId) return;
 
       final grouped = groupMediaBatchMessages(convoState.messages);
-      final targetGroup = grouped.where(
-        (m) =>
-            m.id == targetMessageId ||
-            m.memberMessageIds.contains(targetMessageId),
-      ).firstOrNull;
+      final targetGroup = grouped
+          .where(
+            (m) =>
+                m.id == targetMessageId ||
+                m.memberMessageIds.contains(targetMessageId),
+          )
+          .firstOrNull;
 
       if (targetGroup == null) {
         // Referenced message does not exist or was deleted; graceful exit.
@@ -365,10 +376,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         final renderObject = targetContext.findRenderObject();
         if (renderObject is RenderBox && renderObject.hasSize) {
           final viewport = RenderAbstractViewport.of(renderObject);
-          final offsetToReveal = viewport.getOffsetToReveal(renderObject, 0.25).offset.clamp(
-            0.0,
-            _scrollController.position.maxScrollExtent,
-          );
+          final offsetToReveal = viewport
+              .getOffsetToReveal(renderObject, 0.25)
+              .offset
+              .clamp(0.0, _scrollController.position.maxScrollExtent);
           await _scrollController.animateTo(
             offsetToReveal,
             duration: const Duration(milliseconds: 300),
@@ -385,10 +396,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               final ro2 = updatedContext.findRenderObject();
               if (ro2 is RenderBox && ro2.hasSize) {
                 final vp2 = RenderAbstractViewport.of(ro2);
-                final adjOffset = vp2.getOffsetToReveal(ro2, 0.25).offset.clamp(
-                  0.0,
-                  _scrollController.position.maxScrollExtent,
-                );
+                final adjOffset = vp2
+                    .getOffsetToReveal(ro2, 0.25)
+                    .offset
+                    .clamp(0.0, _scrollController.position.maxScrollExtent);
                 _scrollController.jumpTo(adjOffset);
                 await WidgetsBinding.instance.endOfFrame;
               }
@@ -405,26 +416,27 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       // 4. Target message is loaded in memory but not currently mounted in ListView.
       // Progressively move towards it using measured average heights of mounted items
       // until the target message enters the viewport and becomes mounted.
-      final notes = ref
-              .read(notesControllerProvider(conversationId))
-              .value ??
-          const [];
+      final notes =
+          ref.read(notesControllerProvider(conversationId)).value ?? const [];
       final entries = <_TimelineEntry>[
         for (final m in grouped) _TimelineEntry(message: m, time: m.sentAt),
         for (final n in notes) _TimelineEntry(note: n, time: n.createdAt),
       ]..sort((a, b) => a.time.compareTo(b.time));
 
-      final targetIdx = entries.indexWhere((e) =>
-          e.message != null &&
-          (e.message!.id == resolvedMessageId ||
-              e.message!.memberMessageIds.contains(resolvedMessageId)));
+      final targetIdx = entries.indexWhere(
+        (e) =>
+            e.message != null &&
+            (e.message!.id == resolvedMessageId ||
+                e.message!.memberMessageIds.contains(resolvedMessageId)),
+      );
       if (targetIdx < 0) return;
 
       int mountAttempts = 0;
       while (mountAttempts < 8 &&
           mounted &&
           opId == _currentScrollOpId &&
-          (targetKey.currentContext == null || !targetKey.currentContext!.mounted)) {
+          (targetKey.currentContext == null ||
+              !targetKey.currentContext!.mounted)) {
         mountAttempts++;
 
         // Find mounted entries range and measure average height
@@ -460,14 +472,20 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           // Target is above mounted items
           final itemsAway = firstMountedIdx - targetIdx;
           final estimatedDistance = itemsAway * avgHeight;
-          nextOffset = (currentOffset - estimatedDistance - _scrollController.position.viewportDimension * 0.25)
-              .clamp(0.0, maxOffset);
+          nextOffset =
+              (currentOffset -
+                      estimatedDistance -
+                      _scrollController.position.viewportDimension * 0.25)
+                  .clamp(0.0, maxOffset);
         } else if (lastMountedIdx != null && targetIdx > lastMountedIdx) {
           // Target is below mounted items
           final itemsAway = targetIdx - lastMountedIdx;
           final estimatedDistance = itemsAway * avgHeight;
-          nextOffset = (currentOffset + estimatedDistance + _scrollController.position.viewportDimension * 0.25)
-              .clamp(0.0, maxOffset);
+          nextOffset =
+              (currentOffset +
+                      estimatedDistance +
+                      _scrollController.position.viewportDimension * 0.25)
+                  .clamp(0.0, maxOffset);
         } else {
           // Fallback if no mounted items found
           final fraction = (targetIdx / entries.length).clamp(0.0, 1.0);
@@ -486,10 +504,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         final ro = finalContext.findRenderObject();
         if (ro is RenderBox && ro.hasSize) {
           final viewport = RenderAbstractViewport.of(ro);
-          final exactOffset = viewport.getOffsetToReveal(ro, 0.25).offset.clamp(
-            0.0,
-            _scrollController.position.maxScrollExtent,
-          );
+          final exactOffset = viewport
+              .getOffsetToReveal(ro, 0.25)
+              .offset
+              .clamp(0.0, _scrollController.position.maxScrollExtent);
           await _scrollController.animateTo(
             exactOffset,
             duration: const Duration(milliseconds: 250),
@@ -506,10 +524,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               final settledRo = settledContext.findRenderObject();
               if (settledRo is RenderBox && settledRo.hasSize) {
                 final settledVp = RenderAbstractViewport.of(settledRo);
-                final adj = settledVp.getOffsetToReveal(settledRo, 0.25).offset.clamp(
-                  0.0,
-                  _scrollController.position.maxScrollExtent,
-                );
+                final adj = settledVp
+                    .getOffsetToReveal(settledRo, 0.25)
+                    .offset
+                    .clamp(0.0, _scrollController.position.maxScrollExtent);
                 _scrollController.jumpTo(adj);
                 await WidgetsBinding.instance.endOfFrame;
               }
@@ -1536,7 +1554,21 @@ class _InternalNoteTimelineCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final copyText = copyableMessageText(note.body);
 
+    return GestureDetector(
+      onLongPressStart: copyText != null
+          ? (details) => showMessageActionsMenu(
+              context,
+              position: details.globalPosition,
+              copyText: copyText,
+            )
+          : null,
+      child: _noteCard(context, theme, isDark),
+    );
+  }
+
+  Widget _noteCard(BuildContext context, ThemeData theme, bool isDark) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: Space.md, vertical: 4),
       decoration: BoxDecoration(
@@ -1987,12 +2019,12 @@ class _ComposerState extends ConsumerState<_Composer> {
   bool _sendingTemplate = false;
   bool _userToggledMode = false;
 
-  /// Files already picked and uploaded, waiting to be sent (or removed).
-  /// Voice notes skip this state entirely — recording finishes and sends in
-  /// one motion, matching WhatsApp's own behavior, rather than sitting as a
-  /// staged preview the agent could otherwise edit alongside typed text.
-  final List<StagedAttachment> _stagedAttachments = [];
-  bool _isUploadingAttachments = false;
+  /// Files picked for this message — uploading, uploaded or failed — each
+  /// shown as its own card until sent or removed. Voice notes skip this
+  /// entirely — recording finishes and sends in one motion, matching
+  /// WhatsApp's own behavior, rather than sitting as a staged preview the
+  /// agent could otherwise edit alongside typed text.
+  late final ComposerUploadQueue _uploads;
   bool _isRecording = false;
   final _voiceRecorderKey = GlobalKey<ComposerVoiceRecorderState>();
 
@@ -2003,22 +2035,43 @@ class _ComposerState extends ConsumerState<_Composer> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _onAttachmentsStaged(List<StagedAttachment> stagedList) {
-    setState(() {
-      for (final s in stagedList) {
-        if (_stagedAttachments.length < 10) {
-          _stagedAttachments.add(s);
-        }
-      }
-    });
+  @override
+  void initState() {
+    super.initState();
+    // Created up front, never lazily: dispose() must not be the first
+    // touch, when `ref` can no longer be read.
+    _uploads = ComposerUploadQueue(
+      repository: ref.read(conversationRepositoryProvider),
+      conversationId: widget.conversationId,
+      onFailed: _explainUploadFailure,
+    )..addListener(_onUploadsChanged);
   }
 
-  void _onAttachmentRemoved(int index) {
-    setState(() {
-      if (index >= 0 && index < _stagedAttachments.length) {
-        _stagedAttachments.removeAt(index);
-      }
-    });
+  @override
+  void dispose() {
+    _uploads
+      ..removeListener(_onUploadsChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  /// A card was added, removed or changed state — the only upload events
+  /// the composer itself cares about (the card count, and whether Send has
+  /// to wait). Byte progress repaints the card alone.
+  void _onUploadsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// The card says a file failed; this says why.
+  void _explainUploadFailure(ComposerUpload upload) {
+    final error = upload.error;
+    _showMessage(
+      error == null || error.message.isEmpty
+          ? context.l10n.attachmentUploadFailedError
+          : error.statusCode == 413
+          ? context.l10n.attachmentTooLargeError
+          : error.message,
+    );
   }
 
   /// Put a saved reply into the reply box, at the caret.
@@ -2217,20 +2270,16 @@ class _ComposerState extends ConsumerState<_Composer> {
                       ),
                     ),
                   ),
-                if (_stagedAttachments.isNotEmpty)
+                if (_uploads.count > 0)
                   Align(
                     alignment: AlignmentDirectional.centerStart,
-                    child: ComposerAttachmentsPreviewBar(
-                      conversationId: widget.conversationId,
-                      attachments: _stagedAttachments,
-                      onRemoved: _onAttachmentRemoved,
-                    ),
+                    child: ComposerAttachmentsPreviewBar(uploads: _uploads),
                   ),
                 if (_isRecording)
                   ComposerVoiceRecorder(
                     key: _voiceRecorderKey,
                     conversationId: widget.conversationId,
-                    enabled: !widget.sending && !_isUploadingAttachments,
+                    enabled: !widget.sending && !_uploads.hasActiveUploads,
                     onStaged: _onVoiceStaged,
                     onError: _showMessage,
                     onRecordingChanged: (recording) {
@@ -2245,19 +2294,14 @@ class _ComposerState extends ConsumerState<_Composer> {
                       // platform accepts files, so it never offers a send
                       // that is certain to fail.
                       if (outboundMedia)
+                        // Stays usable while files upload: each card shows
+                        // its own progress, and more can be added.
                         ComposerAttachmentButton(
                           conversationId: widget.conversationId,
-                          enabled: !widget.sending && !_isUploadingAttachments,
-                          currentStagedCount: _stagedAttachments.length,
-                          onStaged: _onAttachmentsStaged,
+                          enabled: !widget.sending,
+                          currentStagedCount: _uploads.count,
+                          onPicked: _uploads.add,
                           onError: _showMessage,
-                          onUploadingChanged: (uploading) {
-                            if (mounted) {
-                              setState(
-                                () => _isUploadingAttachments = uploading,
-                              );
-                            }
-                          },
                         ),
                       // Saved replies: inserts text for the agent to edit,
                       // never sends. Only in this row, which exists only while
@@ -2270,9 +2314,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                         child: IconButton(
                           key: const Key('savedRepliesButton'),
                           tooltip: context.l10n.savedRepliesTooltip,
-                          onPressed: (widget.sending || _isUploadingAttachments)
-                              ? null
-                              : _insertSavedReply,
+                          onPressed: widget.sending ? null : _insertSavedReply,
                           icon: const Icon(Icons.quickreply_outlined, size: 22),
                         ),
                       ),
@@ -2301,7 +2343,8 @@ class _ComposerState extends ConsumerState<_Composer> {
                         ComposerVoiceRecorder(
                           key: _voiceRecorderKey,
                           conversationId: widget.conversationId,
-                          enabled: !widget.sending && !_isUploadingAttachments,
+                          enabled:
+                              !widget.sending && !_uploads.hasActiveUploads,
                           onStaged: _onVoiceStaged,
                           onError: _showMessage,
                           onRecordingChanged: (recording) {
@@ -2316,15 +2359,14 @@ class _ComposerState extends ConsumerState<_Composer> {
                         width: 44,
                         height: 44,
                         child: IconButton.filled(
-                          onPressed: (widget.sending || _isUploadingAttachments)
+                          // Waits only for files still uploading, so a
+                          // message never leaves without one. Failed cards
+                          // are not sent and stay put to retry or remove.
+                          onPressed:
+                              (widget.sending || _uploads.hasActiveUploads)
                               ? null
                               : () {
-                                  final staged = List<StagedAttachment>.from(
-                                    _stagedAttachments,
-                                  );
-                                  if (staged.isNotEmpty) {
-                                    setState(() => _stagedAttachments.clear());
-                                  }
+                                  final staged = _uploads.takeUploaded();
                                   widget.onSend(
                                     attachmentIds: staged
                                         .map((s) => s.draftId)

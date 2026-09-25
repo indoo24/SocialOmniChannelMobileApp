@@ -385,6 +385,11 @@ class ConversationRepository {
   /// verbatim instead of Dio's own extension-based guess — used for the
   /// voice recorder, whose file extension alone (`.ogg`) is not enough to
   /// guarantee the exact `audio/ogg` the backend expects.
+  ///
+  /// The file is streamed from disk (`MultipartFile.fromFile`), never read
+  /// into memory, and sent through [ApiClient.upload], which fails a stalled
+  /// transfer rather than a long one. [onSendProgress] reports bytes sent;
+  /// [cancelToken] abandons the upload with a [RequestCancelledException].
   Future<AttachmentDraft> stageAttachment(
     int conversationId, {
     required String filePath,
@@ -392,6 +397,8 @@ class ConversationRepository {
     bool isVoice = false,
     int? durationMs,
     String? mimeType,
+    ProgressCallback? onSendProgress,
+    CancelToken? cancelToken,
   }) async {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(
@@ -402,9 +409,11 @@ class ConversationRepository {
       if (isVoice) 'is_voice': 'true',
       if (durationMs != null) 'duration_ms': durationMs.toString(),
     });
-    final data = await _api.post<Map<String, dynamic>>(
+    final data = await _api.upload<Map<String, dynamic>>(
       '/conversations/$conversationId/attachments/',
       body: formData,
+      onSendProgress: onSendProgress,
+      cancelToken: cancelToken,
     );
     return AttachmentDraft.fromJson(data);
   }
