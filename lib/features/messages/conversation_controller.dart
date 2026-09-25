@@ -215,6 +215,12 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     dynamic matchKey;
     for (final entry in mergedMap.entries) {
       final existing = entry.value;
+      if (existing.isPending &&
+          incoming.baseClientMessageId != null &&
+          existing.baseClientMessageId == incoming.baseClientMessageId) {
+        matchKey = entry.key;
+        break;
+      }
       if ((existing.isPending || existing.hasFailed || existing.id < 0) &&
           existing.direction == incoming.direction &&
           existing.text.trim() == incoming.text.trim()) {
@@ -282,6 +288,12 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   /// non-negative id) — the backend refuses an optimistic id here, so
   /// quoting another still-pending bubble is not offered by the UI in the
   /// first place.
+  ///
+  /// [reuseLocalId] is for [retry] only: resending under the failed attempt's own
+  /// id keeps the same `client_message_id`, which is what lets the backend
+  /// recognise a retry of a send that actually landed (response lost to a
+  /// timeout or a dropped connection) and return that message instead of
+  /// sending the customer a second copy. A fresh send gets a fresh id.
   Future<void> send(
     String text, {
     String? attachmentId,
@@ -289,6 +301,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     List<String>? attachmentIds,
     List<MessageAttachment>? attachmentPreviews,
     QuotedMessage? replyTo,
+    String? reuseLocalId,
   }) async {
     final current = state.value;
     final trimmed = text.trim();
@@ -305,7 +318,8 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     if (current == null || (trimmed.isEmpty && !hasAttachments)) return;
 
     final employee = ref.read(currentEmployeeProvider);
-    final localId = 'local-${DateTime.now().microsecondsSinceEpoch}';
+    final localId =
+        reuseLocalId ?? 'local-${DateTime.now().microsecondsSinceEpoch}';
 
     final pending = Message.pending(
       localId: localId,
@@ -352,6 +366,13 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         data: {'localId': localId},
       );
       _replaceLocal(localId, sent);
+
+      // When multiple attachments were sent together, the backend creates one
+      // message per attachment (e.g. `client_message_id`, `client_message_id:1`, ...).
+      // Immediately refresh from server so all messages in the batch are in state.
+      if (ids.length > 1) {
+        await refreshFromServer();
+      }
     } on ApiException catch (error) {
       RealtimeLogger.log(
         'CONTROLLER',
@@ -442,7 +463,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   /// The failed row is removed before resending rather than kept alongside,
   /// so a retry can never leave two copies of the same reply on screen — and
   /// the backend's own `client_message_id` idempotency covers the case
-  /// where the first attempt actually landed but the response was lost.
+  /// where the first attempt actually landed but the response was lost. That
+  /// only holds because the retry reuses the failed row's [Message.localId]
+  /// as its `client_message_id`; a fresh id would read as a new message.
   ///
   /// If the failed row carried an attachment, its draft id
   /// ([Message.pendingAttachmentId]) is resent against — the draft itself
@@ -469,6 +492,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       attachmentIds: failed.pendingAttachmentIds,
       attachmentPreviews: failed.attachments,
       replyTo: failed.replyTo,
+      reuseLocalId: localId,
     );
   }
 
@@ -577,16 +601,26 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
     var foundPending = false;
     final Map<dynamic, Message> mergedMap = {};
+
+    final existingPending = current.messages.firstWhere(
+      (m) => m.localId == localId,
+      orElse: () => replacement,
+    );
+    final effectiveReplacement = (existingPending.attachments.length > 1 &&
+            replacement.attachments.length == 1)
+        ? replacement.copyWith(attachments: existingPending.attachments)
+        : replacement;
+
     for (final m in current.messages) {
       final isMatch = m.localId == localId;
       if (isMatch) foundPending = true;
       final key = isMatch
-          ? (replacement.localId ?? replacement.id)
+          ? (effectiveReplacement.localId ?? effectiveReplacement.id)
           : (m.localId ?? m.id);
-      mergedMap[key] = isMatch ? replacement : m;
+      mergedMap[key] = isMatch ? effectiveReplacement : m;
     }
-    if (!mergedMap.containsKey(replacement.localId ?? replacement.id)) {
-      mergedMap[replacement.localId ?? replacement.id] = replacement;
+    if (!mergedMap.containsKey(effectiveReplacement.localId ?? effectiveReplacement.id)) {
+      mergedMap[effectiveReplacement.localId ?? effectiveReplacement.id] = effectiveReplacement;
     }
 
     // A miss here means the pending row this call was meant to resolve is

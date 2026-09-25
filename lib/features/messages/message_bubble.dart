@@ -14,6 +14,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart' show ResponseType, Options;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -27,9 +28,13 @@ import '../../core/widgets/badges.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../core/utils/attachment_helper.dart';
+import 'highlight_message_coordinator.dart';
+import 'audio_duration.dart';
+import 'media_group_grid.dart';
+import 'swipe_to_reply.dart';
 import 'voice_playback_coordinator.dart';
 
-class MessageBubble extends StatelessWidget {
+class MessageBubble extends ConsumerWidget {
   const MessageBubble({
     required this.message,
     this.provider = '',
@@ -37,6 +42,8 @@ class MessageBubble extends StatelessWidget {
     this.onDiscard,
     this.onDelete,
     this.onReply,
+    this.onQuoteTap,
+    this.isHighlighted,
     super.key,
   });
 
@@ -59,8 +66,16 @@ class MessageBubble extends StatelessWidget {
   /// quote a message *into* without it).
   final VoidCallback? onReply;
 
+  /// Tapping the quoted message preview inside this bubble jumps to and
+  /// highlights the referenced message.
+  final ValueChanged<int>? onQuoteTap;
+
+  /// Optional highlight override, primarily for testing. When null, observes
+  /// [highlightedMessageProvider] for matching message.id.
+  final bool? isHighlighted;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final msgIdStr = message.id.toString();
     final trace = RealtimeLogger.findTraceByMessageOrConvo(msgIdStr, null);
     if (trace != null) {
@@ -96,109 +111,146 @@ class MessageBubble extends StatelessWidget {
         ? Colors.white
         : theme.colorScheme.onSurface;
 
-    return Padding(
+    final copyText = copyableMessageText(message.text);
+
+    final isTarget = ref.watch(
+      highlightedMessageProvider.select((id) => id == message.id),
+    );
+    final bool activeHighlight = isHighlighted ?? (isTarget == true);
+    final highlightColor = theme.brightness == Brightness.dark
+        ? theme.colorScheme.primary.withValues(alpha: 0.25)
+        : theme.colorScheme.primary.withValues(alpha: 0.12);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+      margin: const EdgeInsets.symmetric(vertical: 1),
       padding: const EdgeInsets.symmetric(horizontal: Space.md, vertical: 3),
+      decoration: BoxDecoration(
+        color: activeHighlight ? highlightColor : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         mainAxisAlignment: isMine
             ? MainAxisAlignment.end
             : MainAxisAlignment.start,
         children: [
           Flexible(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.sizeOf(context).width * 0.78,
-              ),
-              child: Column(
-                crossAxisAlignment: isMine
-                    ? CrossAxisAlignment.end
-                    : CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onLongPressStart: (onReply != null || onDelete != null)
-                        ? (details) => _showBubbleMenu(
-                            context,
-                            position: details.globalPosition,
-                            onReply: onReply,
-                            onDelete: onDelete,
-                          )
-                        : null,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Space.md,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: background,
-                        borderRadius: BorderRadius.only(
-                          topLeft: const Radius.circular(16),
-                          topRight: const Radius.circular(16),
-                          bottomLeft: Radius.circular(isMine ? 16 : 4),
-                          bottomRight: Radius.circular(isMine ? 4 : 16),
+            child: SwipeToReply(
+              onReply: onReply,
+              isMine: isMine,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.sizeOf(context).width * 0.78,
+                ),
+                child: Column(
+                  crossAxisAlignment: isMine
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onLongPressStart:
+                          (onReply != null ||
+                              copyText != null ||
+                              onDelete != null)
+                          ? (details) => showMessageActionsMenu(
+                              context,
+                              position: details.globalPosition,
+                              onReply: onReply,
+                              copyText: copyText,
+                              onDelete: onDelete,
+                            )
+                          : null,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Space.md,
+                          vertical: 10,
                         ),
-                        border: isMine && !failed
-                            ? null
-                            : Border.all(
-                                color: failed
-                                    ? theme.colorScheme.error.withValues(
-                                        alpha: 0.35,
-                                      )
-                                    : theme.colorScheme.outline,
-                              ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: theme.brightness == Brightness.dark
-                                  ? 0.15
-                                  : 0.03,
-                            ),
-                            blurRadius: 3,
-                            offset: const Offset(0, 1),
+                        decoration: BoxDecoration(
+                          color: background,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(16),
+                            topRight: const Radius.circular(16),
+                            bottomLeft: Radius.circular(isMine ? 16 : 4),
+                            bottomRight: Radius.circular(isMine ? 4 : 16),
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (message.replyTo != null) ...[
-                            _QuoteBlock(
-                              quote: message.replyTo!,
-                              isMine: isMine,
-                            ),
-                            const SizedBox(height: Space.xs),
-                          ],
-                          if (message.attachments.isNotEmpty)
-                            _Attachments(message: message),
-                          if (message.text.isNotEmpty)
-                            Text(
-                              message.text,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: foreground,
-                                height: 1.35,
+                          border: isMine && !failed
+                              ? null
+                              : Border.all(
+                                  color: failed
+                                      ? theme.colorScheme.error.withValues(
+                                          alpha: 0.35,
+                                        )
+                                      : theme.colorScheme.outline,
+                                ),
+                          boxShadow: [
+                            if (activeHighlight)
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.35,
+                                ),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              )
+                            else
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: theme.brightness == Brightness.dark
+                                      ? 0.15
+                                      : 0.03,
+                                ),
+                                blurRadius: 3,
+                                offset: const Offset(0, 1),
                               ),
-                            ),
-                          if (message.contentNotice != null)
-                            ContentNoticeView(
-                              notice: message.contentNotice!,
-                              color: foreground,
-                            ),
-                        ],
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (message.replyTo != null) ...[
+                              _QuoteBlock(
+                                quote: message.replyTo!,
+                                isMine: isMine,
+                                onTap: onQuoteTap != null
+                                    ? () => onQuoteTap!(message.replyTo!.id)
+                                    : null,
+                              ),
+                              const SizedBox(height: Space.xs),
+                            ],
+                            if (message.attachments.isNotEmpty)
+                              _Attachments(message: message),
+                            if (message.text.isNotEmpty)
+                              Text(
+                                message.text,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: foreground,
+                                  height: 1.35,
+                                ),
+                              ),
+                            if (message.contentNotice != null)
+                              ContentNoticeView(
+                                notice: message.contentNotice!,
+                                color: foreground,
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 3),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: _MetaRow(message: message, provider: provider),
-                  ),
-                  if (failed) ...[
-                    const SizedBox(height: Space.xs),
-                    _FailureActions(
-                      message: message,
-                      onRetry: onRetry,
-                      onDiscard: onDiscard,
+                    const SizedBox(height: 3),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: _MetaRow(message: message, provider: provider),
                     ),
+                    if (failed) ...[
+                      const SizedBox(height: Space.xs),
+                      _FailureActions(
+                        message: message,
+                        onRetry: onRetry,
+                        onDiscard: onDiscard,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -208,16 +260,32 @@ class MessageBubble extends StatelessWidget {
   }
 }
 
-/// The long-press menu on a bubble — Reply and/or Delete, whichever the
-/// caller made available. Positioned at the touch point rather than anchored
-/// to the bubble, matching the platform's own context-menu placement.
-void _showBubbleMenu(
+/// The text the long-press Copy action puts on the clipboard, or null when
+/// there is none worth copying (an image/document/voice-only message).
+///
+/// Only ever the body text the bubble itself displays — never the quoted
+/// message, attachment names, ids or `[media: …]` markers, which
+/// [Message.fromJson] has already stripped from [Message.text].
+String? copyableMessageText(String text) {
+  final trimmed = text.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
+
+/// The long-press menu on a bubble (and on an internal note) — Reply, Copy
+/// and/or Delete, whichever the caller made available. Positioned at the
+/// touch point rather than anchored to the bubble, matching the platform's
+/// own context-menu placement.
+void showMessageActionsMenu(
   BuildContext context, {
   required Offset position,
-  required VoidCallback? onReply,
-  required VoidCallback? onDelete,
+  VoidCallback? onReply,
+  String? copyText,
+  VoidCallback? onDelete,
 }) {
   final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+  // Captured now: the menu route is gone by the time Copy runs.
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  final copiedLabel = context.l10n.messageCopiedSnackbar;
   showMenu<VoidCallback>(
     context: context,
     position: RelativeRect.fromRect(
@@ -231,6 +299,19 @@ void _showBubbleMenu(
           child: ListTile(
             leading: const Icon(Icons.reply_outlined),
             title: Text(context.l10n.replyMessageAction),
+          ),
+        ),
+      if (copyText != null)
+        PopupMenuItem<VoidCallback>(
+          value: () async {
+            await Clipboard.setData(ClipboardData(text: copyText));
+            messenger
+              ?..hideCurrentSnackBar()
+              ..showSnackBar(SnackBar(content: Text(copiedLabel)));
+          },
+          child: ListTile(
+            leading: const Icon(Icons.copy_outlined),
+            title: Text(context.l10n.copyMessageAction),
           ),
         ),
       if (onDelete != null)
@@ -255,10 +336,11 @@ void _showBubbleMenu(
 /// message it answers, rendered the same whether the original is still
 /// loaded, deleted, or (rarely) outside this employee's visibility.
 class _QuoteBlock extends StatelessWidget {
-  const _QuoteBlock({required this.quote, required this.isMine});
+  const _QuoteBlock({required this.quote, required this.isMine, this.onTap});
 
   final QuotedMessage quote;
   final bool isMine;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -285,34 +367,46 @@ class _QuoteBlock extends StatelessWidget {
             _ => context.l10n.attachmentMessageLabel,
           };
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Space.sm, vertical: 6),
-      decoration: BoxDecoration(
-        color: backgroundColor,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(8),
-        border: Border(left: BorderSide(color: accentColor, width: 3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (quote.senderName.isNotEmpty)
-            Text(
-              quote.senderName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: accentColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          Text(
-            summary,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(color: textColor),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Space.sm,
+            vertical: 6,
           ),
-        ],
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(8),
+            border: BorderDirectional(
+              start: BorderSide(color: accentColor, width: 3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (quote.senderName.isNotEmpty)
+                Text(
+                  quote.senderName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: accentColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              Text(
+                summary,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(color: textColor),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -551,21 +645,77 @@ class _Attachments extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final widgets = <Widget>[];
+    final attachments = message.attachments;
+
+    var i = 0;
+    while (i < attachments.length) {
+      final current = attachments[i];
+      if (current.isInlineImage) {
+        final imageGroup = <MessageAttachment>[current];
+        var j = i + 1;
+        while (j < attachments.length && attachments[j].isInlineImage) {
+          imageGroup.add(attachments[j]);
+          j++;
+        }
+
+        if (imageGroup.length >= 2) {
+          widgets.add(
+            MediaGroupGrid(
+              attachments: imageGroup,
+              messageId: message.id,
+              isOutbound: message.isOutbound,
+              onTapImage: (index) async {
+                final headers = await ref
+                    .read(apiClientProvider)
+                    .mediaAuthHeaders();
+                if (!context.mounted) return;
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => _ImageViewerScreen(
+                      attachments: imageGroup,
+                      initialIndex: index,
+                      headers: headers,
+                      messageId: message.id,
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        } else {
+          widgets.add(
+            _Attachment(
+              attachment: current,
+              isOutbound: message.isOutbound,
+              messageId: message.id,
+            ),
+          );
+        }
+        i = j;
+      } else {
+        widgets.add(
+          _Attachment(
+            attachment: current,
+            isOutbound: message.isOutbound,
+            messageId: message.id,
+          ),
+        );
+        i++;
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < message.attachments.length; i++)
+        for (var idx = 0; idx < widgets.length; idx++)
           Padding(
             padding: EdgeInsets.only(
-              bottom:
-                  i == message.attachments.length - 1 && message.text.isEmpty
+              bottom: idx == widgets.length - 1 && message.text.isEmpty
                   ? 0
                   : Space.sm,
             ),
-            child: _Attachment(
-              attachment: message.attachments[i],
-              isOutbound: message.isOutbound,
-            ),
+            child: widgets[idx],
           ),
       ],
     );
@@ -573,10 +723,15 @@ class _Attachments extends ConsumerWidget {
 }
 
 class _Attachment extends ConsumerWidget {
-  const _Attachment({required this.attachment, this.isOutbound = true});
+  const _Attachment({
+    required this.attachment,
+    this.isOutbound = true,
+    this.messageId,
+  });
 
   final MessageAttachment attachment;
   final bool isOutbound;
+  final int? messageId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -585,7 +740,7 @@ class _Attachment extends ConsumerWidget {
     // on a server-sourced attachment, so this branch cannot apply to
     // inbound (customer) content.
     final localPath = attachment.localFilePath;
-    if (attachment.isImage && localPath != null && localPath.isNotEmpty) {
+    if (attachment.isInlineImage && localPath != null && localPath.isNotEmpty) {
       return GestureDetector(
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute<void>(
@@ -603,7 +758,8 @@ class _Attachment extends ConsumerWidget {
             File(localPath),
             width: 220,
             fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => _FileChip(attachment: attachment),
+            errorBuilder: (_, _, _) =>
+                _FileChip(attachment: attachment, messageId: messageId),
           ),
         ),
       );
@@ -622,22 +778,35 @@ class _Attachment extends ConsumerWidget {
       );
     }
 
-    final safeUrl = SafeUrl.forImage(resolvedUrl);
-    if (attachment.isImage && safeUrl.isNotEmpty) {
-      return _AttachmentImage(attachment: attachment, url: safeUrl);
+    // Document attachments (such as images sent as WhatsApp documents) remain
+    // visually represented as document attachments.
+    if (!attachment.isDocument) {
+      final safeUrl = SafeUrl.forImage(resolvedUrl);
+      if (attachment.isImage && safeUrl.isNotEmpty) {
+        return _AttachmentImage(
+          attachment: attachment,
+          url: safeUrl,
+          messageId: messageId,
+        );
+      }
     }
 
-    return _FileChip(attachment: attachment);
+    return _FileChip(attachment: attachment, messageId: messageId);
   }
 }
 
 /// A received/sent image, rendered inline with a loading placeholder and an
 /// error fallback, and opening full-screen on tap.
 class _AttachmentImage extends ConsumerWidget {
-  const _AttachmentImage({required this.attachment, required this.url});
+  const _AttachmentImage({
+    required this.attachment,
+    required this.url,
+    this.messageId,
+  });
 
   final MessageAttachment attachment;
   final String url;
+  final int? messageId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -669,6 +838,7 @@ class _AttachmentImage extends ConsumerWidget {
                 url: url,
                 headers: headers ?? const {},
                 attachment: attachment,
+                messageId: messageId,
               ),
             ),
           ),
@@ -690,7 +860,8 @@ class _AttachmentImage extends ConsumerWidget {
                   ),
                 ),
               ),
-              errorWidget: (_, _, _) => _FileChip(attachment: attachment),
+              errorWidget: (_, _, _) =>
+                  _FileChip(attachment: attachment, messageId: messageId),
             ),
           ),
         );
@@ -699,26 +870,68 @@ class _AttachmentImage extends ConsumerWidget {
   }
 }
 
-/// Full-screen, pinch-to-zoom view of an image attachment.
-class _ImageViewerScreen extends StatelessWidget {
+/// Full-screen, pinch-to-zoom view of an image attachment or multi-image gallery.
+class _ImageViewerScreen extends StatefulWidget {
   const _ImageViewerScreen({
-    required this.url,
-    required this.headers,
+    this.attachments = const [],
+    this.initialIndex = 0,
+    this.url = '',
+    this.headers = const {},
     this.localPath,
     this.attachment,
+    this.messageId,
   });
 
+  final List<MessageAttachment> attachments;
+  final int initialIndex;
   final String url;
   final Map<String, String> headers;
   final String? localPath;
   final MessageAttachment? attachment;
+  final int? messageId;
+
+  @override
+  State<_ImageViewerScreen> createState() => _ImageViewerScreenState();
+}
+
+class _ImageViewerScreenState extends State<_ImageViewerScreen> {
+  late final PageController _pageController;
+  late int _currentIndex;
+  late final List<MessageAttachment> _galleryItems;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.attachments.isNotEmpty) {
+      _galleryItems = widget.attachments;
+      _currentIndex = widget.initialIndex.clamp(0, _galleryItems.length - 1);
+    } else if (widget.attachment != null) {
+      _galleryItems = [widget.attachment!];
+      _currentIndex = 0;
+    } else {
+      _galleryItems = [
+        MessageAttachment(
+          type: 'IMAGE',
+          url: widget.url,
+          localFilePath: widget.localPath,
+        ),
+      ];
+      _currentIndex = 0;
+    }
+    _pageController = PageController(initialPage: _currentIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final hasLocal =
-        localPath != null &&
-        localPath!.isNotEmpty &&
-        File(localPath!).existsSync();
+    final currentAttachment = _currentIndex < _galleryItems.length
+        ? _galleryItems[_currentIndex]
+        : null;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -726,47 +939,100 @@ class _ImageViewerScreen extends StatelessWidget {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
+        title: _galleryItems.length > 1
+            ? Text(
+                '${_currentIndex + 1} / ${_galleryItems.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
+            : null,
         actions: [
-          if (attachment != null)
+          if (currentAttachment != null)
             Consumer(
               builder: (context, ref, _) => IconButton(
                 icon: const Icon(Icons.download_rounded),
                 tooltip: context.l10n.downloadAttachmentAction,
                 onPressed: () => AttachmentHelper.saveAttachmentToDownloads(
                   context: context,
-                  attachment: attachment!,
+                  attachment: currentAttachment,
                   api: ref.read(apiClientProvider),
+                  messageId: widget.messageId,
                 ),
               ),
             ),
         ],
       ),
-      body: Center(
-        child: InteractiveViewer(
-          minScale: 1,
-          maxScale: 4,
-          child: hasLocal
-              ? Image.file(File(localPath!), fit: BoxFit.contain)
-              : CachedNetworkImage(
-                  imageUrl: url,
-                  httpHeaders: headers,
-                  fit: BoxFit.contain,
-                  placeholder: (_, _) => const CircularProgressIndicator(),
-                  errorWidget: (_, _, _) => Icon(
-                    Icons.broken_image_outlined,
-                    color: Colors.white.withValues(alpha: 0.7),
-                    size: 48,
-                  ),
-                ),
-        ),
+      body: PageView.builder(
+        controller: _pageController,
+        itemCount: _galleryItems.length,
+        onPageChanged: (idx) => setState(() => _currentIndex = idx),
+        itemBuilder: (context, index) {
+          final item = _galleryItems[index];
+          final localPath =
+              item.localFilePath ??
+              (index == 0 && widget.localPath != null
+                  ? widget.localPath
+                  : null);
+          final hasLocal =
+              localPath != null &&
+              localPath.isNotEmpty &&
+              File(localPath).existsSync();
+          final rawUrl = item.resolvedUrl.isNotEmpty
+              ? item.resolvedUrl
+              : widget.url;
+          final safeUrl = SafeUrl.forImage(rawUrl);
+
+          return Center(
+            child: InteractiveViewer(
+              minScale: 1,
+              maxScale: 4,
+              child: hasLocal
+                  ? Image.file(File(localPath), fit: BoxFit.contain)
+                  : CachedNetworkImage(
+                      imageUrl: safeUrl,
+                      httpHeaders: widget.headers,
+                      fit: BoxFit.contain,
+                      placeholder: (_, _) => const Center(
+                        child: Icon(
+                          Icons.image_outlined,
+                          color: Colors.white38,
+                          size: 48,
+                        ),
+                      ),
+                      errorWidget: (_, _, _) => Icon(
+                        Icons.broken_image_outlined,
+                        color: Colors.white.withValues(alpha: 0.7),
+                        size: 48,
+                      ),
+                    ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
 /// A voice-message bubble: mic glyph, duration, waveform, and a play/pause control
-/// with playback progress. Audio bytes are fetched lazily, only when the
-/// agent actually taps play — never pre-loaded or auto-played.
+/// with playback progress, behaving like WhatsApp's:
+///
+/// * **Idle** — play button, the recording's full length (`0:42`), no speed
+///   control.
+/// * **Playing** — pause button, the elapsed position counting up from `0:00`,
+///   and a small `1x / 1.5x / 2x` speed control.
+/// * **Paused** — play button; the position and speed control stay, and play
+///   resumes from the same point at the same speed.
+/// * **Completed**, or stopped because another voice note started — back to
+///   idle: full length shown, speed control hidden, the next play starts from
+///   `0:00` at `1x`.
+///
+/// Audio is played by one [AudioPlayer], created on first play. Before that,
+/// the full length comes from the backend's `duration_ms` or, when a note
+/// carries none, from the recording's own container header (fetched once and
+/// reused for playback — see `audio_duration.dart`).
 class _VoicePlayer extends ConsumerStatefulWidget {
   const _VoicePlayer({
     required this.attachment,
@@ -791,6 +1057,9 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
   late final String _playbackId =
       '${identityHashCode(this)}_${widget.attachment.attachmentId}';
 
+  /// The speeds the speed control cycles through, as WhatsApp's does.
+  static const _playbackRates = [1.0, 1.5, 2.0];
+
   AudioPlayer? _player;
   StreamSubscription<PlayerState>? _stateSub;
   StreamSubscription<Duration>? _positionSub;
@@ -799,12 +1068,39 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
 
   _PlaybackLoad _load = _PlaybackLoad.idle;
   bool _playing = false;
-  Duration _position = Duration.zero;
+
+  /// True from the moment playback starts until it completes or another
+  /// voice note takes over — including while paused. This is what switches
+  /// the label from the full length to the elapsed position, and shows the
+  /// speed control.
+  bool _started = false;
+
+  /// The player's position. A notifier rather than widget state: it ticks
+  /// several times a second, and only the waveform and the time label need
+  /// to repaint for it — not the rest of the bubble.
+  final ValueNotifier<Duration> _position = ValueNotifier(Duration.zero);
+
+  /// Reported by the player once the audio is loaded — the authority.
   Duration? _duration;
-  Uint8List? _cachedBytes;
+
+  /// Read from the recording's header before playback, for notes the backend
+  /// sent no `duration_ms` for.
+  Duration? _fileDuration;
+
+  double _rate = 1.0;
+
+  /// The recording's bytes, fetched at most once: for the header read that
+  /// finds the full length, and then for playback.
+  Future<Uint8List>? _bytes;
 
   @override
   bool get wantKeepAlive => _playing || _load == _PlaybackLoad.loading;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _resolveFileDuration());
+  }
 
   @override
   void didUpdateWidget(_VoicePlayer oldWidget) {
@@ -812,6 +1108,58 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
     if (widget.url != oldWidget.url ||
         widget.localPath != oldWidget.localPath) {
       _stopAndReset();
+      _resolveFileDuration();
+    }
+  }
+
+  bool get _hasSource =>
+      (widget.localPath?.isNotEmpty ?? false) || widget.url.isNotEmpty;
+
+  Duration? _durationFromAttachment() {
+    final ms = widget.attachment.durationMs;
+    return ms == null || ms <= 0 ? null : Duration(milliseconds: ms);
+  }
+
+  /// The full length: the player's once it has one, otherwise the backend's
+  /// `duration_ms`, otherwise the one read from the file's header.
+  Duration? get _totalDuration =>
+      _duration ?? _durationFromAttachment() ?? _fileDuration;
+
+  Future<Uint8List> _loadBytes() => _bytes ??= _fetchBytes();
+
+  Future<Uint8List> _fetchBytes() async {
+    final localPath = widget.localPath;
+    if (localPath != null &&
+        localPath.isNotEmpty &&
+        File(localPath).existsSync()) {
+      return File(localPath).readAsBytes();
+    }
+    final api = ref.read(apiClientProvider);
+    final response = await api.raw.get<List<int>>(
+      widget.url,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    final status = response.statusCode ?? 0;
+    final data = response.data;
+    if (status < 200 || status >= 300 || data == null) {
+      throw StateError('attachment content fetch failed: $status');
+    }
+    return Uint8List.fromList(data);
+  }
+
+  /// Finds the full length before playback when the backend did not send
+  /// one, so an unplayed note shows `0:42` rather than `0:00`. Silent on
+  /// failure: pressing play retries the fetch and reports any error then.
+  Future<void> _resolveFileDuration() async {
+    if (!mounted || !_hasSource || _totalDuration != null) return;
+    try {
+      final bytes = await _loadBytes();
+      final duration = audioDurationFromBytes(bytes);
+      if (duration != null && mounted) {
+        setState(() => _fileDuration = duration);
+      }
+    } catch (_) {
+      _bytes = null;
     }
   }
 
@@ -845,12 +1193,33 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
       ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
     } catch (_) {}
     _disposePlayerOnly();
-    _cachedBytes = null;
+    _bytes = null;
     _load = _PlaybackLoad.idle;
     _playing = false;
-    _position = Duration.zero;
+    _started = false;
+    _rate = 1.0;
+    _position.value = Duration.zero;
     _duration = null;
+    _fileDuration = null;
     if (mounted) setState(() {});
+  }
+
+  /// Back to idle, ready for a fresh play: full length shown, speed control
+  /// hidden, position rewound and speed back to 1x — on the player itself,
+  /// so the next session really does start at normal speed.
+  void _endSession() {
+    if (!mounted) return;
+    final player = _player;
+    if (_rate != 1.0 && player != null) {
+      unawaited(player.setPlaybackRate(1.0).catchError((_) {}));
+    }
+    setState(() {
+      _playing = false;
+      _started = false;
+      _rate = 1.0;
+    });
+    _position.value = Duration.zero;
+    updateKeepAlive();
   }
 
   void _onCompleted() {
@@ -858,13 +1227,22 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
     try {
       ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
     } catch (_) {}
-    if (_playing || _position != Duration.zero) {
-      setState(() {
-        _playing = false;
-        _position = Duration.zero;
-      });
-      updateKeepAlive();
-    }
+    if (_playing || _started) _endSession();
+  }
+
+  /// Another voice note started playing: stop this one and reset it, rather
+  /// than leave it paused half-way with its speed control showing.
+  void _onPreempted() {
+    _safePause();
+    _endSession();
+  }
+
+  void _registerAsActive() {
+    try {
+      ref
+          .read(activeVoicePlaybackProvider.notifier)
+          .setActive(_playbackId, onPause: _onPreempted);
+    } catch (_) {}
   }
 
   @override
@@ -873,6 +1251,7 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
       ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
     } catch (_) {}
     _disposePlayerOnly();
+    _position.dispose();
     super.dispose();
   }
 
@@ -880,6 +1259,7 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
     if (_load == _PlaybackLoad.loading) return;
 
     if (_playing) {
+      // Paused, not ended: position and speed stay for the resume.
       _safePause();
       try {
         ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
@@ -891,34 +1271,25 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
       return;
     }
 
-    // If currently paused mid-track or completed at 0:00, and player is still active, resume:
+    // Player already loaded: resume a paused session, or start a new one
+    // from the top after completion.
     if (_player != null && _load == _PlaybackLoad.ready) {
+      _registerAsActive();
       try {
-        ref
-            .read(activeVoicePlaybackProvider.notifier)
-            .setActive(
-              _playbackId,
-              onPause: () {
-                _safePause();
-                if (mounted) {
-                  setState(() => _playing = false);
-                  updateKeepAlive();
-                }
-              },
-            );
-      } catch (_) {}
-
-      try {
-        if (_position == Duration.zero) {
+        if (!_started) {
           try {
             await _player!
                 .seek(Duration.zero)
                 .timeout(const Duration(milliseconds: 300));
           } catch (_) {}
+          _position.value = Duration.zero;
         }
         await _player!.resume();
         if (mounted) {
-          setState(() => _playing = true);
+          setState(() {
+            _playing = true;
+            _started = true;
+          });
           updateKeepAlive();
         }
         return;
@@ -927,11 +1298,7 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
       }
     }
 
-    final localPath = widget.localPath;
-    final url = widget.url;
-    if (_cachedBytes == null &&
-        (localPath == null || localPath.isEmpty) &&
-        url.isEmpty) {
+    if (_bytes == null && !_hasSource) {
       if (mounted) setState(() => _load = _PlaybackLoad.error);
       return;
     }
@@ -940,29 +1307,9 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
     updateKeepAlive();
 
     try {
-      Uint8List bytes;
-      if (_cachedBytes != null) {
-        bytes = _cachedBytes!;
-      } else if (localPath != null &&
-          localPath.isNotEmpty &&
-          File(localPath).existsSync()) {
-        bytes = await File(localPath).readAsBytes();
-      } else {
-        final api = ref.read(apiClientProvider);
-        final response = await api.raw.get<List<int>>(
-          url,
-          options: Options(responseType: ResponseType.bytes),
-        );
-        final status = response.statusCode ?? 0;
-        final data = response.data;
-        if (status < 200 || status >= 300 || data == null) {
-          throw StateError('attachment content fetch failed: $status');
-        }
-        bytes = Uint8List.fromList(data);
-      }
-      _cachedBytes = bytes;
-
+      final bytes = await _loadBytes();
       if (!mounted) return;
+      _fileDuration ??= audioDurationFromBytes(bytes);
 
       final player = AudioPlayer();
       await player.setReleaseMode(ReleaseMode.stop);
@@ -976,33 +1323,23 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
           updateKeepAlive();
         }
       });
+      // The real position stream — never a timer. Ignored outside a session
+      // so a late tick after completion cannot show a stale position.
       _positionSub = player.onPositionChanged.listen((position) {
-        if (!mounted) return;
-        if (!_playing && _position == Duration.zero) return;
-        setState(() => _position = position);
+        if (!mounted || !_started) return;
+        _position.value = position;
       });
       _durationSub = player.onDurationChanged.listen((duration) {
-        if (!mounted) return;
+        if (!mounted || duration <= Duration.zero) return;
         setState(() => _duration = duration);
       });
       _completeSub = player.onPlayerComplete.listen((_) {
         _onCompleted();
       });
 
-      try {
-        ref
-            .read(activeVoicePlaybackProvider.notifier)
-            .setActive(
-              _playbackId,
-              onPause: () {
-                _safePause();
-                if (mounted) {
-                  setState(() => _playing = false);
-                  updateKeepAlive();
-                }
-              },
-            );
-      } catch (_) {}
+      _registerAsActive();
+      _started = true;
+      _position.value = Duration.zero;
 
       await player.play(BytesSource(bytes));
 
@@ -1018,11 +1355,25 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
       });
       updateKeepAlive();
     } catch (_) {
+      _bytes = null;
+      _started = false;
       if (mounted) {
         setState(() => _load = _PlaybackLoad.error);
         updateKeepAlive();
       }
     }
+  }
+
+  /// 1x → 1.5x → 2x → 1x, on the player itself. Changes speed only: the
+  /// player neither restarts nor seeks, and a paused note stays paused.
+  Future<void> _cycleRate() async {
+    final next =
+        _playbackRates[(_playbackRates.indexOf(_rate) + 1) %
+            _playbackRates.length];
+    setState(() => _rate = next);
+    try {
+      await _player?.setPlaybackRate(next);
+    } catch (_) {}
   }
 
   String _format(Duration d) {
@@ -1036,10 +1387,7 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
     super.build(context);
 
     final theme = Theme.of(context);
-    final total = _duration ?? _durationFromAttachment();
-    final progress = total != null && total.inMilliseconds > 0
-        ? (_position.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0)
-        : 0.0;
+    final total = _totalDuration;
 
     final isOutbound = widget.isOutbound;
     final textColor = isOutbound ? Colors.white : theme.colorScheme.onSurface;
@@ -1087,6 +1435,14 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
                         ),
                       ),
                     ),
+                    if (_started) ...[
+                      _SpeedChip(
+                        rate: _rate,
+                        onTap: _cycleRate,
+                        isOutbound: isOutbound,
+                      ),
+                      const SizedBox(width: 4),
+                    ],
                     InkWell(
                       onTap: () => AttachmentHelper.saveAttachmentToDownloads(
                         context: context,
@@ -1120,48 +1476,66 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
                     ),
                   )
                 else
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 20,
-                          child: _AudioWaveform(
-                            progress: progress,
-                            activeColor: activeWaveColor,
-                            inactiveColor: inactiveWaveColor,
-                            onSeek: (fraction) {
-                              if (_load == _PlaybackLoad.ready &&
-                                  _player != null &&
-                                  total != null) {
-                                final targetMs =
-                                    (total.inMilliseconds * fraction).round();
-                                final target = Duration(milliseconds: targetMs);
-                                setState(() => _position = target);
-                                _player!.seek(target);
-                              }
-                            },
+                  ValueListenableBuilder<Duration>(
+                    valueListenable: _position,
+                    builder: (context, position, _) {
+                      final elapsed = total != null && position > total
+                          ? total
+                          : position;
+                      final progress =
+                          _started && total != null && total.inMilliseconds > 0
+                          ? (elapsed.inMilliseconds / total.inMilliseconds)
+                                .clamp(0.0, 1.0)
+                          : 0.0;
+                      // Idle: the full length. In a session (playing or
+                      // paused): the elapsed position.
+                      final shown = _started
+                          ? elapsed
+                          : (total ?? Duration.zero);
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 20,
+                              child: _AudioWaveform(
+                                progress: progress,
+                                activeColor: activeWaveColor,
+                                inactiveColor: inactiveWaveColor,
+                                onSeek: (fraction) {
+                                  if (_load == _PlaybackLoad.ready &&
+                                      _player != null &&
+                                      total != null) {
+                                    final target = Duration(
+                                      milliseconds:
+                                          (total.inMilliseconds * fraction)
+                                              .round(),
+                                    );
+                                    if (!_started) {
+                                      setState(() => _started = true);
+                                    }
+                                    _position.value = target;
+                                    _player!.seek(target);
+                                  }
+                                },
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _format(
-                          total != null
-                              ? (_playing ||
-                                        (_position > Duration.zero &&
-                                            _position < total)
-                                    ? _position
-                                    : total)
-                              : _position,
-                        ),
-                        style: TextStyle(
-                          color: textColor.withValues(alpha: 0.90),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ],
+                          const SizedBox(width: 8),
+                          Text(
+                            _format(shown),
+                            key: const ValueKey('voiceNoteTime'),
+                            style: TextStyle(
+                              color: textColor.withValues(alpha: 0.90),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
               ],
             ),
@@ -1170,10 +1544,60 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
       ),
     );
   }
+}
 
-  Duration? _durationFromAttachment() {
-    final ms = widget.attachment.durationMs;
-    return ms == null ? null : Duration(milliseconds: ms);
+/// The small `1x` / `1.5x` / `2x` control shown while a voice note is in a
+/// playback session — sized to sit inside the label row without making the
+/// bubble any taller.
+class _SpeedChip extends StatelessWidget {
+  const _SpeedChip({
+    required this.rate,
+    required this.onTap,
+    this.isOutbound = true,
+  });
+
+  final double rate;
+  final VoidCallback onTap;
+  final bool isOutbound;
+
+  static String label(double rate) =>
+      rate == rate.roundToDouble() ? '${rate.toInt()}x' : '${rate}x';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bgColor = isOutbound
+        ? Colors.white.withValues(alpha: 0.22)
+        : theme.colorScheme.primary.withValues(alpha: 0.12);
+    final textColor = isOutbound ? Colors.white : theme.colorScheme.primary;
+
+    return Tooltip(
+      message: context.l10n.playbackSpeedTooltip,
+      child: Material(
+        key: const ValueKey('voiceNoteSpeed'),
+        color: bgColor,
+        shape: const StadiumBorder(),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            child: Text(
+              label(rate),
+              // "1.5x" reads the same in Arabic; keep it from reordering.
+              textDirection: TextDirection.ltr,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                height: 1.3,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1357,9 +1781,10 @@ class _WaveformPainter extends CustomPainter {
 }
 
 class _FileChip extends ConsumerStatefulWidget {
-  const _FileChip({required this.attachment});
+  const _FileChip({required this.attachment, this.messageId});
 
   final MessageAttachment attachment;
+  final int? messageId;
 
   @override
   ConsumerState<_FileChip> createState() => _FileChipState();
@@ -1376,6 +1801,7 @@ class _FileChipState extends ConsumerState<_FileChip> {
         context: context,
         attachment: widget.attachment,
         api: ref.read(apiClientProvider),
+        messageId: widget.messageId,
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -1467,6 +1893,7 @@ class _FileChipState extends ConsumerState<_FileChip> {
                     context: context,
                     attachment: attachment,
                     api: ref.read(apiClientProvider),
+                    messageId: widget.messageId,
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -1494,7 +1921,9 @@ class _FileChipState extends ConsumerState<_FileChip> {
 
   static IconData _iconFor(MessageAttachment attachment) {
     if (attachment.isAudio) return Icons.mic_none;
-    if (attachment.isImage) return Icons.image_outlined;
+    if (attachment.hasImageFile || attachment.isImage) {
+      return Icons.image_outlined;
+    }
     if (attachment.isVideo) return Icons.videocam_outlined;
 
     final ext = attachment.fileExtension.toLowerCase();

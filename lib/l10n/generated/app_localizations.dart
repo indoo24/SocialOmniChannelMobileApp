@@ -746,6 +746,12 @@ abstract class AppLocalizations {
   /// **'Please try again.'**
   String get genericErrorFallbackMessage;
 
+  /// Sign-in failed with backend code invalid_credentials. Covers wrong password, unknown address and deactivated account alike — the backend deliberately does not say which.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email or password. Please check your credentials and try again.'**
+  String get loginInvalidCredentialsError;
+
   /// No description provided for @retryButton.
   ///
   /// In en, this message translates to:
@@ -1592,6 +1598,42 @@ abstract class AppLocalizations {
   /// **'Couldn\'t upload that file. Please try again.'**
   String get attachmentUploadFailedError;
 
+  /// No description provided for @attachmentTooLargeError.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is too large to send.'**
+  String get attachmentTooLargeError;
+
+  /// No description provided for @cancelUploadTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel upload'**
+  String get cancelUploadTooltip;
+
+  /// No description provided for @retryUploadTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry upload'**
+  String get retryUploadTooltip;
+
+  /// No description provided for @attachmentUploadFailedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failed'**
+  String get attachmentUploadFailedLabel;
+
+  /// No description provided for @attachmentUploadedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploaded'**
+  String get attachmentUploadedLabel;
+
+  /// Share of an attachment already uploaded, on its composer card.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String attachmentUploadPercent(int percent);
+
   /// No description provided for @attachmentPermissionDeniedError.
   ///
   /// In en, this message translates to:
@@ -1645,6 +1687,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Voice note'**
   String get voiceNoteLabel;
+
+  /// No description provided for @playbackSpeedTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get playbackSpeedTooltip;
 
   /// No description provided for @recordingText.
   ///
@@ -1729,6 +1777,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reply'**
   String get replyMessageAction;
+
+  /// No description provided for @copyMessageAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copyMessageAction;
+
+  /// No description provided for @messageCopiedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get messageCopiedSnackbar;
 
   /// No description provided for @replyingToLabel.
   ///
@@ -5196,6 +5256,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Returned to {name}, who had already taken this conversation'**
   String historyClaimedOwnerRestored(String name);
+
+  /// Title of the optional app-update dialog shown when Google Play has a newer build than the one installed
+  ///
+  /// In en, this message translates to:
+  /// **'Update available'**
+  String get updateAvailableTitle;
+
+  /// Body of the optional app-update dialog
+  ///
+  /// In en, this message translates to:
+  /// **'A new version of Scenario is available. Update now to get the latest improvements.'**
+  String get updateAvailableBody;
+
+  /// Primary button of the update dialog; starts Google Play's in-app update, or opens this app's Play listing when that is unavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Update now'**
+  String get updateNowAction;
+
+  /// Dismiss button of the update dialogs; the update is optional and is offered again on a future launch
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get updateLaterAction;
+
+  /// Title of the dialog shown once Google Play has finished downloading an update the agent accepted
+  ///
+  /// In en, this message translates to:
+  /// **'Update ready to install'**
+  String get updateReadyTitle;
+
+  /// Body of the update-downloaded dialog
+  ///
+  /// In en, this message translates to:
+  /// **'The new version of Scenario has been downloaded. Restart the app to finish installing it.'**
+  String get updateReadyBody;
+
+  /// Primary button of the update-downloaded dialog; restarts the app into the new version
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get updateRestartAction;
 
   /// No description provided for @historyFallbackAssigned.
   ///

@@ -185,6 +185,10 @@
   "noConnectionTitle": "No connection",
   "genericErrorTitle": "Something went wrong",
   "genericErrorFallbackMessage": "Please try again.",
+  "loginInvalidCredentialsError": "Invalid email or password. Please check your credentials and try again.",
+  "@loginInvalidCredentialsError": {
+    "description": "Sign-in failed with backend code invalid_credentials. Covers wrong password, unknown address and deactivated account alike — the backend deliberately does not say which."
+  },
   "retryButton": "Try again",
 
   "commonSave": "Save",
@@ -359,6 +363,18 @@
   "attachmentLimitReached": "You can attach up to 10 files per message.",
   "attachmentPartialUploadError": "Some files couldn't be uploaded. Please try again.",
   "attachmentUploadFailedError": "Couldn't upload that file. Please try again.",
+  "attachmentTooLargeError": "That file is too large to send.",
+  "cancelUploadTooltip": "Cancel upload",
+  "retryUploadTooltip": "Retry upload",
+  "attachmentUploadFailedLabel": "Upload failed",
+  "attachmentUploadedLabel": "Uploaded",
+  "attachmentUploadPercent": "{percent}%",
+  "@attachmentUploadPercent": {
+    "description": "Share of an attachment already uploaded, on its composer card.",
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
   "attachmentPermissionDeniedError": "Permission was denied. Enable it in your device settings to attach photos.",
   "recordVoiceTooltip": "Record a voice message",
   "recordingLabel": "Recording {duration}",
@@ -373,6 +389,7 @@
   "recordingFailedError": "Couldn't start recording. Please try again.",
   "voiceMessageLabel": "Voice message",
   "voiceNoteLabel": "Voice note",
+  "playbackSpeedTooltip": "Playback speed",
   "recordingText": "Recording",
   "playVoiceMessageTooltip": "Play voice message",
   "pauseVoiceMessageTooltip": "Pause voice message",
@@ -389,6 +406,8 @@
   "deleteMessageDeletedSnackbar": "Message deleted",
 
   "replyMessageAction": "Reply",
+  "copyMessageAction": "Copy",
+  "messageCopiedSnackbar": "Copied",
   "replyingToLabel": "Replying to {name}",
   "@replyingToLabel": {
     "placeholders": {
@@ -1590,6 +1609,35 @@
   "@historyClaimedByReplying": {"placeholders": {"name": {"type": "String"}}},
   "historyClaimedOwnerRestored": "Returned to {name}, who had already taken this conversation",
   "@historyClaimedOwnerRestored": {"placeholders": {"name": {"type": "String"}}},
+
+  "updateAvailableTitle": "Update available",
+  "@updateAvailableTitle": {
+    "description": "Title of the optional app-update dialog shown when Google Play has a newer build than the one installed"
+  },
+  "updateAvailableBody": "A new version of Scenario is available. Update now to get the latest improvements.",
+  "@updateAvailableBody": {
+    "description": "Body of the optional app-update dialog"
+  },
+  "updateNowAction": "Update now",
+  "@updateNowAction": {
+    "description": "Primary button of the update dialog; starts Google Play's in-app update, or opens this app's Play listing when that is unavailable"
+  },
+  "updateLaterAction": "Later",
+  "@updateLaterAction": {
+    "description": "Dismiss button of the update dialogs; the update is optional and is offered again on a future launch"
+  },
+  "updateReadyTitle": "Update ready to install",
+  "@updateReadyTitle": {
+    "description": "Title of the dialog shown once Google Play has finished downloading an update the agent accepted"
+  },
+  "updateReadyBody": "The new version of Scenario has been downloaded. Restart the app to finish installing it.",
+  "@updateReadyBody": {
+    "description": "Body of the update-downloaded dialog"
+  },
+  "updateRestartAction": "Restart",
+  "@updateRestartAction": {
+    "description": "Primary button of the update-downloaded dialog; restarts the app into the new version"
+  },
   "historyFallbackAssigned": "Assigned to {name} (fallback)",
   "@historyFallbackAssigned": {"placeholders": {"name": {"type": "String"}}},
   "historyFallbackReasonsLabel": "Reason: {reasons}",

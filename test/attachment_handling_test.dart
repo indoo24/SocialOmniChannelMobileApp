@@ -58,6 +58,17 @@ class _StubAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+/// Pumps on the real event loop until [done] (bounded). Opening a document
+/// streams its download to disk with real async file I/O, which completes
+/// only on a real event loop — so a test that taps a file chip drives it
+/// from inside `runAsync()`, the same way the composer upload tests do.
+Future<void> _pumpRealUntil(WidgetTester tester, bool Function() done) async {
+  for (var i = 0; i < 100 && !done(); i++) {
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await tester.pump();
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -506,15 +517,16 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.byIcon(Icons.download_rounded), findsOneWidget);
 
-      // Tap the chip to start download
-      await tester.tap(find.text('blueprint.pdf'));
-      await tester.pump();
-
-      // Progress spinner is visible while download is in flight
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-      // Complete the download
+      // Tap the chip to start download. Inside runAsync: the download
+      // streams to disk with real async file I/O.
       await tester.runAsync(() async {
+        await tester.tap(find.text('blueprint.pdf'));
+        await tester.pump();
+
+        // Progress spinner is visible while download is in flight
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+        // Complete the download
         completer.complete(
           ResponseBody.fromBytes(
             Uint8List.fromList([37, 80, 68, 70]),
@@ -524,9 +536,8 @@ void main() {
             },
           ),
         );
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await _pumpRealUntil(tester, () => openFileCalls.isNotEmpty);
       });
-      await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
       // Spinner is gone, openFileRunner was invoked
@@ -628,5 +639,479 @@ void main() {
         expect(find.byIcon(Icons.download_rounded), findsOneWidget);
       },
     );
+  });
+
+  group('Regression: WhatsApp image-as-document and attachment handling', () {
+    // 1. Normal PDF document → downloads and opens.
+    testWidgets('1. Normal PDF document downloads and opens', (tester) async {
+      final pdfBytes = [0x25, 0x50, 0x44, 0x46]; // '%PDF'
+      final adapter = _StubAdapter((options) {
+        return ResponseBody.fromBytes(
+          Uint8List.fromList(pdfBytes),
+          200,
+          headers: {
+            Headers.contentTypeHeader: ['application/pdf'],
+          },
+        );
+      });
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      final att = MessageAttachment.fromJson({
+        'id': 'pdf_doc_1',
+        'type': 'FILE',
+        'file_name': 'document.pdf',
+        'mime_type': 'application/pdf',
+        'content_url': '/api/attachments/pdf_doc_1/content/',
+        'status': 'READY',
+      });
+
+      expect(att.isDocument, isTrue);
+      expect(att.isImage, isFalse);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: SizedBox()),
+        ),
+      );
+      final context = tester.element(find.byType(Scaffold));
+
+      await tester.runAsync(() async {
+        await AttachmentHelper.openAttachment(
+          context: context,
+          attachment: att,
+          api: client,
+        );
+      });
+
+      expect(adapter.requested, hasLength(1));
+      expect(openFileCalls, hasLength(1));
+      expect(openFileCalls.first.type, 'application/pdf');
+      expect(openFileCalls.first.path.endsWith('document.pdf'), isTrue);
+    });
+
+    // 2. `document` with MIME `image/jpeg` → downloads and opens.
+    testWidgets(
+      '2. WhatsApp document with MIME image/jpeg downloads and opens',
+      (tester) async {
+        final jpegBytes = [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10];
+        final adapter = _StubAdapter((options) {
+          return ResponseBody.fromBytes(
+            Uint8List.fromList(jpegBytes),
+            200,
+            headers: {
+              Headers.contentTypeHeader: ['image/jpeg'],
+            },
+          );
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final att = MessageAttachment.fromJson({
+          'id': 'wa_doc_jpeg',
+          'type': 'FILE',
+          'file_name': 'IMG-20260921-WA0010.jpg',
+          'mime_type': 'image/jpeg',
+          'content_url': '/api/attachments/wa_doc_jpeg/content/',
+          'status': 'READY',
+          'metadata': {'whatsapp_type': 'document'},
+        });
+
+        // Key classification assertions
+        expect(att.isDocument, isTrue);
+        expect(att.hasImageFile, isTrue);
+        expect(att.fileExtension, 'jpg');
+
+        final msg = Message(
+          id: 201,
+          direction: 'INBOUND',
+          senderType: 'CUSTOMER',
+          senderName: 'Customer',
+          messageType: 'FILE',
+          deliveryStatus: 'DELIVERED',
+          text: '',
+          sentAt: DateTime.parse('2026-09-22T10:00:00Z'),
+          attachments: [att],
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [apiClientProvider.overrideWithValue(client)],
+            child: MaterialApp(
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(body: MessageBubble(message: msg)),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Must render as document chip, NOT inline image
+        expect(find.byType(CachedNetworkImage), findsNothing);
+        expect(find.text('IMG-20260921-WA0010.jpg'), findsOneWidget);
+        expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+
+        // Tap the chip to download & open
+        await tester.runAsync(() async {
+          await tester.tap(find.text('IMG-20260921-WA0010.jpg'));
+          await _pumpRealUntil(tester, () => openFileCalls.isNotEmpty);
+        });
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(adapter.requested, hasLength(1));
+        expect(openFileCalls, hasLength(1));
+        expect(openFileCalls.first.type, 'image/jpeg');
+        expect(openFileCalls.first.path.endsWith('.jpg'), isTrue);
+        expect(File(openFileCalls.first.path).existsSync(), isTrue);
+        expect(File(openFileCalls.first.path).readAsBytesSync(), jpegBytes);
+      },
+    );
+
+    // 3. `document` with MIME `image/png` → downloads and opens.
+    testWidgets(
+      '3. WhatsApp document with MIME image/png downloads and opens',
+      (tester) async {
+        final pngBytes = [0x89, 0x50, 0x4E, 0x47];
+        final adapter = _StubAdapter((options) {
+          return ResponseBody.fromBytes(
+            Uint8List.fromList(pngBytes),
+            200,
+            headers: {
+              Headers.contentTypeHeader: ['image/png'],
+            },
+          );
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final att = MessageAttachment.fromJson({
+          'id': 'wa_doc_png',
+          'type': 'FILE',
+          'file_name': 'screenshot.png',
+          'mime_type': 'image/png',
+          'content_url': '/api/attachments/wa_doc_png/content/',
+          'status': 'READY',
+          'metadata': {'whatsapp_type': 'document'},
+        });
+
+        expect(att.isDocument, isTrue);
+        expect(att.hasImageFile, isTrue);
+
+        final msg = Message(
+          id: 202,
+          direction: 'INBOUND',
+          senderType: 'CUSTOMER',
+          senderName: 'Customer',
+          messageType: 'FILE',
+          deliveryStatus: 'DELIVERED',
+          text: '',
+          sentAt: DateTime.parse('2026-09-22T10:00:00Z'),
+          attachments: [att],
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [apiClientProvider.overrideWithValue(client)],
+            child: MaterialApp(
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(body: MessageBubble(message: msg)),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(CachedNetworkImage), findsNothing);
+        expect(find.text('screenshot.png'), findsOneWidget);
+
+        await tester.runAsync(() async {
+          await tester.tap(find.text('screenshot.png'));
+          await _pumpRealUntil(tester, () => openFileCalls.isNotEmpty);
+        });
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(adapter.requested, hasLength(1));
+        expect(openFileCalls, hasLength(1));
+        expect(openFileCalls.first.type, 'image/png');
+        expect(openFileCalls.first.path.endsWith('.png'), isTrue);
+      },
+    );
+
+    // 4. Image sent normally as image → existing image preview behavior remains unchanged.
+    testWidgets(
+      '4. Image sent normally as image renders inline preview and opens full-screen',
+      (tester) async {
+        final att = MessageAttachment.fromJson({
+          'id': 'normal_img',
+          'type': 'IMAGE',
+          'file_name': 'vacation.jpg',
+          'mime_type': 'image/jpeg',
+          'url': 'https://cdn.example.com/vacation.jpg',
+          'status': 'READY',
+        });
+
+        expect(att.isDocument, isFalse);
+        expect(att.isImage, isTrue);
+        expect(att.isInlineImage, isTrue);
+
+        final msg = Message(
+          id: 203,
+          direction: 'INBOUND',
+          senderType: 'CUSTOMER',
+          senderName: 'Customer',
+          messageType: 'IMAGE',
+          deliveryStatus: 'DELIVERED',
+          text: '',
+          sentAt: DateTime.parse('2026-09-22T10:00:00Z'),
+          attachments: [att],
+        );
+
+        final client = ApiClient.create(cookieJar: CookieJar());
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [apiClientProvider.overrideWithValue(client)],
+            child: MaterialApp(
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(body: MessageBubble(message: msg)),
+            ),
+          ),
+        );
+        for (var i = 0; i < 10; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
+
+        expect(find.byType(CachedNetworkImage), findsOneWidget);
+        expect(find.text('vacation.jpg'), findsNothing);
+
+        await tester.tap(find.byType(CachedNetworkImage).first);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.byType(InteractiveViewer), findsOneWidget);
+      },
+    );
+
+    // 5. Document without MIME type but image filename extension → graceful fallback.
+    testWidgets(
+      '5. Document without MIME type but image filename extension falls back gracefully',
+      (tester) async {
+        final jpegBytes = [0xFF, 0xD8, 0xFF];
+        final adapter = _StubAdapter((options) {
+          return ResponseBody.fromBytes(Uint8List.fromList(jpegBytes), 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final att = MessageAttachment.fromJson({
+          'id': 'no_mime_img',
+          'type': 'FILE',
+          'file_name': 'untyped_photo.jpeg',
+          'mime_type': '',
+          'content_url': '/api/attachments/no_mime_img/content/',
+        });
+
+        expect(att.fileExtension, 'jpeg');
+        expect(att.hasImageFile, isTrue);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(body: SizedBox()),
+          ),
+        );
+        final context = tester.element(find.byType(Scaffold));
+
+        await tester.runAsync(() async {
+          await AttachmentHelper.openAttachment(
+            context: context,
+            attachment: att,
+            api: client,
+          );
+        });
+
+        expect(adapter.requested, hasLength(1));
+        expect(openFileCalls, hasLength(1));
+        expect(openFileCalls.first.type, 'image/jpeg');
+        expect(openFileCalls.first.path.endsWith('.jpeg'), isTrue);
+      },
+    );
+
+    // 6. Missing/invalid attachment URL → graceful error.
+    testWidgets('6. Missing/invalid attachment URL results in graceful error', (
+      tester,
+    ) async {
+      final adapter = _StubAdapter((options) {
+        return ResponseBody.fromString(
+          jsonEncode({
+            'error': {
+              'code': 'not_ready',
+              'message': 'This attachment is not available.',
+              'details': {'status': 'UNAVAILABLE'},
+            },
+          }),
+          409,
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
+          },
+        );
+      });
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      final att = MessageAttachment.fromJson({
+        'id': 'unavailable_att',
+        'type': 'FILE',
+        'file_name': 'missing_file.jpg',
+        'status': 'UNAVAILABLE',
+        'content_url': '/api/attachments/unavailable_att/content/',
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: SizedBox()),
+        ),
+      );
+      final context = tester.element(find.byType(Scaffold));
+
+      await tester.runAsync(() async {
+        await AttachmentHelper.openAttachment(
+          context: context,
+          attachment: att,
+          api: client,
+          messageId: 86109,
+        );
+      });
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(openFileCalls, isEmpty);
+      expect(
+        find.text("Couldn't download attachment. Please try again."),
+        findsOneWidget,
+      );
+    });
+
+    // 7. Authenticated attachment download still sends the required credentials.
+    testWidgets('7. Authenticated download sends session cookies', (
+      tester,
+    ) async {
+      final cookieJar = CookieJar();
+      await cookieJar.saveFromResponse(
+        Uri.parse('https://scenariomnchnl.tech'),
+        [Cookie('scenario_session', 'session_auth_token_xyz')],
+      );
+
+      final adapter = _StubAdapter((options) {
+        return ResponseBody.fromBytes(
+          Uint8List.fromList([1, 2, 3]),
+          200,
+          headers: {
+            Headers.contentTypeHeader: ['application/pdf'],
+          },
+        );
+      });
+      final client = ApiClient.create(cookieJar: cookieJar);
+      client.raw.httpClientAdapter = adapter;
+
+      final att = MessageAttachment.fromJson({
+        'id': 'auth_test_att',
+        'type': 'FILE',
+        'file_name': 'secure.pdf',
+        'content_url': '/api/attachments/auth_test_att/content/',
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: SizedBox()),
+        ),
+      );
+      final context = tester.element(find.byType(Scaffold));
+
+      await tester.runAsync(() async {
+        await AttachmentHelper.openAttachment(
+          context: context,
+          attachment: att,
+          api: client,
+        );
+      });
+
+      expect(adapter.requested, hasLength(1));
+      final request = adapter.requested.first;
+      expect(
+        request.headers['cookie'] ?? request.headers['Cookie'],
+        contains('scenario_session=session_auth_token_xyz'),
+      );
+    });
+
+    // 8. Existing PDF/document behavior remains unchanged.
+    testWidgets('8. Existing Word/Excel/PDF documents remain unchanged', (
+      tester,
+    ) async {
+      final docxBytes = [0x50, 0x4B, 0x03, 0x04];
+      final adapter = _StubAdapter((options) {
+        return ResponseBody.fromBytes(
+          Uint8List.fromList(docxBytes),
+          200,
+          headers: {
+            Headers.contentTypeHeader: [
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ],
+          },
+        );
+      });
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      final att = MessageAttachment.fromJson({
+        'id': 'doc_docx_1',
+        'type': 'FILE',
+        'file_name': 'agreement.docx',
+        'mime_type':
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'content_url': '/api/attachments/doc_docx_1/content/',
+      });
+
+      expect(att.isDocument, isTrue);
+      expect(att.hasImageFile, isFalse);
+      expect(att.isImage, isFalse);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: SizedBox()),
+        ),
+      );
+      final context = tester.element(find.byType(Scaffold));
+
+      await tester.runAsync(() async {
+        await AttachmentHelper.openAttachment(
+          context: context,
+          attachment: att,
+          api: client,
+        );
+      });
+
+      expect(adapter.requested, hasLength(1));
+      expect(openFileCalls, hasLength(1));
+      expect(
+        openFileCalls.first.type,
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      );
+      expect(openFileCalls.first.path.endsWith('.docx'), isTrue);
+    });
   });
 }

@@ -378,6 +378,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get genericErrorFallbackMessage => 'Please try again.';
 
   @override
+  String get loginInvalidCredentialsError =>
+      'Invalid email or password. Please check your credentials and try again.';
+
+  @override
   String get retryButton => 'Try again';
 
   @override
@@ -814,6 +818,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t upload that file. Please try again.';
 
   @override
+  String get attachmentTooLargeError => 'That file is too large to send.';
+
+  @override
+  String get cancelUploadTooltip => 'Cancel upload';
+
+  @override
+  String get retryUploadTooltip => 'Retry upload';
+
+  @override
+  String get attachmentUploadFailedLabel => 'Upload failed';
+
+  @override
+  String get attachmentUploadedLabel => 'Uploaded';
+
+  @override
+  String attachmentUploadPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
   String get attachmentPermissionDeniedError =>
       'Permission was denied. Enable it in your device settings to attach photos.';
 
@@ -844,6 +868,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get voiceNoteLabel => 'Voice note';
+
+  @override
+  String get playbackSpeedTooltip => 'Playback speed';
 
   @override
   String get recordingText => 'Recording';
@@ -888,6 +915,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get replyMessageAction => 'Reply';
+
+  @override
+  String get copyMessageAction => 'Copy';
+
+  @override
+  String get messageCopiedSnackbar => 'Copied';
 
   @override
   String replyingToLabel(String name) {
@@ -2903,6 +2936,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String historyClaimedOwnerRestored(String name) {
     return 'Returned to $name, who had already taken this conversation';
   }
+
+  @override
+  String get updateAvailableTitle => 'Update available';
+
+  @override
+  String get updateAvailableBody =>
+      'A new version of Scenario is available. Update now to get the latest improvements.';
+
+  @override
+  String get updateNowAction => 'Update now';
+
+  @override
+  String get updateLaterAction => 'Later';
+
+  @override
+  String get updateReadyTitle => 'Update ready to install';
+
+  @override
+  String get updateReadyBody =>
+      'The new version of Scenario has been downloaded. Restart the app to finish installing it.';
+
+  @override
+  String get updateRestartAction => 'Restart';
 
   @override
   String historyFallbackAssigned(String name) {

@@ -378,6 +378,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get genericErrorFallbackMessage => 'يرجى المحاولة مرة أخرى.';
 
   @override
+  String get loginInvalidCredentialsError =>
+      'البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى التحقق من بياناتك والمحاولة مرة أخرى.';
+
+  @override
   String get retryButton => 'إعادة المحاولة';
 
   @override
@@ -811,6 +815,26 @@ class AppLocalizationsAr extends AppLocalizations {
   String get attachmentUploadFailedError => 'تعذّر رفع الملف. حاول مرة أخرى.';
 
   @override
+  String get attachmentTooLargeError => 'هذا الملف أكبر من أن يُرسل.';
+
+  @override
+  String get cancelUploadTooltip => 'إلغاء الرفع';
+
+  @override
+  String get retryUploadTooltip => 'إعادة محاولة الرفع';
+
+  @override
+  String get attachmentUploadFailedLabel => 'فشل الرفع';
+
+  @override
+  String get attachmentUploadedLabel => 'تم الرفع';
+
+  @override
+  String attachmentUploadPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
   String get attachmentPermissionDeniedError =>
       'تم رفض الإذن. فعّله من إعدادات جهازك لإرفاق الصور.';
 
@@ -840,6 +864,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get voiceNoteLabel => 'تسجيل صوتي';
+
+  @override
+  String get playbackSpeedTooltip => 'سرعة التشغيل';
 
   @override
   String get recordingText => 'تسجيل';
@@ -884,6 +911,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get replyMessageAction => 'رد';
+
+  @override
+  String get copyMessageAction => 'نسخ';
+
+  @override
+  String get messageCopiedSnackbar => 'تم النسخ';
 
   @override
   String replyingToLabel(String name) {
@@ -2923,6 +2956,29 @@ class AppLocalizationsAr extends AppLocalizations {
   String historyClaimedOwnerRestored(String name) {
     return 'أُعيدت المحادثة إلى $name الذي كان قد استلمها سابقًا';
   }
+
+  @override
+  String get updateAvailableTitle => 'يتوفر تحديث جديد';
+
+  @override
+  String get updateAvailableBody =>
+      'يتوفر إصدار جديد من Scenario. حدّث الآن للحصول على أحدث التحسينات.';
+
+  @override
+  String get updateNowAction => 'تحديث الآن';
+
+  @override
+  String get updateLaterAction => 'لاحقًا';
+
+  @override
+  String get updateReadyTitle => 'التحديث جاهز للتثبيت';
+
+  @override
+  String get updateReadyBody =>
+      'تم تنزيل الإصدار الجديد من Scenario. أعد تشغيل التطبيق لإكمال التثبيت.';
+
+  @override
+  String get updateRestartAction => 'إعادة التشغيل';
 
   @override
   String historyFallbackAssigned(String name) {
