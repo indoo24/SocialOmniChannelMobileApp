@@ -12,7 +12,7 @@
   "tabChannels": "Channels",
   "tabProfile": "Profile",
   "tabSecurity": "Security",
-  "tabAssignment": "Assignment",
+  "tabAssignment": "Routing",
 
   "signOutDialogTitle": "Sign out?",
   "signOutDialogMessage": "You will stop receiving new conversations on this device.",
@@ -36,6 +36,7 @@
   },
 
   "preferencesSectionTitle": "PREFERENCES",
+  "securitySectionTitle": "SECURITY",
   "themeLabel": "Theme",
   "themeSystem": "System",
   "themeLight": "Light",
@@ -184,6 +185,10 @@
   "noConnectionTitle": "No connection",
   "genericErrorTitle": "Something went wrong",
   "genericErrorFallbackMessage": "Please try again.",
+  "loginInvalidCredentialsError": "Invalid email or password. Please check your credentials and try again.",
+  "@loginInvalidCredentialsError": {
+    "description": "Sign-in failed with backend code invalid_credentials. Covers wrong password, unknown address and deactivated account alike — the backend deliberately does not say which."
+  },
   "retryButton": "Try again",
 
   "commonSave": "Save",
@@ -343,11 +348,33 @@
   "readOnlyLabel": "Read only",
 
   "attachmentTooltip": "Attach",
+  "attachDocumentAction": "Document",
   "attachFromGalleryAction": "Photo from gallery",
   "attachFromCameraAction": "Take photo",
   "removeAttachmentTooltip": "Remove attachment",
   "attachmentUploadingLabel": "Uploading…",
+  "uploadingAttachmentsProgress": "Uploading {current} of {total}…",
+  "@uploadingAttachmentsProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "attachmentLimitReached": "You can attach up to 10 files per message.",
+  "attachmentPartialUploadError": "Some files couldn't be uploaded. Please try again.",
   "attachmentUploadFailedError": "Couldn't upload that file. Please try again.",
+  "attachmentTooLargeError": "That file is too large to send.",
+  "cancelUploadTooltip": "Cancel upload",
+  "retryUploadTooltip": "Retry upload",
+  "attachmentUploadFailedLabel": "Upload failed",
+  "attachmentUploadedLabel": "Uploaded",
+  "attachmentUploadPercent": "{percent}%",
+  "@attachmentUploadPercent": {
+    "description": "Share of an attachment already uploaded, on its composer card.",
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
   "attachmentPermissionDeniedError": "Permission was denied. Enable it in your device settings to attach photos.",
   "recordVoiceTooltip": "Record a voice message",
   "recordingLabel": "Recording {duration}",
@@ -377,6 +404,31 @@
   "deleteMessageReasonLabel": "Reason (optional)",
   "deleteMessageDeletedSnackbar": "Message deleted",
 
+  "replyMessageAction": "Reply",
+  "copyMessageAction": "Copy",
+  "messageCopiedSnackbar": "Copied",
+  "replyingToLabel": "Replying to {name}",
+  "@replyingToLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "cancelReplyTooltip": "Cancel reply",
+  "quotedMessageDeletedLabel": "This message was deleted",
+  "quotedMessageUnavailableLabel": "Original message unavailable",
+  "photoMessageLabel": "Photo",
+  "photosMessageLabel": "Photos",
+  "videoMessageLabel": "Video",
+  "documentMessageLabel": "Document",
+  "attachmentMessageLabel": "Attachment",
+  "attachmentsMessageLabel": "Attachments",
+  "sentFromPlatformLabel": "Sent from {provider}",
+  "@sentFromPlatformLabel": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+
   "customerTitle": "Customer",
   "conversationSectionTitle": "Conversation",
   "categoryFieldLabel": "Category",
@@ -386,6 +438,10 @@
   "messagesFieldLabel": "Messages",
   "startedFieldLabel": "Started",
   "lastMessageFieldLabel": "Last message",
+  "claimedByFieldLabel": "Claimed by",
+  "firstResponseFieldLabel": "First response",
+  "resolvedFieldLabel": "Resolved at",
+  "lastAgentMessageFieldLabel": "Last agent message",
   "customerSectionTitle": "Customer",
   "lifecycleFieldLabel": "Lifecycle",
   "intelligenceSectionTitle": "Intelligence",
@@ -395,7 +451,7 @@
   "reviewFieldLabel": "Review",
   "needsHumanReviewValue": "Needs human review",
 
-  "dashboardGreeting": "Good to see you, {name}",
+  "dashboardGreeting": "Hi {name}",
   "@dashboardGreeting": {
     "placeholders": {
       "name": {"type": "String"}
@@ -449,6 +505,37 @@
   "autoAssignmentStatusActive": "Active",
   "autoAssignmentStatusInactive": "Disabled",
   "autoAssignmentToggleLabel": "Enable automatic assignment",
+  "channelResponsibilityTitle": "Channel responsibility",
+  "channelResponsibilityDescription": "Choose who is offered new conversations from each channel. A rule for one specific account takes precedence over a rule for all accounts, and an employee's own rules take precedence over their team's.",
+  "channelResponsibilityAccessNote": "This decides who receives new conversations, not who can see them. Everyone keeps the access their role gives them.",
+  "channelResponsibilityEditNote": "Team rules are set in each team's form on the Teams page. Which channels an employee handles is set in their form on the Employees page.",
+  "channelResponsibilityEmpty": "No responsibility rules yet.",
+  "channelResponsibilityAllAccounts": "All {provider} accounts",
+  "@channelResponsibilityAllAccounts": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "channelResponsibilityAccountRule": "{provider} account · {account}",
+  "@channelResponsibilityAccountRule": {
+    "placeholders": {
+      "provider": {"type": "String"},
+      "account": {"type": "String"}
+    }
+  },
+  "channelResponsibilityTeamPrefix": "Team {name}",
+  "@channelResponsibilityTeamPrefix": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "channelResponsibilityRetired": "Retired",
+  "channelResponsibilityEditInTeams": "Edit in Teams",
+  "channelResponsibilityFallbackTitle": "When nobody responsible is available",
+  "channelResponsibilityFallbackDescription": "The conversation goes to the rest of the organization, so no customer is left without an owner.",
+  "channelResponsibilityOfferToEveryone": "Offer to everyone else",
+  "channelResponsibilityLeaveUnassigned": "Leave unassigned",
+  "channelResponsibilityFallbackSaved": "Fallback behavior updated",
   "defaultChatCapacityTitle": "Default chat capacity",
   "defaultChatCapacityDescription": "Maximum open conversations assigned to an agent at one time.",
   "maxOpenChatsFieldLabel": "Max open chats per agent",
@@ -458,9 +545,9 @@
   "timezoneDescription": "Organization-level time zone. Changing this reinterprets existing schedules without rewriting them.",
   "timezoneFieldLabel": "Select time zone",
   "saveTimezoneAction": "Save time zone",
-  "assignmentPolicyUpdatedSnackbar": "Assignment settings updated",
-  "routingPolicyLoadFailed": "Couldn't load assignment settings.",
-  "routingPermissionDenied": "You don't have permission to manage assignment settings.",
+  "assignmentPolicyUpdatedSnackbar": "Routing settings updated",
+  "routingPolicyLoadFailed": "Couldn't load routing settings.",
+  "routingPermissionDenied": "You don't have permission to manage routing settings.",
   "openUnreadSummary": "{open} open · {unread} unread",
   "@openUnreadSummary": {
     "placeholders": {
@@ -507,12 +594,21 @@
   "emailFieldLabel": "Email",
   "phoneFieldLabel": "Phone",
   "locationFieldLabel": "Location",
+  "firstSeenFieldLabel": "First seen",
   "lastSeenFieldLabel": "Last seen",
   "confirmedPurchasesFieldLabel": "Confirmed purchases",
+  "confirmedPurchasesSubtitle": "Verified by an employee, not by a payment system.",
   "customerNotesFieldLabel": "Notes",
   "recordedDetailsSectionTitle": "Recorded details",
   "conversationsCapsSectionTitle": "CONVERSATIONS",
   "noVisibleConversations": "No conversations you can see.",
+  "channelsCapsSectionTitle": "CHANNELS",
+  "noChannelsMessage": "No channels recorded for this customer yet.",
+  "knownFactsCapsSectionTitle": "KNOWN FACTS",
+  "knownFactsSectionSubtitle": "Extracted from conversations. Confidence shown per fact.",
+  "noKnownFactsMessage": "Nothing known yet.",
+  "ordersCapsSectionTitle": "ORDERS",
+  "noOrdersForCustomerMessage": "No orders recorded for this customer yet.",
   "searchCustomersHint": "Search name, email, phone or handle",
   "noCustomersTitle": "No customers",
   "noCustomersMessage": "Customers appear the first time they message you.",
@@ -525,6 +621,12 @@
 
   "searchEmployeesHint": "Search by name or email",
   "onlineNowFilter": "Online now",
+  "employeeFilterAllRoles": "All roles",
+  "employeeFilterAllTeams": "All teams",
+  "employeeFilterAllStatus": "All",
+  "employeeFilterActive": "Active",
+  "employeeFilterInactive": "Inactive",
+  "employeeFilterReset": "Reset filters",
   "totalCountSuffix": "{total} total",
   "@totalCountSuffix": {
     "placeholders": {
@@ -559,6 +661,17 @@
   "ordersTitle": "Orders",
   "orderButton": "Order",
   "noOrdersRecordedMessage": "No orders recorded from this conversation.",
+  "contactSectionTitle": "Contact",
+  "contactEditButton": "Edit",
+  "customerDataTitle": "Customer data",
+  "customerDataDetailButton": "Detail",
+  "customerDataEmpty": "No customer details recorded yet.",
+  "customerDataMoreCount": "+{count} more",
+  "@customerDataMoreCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "employeeSourceBadge": "Employee",
   "autoSourceBadge": "Auto",
   "saveToCustomerTooltip": "Save to the customer",
@@ -603,6 +716,12 @@
     }
   },
   "confirmedByUnknownEmployee": "an employee",
+  "orderedAtLabel": "Ordered {date}",
+  "@orderedAtLabel": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
   "recordedByMessage": "Recorded by {name}",
   "@recordedByMessage": {
     "placeholders": {
@@ -629,6 +748,19 @@
   "customFieldPickDate": "Choose a date",
   "customFieldPickDateTime": "Choose a date and time",
   "customFieldClear": "Clear",
+  "customerFieldFilterButton": "Filter by field",
+  "customerFieldFilterTitle": "Filter by field",
+  "customerFieldFilterNoFields": "No custom fields are set up for this organization.",
+  "customerFieldFilterFieldLabel": "Field",
+  "customerFieldFilterValueLabel": "Value",
+  "customerFieldFilterFromLabel": "From",
+  "customerFieldFilterToLabel": "To",
+  "customerFieldFilterReset": "Reset",
+  "customerFieldFilterSelectFieldError": "Choose a field first.",
+  "customerFieldFilterEnterValueError": "Enter a value to filter by.",
+  "customerFieldFilterSelectValueError": "Choose a value to filter by.",
+  "customerFieldFilterInvalidRange": "\"From\" must be before \"To\".",
+  "customerFieldFilterNoResults": "No customers match this field filter.",
   "orderDeliverySectionTitle": "Delivery details (optional)",
   "orderRecipientNameLabel": "Recipient name",
   "orderRecipientPhoneLabel": "Recipient phone",
@@ -811,6 +943,19 @@
   "leadersFieldLabel": "Leaders",
   "membersFieldLabel": "Members",
   "employeesLoadFailedMessage": "Couldn't load employees.",
+  "teamResponsibilitiesTitle": "Channel responsibilities",
+  "@teamResponsibilitiesTitle": {
+    "description": "Heading for the team form's channel-responsibilities section"
+  },
+  "teamResponsibilitiesDescription": "Which channels this team is offered new conversations from. This decides who is offered work first — it never changes who can see a conversation.",
+  "@teamResponsibilitiesDescription": {
+    "description": "Explanation text below the team responsibilities section"
+  },
+  "teamResponsibilityNone": "None",
+  "teamResponsibilityAll": "All accounts",
+  "teamResponsibilitySelected": "Selected accounts",
+  "teamResponsibilitiesLoadFailedMessage": "Couldn't load current responsibilities.",
+  "teamResponsibilityNoChannelsMessage": "No connected accounts for this channel yet.",
   "deactivateTeamConfirmTitle": "Deactivate team?",
   "deactivateTeamConfirmBody": "{name} will no longer be available for routing conversations. Existing conversations and assignment history are kept.",
   "@deactivateTeamConfirmBody": {
@@ -960,6 +1105,67 @@
   "@templateUnsupportedNotice": {
     "placeholders": {
       "components": {"type": "String"}
+    }
+  },
+  "sendTemplateAction": "Send",
+  "@sendTemplateAction": {
+    "description": "Button on each template row that opens the send sheet"
+  },
+  "sendTemplateSheetTitle": "Send \"{name}\"",
+  "@sendTemplateSheetTitle": {
+    "description": "Title of the send-template sheet, naming the template",
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "sendTemplateSheetSubtitle": "From {account}. This opens a conversation if there isn't one already.",
+  "@sendTemplateSheetSubtitle": {
+    "description": "Subtitle naming the sending WhatsApp Business account",
+    "placeholders": {
+      "account": {"type": "String"}
+    }
+  },
+  "sendTemplateRecipientLabel": "Recipient",
+  "@sendTemplateRecipientLabel": {
+    "description": "Section label above the recipient type selector"
+  },
+  "sendTemplateExistingCustomer": "Existing customer",
+  "@sendTemplateExistingCustomer": {
+    "description": "Recipient option: pick a customer already in the system"
+  },
+  "sendTemplateNewPhone": "New phone number",
+  "@sendTemplateNewPhone": {
+    "description": "Recipient option: type a phone number by hand"
+  },
+  "sendTemplateCustomerSearchHint": "Search by name, phone or email...",
+  "@sendTemplateCustomerSearchHint": {
+    "description": "Placeholder in the customer search field"
+  },
+  "sendTemplateNoCustomersFound": "No customers match that search.",
+  "@sendTemplateNoCustomersFound": {
+    "description": "Empty state when the customer search returns nothing"
+  },
+  "sendTemplateNoPhoneOnFile": "No phone number on file",
+  "@sendTemplateNoPhoneOnFile": {
+    "description": "Shown under a customer who has no phone number stored"
+  },
+  "sendTemplatePhoneLabel": "Phone number",
+  "@sendTemplatePhoneLabel": {
+    "description": "Label for the manual phone number field"
+  },
+  "sendTemplatePhoneHelper": "Include the country code. A number starting with 0 is refused rather than guessed at — the customer is created automatically if they are new.",
+  "@sendTemplatePhoneHelper": {
+    "description": "Helper text explaining the backend phone rules"
+  },
+  "sendTemplatePreviewLabel": "PREVIEW",
+  "@sendTemplatePreviewLabel": {
+    "description": "Label above the template body preview"
+  },
+  "sendTemplateSentSnackbar": "Template sent to {name}",
+  "@sendTemplateSentSnackbar": {
+    "description": "Success message after an outbound template send",
+    "placeholders": {
+      "name": {"type": "String"}
     }
   },
   "loadingTemplates": "Loading templates…",
@@ -1139,6 +1345,20 @@
   "chatCapacityInvalidRangeError": "Capacity must be between 0 and 200.",
   "@chatCapacityInvalidRangeError": {
     "description": "Error when chat capacity is outside the allowed 0-200 range"
+  },
+  "routingChannelScopeTitle": "Channel scope",
+  "@routingChannelScopeTitle": {
+    "description": "Heading for the employee form's channel-scope section"
+  },
+  "routingChannelScopeDescription": "A hard limit on which channels this person can be assigned or routed conversations from. Narrowing this never removes conversations they already own.",
+  "@routingChannelScopeDescription": {
+    "description": "Explanation text below the channel scope section"
+  },
+  "routingChannelScopeAll": "All channels",
+  "routingChannelScopeSelected": "Selected channels",
+  "routingChannelScopeRequiredError": "Choose at least one channel.",
+  "@routingChannelScopeRequiredError": {
+    "description": "Error when SELECTED scope is chosen but no provider is picked"
   },
   "workingHoursTitle": "Working hours",
   "@workingHoursTitle": {
@@ -1347,7 +1567,7 @@
   "savedRepliesTooltip": "Insert a saved reply",
   "savedRepliesSearchHint": "Search saved replies",
   "savedRepliesLoading": "Loading saved replies…",
-  "savedRepliesEmpty": "No saved replies yet. Create them on the web in Settings.",
+  "savedRepliesEmpty": "No saved replies yet.",
   "savedRepliesNoMatch": "No saved reply matches your search.",
   "savedReplyScopePersonal": "Personal",
   "savedReplyScopeTeam": "Team",
@@ -1417,4 +1637,117 @@
   "@updateRestartAction": {
     "description": "Primary button of the update-downloaded dialog; restarts the app into the new version"
   }
+  "historyFallbackAssigned": "Assigned to {name} (fallback)",
+  "@historyFallbackAssigned": {"placeholders": {"name": {"type": "String"}}},
+  "historyFallbackReasonsLabel": "Reason: {reasons}",
+  "@historyFallbackReasonsLabel": {"placeholders": {"reasons": {"type": "String"}}},
+  "historyRerouted": "Rerouted from {previousName} to {name}",
+  "@historyRerouted": {
+    "placeholders": {
+      "previousName": {"type": "String"},
+      "name": {"type": "String"}
+    }
+  },
+  "historyReleasedFrom": "Released from {previousName} back to the queue",
+  "@historyReleasedFrom": {"placeholders": {"previousName": {"type": "String"}}},
+  "tabCustomerFields": "Customer fields",
+  "customerFieldsPermissionDenied": "You don't have permission to view customer fields.",
+  "customerFieldsTabTitle": "Customer fields",
+  "customerFieldsTabDescription": "These fields are stored on every customer record and can be filled in from a customer's profile. Only authorized admins can add, edit, reorder or disable them.",
+  "addFieldAction": "Add field",
+  "noCustomerFieldsTitle": "No custom fields yet",
+  "noCustomerFieldsMessage": "Add a field to start collecting it on customer profiles.",
+  "customerFieldKeyLabel": "Key: {key}",
+  "@customerFieldKeyLabel": {"placeholders": {"key": {"type": "String"}}},
+  "customerFieldDisabledBadge": "Disabled",
+  "moveFieldUpAction": "Move up",
+  "moveFieldDownAction": "Move down",
+  "enableFieldAction": "Enable",
+  "disableFieldAction": "Disable",
+  "customerFieldEnabledSnackbar": "Field enabled",
+  "customerFieldDisabledSnackbar": "Field disabled",
+  "customerFieldReorderedSnackbar": "Field order updated",
+  "addFieldTitle": "Add field",
+  "editFieldTitle": "Edit field",
+  "fieldLabelFieldLabel": "Label",
+  "fieldLabelRequiredError": "Enter a label.",
+  "fieldKeyFieldLabel": "Key",
+  "fieldKeyHelperTextGenerated": "Generated automatically from the label.",
+  "fieldKeyHelperTextFixed": "The key cannot be changed after the field is created.",
+  "fieldKeyInvalidError": "Use only English letters, numbers and underscores.",
+  "fieldTypeFieldLabel": "Type",
+  "fieldRequiredToggleLabel": "Required",
+  "fieldRequiredToggleHelper": "A required field cannot be saved empty.",
+  "fieldHelpTextFieldLabel": "Help text",
+  "fieldHelpTextFieldHint": "Optional guidance shown under the field",
+  "fieldPlaceholderFieldLabel": "Placeholder",
+  "fieldPlaceholderFieldHint": "Optional example text shown inside the field",
+  "fieldAddedSnackbar": "Field added",
+  "fieldUpdatedSnackbar": "Field updated",
+  "fieldTypeText": "Text",
+  "fieldTypeLongText": "Long text",
+  "fieldTypeNumber": "Whole number",
+  "fieldTypeDecimal": "Decimal number",
+  "fieldTypeDate": "Date",
+  "fieldTypeDatetime": "Date & time",
+  "fieldTypeBoolean": "Yes / No",
+  "fieldTypeSelect": "Single choice",
+  "fieldTypeMultiSelect": "Multiple choice",
+  "fieldTypePhone": "Phone",
+  "fieldTypeEmail": "Email",
+  "tabSavedReplies": "Saved replies",
+  "savedRepliesPermissionDenied": "You don't have permission to view saved replies.",
+  "savedRepliesTabDescription": "Reusable text you insert into the reply box and edit before sending. These are not WhatsApp templates and do not need Meta approval.",
+  "newSavedReplyAction": "New saved reply",
+  "noSavedRepliesTitle": "No saved replies yet.",
+  "noSavedRepliesMessage": "Add a saved reply to reuse it from the composer.",
+  "savedReplyDisabledBadge": "Disabled",
+  "savedReplyShortcutLabel": "Shortcut: /{shortcut}",
+  "@savedReplyShortcutLabel": {"placeholders": {"shortcut": {"type": "String"}}},
+  "savedReplyCategoryLabel": "Category: {category}",
+  "@savedReplyCategoryLabel": {"placeholders": {"category": {"type": "String"}}},
+  "addSavedReplyTitle": "New saved reply",
+  "editSavedReplyTitle": "Edit saved reply",
+  "savedReplyTitleFieldLabel": "Title",
+  "savedReplyTitleRequiredError": "Enter a title.",
+  "savedReplyShortcutFieldLabel": "Shortcut",
+  "savedReplyShortcutFieldHint": "/thanks",
+  "savedReplyShortcutHelperText": "Optional. Type / followed by the shortcut in the reply box to insert it.",
+  "savedReplyCategoryFieldLabel": "Category",
+  "savedReplyScopeFieldLabel": "Who can use it",
+  "savedReplyBodyFieldLabel": "Text",
+  "savedReplyBodyRequiredError": "Enter the reply text.",
+  "savedReplyBodyHelperText": "Use {customerToken} or {agentToken} to fill in names when the reply is inserted.",
+  "@savedReplyBodyHelperText": {"placeholders": {"customerToken": {"type": "String"}, "agentToken": {"type": "String"}}},
+  "savedReplyAddedSnackbar": "Saved reply added",
+  "savedReplyUpdatedSnackbar": "Saved reply updated",
+  "deleteSavedReplyAction": "Delete",
+  "deleteSavedReplyConfirmTitle": "Delete saved reply?",
+  "deleteSavedReplyConfirmBody": "\"{title}\" will no longer be available to insert. This cannot be undone from here.",
+  "@deleteSavedReplyConfirmBody": {"placeholders": {"title": {"type": "String"}}},
+  "savedReplyDeletedSnackbar": "Saved reply deleted",
+  "exportCsvAction": "Export CSV",
+  "exportRateLimitedMessage": "Too many exports in the last minute. Please wait and try again.",
+  "exportFailedMessage": "The export could not be completed. Please try again.",
+  "csvExportSuccessMessage": "CSV exported successfully",
+  "openFileAction": "Open",
+  "downloadAttachmentAction": "Download",
+  "downloadingAttachmentMessage": "Downloading…",
+  "attachmentDownloadSuccess": "Saved to {path}",
+  "@attachmentDownloadSuccess": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "attachmentDownloadError": "Couldn't download attachment. Please try again.",
+  "noAppToOpenFileError": "No application found to open this file.",
+  "shareCsvAction": "Share CSV",
+  "tabMoreSettings": "More",
+  "exportDataSectionTitle": "Export data",
+  "exportDataSectionDescription": "Export your application data as CSV files.",
+  "exportConversationsCsvAction": "Export conversations CSV",
+  "exportCustomersCsvAction": "Export customers CSV",
+  "exportConversationsSubtitle": "Export all conversations as a CSV file.",
+  "exportCustomersSubtitle": "Export all customers as a CSV file.",
+  "exportActionLabel": "Export"
 }

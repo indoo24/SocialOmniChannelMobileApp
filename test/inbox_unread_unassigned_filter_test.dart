@@ -46,6 +46,13 @@ ResponseBody _json(String body, int status) => ResponseBody.fromString(
   },
 );
 
+/// The real first-page `/conversations/` list request — as opposed to one of
+/// the five `page_size=1` probes `ConversationRepository.counts()` now sends
+/// to the very same path to derive each quick-filter badge.
+bool _isListRequest(RequestOptions r) =>
+    r.uri.path.contains('/conversations/') &&
+    r.uri.queryParameters['page_size'] == null;
+
 final _adminEmployee = Employee(
   id: 1,
   email: 'admin@acme.test',
@@ -304,11 +311,7 @@ void main() {
       expect(find.text('Read Unassigned'), findsNothing);
       expect(find.text('Read Assigned'), findsNothing);
 
-      final lastConvoReq = adapter.received.lastWhere(
-        (r) =>
-            r.uri.path.contains('/conversations/') &&
-            !r.uri.path.contains('/counts/'),
-      );
+      final lastConvoReq = adapter.received.lastWhere(_isListRequest);
       expect(lastConvoReq.uri.queryParameters['unread'], equals('true'));
       expect(lastConvoReq.uri.queryParameters['page'], equals('1'));
     });
@@ -350,11 +353,7 @@ void main() {
         expect(find.text('Unread Assigned'), findsNothing);
         expect(find.text('Read Assigned'), findsNothing);
 
-        final lastConvoReq = adapter.received.lastWhere(
-          (r) =>
-              r.uri.path.contains('/conversations/') &&
-              !r.uri.path.contains('/counts/'),
-        );
+        final lastConvoReq = adapter.received.lastWhere(_isListRequest);
         expect(lastConvoReq.uri.queryParameters['view'], equals('unassigned'));
         expect(
           lastConvoReq.uri.queryParameters.containsKey('assigned_to__isnull'),
@@ -383,11 +382,7 @@ void main() {
       expect(find.text('Read Unassigned'), findsNothing);
       expect(find.text('Read Assigned'), findsNothing);
 
-      final lastConvoReq = adapter.received.lastWhere(
-        (r) =>
-            r.uri.path.contains('/conversations/') &&
-            !r.uri.path.contains('/counts/'),
-      );
+      final lastConvoReq = adapter.received.lastWhere(_isListRequest);
       expect(lastConvoReq.uri.queryParameters['unread'], equals('true'));
       expect(lastConvoReq.uri.queryParameters['view'], equals('unassigned'));
     });
@@ -466,11 +461,7 @@ void main() {
           .update(current.copyWith(unread: true, search: 'Ahmed'));
       await tester.pumpAndSettle();
 
-      final lastConvoReq = adapter.received.lastWhere(
-        (r) =>
-            r.uri.path.contains('/conversations/') &&
-            !r.uri.path.contains('/counts/'),
-      );
+      final lastConvoReq = adapter.received.lastWhere(_isListRequest);
       expect(lastConvoReq.uri.queryParameters['unread'], equals('true'));
       expect(lastConvoReq.uri.queryParameters['search'], equals('Ahmed'));
     });
@@ -492,11 +483,7 @@ void main() {
           );
       await tester.pumpAndSettle();
 
-      final lastConvoReq = adapter.received.lastWhere(
-        (r) =>
-            r.uri.path.contains('/conversations/') &&
-            !r.uri.path.contains('/counts/'),
-      );
+      final lastConvoReq = adapter.received.lastWhere(_isListRequest);
       expect(lastConvoReq.uri.queryParameters['unread'], equals('true'));
       expect(
         lastConvoReq.uri.queryParameters['channel_connections'],
@@ -526,11 +513,7 @@ void main() {
         final refreshedState = container.read(inboxControllerProvider).value!;
         expect(refreshedState.nextPage, equals(2));
 
-        final lastConvoReq = adapter.received.lastWhere(
-          (r) =>
-              r.uri.path.contains('/conversations/') &&
-              !r.uri.path.contains('/counts/'),
-        );
+        final lastConvoReq = adapter.received.lastWhere(_isListRequest);
         expect(lastConvoReq.uri.queryParameters['page'], equals('1'));
       },
     );

@@ -25,6 +25,7 @@ import 'config/environment.dart';
 import '../features/authentication/auth_controller.dart';
 import 'notifications/device_repository.dart';
 import 'realtime/realtime_client.dart';
+import 'session/session_epoch.dart';
 import 'storage/secure_store.dart';
 import '../features/conversations/conversation_repository.dart';
 import '../features/directory/directory_repository.dart';
@@ -44,8 +45,11 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient.create(
     cookieJar: ref.watch(cookieJarProvider),
     environment: ref.watch(environmentProvider),
-    // Any 401, from any call site, ends the session once: socket down, cookie
-    // jar cleared, loaded data dropped.
+    sessionEpoch: ref.watch(sessionEpochProvider),
+    // Any 401 from the *current* session, from any call site, ends that
+    // session once: socket down, cookie jar cleared, loaded data dropped. The
+    // epoch the failing request was sent under travels with it, so a late
+    // answer to an older session's request is recognised and ignored.
     //
     // Two deliberate choices here:
     //
@@ -58,9 +62,9 @@ final apiClientProvider = Provider<ApiClient>((ref) {
     //   from inside a build that is still running is not something Riverpod
     //   promises to handle. The async gap lets the failing build finish and
     //   throw its `SessionExpiredException` first, then does the teardown.
-    onSessionExpired: () {
+    onSessionExpired: (epoch) {
       Future.microtask(
-        () => ref.read(authControllerProvider.notifier).onSessionExpired(),
+        () => ref.read(authControllerProvider.notifier).onSessionExpired(epoch),
       );
     },
   );
@@ -93,6 +97,18 @@ final realtimeClientProvider = Provider<RealtimeClient>((ref) {
   final client = RealtimeClient(
     cookieJar: ref.watch(cookieJarProvider),
     environment: ref.watch(environmentProvider),
+    sessionEpoch: ref.watch(sessionEpochProvider),
+    // A close code 4401/4403 means this socket's session is already dead —
+    // the same condition a REST call reports as 401 or 403
+    // `not_authenticated`. Route it through the same teardown rather than
+    // letting the socket retry a rejected cookie on the ordinary backoff
+    // schedule. See the comment on apiClientProvider's onSessionExpired for
+    // why this is `ref.read` inside the callback and wrapped in a microtask.
+    onUnauthorized: (epoch) {
+      Future.microtask(
+        () => ref.read(authControllerProvider.notifier).onSessionExpired(epoch),
+      );
+    },
   );
   ref.onDispose(client.dispose);
   return client;

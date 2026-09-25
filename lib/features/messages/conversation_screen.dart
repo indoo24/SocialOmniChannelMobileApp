@@ -33,8 +33,13 @@ import 'composer_attachment.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
 import 'conversation_resolve_button.dart';
+import 'conversation_skeleton.dart';
+import 'media_group_grid.dart';
 import 'message_bubble.dart';
+import 'package:flutter/rendering.dart';
+import 'highlight_message_coordinator.dart';
 import 'notes_controller.dart';
+import 'voice_playback_coordinator.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({required this.conversationId, super.key});
@@ -48,12 +53,47 @@ class ConversationScreen extends ConsumerStatefulWidget {
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _composerController = TextEditingController();
   final _scrollController = ScrollController();
+  final Map<int, GlobalKey> _bubbleKeys = {};
   late final ActiveConversation _activeNotifier;
   late final InboxController _inboxNotifier;
   late ProviderContainer _container;
   bool _sending = false;
   bool _initialScrollDone = false;
+  int _currentScrollOpId = 0;
+  bool _isNavigatingToReply = false;
+
+  void _onUserScroll() {
+    _currentScrollOpId++;
+    _isNavigatingToReply = false;
+  }
+
+  GlobalKey _bubbleKeyFor(int messageId) => _bubbleKeys.putIfAbsent(
+    messageId,
+    () => GlobalKey(debugLabel: 'msg_bubble_$messageId'),
+  );
+
+  /// True once a single `_jumpToBottomInitial` post-frame callback is
+  /// in flight or has completed. Guards against `_MessageList` rebuilding
+  /// (new messages, notes, keyboard-driven relayout, `_onScroll`'s own
+  /// `setState`) and re-arming another post-frame jump on top of one
+  /// already pending — the stacked, stale callback would otherwise fire
+  /// later and yank the list back to the bottom out from under a user who
+  /// had, by then, manually scrolled away. See `_jumpToBottomInitial`.
+  bool _initialScrollScheduled = false;
   bool _showScrollToBottom = false;
+
+  /// The message the agent has picked "Reply" on, if any — shown as a quote
+  /// preview above the composer and sent as `reply_to_id`, cleared once the
+  /// send resolves (success or failure) or the agent dismisses it.
+  Message? _replyingTo;
+
+  void _startReplyingTo(Message message) {
+    setState(() => _replyingTo = message);
+  }
+
+  void _cancelReply() {
+    setState(() => _replyingTo = null);
+  }
 
   @override
   void initState() {
@@ -91,43 +131,419 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     return (pos.maxScrollExtent - pos.pixels) <= threshold;
   }
 
-  void _jumpToBottomInitial() {
+  /// A stable identity for a message regardless of whether it has a real
+  /// server [Message.id] yet — mirrors the id/localId keying the controller
+  /// itself uses to de-duplicate.
+  static Object _messageKey(Message m) => m.localId ?? m.id;
+
+  /// How many messages in [next] were inserted *before* the message that used
+  /// to be first in [previous] — i.e. how much older history `loadOlder()`
+  /// just prepended. Zero for a plain append (a new message at the bottom),
+  /// since that leaves the old first message's index unchanged.
+  int _prependedCount(List<Message> previous, List<Message> next) {
+    if (previous.isEmpty) return 0;
+    final oldFirstKey = _messageKey(previous.first);
+    final newIndex = next.indexWhere((m) => _messageKey(m) == oldFirstKey);
+    return newIndex < 0 ? 0 : newIndex;
+  }
+
+  /// Compensates for `ListView`'s default prepend behavior — inserting items
+  /// above the viewport without moving `pixels` visually shoves everything
+  /// the user was looking at downward by the height of what was just added.
+  /// Adjusts the offset by exactly that delta once the new items are laid
+  /// out, so the message the user was reading stays under their eyes.
+  void _preserveScrollPositionAfterPrepend() {
+    if (_isNavigatingToReply) return;
+    if (!_scrollController.hasClients) return;
+    final before = _scrollController.position.maxScrollExtent;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollController.hasClients) return;
-      if (_scrollController.position.hasContentDimensions) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-        _initialScrollDone = true;
-        _onScroll();
-      } else {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted &&
-              _scrollController.hasClients &&
-              _scrollController.position.hasContentDimensions) {
-            _scrollController.jumpTo(
-              _scrollController.position.maxScrollExtent,
-            );
-            _initialScrollDone = true;
-            _onScroll();
-          }
-        });
+      if (!mounted || !_scrollController.hasClients || _isNavigatingToReply) {
+        return;
+      }
+      final pos = _scrollController.position;
+      if (!pos.hasContentDimensions) return;
+      final delta = pos.maxScrollExtent - before;
+      if (delta > 0) {
+        _scrollController.jumpTo(pos.pixels + delta);
       }
     });
   }
 
+  /// Positions the list at the latest message before the user ever sees an
+  /// unpositioned frame. Called at most once per screen instance: the first
+  /// caller flips [_initialScrollScheduled] synchronously, so a rebuild that
+  /// happens before the scheduled callback fires (a realtime message, notes
+  /// loading, `_onScroll`'s own `setState`, a keyboard-driven relayout)
+  /// cannot stack a second, later callback that would yank the list back to
+  /// the bottom out from under a user who has since scrolled away.
+  ///
+  /// The list itself stays invisible (see `_MessageList`'s `Opacity` gate in
+  /// the build method below) until [_initialScrollDone] flips, so the jump
+  /// itself is never visible — there is no middle-of-conversation frame to see.
+  void _jumpToBottomInitial() {
+    if (_initialScrollScheduled) return;
+    _initialScrollScheduled = true;
+
+    void attempt([int retries = 0]) {
+      if (!mounted) return;
+      if (!_scrollController.hasClients ||
+          !_scrollController.position.hasContentDimensions) {
+        // Layout not ready yet (e.g. the list has no size on this frame) —
+        // retry on the next frame rather than giving up silently. Bounded by
+        // construction: each retry only re-schedules itself, never stacks.
+        WidgetsBinding.instance.addPostFrameCallback((_) => attempt(retries));
+        return;
+      }
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (!_scrollController.hasClients ||
+            !_scrollController.position.hasContentDimensions) {
+          return;
+        }
+        // If jumping to maxScrollExtent caused lower/unmounted dynamic children
+        // to layout and expand maxScrollExtent, repeat the jump until stable
+        // before revealing the list.
+        final remaining =
+            _scrollController.position.maxScrollExtent -
+            _scrollController.position.pixels;
+        if (remaining > 1.0 && retries < 5) {
+          attempt(retries + 1);
+          return;
+        }
+        if (!_initialScrollDone) {
+          setState(() => _initialScrollDone = true);
+        }
+        _onScroll();
+      });
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
+  }
+
   void _scrollToBottom({bool animated = false}) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      final target = _scrollController.position.maxScrollExtent;
-      if (animated) {
-        _scrollController.animateTo(
-          target,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-        );
-      } else {
-        _scrollController.jumpTo(target);
+    final opId = ++_currentScrollOpId;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted ||
+          opId != _currentScrollOpId ||
+          !_scrollController.hasClients) {
+        return;
+      }
+      if (!_scrollController.position.hasContentDimensions) return;
+
+      int retries = 0;
+      while (mounted &&
+          opId == _currentScrollOpId &&
+          _scrollController.hasClients &&
+          _scrollController.position.hasContentDimensions &&
+          retries < 8) {
+        retries++;
+        final target = _scrollController.position.maxScrollExtent;
+        final currentPixels = _scrollController.position.pixels;
+        final remaining = target - currentPixels;
+
+        if (remaining <= 1.0) {
+          break;
+        }
+
+        if (animated) {
+          final durationMs = (remaining * 0.25).clamp(80.0, 250.0).toInt();
+          await _scrollController.animateTo(
+            target,
+            duration: Duration(milliseconds: durationMs),
+            curve: Curves.easeOutCubic,
+          );
+        } else {
+          _scrollController.jumpTo(target);
+        }
+
+        if (!mounted ||
+            opId != _currentScrollOpId ||
+            !_scrollController.hasClients) {
+          return;
+        }
+
+        // Wait for next frame so any newly mounted bottom items have laid out.
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted ||
+            opId != _currentScrollOpId ||
+            !_scrollController.hasClients) {
+          return;
+        }
+
+        final newTarget = _scrollController.position.maxScrollExtent;
+        if ((newTarget - _scrollController.position.pixels).abs() <= 1.0) {
+          break;
+        }
+      }
+
+      if (mounted && opId == _currentScrollOpId) {
+        _onScroll();
       }
     });
+  }
+
+  bool _isWidgetFullyVisible(BuildContext targetContext) {
+    final renderObject = targetContext.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return false;
+    final viewport = RenderAbstractViewport.of(renderObject);
+    if (!_scrollController.hasClients ||
+        !_scrollController.position.hasContentDimensions) {
+      return false;
+    }
+
+    final offsetToReveal = viewport.getOffsetToReveal(renderObject, 0.0);
+    final itemTop = offsetToReveal.offset;
+    final itemBottom = itemTop + renderObject.size.height;
+    final viewportTop = _scrollController.offset;
+    final viewportBottom =
+        viewportTop + _scrollController.position.viewportDimension;
+
+    return itemTop >= viewportTop && itemBottom <= viewportBottom;
+  }
+
+  Future<void> _scrollToQuotedMessage(int targetMessageId) async {
+    if (targetMessageId <= 0) return;
+
+    final opId = ++_currentScrollOpId;
+    _isNavigatingToReply = true;
+
+    try {
+      final conversationId = widget.conversationId;
+      var convoState = ref
+          .read(conversationControllerProvider(conversationId))
+          .value;
+      if (convoState == null) return;
+
+      // 1. If not yet loaded in messages, fetch older history via existing pagination.
+      int attempts = 0;
+      while (convoState != null &&
+          !convoState.messages.any((m) => m.id == targetMessageId) &&
+          convoState.hasMore &&
+          attempts < 10) {
+        if (!mounted || opId != _currentScrollOpId) return;
+        attempts++;
+        await ref
+            .read(conversationControllerProvider(conversationId).notifier)
+            .loadOlder();
+        if (!mounted || opId != _currentScrollOpId) return;
+        convoState = ref
+            .read(conversationControllerProvider(conversationId))
+            .value;
+      }
+
+      if (convoState == null || !mounted || opId != _currentScrollOpId) return;
+
+      final grouped = groupMediaBatchMessages(convoState.messages);
+      final targetGroup = grouped
+          .where(
+            (m) =>
+                m.id == targetMessageId ||
+                m.memberMessageIds.contains(targetMessageId),
+          )
+          .firstOrNull;
+
+      if (targetGroup == null) {
+        // Referenced message does not exist or was deleted; graceful exit.
+        return;
+      }
+
+      final resolvedMessageId = targetGroup.id;
+      final targetKey = _bubbleKeyFor(resolvedMessageId);
+
+      // Wait for layout to settle after potential pagination
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted || opId != _currentScrollOpId) return;
+
+      // 2. If the message is already mounted and completely visible in viewport.
+      var targetContext = targetKey.currentContext;
+      if (targetContext != null &&
+          targetContext.mounted &&
+          _isWidgetFullyVisible(targetContext)) {
+        ref
+            .read(highlightedMessageProvider.notifier)
+            .highlight(resolvedMessageId);
+        return;
+      }
+
+      if (!_scrollController.hasClients ||
+          !_scrollController.position.hasContentDimensions) {
+        return;
+      }
+
+      // 3. If mounted but partially/fully out of the viewport.
+      if (targetContext != null && targetContext.mounted) {
+        final renderObject = targetContext.findRenderObject();
+        if (renderObject is RenderBox && renderObject.hasSize) {
+          final viewport = RenderAbstractViewport.of(renderObject);
+          final offsetToReveal = viewport
+              .getOffsetToReveal(renderObject, 0.25)
+              .offset
+              .clamp(0.0, _scrollController.position.maxScrollExtent);
+          await _scrollController.animateTo(
+            offsetToReveal,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOutCubic,
+          );
+          if (!mounted || opId != _currentScrollOpId) return;
+          await WidgetsBinding.instance.endOfFrame;
+          if (!mounted || opId != _currentScrollOpId) return;
+
+          // Verify visibility after layout settle and adjust if needed
+          final updatedContext = targetKey.currentContext;
+          if (updatedContext != null && updatedContext.mounted) {
+            if (!_isWidgetFullyVisible(updatedContext)) {
+              final ro2 = updatedContext.findRenderObject();
+              if (ro2 is RenderBox && ro2.hasSize) {
+                final vp2 = RenderAbstractViewport.of(ro2);
+                final adjOffset = vp2
+                    .getOffsetToReveal(ro2, 0.25)
+                    .offset
+                    .clamp(0.0, _scrollController.position.maxScrollExtent);
+                _scrollController.jumpTo(adjOffset);
+                await WidgetsBinding.instance.endOfFrame;
+              }
+            }
+          }
+
+          ref
+              .read(highlightedMessageProvider.notifier)
+              .highlight(resolvedMessageId);
+          return;
+        }
+      }
+
+      // 4. Target message is loaded in memory but not currently mounted in ListView.
+      // Progressively move towards it using measured average heights of mounted items
+      // until the target message enters the viewport and becomes mounted.
+      final notes =
+          ref.read(notesControllerProvider(conversationId)).value ?? const [];
+      final entries = <_TimelineEntry>[
+        for (final m in grouped) _TimelineEntry(message: m, time: m.sentAt),
+        for (final n in notes) _TimelineEntry(note: n, time: n.createdAt),
+      ]..sort((a, b) => a.time.compareTo(b.time));
+
+      final targetIdx = entries.indexWhere(
+        (e) =>
+            e.message != null &&
+            (e.message!.id == resolvedMessageId ||
+                e.message!.memberMessageIds.contains(resolvedMessageId)),
+      );
+      if (targetIdx < 0) return;
+
+      int mountAttempts = 0;
+      while (mountAttempts < 8 &&
+          mounted &&
+          opId == _currentScrollOpId &&
+          (targetKey.currentContext == null ||
+              !targetKey.currentContext!.mounted)) {
+        mountAttempts++;
+
+        // Find mounted entries range and measure average height
+        int? firstMountedIdx;
+        int? lastMountedIdx;
+        double totalMountedHeight = 0.0;
+        int mountedCount = 0;
+
+        for (int i = 0; i < entries.length; i++) {
+          final m = entries[i].message;
+          if (m != null && m.id > 0) {
+            final ctx = _bubbleKeys[m.id]?.currentContext;
+            if (ctx != null && ctx.mounted) {
+              firstMountedIdx ??= i;
+              lastMountedIdx = i;
+              final ro = ctx.findRenderObject();
+              if (ro is RenderBox && ro.hasSize) {
+                totalMountedHeight += ro.size.height;
+                mountedCount++;
+              }
+            }
+          }
+        }
+
+        final avgHeight = mountedCount > 0
+            ? (totalMountedHeight / mountedCount).clamp(30.0, 400.0)
+            : 80.0;
+        final currentOffset = _scrollController.offset;
+        final maxOffset = _scrollController.position.maxScrollExtent;
+        double nextOffset;
+
+        if (firstMountedIdx != null && targetIdx < firstMountedIdx) {
+          // Target is above mounted items
+          final itemsAway = firstMountedIdx - targetIdx;
+          final estimatedDistance = itemsAway * avgHeight;
+          nextOffset =
+              (currentOffset -
+                      estimatedDistance -
+                      _scrollController.position.viewportDimension * 0.25)
+                  .clamp(0.0, maxOffset);
+        } else if (lastMountedIdx != null && targetIdx > lastMountedIdx) {
+          // Target is below mounted items
+          final itemsAway = targetIdx - lastMountedIdx;
+          final estimatedDistance = itemsAway * avgHeight;
+          nextOffset =
+              (currentOffset +
+                      estimatedDistance +
+                      _scrollController.position.viewportDimension * 0.25)
+                  .clamp(0.0, maxOffset);
+        } else {
+          // Fallback if no mounted items found
+          final fraction = (targetIdx / entries.length).clamp(0.0, 1.0);
+          nextOffset = (fraction * maxOffset).clamp(0.0, maxOffset);
+        }
+
+        // Jump towards the target to trigger layout of items around nextOffset
+        _scrollController.jumpTo(nextOffset);
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted || opId != _currentScrollOpId) return;
+      }
+
+      // Now the target is mounted.
+      final finalContext = targetKey.currentContext;
+      if (finalContext != null && finalContext.mounted) {
+        final ro = finalContext.findRenderObject();
+        if (ro is RenderBox && ro.hasSize) {
+          final viewport = RenderAbstractViewport.of(ro);
+          final exactOffset = viewport
+              .getOffsetToReveal(ro, 0.25)
+              .offset
+              .clamp(0.0, _scrollController.position.maxScrollExtent);
+          await _scrollController.animateTo(
+            exactOffset,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubic,
+          );
+          if (!mounted || opId != _currentScrollOpId) return;
+          await WidgetsBinding.instance.endOfFrame;
+          if (!mounted || opId != _currentScrollOpId) return;
+
+          // Post-layout settlement verification: ensure target is visible
+          final settledContext = targetKey.currentContext;
+          if (settledContext != null && settledContext.mounted) {
+            if (!_isWidgetFullyVisible(settledContext)) {
+              final settledRo = settledContext.findRenderObject();
+              if (settledRo is RenderBox && settledRo.hasSize) {
+                final settledVp = RenderAbstractViewport.of(settledRo);
+                final adj = settledVp
+                    .getOffsetToReveal(settledRo, 0.25)
+                    .offset
+                    .clamp(0.0, _scrollController.position.maxScrollExtent);
+                _scrollController.jumpTo(adj);
+                await WidgetsBinding.instance.endOfFrame;
+              }
+            }
+          }
+        }
+
+        ref
+            .read(highlightedMessageProvider.notifier)
+            .highlight(resolvedMessageId);
+      }
+    } finally {
+      if (opId == _currentScrollOpId) {
+        _isNavigatingToReply = false;
+      }
+    }
   }
 
   @override
@@ -155,6 +571,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       }
     });
 
+    try {
+      container.read(activeVoicePlaybackProvider.notifier).stopAll();
+      container.read(highlightedMessageProvider.notifier).clear();
+    } catch (_) {}
+
+    _bubbleKeys.clear();
     _composerController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -164,15 +586,34 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   /// attachment/voice flow in [_Composer] — this method only ever
   /// references it, never uploads anything itself. [attachmentPreview]
   /// renders that same local file in the optimistic bubble.
+  ///
+  /// The quote preview ([_replyingTo]) is cleared as soon as the send is
+  /// attempted, win or lose — same as the composer text already clearing
+  /// immediately: a failed send keeps the quote on the failed bubble itself
+  /// (via [Message.replyTo]), so there is nothing left to show above the
+  /// composer either way.
   Future<void> _send({
+    List<String>? attachmentIds,
+    List<MessageAttachment>? attachmentPreviews,
     String? attachmentId,
     MessageAttachment? attachmentPreview,
   }) async {
     final text = _composerController.text.trim();
-    final hasAttachment = attachmentId != null;
+    final ids = (attachmentIds != null && attachmentIds.isNotEmpty)
+        ? attachmentIds
+        : [if (attachmentId != null && attachmentId.isNotEmpty) attachmentId];
+    final previews =
+        (attachmentPreviews != null && attachmentPreviews.isNotEmpty)
+        ? attachmentPreviews
+        : [?attachmentPreview];
+    final hasAttachment = ids.isNotEmpty;
     if ((text.isEmpty && !hasAttachment) || _sending) return;
 
-    setState(() => _sending = true);
+    final replyTo = _replyingTo;
+    setState(() {
+      _sending = true;
+      _replyingTo = null;
+    });
     _composerController.clear();
 
     try {
@@ -180,8 +621,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           .read(conversationControllerProvider(widget.conversationId).notifier)
           .send(
             text,
-            attachmentId: attachmentId,
-            attachmentPreview: attachmentPreview,
+            attachmentIds: ids,
+            attachmentPreviews: previews,
+            replyTo: replyTo == null
+                ? null
+                : QuotedMessage.fromMessage(replyTo),
           );
       _scrollToBottom(animated: true);
     } on ApiException catch (error) {
@@ -240,27 +684,42 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       );
     });
 
-    // Automatically scroll down when a new message arrives.
+    // Scroll decisions on message-count changes — the one place that reacts
+    // to messages being added, whether that's a new message appended at the
+    // bottom (realtime/send) or older history prepended at the top
+    // (pagination). Centralized here rather than in `_MessageList` so a
+    // rebuild of the list widget itself never independently decides to
+    // scroll.
     ref.listen(conversationControllerProvider(widget.conversationId), (
       previous,
       next,
     ) {
-      final prevCount = previous?.value?.messages.length ?? 0;
-      final nextCount = next.value?.messages.length ?? 0;
-      if (nextCount > prevCount) {
-        if (!_initialScrollDone) {
-          _jumpToBottomInitial();
-        } else if (_isNearBottom()) {
-          _scrollToBottom(animated: true);
-        } else {
-          _onScroll();
-        }
+      final prevMessages = previous?.value?.messages ?? const [];
+      final nextMessages = next.value?.messages ?? const [];
+      if (nextMessages.length <= prevMessages.length) return;
+
+      final prependedCount = _prependedCount(prevMessages, nextMessages);
+      if (prependedCount > 0) {
+        // Older history loaded at the top. The list keeps `pixels` constant
+        // by default, which visually shoves the messages the user was
+        // reading downward by the height of everything just inserted above
+        // them — compensate after the new items are laid out so the same
+        // content stays under the user's eyes instead of drifting.
+        _preserveScrollPositionAfterPrepend();
+        return;
+      }
+
+      if (!_initialScrollDone) {
+        _jumpToBottomInitial();
+      } else if (!_isNavigatingToReply && _isNearBottom()) {
+        _scrollToBottom(animated: true);
+      } else {
+        _onScroll();
       }
     });
 
-    // A realtime `conversation.access_changed` event resolved to "access
-    // lost" for this conversation — leave rather than keep showing a thread
-    // this employee can no longer see.
+    // A realtime `conversation.access_revoked` event for this conversation —
+    // leave rather than keep showing a thread this employee can no longer see.
     ref.listen<int?>(revokedConversationProvider, (previous, next) {
       if (next != widget.conversationId) return;
       final navigator = Navigator.of(context);
@@ -278,7 +737,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         titleSpacing: 0,
         title: async.maybeWhen(
           data: (state) => _Header(conversation: state.conversation),
-          orElse: () => Text(context.l10n.conversationFallbackTitle),
+          orElse: () => const ConversationHeaderSkeleton(),
         ),
         actions: [
           async.maybeWhen(
@@ -286,7 +745,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               conversation: state.conversation,
               canChange: canChangeStatus,
             ),
-            orElse: () => const SizedBox.shrink(),
+            orElse: () => const ConversationActionSkeleton(),
           ),
           async.maybeWhen(
             data: (state) => _FollowUpButton(
@@ -300,13 +759,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               conversation: state.conversation,
               canAssignAny: canAssignAny,
             ),
-            orElse: () => const SizedBox.shrink(),
+            orElse: () => const ConversationAssigneeSkeleton(),
           ),
           const SizedBox(width: Space.xs),
         ],
       ),
       body: async.when(
-        loading: () => LoadingState(label: context.l10n.loadingConversation),
+        loading: () => const ConversationThreadSkeleton(),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(
@@ -335,13 +794,37 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                             message: context.l10n.noMessagesYetMessage,
                             icon: Icons.chat_bubble_outline,
                           )
-                        : _MessageList(
-                            state: state,
-                            controller: _scrollController,
-                            conversationId: widget.conversationId,
-                            onInitialLayout: _initialScrollDone
-                                ? null
-                                : _jumpToBottomInitial,
+                        : Opacity(
+                            // Kept in the tree and laid out either way, so
+                            // maxScrollExtent is measurable — only visibility
+                            // is gated. This is what keeps the initial jump
+                            // to the latest message invisible: the user's
+                            // first painted frame is the positioned one, not
+                            // an unpositioned frame followed by a jump.
+                            opacity: _initialScrollDone ? 1 : 0,
+                            child: NotificationListener<ScrollNotification>(
+                              onNotification: (notification) {
+                                if ((notification is ScrollStartNotification &&
+                                        notification.dragDetails != null) ||
+                                    (notification is UserScrollNotification &&
+                                        notification.direction !=
+                                            ScrollDirection.idle)) {
+                                  _onUserScroll();
+                                }
+                                return false;
+                              },
+                              child: _MessageList(
+                                state: state,
+                                controller: _scrollController,
+                                conversationId: widget.conversationId,
+                                onInitialLayout: _initialScrollDone
+                                    ? null
+                                    : _jumpToBottomInitial,
+                                onReply: canReply ? _startReplyingTo : null,
+                                onQuoteTap: _scrollToQuotedMessage,
+                                keyForMessage: _bubbleKeyFor,
+                              ),
+                            ),
                           ),
                   ),
                   PositionedDirectional(
@@ -364,6 +847,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 isWhatsApp:
                     async.value?.conversation.provider.toUpperCase() ==
                     'WHATSAPP',
+                replyingTo: _replyingTo,
+                onCancelReply: _cancelReply,
               )
             else
               const _ReadOnlyNotice(),
@@ -915,6 +1400,9 @@ class _MessageList extends ConsumerWidget {
     required this.controller,
     required this.conversationId,
     this.onInitialLayout,
+    this.onReply,
+    this.onQuoteTap,
+    this.keyForMessage,
   });
 
   final ConversationState state;
@@ -922,14 +1410,26 @@ class _MessageList extends ConsumerWidget {
   final int conversationId;
   final VoidCallback? onInitialLayout;
 
+  /// Null hides the affordance entirely — the caller only supplies this when
+  /// the signed-in employee holds `conversation.reply` (there is nothing to
+  /// quote a message *into* without it).
+  final ValueChanged<Message>? onReply;
+
+  /// Invoked when the user taps a reply preview inside any message bubble.
+  final ValueChanged<int>? onQuoteTap;
+
+  /// Provides stable GlobalKeys for message bubbles so they can be scrolled to.
+  final GlobalKey Function(int messageId)? keyForMessage;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canDelete = ref.watch(canProvider(Perm.conversationDeleteMessage));
     final notes =
         ref.watch(notesControllerProvider(conversationId)).value ?? const [];
 
+    final groupedMessages = groupMediaBatchMessages(state.messages);
     final entries = <_TimelineEntry>[
-      for (final m in state.messages)
+      for (final m in groupedMessages)
         _TimelineEntry(message: m, time: m.sentAt),
       for (final n in notes) _TimelineEntry(note: n, time: n.createdAt),
     ]..sort((a, b) => a.time.compareTo(b.time));
@@ -975,24 +1475,32 @@ class _MessageList extends ConsumerWidget {
           final showDay =
               previous == null || !_sameDay(previous.time, entry.time);
 
+          // Stable identity so prepending older history (pagination) or
+          // inserting a realtime message reuses existing elements instead of
+          // rebuilding the whole visible range — keeps scroll-position
+          // compensation and reconciliation cheap during a drag.
+          final entryKey = entry.note != null
+              ? ValueKey('note_${entry.note!.id}')
+              : ValueKey('msg_${entry.message!.localId ?? entry.message!.id}');
+
           return Column(
+            key: entryKey,
             children: [
               if (showDay) _DayDivider(date: entry.time),
               if (entry.note != null)
                 _InternalNoteTimelineCard(note: entry.note!)
               else if (entry.message != null)
                 MessageBubble(
-                  message: entry.message!,
-                  onRetry:
-                      entry.message!.hasFailed && entry.message!.localId != null
-                      ? () => ref
-                            .read(
-                              conversationControllerProvider(
-                                conversationId,
-                              ).notifier,
-                            )
-                            .retry(entry.message!.localId!)
+                  key: entry.message!.id > 0
+                      ? keyForMessage?.call(entry.message!.id)
                       : null,
+                  message: entry.message!,
+                  provider: state.conversation.provider,
+                  onRetry: _retryHandlerFor(
+                    ref,
+                    conversationId,
+                    entry.message!,
+                  ),
                   onDiscard:
                       entry.message!.hasFailed && entry.message!.localId != null
                       ? () => ref
@@ -1016,6 +1524,15 @@ class _MessageList extends ConsumerWidget {
                           entry.message!,
                         )
                       : null,
+                  onReply:
+                      onReply != null &&
+                          !entry.message!.isSystem &&
+                          !entry.message!.isPending &&
+                          !entry.message!.hasFailed &&
+                          entry.message!.id >= 0
+                      ? () => onReply!(entry.message!)
+                      : null,
+                  onQuoteTap: onQuoteTap,
                 ),
             ],
           );
@@ -1037,7 +1554,21 @@ class _InternalNoteTimelineCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final copyText = copyableMessageText(note.body);
 
+    return GestureDetector(
+      onLongPressStart: copyText != null
+          ? (details) => showMessageActionsMenu(
+              context,
+              position: details.globalPosition,
+              copyText: copyText,
+            )
+          : null,
+      child: _noteCard(context, theme, isDark),
+    );
+  }
+
+  Widget _noteCard(BuildContext context, ThemeData theme, bool isDark) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: Space.md, vertical: 4),
       decoration: BoxDecoration(
@@ -1148,6 +1679,39 @@ class _InternalNoteTimelineCard extends StatelessWidget {
   }
 }
 
+/// Picks which retry a failed bubble's button should perform.
+///
+/// A message that never reached the server ([Message.hasFailed], identified
+/// by [Message.localId]) resends through the local send path — the same one
+/// [Message.pending] used originally, since nothing server-side has any
+/// record of it yet. A message the server accepted and later marked `FAILED`
+/// ([Message.isDeliveryFailure] with a real server [Message.id]) instead
+/// calls the dedicated retry endpoint, which claims that stored row
+/// atomically rather than sending a fresh `reply()`.
+VoidCallback? _retryHandlerFor(
+  WidgetRef ref,
+  int conversationId,
+  Message message,
+) {
+  ConversationController controller() =>
+      ref.read(conversationControllerProvider(conversationId).notifier);
+
+  if (message.hasFailed && message.localId != null) {
+    return () => controller().retry(message.localId!);
+  }
+  if (message.isDeliveryFailure && !message.hasFailed && message.id >= 0) {
+    return () async {
+      final ids = message.memberMessageIds.isNotEmpty
+          ? message.memberMessageIds
+          : [message.id];
+      for (final id in ids) {
+        await controller().retryStoredMessage(id);
+      }
+    };
+  }
+  return null;
+}
+
 /// Confirms, then soft-deletes a message. ADMIN/SUPERVISOR only.
 Future<void> _confirmDeleteMessage(
   BuildContext context,
@@ -1194,13 +1758,19 @@ Future<void> _confirmDeleteMessage(
   if (confirmed != true) return;
 
   try {
-    await ref
-        .read(conversationRepositoryProvider)
-        .deleteMessage(conversationId, message.id, reason: reason);
+    final idsToDelete = message.memberMessageIds.isNotEmpty
+        ? message.memberMessageIds
+        : [message.id];
+    for (final id in idsToDelete) {
+      await ref
+          .read(conversationRepositoryProvider)
+          .deleteMessage(conversationId, id, reason: reason);
+      if (!context.mounted) return;
+      ref
+          .read(conversationControllerProvider(conversationId).notifier)
+          .removeMessage(id);
+    }
     if (!context.mounted) return;
-    ref
-        .read(conversationControllerProvider(conversationId).notifier)
-        .removeMessage(message.id);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(context.l10n.deleteMessageDeletedSnackbar)),
     );
@@ -1329,10 +1899,92 @@ class _SegmentTab extends StatelessWidget {
   }
 }
 
-/// Sends the composer's current text, plus an optional attachment already
+/// The quote preview shown above the composer while replying to a message —
+/// mirrors [_QuoteBlock]'s content summary (in `message_bubble.dart`) so the
+/// agent sees the same thing here that the sent bubble will show.
+class _ReplyPreviewBar extends StatelessWidget {
+  const _ReplyPreviewBar({required this.message, this.onCancel});
+
+  final Message message;
+  final VoidCallback? onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final summary = message.text.isNotEmpty
+        ? message.text
+        : switch (message.messageType) {
+            'IMAGE' => context.l10n.photoMessageLabel,
+            'AUDIO' => context.l10n.voiceMessageLabel,
+            _ => context.l10n.attachmentMessageLabel,
+          };
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: Space.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.sm,
+        vertical: Space.xs,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border(
+          left: BorderSide(color: theme.colorScheme.primary, width: 3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  context.l10n.replyingToLabel(
+                    message.senderName.isNotEmpty
+                        ? message.senderName
+                        : context.l10n.customerTitle,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  summary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          if (onCancel != null)
+            IconButton(
+              icon: const Icon(Icons.close, size: 18),
+              tooltip: context.l10n.cancelReplyTooltip,
+              onPressed: onCancel,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Sends the composer's current text, plus optional attachments already
 /// staged (uploaded) via [ConversationRepository.stageAttachment].
 typedef ComposerSendCallback =
-    void Function({String? attachmentId, MessageAttachment? attachmentPreview});
+    void Function({
+      List<String>? attachmentIds,
+      List<MessageAttachment>? attachmentPreviews,
+      String? attachmentId,
+      MessageAttachment? attachmentPreview,
+    });
 
 class _Composer extends ConsumerStatefulWidget {
   const _Composer({
@@ -1341,6 +1993,8 @@ class _Composer extends ConsumerStatefulWidget {
     required this.sending,
     required this.onSend,
     this.isWhatsApp = false,
+    this.replyingTo,
+    this.onCancelReply,
   });
 
   final int conversationId;
@@ -1348,6 +2002,11 @@ class _Composer extends ConsumerStatefulWidget {
   final bool sending;
   final ComposerSendCallback onSend;
   final bool isWhatsApp;
+
+  /// The message currently quoted, shown as a preview bar above the
+  /// composer. Null hides the bar entirely.
+  final Message? replyingTo;
+  final VoidCallback? onCancelReply;
 
   @override
   ConsumerState<_Composer> createState() => _ComposerState();
@@ -1360,11 +2019,12 @@ class _ComposerState extends ConsumerState<_Composer> {
   bool _sendingTemplate = false;
   bool _userToggledMode = false;
 
-  /// An image already picked and uploaded, waiting to be sent (or removed).
-  /// Voice notes skip this state entirely — recording finishes and sends in
-  /// one motion, matching WhatsApp's own behavior, rather than sitting as a
-  /// staged preview the agent could otherwise edit alongside typed text.
-  StagedAttachment? _stagedImage;
+  /// Files picked for this message — uploading, uploaded or failed — each
+  /// shown as its own card until sent or removed. Voice notes skip this
+  /// entirely — recording finishes and sends in one motion, matching
+  /// WhatsApp's own behavior, rather than sitting as a staged preview the
+  /// agent could otherwise edit alongside typed text.
+  late final ComposerUploadQueue _uploads;
   bool _isRecording = false;
   final _voiceRecorderKey = GlobalKey<ComposerVoiceRecorderState>();
 
@@ -1375,12 +2035,43 @@ class _ComposerState extends ConsumerState<_Composer> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _onImageStaged(StagedAttachment staged) {
-    setState(() => _stagedImage = staged);
+  @override
+  void initState() {
+    super.initState();
+    // Created up front, never lazily: dispose() must not be the first
+    // touch, when `ref` can no longer be read.
+    _uploads = ComposerUploadQueue(
+      repository: ref.read(conversationRepositoryProvider),
+      conversationId: widget.conversationId,
+      onFailed: _explainUploadFailure,
+    )..addListener(_onUploadsChanged);
   }
 
-  void _onImageRemoved() {
-    setState(() => _stagedImage = null);
+  @override
+  void dispose() {
+    _uploads
+      ..removeListener(_onUploadsChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  /// A card was added, removed or changed state — the only upload events
+  /// the composer itself cares about (the card count, and whether Send has
+  /// to wait). Byte progress repaints the card alone.
+  void _onUploadsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// The card says a file failed; this says why.
+  void _explainUploadFailure(ComposerUpload upload) {
+    final error = upload.error;
+    _showMessage(
+      error == null || error.message.isEmpty
+          ? context.l10n.attachmentUploadFailedError
+          : error.statusCode == 413
+          ? context.l10n.attachmentTooLargeError
+          : error.message,
+    );
   }
 
   /// Put a saved reply into the reply box, at the caret.
@@ -1424,8 +2115,8 @@ class _ComposerState extends ConsumerState<_Composer> {
     // `Reply` endpoint accepts `text` alongside `attachment_ids` in one
     // call, the same combination an image send already uses.
     widget.onSend(
-      attachmentId: staged.draftId,
-      attachmentPreview: staged.attachment,
+      attachmentIds: [staged.draftId],
+      attachmentPreviews: [staged.attachment],
     );
   }
 
@@ -1494,6 +2185,11 @@ class _ComposerState extends ConsumerState<_Composer> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (widget.replyingTo != null && currentMode == _ComposerMode.reply)
+              _ReplyPreviewBar(
+                message: widget.replyingTo!,
+                onCancel: widget.onCancelReply,
+              ),
             // Mode selector row
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -1574,20 +2270,16 @@ class _ComposerState extends ConsumerState<_Composer> {
                       ),
                     ),
                   ),
-                if (_stagedImage != null)
+                if (_uploads.count > 0)
                   Align(
                     alignment: AlignmentDirectional.centerStart,
-                    child: ComposerAttachmentPreview(
-                      conversationId: widget.conversationId,
-                      staged: _stagedImage!,
-                      onRemoved: _onImageRemoved,
-                    ),
+                    child: ComposerAttachmentsPreviewBar(uploads: _uploads),
                   ),
                 if (_isRecording)
                   ComposerVoiceRecorder(
                     key: _voiceRecorderKey,
                     conversationId: widget.conversationId,
-                    enabled: !widget.sending,
+                    enabled: !widget.sending && !_uploads.hasActiveUploads,
                     onStaged: _onVoiceStaged,
                     onError: _showMessage,
                     onRecordingChanged: (recording) {
@@ -1602,10 +2294,13 @@ class _ComposerState extends ConsumerState<_Composer> {
                       // platform accepts files, so it never offers a send
                       // that is certain to fail.
                       if (outboundMedia)
+                        // Stays usable while files upload: each card shows
+                        // its own progress, and more can be added.
                         ComposerAttachmentButton(
                           conversationId: widget.conversationId,
                           enabled: !widget.sending,
-                          onStaged: _onImageStaged,
+                          currentStagedCount: _uploads.count,
+                          onPicked: _uploads.add,
                           onError: _showMessage,
                         ),
                       // Saved replies: inserts text for the agent to edit,
@@ -1648,7 +2343,8 @@ class _ComposerState extends ConsumerState<_Composer> {
                         ComposerVoiceRecorder(
                           key: _voiceRecorderKey,
                           conversationId: widget.conversationId,
-                          enabled: !widget.sending,
+                          enabled:
+                              !widget.sending && !_uploads.hasActiveUploads,
                           onStaged: _onVoiceStaged,
                           onError: _showMessage,
                           onRecordingChanged: (recording) {
@@ -1663,16 +2359,21 @@ class _ComposerState extends ConsumerState<_Composer> {
                         width: 44,
                         height: 44,
                         child: IconButton.filled(
-                          onPressed: widget.sending
+                          // Waits only for files still uploading, so a
+                          // message never leaves without one. Failed cards
+                          // are not sent and stay put to retry or remove.
+                          onPressed:
+                              (widget.sending || _uploads.hasActiveUploads)
                               ? null
                               : () {
-                                  final staged = _stagedImage;
-                                  if (staged != null) {
-                                    setState(() => _stagedImage = null);
-                                  }
+                                  final staged = _uploads.takeUploaded();
                                   widget.onSend(
-                                    attachmentId: staged?.draftId,
-                                    attachmentPreview: staged?.attachment,
+                                    attachmentIds: staged
+                                        .map((s) => s.draftId)
+                                        .toList(),
+                                    attachmentPreviews: staged
+                                        .map((s) => s.attachment)
+                                        .toList(),
                                   );
                                 },
                           icon: widget.sending

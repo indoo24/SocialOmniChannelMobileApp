@@ -47,6 +47,13 @@ ResponseBody _json(String body, int status) => ResponseBody.fromString(
   },
 );
 
+/// The real first-page `/conversations/` list request — as opposed to one of
+/// the five `page_size=1` probes `ConversationRepository.counts()` now sends
+/// to the very same path to derive each quick-filter badge.
+bool _isListRequest(RequestOptions r) =>
+    r.uri.path.contains('/conversations/') &&
+    r.uri.queryParameters['page_size'] == null;
+
 final _adminEmployee = Employee(
   id: 1,
   email: 'admin@acme.test',
@@ -409,9 +416,7 @@ void main() {
         expect(find.text('Customer WA 1'), findsOneWidget);
 
         // Verify server request included channel_connections parameter:
-        final lastConvoReq = adapter.received.lastWhere(
-          (r) => r.uri.path.contains('/conversations/'),
-        );
+        final lastConvoReq = adapter.received.lastWhere(_isListRequest);
         expect(
           lastConvoReq.uri.queryParameters['channel_connections'],
           equals('1,2,4,5'),
@@ -454,9 +459,7 @@ void main() {
         expect(find.text('Customer WA 1'), findsOneWidget);
 
         // Verify query: channel_connections=1,4,5
-        final lastConvoReq = adapter.received.lastWhere(
-          (r) => r.uri.path.contains('/conversations/'),
-        );
+        final lastConvoReq = adapter.received.lastWhere(_isListRequest);
         expect(
           lastConvoReq.uri.queryParameters['channel_connections'],
           equals('1,4,5'),
@@ -478,9 +481,7 @@ void main() {
         expect(find.text('Customer WA 1'), findsOneWidget);
 
         // Verify query: channel_connections=1,3,4,5
-        final resetReq = adapter.received.lastWhere(
-          (r) => r.uri.path.contains('/conversations/'),
-        );
+        final resetReq = adapter.received.lastWhere(_isListRequest);
         expect(
           resetReq.uri.queryParameters['channel_connections'],
           equals('1,3,4,5'),
@@ -600,11 +601,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify the query sent contains search, status, and channel_connections
-      final req = adapter.received.lastWhere(
-        (r) =>
-            r.uri.path.contains('/conversations/') &&
-            !r.uri.path.contains('/counts/'),
-      );
+      final req = adapter.received.lastWhere(_isListRequest);
       expect(req.uri.queryParameters['search'], equals('Customer'));
       expect(req.uri.queryParameters['status'], equals('OPEN'));
       expect(req.uri.queryParameters['channel_connections'], isNotNull);

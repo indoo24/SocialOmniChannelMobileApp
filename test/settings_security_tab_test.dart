@@ -1,4 +1,5 @@
-/// Regression test for the Security tab's password-change crash: `_submit()`
+/// Regression test for the Security section's password-change crash:
+/// `_submit()`
 /// awaited `changePassword()`, then called `_current.clear()` /
 /// `_next.clear()` unconditionally — only the snackbar after them checked
 /// `mounted`. Navigating away from Settings while the request was still in
@@ -102,14 +103,22 @@ void main() {
       await tester.tap(find.text('open settings'));
       await tester.pumpAndSettle();
 
-      // No channel.view permission, so tabs are [Profile, Security].
-      await tester.tap(find.text('Security'));
+      // Security is no longer a tab: it is a section at the bottom of
+      // Profile, which is the only tab this role sees. Scroll down to it.
+      expect(find.text('Security'), findsNothing);
+      await tester.dragUntilVisible(
+        find.text('Update password'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
       await tester.pumpAndSettle();
 
-      final fields = find.byType(TextField);
-      expect(fields, findsNWidgets(2));
-      await tester.enterText(fields.first, 'current-pass');
-      await tester.enterText(fields.last, 'a-new-password');
+      final current = find.widgetWithText(TextField, 'Current password');
+      final next = find.widgetWithText(TextField, 'New password');
+      expect(current, findsOneWidget);
+      expect(next, findsOneWidget);
+      await tester.enterText(current, 'current-pass');
+      await tester.enterText(next, 'a-new-password');
 
       await tester.tap(find.text('Update password'));
       await tester.pump();

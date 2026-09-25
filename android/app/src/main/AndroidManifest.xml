@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Runtime-requested via firebase_messaging's requestPermission() call;
          Android 13+ requires the manifest declaration too. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -20,6 +21,22 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
+    <!-- open_filex (android/src/main/AndroidManifest.xml in the plugin)
+         declares these three unconditionally, with the leftover comment
+         "Required by older versions of Google Play services to create IID
+         tokens" — boilerplate from an old Firebase template, unrelated to
+         what the plugin does. open_filex only ever opens a file this app
+         already downloaded into its own app-private cache
+         (AttachmentHelper.getAttachmentsDirectory(), handed to the target
+         app as a content:// URI via its FileProvider); it never reads the
+         shared media store or the user's photo/video library, so none of
+         these are needed. Stripped to keep the app off Google Play's Photo
+         and Video Permissions declaration — this app has no core feature
+         that reads the broader library; image_picker's gallery selection
+         already goes through the permissionless system Photo Picker. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" tools:node="remove"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="scenario omnichannel"

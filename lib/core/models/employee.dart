@@ -70,6 +70,8 @@ class Employee {
     this.phone = '',
     this.organization,
     this.channelAvailability = const {},
+    this.routingChannelScope = 'ALL',
+    this.routingProviders = const [],
   });
 
   final int id;
@@ -97,6 +99,14 @@ class Employee {
   /// Per provider, `AVAILABLE` or `COMING_SOON` for this employee — the
   /// server's answer from `/auth/me/`. Nothing on the device decides it.
   final Map<String, String> channelAvailability;
+
+  /// `ALL` or `SELECTED` — a hard limit on which channels' conversations
+  /// this employee can own (assignment/routing), separate from visibility.
+  final String routingChannelScope;
+
+  /// The providers this employee handles when [routingChannelScope] is
+  /// `SELECTED`. Empty when the scope is `ALL`.
+  final List<String> routingProviders;
 
   /// Providers that stay coming soon when the server has not said otherwise,
   /// so an older backend or a partial payload can never widen access.
@@ -158,9 +168,16 @@ class Employee {
           ? Organization.fromJson(JsonSafe.asMap(json['organization']))
           : null,
       channelAvailability: {
-        for (final entry in JsonSafe.asMap(json['channel_availability']).entries)
+        for (final entry in JsonSafe.asMap(
+          json['channel_availability'],
+        ).entries)
           entry.key.toUpperCase(): entry.value.toString(),
       },
+      routingChannelScope: JsonSafe.asString(
+        json['routing_channel_scope'],
+        fallback: 'ALL',
+      ),
+      routingProviders: JsonSafe.asStringList(json['routing_providers']),
     );
   }
 
@@ -200,6 +217,8 @@ class Employee {
     visibilityScope: visibilityScope,
     organization: organization,
     channelAvailability: channelAvailability,
+    routingChannelScope: routingChannelScope,
+    routingProviders: routingProviders,
   );
 }
 
@@ -225,6 +244,7 @@ class Perm {
   static const conversionReport = 'conversion.report';
   static const customerView = 'customer.view';
   static const customerManage = 'customer.manage';
+  static const customerFieldManage = 'customer_field.manage';
   static const employeeView = 'employee.view';
   static const employeeManage = 'employee.manage';
   static const teamView = 'team.view';
@@ -233,6 +253,7 @@ class Perm {
   static const channelView = 'channel.view';
   static const channelManage = 'channel.manage';
   static const routingManage = 'routing.manage';
+  static const crmExport = 'crm.export';
 
   /// Record an order, and review the customer details the analyzer extracted.
   /// Held by everyone who talks to customers — including agents, who are the

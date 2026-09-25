@@ -3,7 +3,8 @@
 /// - Custom range: From / To picker, range validation (from <= to, <= 366 days), Cancel and Apply
 /// - API serialization: preset parameter vs from/to query parameters (mutually exclusive)
 /// - Dashboard reload and state update
-/// - UI: trigger button, checkmark on active preset, loading state, error and retry
+/// - UI: filter in Conversations section header (not AppBar), checkmark on active preset, loading
+///   state, error and retry
 /// - Theme, RTL (Arabic), and narrow screen (320px) overflow tests
 library;
 
@@ -90,6 +91,67 @@ const _performanceEmptyJson = '''
   "start_date": "2026-08-26",
   "end_date": "2026-09-09",
   "results": []
+}
+''';
+
+String _samplePerformanceJson({
+  int handled = 12,
+  int resolved = 8,
+  int responses = 24,
+  int messages = 35,
+  int customers = 10,
+  int confirmedOrders = 3,
+  double avgResponse = 45.0,
+}) =>
+    '''
+{
+  "window": {
+    "days": 14,
+    "start": "2026-08-26T22:00:00Z",
+    "end": "2026-09-09T22:00:00Z"
+  },
+  "results": [
+    {
+      "employee_id": 1,
+      "full_name": "Sam Self",
+      "initials": "SS",
+      "role": "ADMIN",
+      "availability": "ONLINE",
+      "conversations_handled": $handled,
+      "conversations_resolved": $resolved,
+      "responses_counted": $responses,
+      "messages_sent": $messages,
+      "customers_served": $customers,
+      "scored_conversations": 6,
+      "average_response_seconds": $avgResponse,
+      "median_response_seconds": 30,
+      "first_response_average_seconds": 25.0,
+      "lead_score_at_assignment": 70.0,
+      "lead_score_now": 85.0,
+      "lead_score_lift": 15.0,
+      "lead_score_lift_percent": 21.4,
+      "orders_recorded": 5,
+      "orders_confirmed": $confirmedOrders,
+      "confirmed_order_value": "450.00",
+      "currency": "EGP",
+      "platforms": [
+        {
+          "provider": "WHATSAPP",
+          "messages": 20,
+          "customers": 6,
+          "conversations": 7
+        }
+      ],
+      "hours": {
+        "scheduled_seconds": 28800,
+        "online_seconds": 25200,
+        "away_seconds": 1800,
+        "break_seconds": 1800,
+        "has_session_data": true,
+        "adherence": 0.875
+      }
+    }
+  ]
 }
 ''';
 
@@ -271,8 +333,190 @@ void main() {
     });
   });
 
+  group('DirectoryRepository.performance Query Parameter Tests', () {
+    test('calls /dashboard/performance/ with days: 14 by default', () async {
+      RequestOptions? captured;
+      final adapter = _StubAdapter((options) {
+        captured = options;
+        return _json(_performanceEmptyJson, 200);
+      });
+      final client = _clientFrom(adapter);
+      final repo = DirectoryRepository(client);
+
+      await repo.performance();
+      expect(captured, isNotNull);
+      expect(captured!.path, '/dashboard/performance/');
+      expect(captured!.queryParameters['days'], 14);
+    });
+
+    test(
+      'calls /dashboard/performance/ with preset parameter (today)',
+      () async {
+        RequestOptions? captured;
+        final adapter = _StubAdapter((options) {
+          captured = options;
+          return _json(_performanceEmptyJson, 200);
+        });
+        final client = _clientFrom(adapter);
+        final repo = DirectoryRepository(client);
+
+        await repo.performance(preset: 'today');
+        expect(captured, isNotNull);
+        expect(captured!.path, '/dashboard/performance/');
+        expect(captured!.queryParameters['preset'], 'today');
+        expect(captured!.queryParameters.containsKey('days'), isFalse);
+        expect(captured!.queryParameters.containsKey('from'), isFalse);
+      },
+    );
+
+    test('calls /dashboard/performance/ with last_7_days preset', () async {
+      RequestOptions? captured;
+      final adapter = _StubAdapter((options) {
+        captured = options;
+        return _json(_performanceEmptyJson, 200);
+      });
+      final client = _clientFrom(adapter);
+      final repo = DirectoryRepository(client);
+
+      await repo.performance(preset: 'last_7_days');
+      expect(captured, isNotNull);
+      expect(captured!.queryParameters['preset'], 'last_7_days');
+    });
+
+    test('calls /dashboard/performance/ with last_30_days preset', () async {
+      RequestOptions? captured;
+      final adapter = _StubAdapter((options) {
+        captured = options;
+        return _json(_performanceEmptyJson, 200);
+      });
+      final client = _clientFrom(adapter);
+      final repo = DirectoryRepository(client);
+
+      await repo.performance(preset: 'last_30_days');
+      expect(captured, isNotNull);
+      expect(captured!.queryParameters['preset'], 'last_30_days');
+    });
+
+    test('calls /dashboard/performance/ with this_month preset', () async {
+      RequestOptions? captured;
+      final adapter = _StubAdapter((options) {
+        captured = options;
+        return _json(_performanceEmptyJson, 200);
+      });
+      final client = _clientFrom(adapter);
+      final repo = DirectoryRepository(client);
+
+      await repo.performance(preset: 'this_month');
+      expect(captured, isNotNull);
+      expect(captured!.queryParameters['preset'], 'this_month');
+    });
+
+    test('calls /dashboard/performance/ with last_month preset', () async {
+      RequestOptions? captured;
+      final adapter = _StubAdapter((options) {
+        captured = options;
+        return _json(_performanceEmptyJson, 200);
+      });
+      final client = _clientFrom(adapter);
+      final repo = DirectoryRepository(client);
+
+      await repo.performance(preset: 'last_month');
+      expect(captured, isNotNull);
+      expect(captured!.queryParameters['preset'], 'last_month');
+    });
+
+    test(
+      'calls /dashboard/performance/ with from and to (omits preset and days)',
+      () async {
+        RequestOptions? captured;
+        final adapter = _StubAdapter((options) {
+          captured = options;
+          return _json(_performanceEmptyJson, 200);
+        });
+        final client = _clientFrom(adapter);
+        final repo = DirectoryRepository(client);
+
+        await repo.performance(
+          preset: 'today',
+          from: '2026-09-01',
+          to: '2026-09-08',
+        );
+        expect(captured, isNotNull);
+        expect(captured!.queryParameters['from'], '2026-09-01');
+        expect(captured!.queryParameters['to'], '2026-09-08');
+        expect(captured!.queryParameters.containsKey('preset'), isFalse);
+        expect(captured!.queryParameters.containsKey('days'), isFalse);
+      },
+    );
+
+    test('calls /dashboard/performance/ with employeeId parameter', () async {
+      RequestOptions? captured;
+      final adapter = _StubAdapter((options) {
+        captured = options;
+        return _json(_performanceEmptyJson, 200);
+      });
+      final client = _clientFrom(adapter);
+      final repo = DirectoryRepository(client);
+
+      await repo.performance(employeeId: 42);
+      expect(captured, isNotNull);
+      expect(captured!.queryParameters['employee'], 42);
+    });
+  });
+
   group('Dashboard Date Filter Widget & Screen Tests', () {
-    testWidgets('Dashboard opens with Today selected in header button', (
+    testWidgets(
+      'Filter button is NOT rendered in the AppBar — it is in the Conversations section header',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.path == '/dashboard/performance/') {
+            return _json(_performanceEmptyJson, 200);
+          }
+          return _json(_sampleDashboardJson, 200);
+        });
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(_buildHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        // The DashboardDateFilterButton must be found exactly once —
+        // in the body (Conversations section), NOT in the AppBar.
+        expect(find.byType(DashboardDateFilterButton), findsOneWidget);
+
+        // Confirm it is NOT inside AppBar: walk the widget tree.
+        final appBar = find.byType(AppBar);
+        expect(
+          find.descendant(
+            of: appBar,
+            matching: find.byType(DashboardDateFilterButton),
+          ),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'Filter button appears next to the Conversations heading in the body',
+      (tester) async {
+        final adapter = _StubAdapter((options) {
+          if (options.path == '/dashboard/performance/') {
+            return _json(_performanceEmptyJson, 200);
+          }
+          return _json(_sampleDashboardJson, 200);
+        });
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(_buildHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        // Both 'Conversations' title and filter button must be present and
+        // the filter button must be inside the row that SectionHeading builds.
+        expect(find.text('Conversations'), findsOneWidget);
+        expect(find.byType(DashboardDateFilterButton), findsOneWidget);
+      },
+    );
+
+    testWidgets('Dashboard opens with Today selected in Conversations filter', (
       tester,
     ) async {
       final adapter = _StubAdapter((options) {
@@ -291,7 +535,7 @@ void main() {
     });
 
     testWidgets(
-      'Tapping header button opens bottom sheet with 5 presets and Custom range',
+      'Tapping Conversations section filter opens bottom sheet with 5 presets and Custom range',
       (tester) async {
         final adapter = _StubAdapter((options) {
           if (options.path == '/dashboard/performance/') {
@@ -322,7 +566,7 @@ void main() {
     );
 
     testWidgets(
-      'Selecting Last 7 days reloads Dashboard with preset=last_7_days',
+      'Selecting Last 7 days reloads Dashboard and performance with preset=last_7_days',
       (tester) async {
         final requests = <RequestOptions>[];
         final adapter = _StubAdapter((options) {
@@ -353,9 +597,13 @@ void main() {
         // Button now shows Last 7 days
         expect(find.text('Last 7 days'), findsOneWidget);
 
-        // Verify request sent with preset=last_7_days
+        // Verify request sent with preset=last_7_days to both endpoints
         final dashReq = requests.firstWhere((r) => r.path == '/dashboard/');
         expect(dashReq.queryParameters['preset'], 'last_7_days');
+        final perfReq = requests.firstWhere(
+          (r) => r.path == '/dashboard/performance/',
+        );
+        expect(perfReq.queryParameters['preset'], 'last_7_days');
       },
     );
 
@@ -408,56 +656,288 @@ void main() {
       expect(find.text('Today'), findsOneWidget);
     });
 
-    testWidgets('Custom range apply sends from and to parameters', (
+    testWidgets(
+      'Custom range apply sends from and to parameters to both endpoints',
+      (tester) async {
+        final requests = <RequestOptions>[];
+        final adapter = _StubAdapter((options) {
+          requests.add(options);
+          if (options.path == '/dashboard/performance/') {
+            return _json(_performanceEmptyJson, 200);
+          }
+          return _json(_sampleDashboardJson, 200);
+        });
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              apiClientProvider.overrideWithValue(client),
+              currentEmployeeProvider.overrideWithValue(_employee()),
+              cookieJarProvider.overrideWithValue(CookieJar()),
+              dashboardDateFilterProvider.overrideWith(
+                _CustomRangeTestNotifier.new,
+              ),
+            ],
+            child: MaterialApp.router(
+              routerConfig: GoRouter(
+                initialLocation: '/dashboard',
+                routes: [
+                  GoRoute(
+                    path: '/dashboard',
+                    builder: (_, _) => const DashboardScreen(),
+                  ),
+                ],
+              ),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              theme: AppTheme.light,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Button displays custom formatted dates
+        expect(find.text('09/01/2026 – 09/08/2026'), findsOneWidget);
+
+        // API request received from and to query params
+        final dashReq = requests.firstWhere((r) => r.path == '/dashboard/');
+        expect(dashReq.queryParameters['from'], '2026-09-01');
+        expect(dashReq.queryParameters['to'], '2026-09-08');
+        expect(dashReq.queryParameters.containsKey('preset'), isFalse);
+
+        final perfReq = requests.firstWhere(
+          (r) => r.path == '/dashboard/performance/',
+        );
+        expect(perfReq.queryParameters['from'], '2026-09-01');
+        expect(perfReq.queryParameters['to'], '2026-09-08');
+        expect(perfReq.queryParameters.containsKey('preset'), isFalse);
+      },
+    );
+
+    testWidgets(
+      'Today preset sends preset=today to both dashboard and performance endpoints',
+      (tester) async {
+        final requests = <RequestOptions>[];
+        final adapter = _StubAdapter((options) {
+          requests.add(options);
+          if (options.path == '/dashboard/performance/') {
+            return _json(_samplePerformanceJson(), 200);
+          }
+          return _json(_sampleDashboardJson, 200);
+        });
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(_buildHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        final dashReq = requests.firstWhere((r) => r.path == '/dashboard/');
+        expect(dashReq.queryParameters['preset'], 'today');
+        final perfReq = requests.firstWhere(
+          (r) => r.path == '/dashboard/performance/',
+        );
+        expect(perfReq.queryParameters['preset'], 'today');
+      },
+    );
+
+    testWidgets(
+      'Selecting Last 30 days sends preset=last_30_days to both dashboard and performance',
+      (tester) async {
+        final requests = <RequestOptions>[];
+        final adapter = _StubAdapter((options) {
+          requests.add(options);
+          if (options.path == '/dashboard/performance/') {
+            return _json(_samplePerformanceJson(), 200);
+          }
+          return _json(_sampleDashboardJson, 200);
+        });
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(_buildHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        requests.clear();
+
+        await tester.tap(find.byType(DashboardDateFilterButton));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Last 30 days'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Last 30 days'), findsOneWidget);
+
+        final dashReq = requests.firstWhere((r) => r.path == '/dashboard/');
+        expect(dashReq.queryParameters['preset'], 'last_30_days');
+        final perfReq = requests.firstWhere(
+          (r) => r.path == '/dashboard/performance/',
+        );
+        expect(perfReq.queryParameters['preset'], 'last_30_days');
+      },
+    );
+
+    testWidgets(
+      'Selecting This month sends preset=this_month to both dashboard and performance',
+      (tester) async {
+        final requests = <RequestOptions>[];
+        final adapter = _StubAdapter((options) {
+          requests.add(options);
+          if (options.path == '/dashboard/performance/') {
+            return _json(_samplePerformanceJson(), 200);
+          }
+          return _json(_sampleDashboardJson, 200);
+        });
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(_buildHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        requests.clear();
+
+        await tester.tap(find.byType(DashboardDateFilterButton));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('This month'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('This month'), findsOneWidget);
+
+        final dashReq = requests.firstWhere((r) => r.path == '/dashboard/');
+        expect(dashReq.queryParameters['preset'], 'this_month');
+        final perfReq = requests.firstWhere(
+          (r) => r.path == '/dashboard/performance/',
+        );
+        expect(perfReq.queryParameters['preset'], 'this_month');
+      },
+    );
+
+    testWidgets(
+      'Selecting Last month sends preset=last_month to both dashboard and performance',
+      (tester) async {
+        final requests = <RequestOptions>[];
+        final adapter = _StubAdapter((options) {
+          requests.add(options);
+          if (options.path == '/dashboard/performance/') {
+            return _json(_samplePerformanceJson(), 200);
+          }
+          return _json(_sampleDashboardJson, 200);
+        });
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(_buildHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        requests.clear();
+
+        await tester.tap(find.byType(DashboardDateFilterButton));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Last month'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Last month'), findsOneWidget);
+
+        final dashReq = requests.firstWhere((r) => r.path == '/dashboard/');
+        expect(dashReq.queryParameters['preset'], 'last_month');
+        final perfReq = requests.firstWhere(
+          (r) => r.path == '/dashboard/performance/',
+        );
+        expect(perfReq.queryParameters['preset'], 'last_month');
+      },
+    );
+
+    testWidgets(
+      'Changing the date filter refreshes the performance metrics in the UI',
+      (tester) async {
+        String activePreset = 'today';
+        final adapter = _StubAdapter((options) {
+          if (options.path == '/dashboard/performance/') {
+            if (activePreset == 'last_7_days') {
+              return _json(
+                _samplePerformanceJson(handled: 45, messages: 110),
+                200,
+              );
+            }
+            return _json(
+              _samplePerformanceJson(handled: 12, messages: 35),
+              200,
+            );
+          }
+          return _json(_sampleDashboardJson, 200);
+        });
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(_buildHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        // Initial Today metrics
+        expect(find.text('12 handled'), findsOneWidget);
+        expect(find.text('35 messages sent'), findsOneWidget);
+
+        // Switch to Last 7 days
+        activePreset = 'last_7_days';
+        await tester.tap(find.byType(DashboardDateFilterButton));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Last 7 days'));
+        await tester.pumpAndSettle();
+
+        // Refreshed metrics
+        expect(find.text('45 handled'), findsOneWidget);
+        expect(find.text('110 messages sent'), findsOneWidget);
+      },
+    );
+
+    testWidgets('Section title is strictly "Your last 14 days"', (
       tester,
     ) async {
-      final requests = <RequestOptions>[];
       final adapter = _StubAdapter((options) {
-        requests.add(options);
         if (options.path == '/dashboard/performance/') {
-          return _json(_performanceEmptyJson, 200);
+          return _json(_samplePerformanceJson(), 200);
         }
         return _json(_sampleDashboardJson, 200);
       });
       final client = _clientFrom(adapter);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            apiClientProvider.overrideWithValue(client),
-            currentEmployeeProvider.overrideWithValue(_employee()),
-            cookieJarProvider.overrideWithValue(CookieJar()),
-            dashboardDateFilterProvider.overrideWith(
-              _CustomRangeTestNotifier.new,
-            ),
-          ],
-          child: MaterialApp.router(
-            routerConfig: GoRouter(
-              initialLocation: '/dashboard',
-              routes: [
-                GoRoute(
-                  path: '/dashboard',
-                  builder: (_, _) => const DashboardScreen(),
-                ),
-              ],
-            ),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            theme: AppTheme.light,
-          ),
-        ),
-      );
+      await tester.pumpWidget(_buildHarness(apiClient: client));
       await tester.pumpAndSettle();
 
-      // Button displays custom formatted dates
-      expect(find.text('09/01/2026 – 09/08/2026'), findsOneWidget);
-
-      // API request received from and to query params
-      final dashReq = requests.firstWhere((r) => r.path == '/dashboard/');
-      expect(dashReq.queryParameters['from'], '2026-09-01');
-      expect(dashReq.queryParameters['to'], '2026-09-08');
-      expect(dashReq.queryParameters.containsKey('preset'), isFalse);
+      // Title must be exactly "Your last 14 days"
+      expect(find.text('Your last 14 days'), findsOneWidget);
+      expect(find.text('Your performance'), findsNothing);
     });
+
+    testWidgets(
+      'Pull-to-refresh on Dashboard refetches both dashboard and performance',
+      (tester) async {
+        final requests = <RequestOptions>[];
+        final adapter = _StubAdapter((options) {
+          requests.add(options);
+          if (options.path == '/dashboard/performance/') {
+            return _json(_samplePerformanceJson(), 200);
+          }
+          return _json(_sampleDashboardJson, 200);
+        });
+        final client = _clientFrom(adapter);
+
+        await tester.pumpWidget(_buildHarness(apiClient: client));
+        await tester.pumpAndSettle();
+
+        requests.clear();
+
+        // Trigger pull-to-refresh
+        await tester.fling(find.byType(ListView), const Offset(0, 300), 1000);
+        await tester.pumpAndSettle();
+
+        expect(
+          requests.where((r) => r.path == '/dashboard/').length,
+          greaterThanOrEqualTo(1),
+        );
+        expect(
+          requests.where((r) => r.path == '/dashboard/performance/').length,
+          greaterThanOrEqualTo(1),
+        );
+      },
+    );
 
     testWidgets(
       'Error state on dashboard shows retry button and preserves filter',

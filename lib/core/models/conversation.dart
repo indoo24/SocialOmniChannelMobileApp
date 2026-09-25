@@ -1,6 +1,9 @@
+import 'package:characters/characters.dart';
+
 import '../utils/json_safe.dart';
 
 import 'employee.dart';
+import 'message.dart';
 
 class CustomerBrief {
   const CustomerBrief({
@@ -44,7 +47,11 @@ class CustomerBrief {
     final parts = displayName.trim().split(RegExp(r'\s+'))
       ..removeWhere((p) => p.isEmpty);
     if (parts.isEmpty) return '?';
-    return parts.take(2).map((p) => p[0].toUpperCase()).join();
+    // `.characters.first` rather than `p[0]`: a display name can start with
+    // an emoji or other multi-code-unit character, and raw UTF-16 indexing
+    // would split it mid surrogate pair — a string `TextPainter` then throws
+    // "not well-formed UTF-16" trying to render.
+    return parts.take(2).map((p) => p.characters.first.toUpperCase()).join();
   }
 }
 
@@ -157,7 +164,10 @@ class Conversation {
     this.category,
     this.intelligence,
     this.lastMessagePreview = '',
+    this.lastMessageAttachments = const [],
     this.lastMessageAt,
+    this.lastMessageDirection = '',
+    this.lastMessageDeliveryStatus = '',
     this.lastCustomerMessageAt,
     this.startedAt,
     this.subject = '',
@@ -167,6 +177,10 @@ class Conversation {
     this.followUpMarkedByName = '',
     this.messagingPolicy,
     this.outboundMedia = true,
+    this.claimedBy,
+    this.firstResponseAt,
+    this.resolvedAt,
+    this.lastAgentMessageAt,
   });
 
   final int id;
@@ -182,7 +196,17 @@ class Conversation {
   final int unreadCount;
   final int messageCount;
   final String lastMessagePreview;
+  final List<MessageAttachment> lastMessageAttachments;
   final DateTime? lastMessageAt;
+
+  /// `INBOUND` | `OUTBOUND`, for the inbox row's delivery tick — empty when
+  /// the conversation has no messages yet.
+  final String lastMessageDirection;
+
+  /// The last message's delivery status (`SENT`, `DELIVERED`, `READ`,
+  /// `FAILED`, ...), shown as a tick only when [lastMessageDirection] is
+  /// `OUTBOUND` — an inbound message has no delivery state of ours to show.
+  final String lastMessageDeliveryStatus;
   final DateTime? lastCustomerMessageAt;
   final DateTime? startedAt;
   final IntelligenceBrief? intelligence;
@@ -191,6 +215,21 @@ class Conversation {
   final DateTime? followUpDate;
   final DateTime? followUpMarkedAt;
   final String followUpMarkedByName;
+
+  /// Who took this conversation by replying to it (claim-by-reply), which
+  /// can differ from [assignedTo] after a reassignment or release — this is
+  /// "who actually answered it first," not "who owns it now."
+  final EmployeeBrief? claimedBy;
+
+  /// When an agent's own first reply went out, if one has.
+  final DateTime? firstResponseAt;
+
+  /// When the conversation was last moved to `RESOLVED`, if it has been.
+  final DateTime? resolvedAt;
+
+  /// When an agent (not the platform, not the customer) last sent a message
+  /// in this conversation.
+  final DateTime? lastAgentMessageAt;
 
   /// TikTok's messaging allowance; null on every other channel and on list rows.
   final MessagingPolicy? messagingPolicy;
@@ -220,7 +259,23 @@ class Conversation {
     unreadCount: JsonSafe.asInt(json['unread_count']),
     messageCount: JsonSafe.asInt(json['message_count']),
     lastMessagePreview: JsonSafe.asString(json['last_message_preview']),
+    lastMessageAttachments: JsonSafe.parseList(
+      json['last_message_attachments'] ??
+          json['attachments'] ??
+          (json['last_message'] is Map
+              ? (json['last_message'] as Map)['attachments']
+              : null) ??
+          (json['latest_message'] is Map
+              ? (json['latest_message'] as Map)['attachments']
+              : null) ??
+          json['media'],
+      MessageAttachment.fromJson,
+    ),
     lastMessageAt: _parseDate(json['last_message_at']),
+    lastMessageDirection: JsonSafe.asString(json['last_message_direction']),
+    lastMessageDeliveryStatus: JsonSafe.asString(
+      json['last_message_delivery_status'],
+    ),
     lastCustomerMessageAt: _parseDate(json['last_customer_message_at']),
     startedAt: _parseDate(json['started_at']),
     intelligence: json['intelligence'] is Map
@@ -237,6 +292,12 @@ class Conversation {
             JsonSafe.asMap(json['media_capabilities'])['outbound_media'],
           )
         : JsonSafe.asString(json['provider']).toUpperCase() != 'TIKTOK',
+    claimedBy: json['claimed_by'] is Map
+        ? EmployeeBrief.fromJson(JsonSafe.asMap(json['claimed_by']))
+        : null,
+    firstResponseAt: _parseDate(json['first_response_at']),
+    resolvedAt: _parseDate(json['resolved_at']),
+    lastAgentMessageAt: _parseDate(json['last_agent_message_at']),
   );
 
   /// True when the platform's own limits refuse another message right now.
@@ -281,6 +342,9 @@ class Conversation {
     bool clearFollowUpDate = false,
     DateTime? followUpMarkedAt,
     String? followUpMarkedByName,
+    String? lastMessageDirection,
+    String? lastMessageDeliveryStatus,
+    List<MessageAttachment>? lastMessageAttachments,
   }) => Conversation(
     id: id,
     customer: customer,
@@ -296,7 +360,12 @@ class Conversation {
     category: category ?? this.category,
     intelligence: intelligence,
     lastMessagePreview: lastMessagePreview,
+    lastMessageAttachments:
+        lastMessageAttachments ?? this.lastMessageAttachments,
     lastMessageAt: lastMessageAt,
+    lastMessageDirection: lastMessageDirection ?? this.lastMessageDirection,
+    lastMessageDeliveryStatus:
+        lastMessageDeliveryStatus ?? this.lastMessageDeliveryStatus,
     lastCustomerMessageAt: clearLastCustomerMessageAt
         ? null
         : (lastCustomerMessageAt ?? this.lastCustomerMessageAt),
@@ -310,6 +379,10 @@ class Conversation {
     followUpMarkedByName: followUpMarkedByName ?? this.followUpMarkedByName,
     messagingPolicy: messagingPolicy,
     outboundMedia: outboundMedia,
+    claimedBy: claimedBy,
+    firstResponseAt: firstResponseAt,
+    resolvedAt: resolvedAt,
+    lastAgentMessageAt: lastAgentMessageAt,
   );
 }
 

@@ -108,7 +108,8 @@ class _SavedReplyPickerSheetState extends ConsumerState<SavedReplyPickerSheet> {
           const SizedBox(height: Space.sm),
           Expanded(
             child: async.when(
-              loading: () => LoadingState(label: context.l10n.savedRepliesLoading),
+              loading: () =>
+                  LoadingState(label: context.l10n.savedRepliesLoading),
               error: (error, _) => ErrorStateView(
                 error: error,
                 onRetry: () => ref.invalidate(savedRepliesProvider(_term)),

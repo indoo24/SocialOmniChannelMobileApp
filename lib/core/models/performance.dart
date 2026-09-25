@@ -245,6 +245,7 @@ class Order {
     this.confirmedByName = '',
     this.evidence = '',
     this.note = '',
+    this.placedAt,
     this.subtotal = '',
     this.discount = '0.00',
     this.shippingCost = '0.00',
@@ -291,6 +292,10 @@ class Order {
   /// agent judges the extraction rather than the extractor.
   final String evidence;
   final String note;
+
+  /// When the order was placed. Null only for an order recorded before this
+  /// field existed on the server.
+  final DateTime? placedAt;
 
   // ------------------------------------------------------------ richer orders
   // All tolerant: a server that predates them sends none, and the order still
@@ -343,6 +348,9 @@ class Order {
     confirmedByName: JsonSafe.asString(json['confirmed_by_name']),
     evidence: JsonSafe.asString(json['evidence']),
     note: JsonSafe.asString(json['note']),
+    placedAt: DateTime.tryParse(
+      JsonSafe.asString(json['placed_at']),
+    )?.toLocal(),
     subtotal: JsonSafe.asString(json['subtotal']),
     discount: JsonSafe.asString(json['discount'], fallback: '0.00'),
     shippingCost: JsonSafe.asString(json['shipping_cost'], fallback: '0.00'),
@@ -355,12 +363,16 @@ class Order {
     landmark: JsonSafe.asString(json['landmark']),
     locationUrl: JsonSafe.asString(json['location_url']),
     deliveryNotes: JsonSafe.asString(json['delivery_notes']),
-    expectedDeliveryDate: JsonSafe.asStringOrNull(json['expected_delivery_date']),
+    expectedDeliveryDate: JsonSafe.asStringOrNull(
+      json['expected_delivery_date'],
+    ),
     shippingMethod: JsonSafe.asString(json['shipping_method']),
     paymentMethod: JsonSafe.asString(json['payment_method']),
     paymentStatus: JsonSafe.asString(json['payment_status']),
     fulfilmentStatus: JsonSafe.asStringOrNull(json['fulfilment_status']),
-    fulfilmentStatusDisplay: JsonSafe.asString(json['fulfilment_status_display']),
+    fulfilmentStatusDisplay: JsonSafe.asString(
+      json['fulfilment_status_display'],
+    ),
     assignedToName: JsonSafe.asString(json['assigned_to_name']),
     assignedTeamName: JsonSafe.asString(json['assigned_team_name']),
     internalNote: JsonSafe.asString(json['internal_note']),
@@ -376,7 +388,8 @@ class Order {
   bool get canMoveFulfilment =>
       fulfilmentStatus != null && !isSuggestion && !isEnded;
 
-  bool get hasPricingAdjustments => isNonZero(discount) || isNonZero(shippingCost);
+  bool get hasPricingAdjustments =>
+      isNonZero(discount) || isNonZero(shippingCost);
 
   static bool isNonZero(String value) => (double.tryParse(value) ?? 0) != 0;
 }

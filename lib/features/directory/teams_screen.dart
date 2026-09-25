@@ -13,6 +13,7 @@ import '../../core/models/employee.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
+import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
@@ -43,7 +44,7 @@ class TeamsScreen extends ConsumerWidget {
         await ref.read(teamsProvider.future);
       },
       body: teams.when(
-        loading: () => const LoadingState(),
+        loading: () => const _TeamsSkeleton(),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(teamsProvider),
@@ -199,3 +200,38 @@ class _TeamCard extends ConsumerWidget {
 }
 
 enum _TeamAction { edit, deactivate }
+
+class _TeamsSkeleton extends StatelessWidget {
+  const _TeamsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppShimmer(
+      child: ListView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(Space.lg),
+        itemCount: 4,
+        itemBuilder: (context, index) => const SkeletonCard(
+          margin: EdgeInsets.only(bottom: Space.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  SkeletonCircle(size: 10),
+                  SizedBox(width: Space.sm),
+                  Expanded(child: SkeletonText(width: 140, height: 16)),
+                  SkeletonBox(width: 50, height: 18, borderRadius: Radii.pill),
+                ],
+              ),
+              SizedBox(height: Space.sm),
+              SkeletonText(width: 220, height: 12),
+              SizedBox(height: Space.md),
+              SkeletonBox(width: 80, height: 22, borderRadius: Radii.pill),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

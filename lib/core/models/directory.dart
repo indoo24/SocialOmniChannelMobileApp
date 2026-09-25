@@ -729,6 +729,8 @@ class DirectoryEmployee {
     this.workSchedule,
     this.routingBlocker = '',
     this.isRoutingReady = true,
+    this.routingChannelScope = 'ALL',
+    this.routingProviders = const [],
   });
 
   final int id;
@@ -763,6 +765,17 @@ class DirectoryEmployee {
 
   final String routingBlocker;
   final bool isRoutingReady;
+
+  /// `ALL` or `SELECTED`. A hard limit on which channels' conversations this
+  /// employee can be assigned/routed to — narrower than [teamNames], and
+  /// unrelated to visibility (narrowing it never removes conversations
+  /// already owned).
+  final String routingChannelScope;
+
+  /// The providers this employee handles when [routingChannelScope] is
+  /// `SELECTED` — `FACEBOOK` | `INSTAGRAM` | `WHATSAPP` | `TIKTOK`. Empty
+  /// when the scope is `ALL`.
+  final List<String> routingProviders;
 
   factory DirectoryEmployee.fromJson(
     Map<String, dynamic> json,
@@ -810,5 +823,10 @@ class DirectoryEmployee {
               : null),
     routingBlocker: JsonSafe.asString(json['routing_blocker']),
     isRoutingReady: JsonSafe.asBool(json['is_routing_ready'], fallback: true),
+    routingChannelScope: JsonSafe.asString(
+      json['routing_channel_scope'],
+      fallback: 'ALL',
+    ),
+    routingProviders: JsonSafe.asStringList(json['routing_providers']),
   );
 }

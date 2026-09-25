@@ -22,10 +22,12 @@ import '../../core/widgets/app_drawer.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
+import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../core/widgets/user_account_menu.dart';
 import '../../core/utils/formatting.dart';
 import '../../l10n/l10n_extensions.dart';
+import 'conversation_preview_formatter.dart';
 import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
 import 'customer_conversation_group_sheet.dart';
@@ -125,10 +127,13 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               onRefresh: () =>
                   ref.read(inboxControllerProvider.notifier).refresh(),
               child: inbox.when(
-                loading: () => ListView.separated(
-                  itemCount: 8,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (_, _) => const ConversationSkeleton(),
+                loading: () => AppShimmer(
+                  child: ListView.separated(
+                    itemCount: 8,
+                    separatorBuilder: (_, _) =>
+                        const Divider(height: 1, indent: 68),
+                    itemBuilder: (_, _) => const ConversationSkeleton(),
+                  ),
                 ),
                 error: (error, _) => ListView(
                   children: [
@@ -286,11 +291,15 @@ class ConversationGroupRow extends StatelessWidget {
                   const SizedBox(height: 3),
                   Row(
                     children: [
+                      if (group.lastMessageDirection == 'OUTBOUND') ...[
+                        _RowDeliveryIcon(
+                          status: group.lastMessageDeliveryStatus,
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       Expanded(
                         child: Text(
-                          group.lastMessagePreview.isEmpty
-                              ? context.l10n.noMessagesYetPreview
-                              : group.lastMessagePreview,
+                          formatConversationPreview(context, group: group),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -417,11 +426,18 @@ class ConversationRow extends StatelessWidget {
                   const SizedBox(height: 3),
                   Row(
                     children: [
+                      if (conversation.lastMessageDirection == 'OUTBOUND') ...[
+                        _RowDeliveryIcon(
+                          status: conversation.lastMessageDeliveryStatus,
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       Expanded(
                         child: Text(
-                          conversation.lastMessagePreview.isEmpty
-                              ? context.l10n.noMessagesYetPreview
-                              : conversation.lastMessagePreview,
+                          formatConversationPreview(
+                            context,
+                            conversation: conversation,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -518,6 +534,25 @@ class _FollowUpBadge extends StatelessWidget {
       icon: Icons.flag_rounded,
       dense: true,
     );
+  }
+}
+
+/// The inbox row's own delivery tick — only ever shown when
+/// [Conversation.lastMessageDirection] is `OUTBOUND` (the caller checks
+/// that), so a customer's own message never carries a tick meant for the
+/// agent's side of the conversation.
+class _RowDeliveryIcon extends StatelessWidget {
+  const _RowDeliveryIcon({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, color) = ConversationBadges.deliveryStatusIcon(
+      context,
+      status,
+    );
+    return Icon(icon, size: 13, color: color);
   }
 }
 

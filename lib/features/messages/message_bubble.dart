@@ -14,6 +14,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart' show ResponseType, Options;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -23,29 +24,57 @@ import '../../core/realtime/realtime_logger.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/safe_url.dart';
 import '../../core/utils/formatting.dart';
+import '../../core/widgets/badges.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../../core/utils/attachment_helper.dart';
+import 'highlight_message_coordinator.dart';
+import 'media_group_grid.dart';
+import 'swipe_to_reply.dart';
+import 'voice_playback_coordinator.dart';
 
-class MessageBubble extends StatelessWidget {
+class MessageBubble extends ConsumerWidget {
   const MessageBubble({
     required this.message,
+    this.provider = '',
     this.onRetry,
     this.onDiscard,
     this.onDelete,
+    this.onReply,
+    this.onQuoteTap,
+    this.isHighlighted,
     super.key,
   });
 
   final Message message;
+
+  /// The conversation's channel provider (`WHATSAPP`, `INSTAGRAM`, ...),
+  /// used only to name the platform in [message.sentFromPlatform]'s label.
+  final String provider;
   final VoidCallback? onRetry;
   final VoidCallback? onDiscard;
 
-  /// Long-press to delete. Null hides the affordance entirely — the caller
+  /// Long-press menu item. Null hides the affordance entirely — the caller
   /// only supplies this for a real, server-confirmed message when the
   /// signed-in employee holds `conversation.delete_message` (ADMIN/SUPERVISOR).
   final VoidCallback? onDelete;
 
+  /// Long-press menu item. Null hides the affordance entirely — the caller
+  /// only supplies this for a real, server-confirmed message when the
+  /// signed-in employee holds `conversation.reply` (there being nothing to
+  /// quote a message *into* without it).
+  final VoidCallback? onReply;
+
+  /// Tapping the quoted message preview inside this bubble jumps to and
+  /// highlights the referenced message.
+  final ValueChanged<int>? onQuoteTap;
+
+  /// Optional highlight override, primarily for testing. When null, observes
+  /// [highlightedMessageProvider] for matching message.id.
+  final bool? isHighlighted;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final msgIdStr = message.id.toString();
     final trace = RealtimeLogger.findTraceByMessageOrConvo(msgIdStr, null);
     if (trace != null) {
@@ -81,95 +110,146 @@ class MessageBubble extends StatelessWidget {
         ? Colors.white
         : theme.colorScheme.onSurface;
 
-    return Padding(
+    final copyText = copyableMessageText(message.text);
+
+    final isTarget = ref.watch(
+      highlightedMessageProvider.select((id) => id == message.id),
+    );
+    final bool activeHighlight = isHighlighted ?? (isTarget == true);
+    final highlightColor = theme.brightness == Brightness.dark
+        ? theme.colorScheme.primary.withValues(alpha: 0.25)
+        : theme.colorScheme.primary.withValues(alpha: 0.12);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+      margin: const EdgeInsets.symmetric(vertical: 1),
       padding: const EdgeInsets.symmetric(horizontal: Space.md, vertical: 3),
+      decoration: BoxDecoration(
+        color: activeHighlight ? highlightColor : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         mainAxisAlignment: isMine
             ? MainAxisAlignment.end
             : MainAxisAlignment.start,
         children: [
           Flexible(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.sizeOf(context).width * 0.78,
-              ),
-              child: Column(
-                crossAxisAlignment: isMine
-                    ? CrossAxisAlignment.end
-                    : CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onLongPress: onDelete,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Space.md,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: background,
-                        borderRadius: BorderRadius.only(
-                          topLeft: const Radius.circular(16),
-                          topRight: const Radius.circular(16),
-                          bottomLeft: Radius.circular(isMine ? 16 : 4),
-                          bottomRight: Radius.circular(isMine ? 4 : 16),
+            child: SwipeToReply(
+              onReply: onReply,
+              isMine: isMine,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.sizeOf(context).width * 0.78,
+                ),
+                child: Column(
+                  crossAxisAlignment: isMine
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onLongPressStart:
+                          (onReply != null ||
+                              copyText != null ||
+                              onDelete != null)
+                          ? (details) => showMessageActionsMenu(
+                              context,
+                              position: details.globalPosition,
+                              onReply: onReply,
+                              copyText: copyText,
+                              onDelete: onDelete,
+                            )
+                          : null,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Space.md,
+                          vertical: 10,
                         ),
-                        border: isMine && !failed
-                            ? null
-                            : Border.all(
-                                color: failed
-                                    ? theme.colorScheme.error.withValues(
-                                        alpha: 0.35,
-                                      )
-                                    : theme.colorScheme.outline,
-                              ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: theme.brightness == Brightness.dark
-                                  ? 0.15
-                                  : 0.03,
-                            ),
-                            blurRadius: 3,
-                            offset: const Offset(0, 1),
+                        decoration: BoxDecoration(
+                          color: background,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(16),
+                            topRight: const Radius.circular(16),
+                            bottomLeft: Radius.circular(isMine ? 16 : 4),
+                            bottomRight: Radius.circular(isMine ? 4 : 16),
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (message.attachments.isNotEmpty)
-                            _Attachments(message: message),
-                          if (message.text.isNotEmpty)
-                            Text(
-                              message.text,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: foreground,
-                                height: 1.35,
+                          border: isMine && !failed
+                              ? null
+                              : Border.all(
+                                  color: failed
+                                      ? theme.colorScheme.error.withValues(
+                                          alpha: 0.35,
+                                        )
+                                      : theme.colorScheme.outline,
+                                ),
+                          boxShadow: [
+                            if (activeHighlight)
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.35,
+                                ),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              )
+                            else
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: theme.brightness == Brightness.dark
+                                      ? 0.15
+                                      : 0.03,
+                                ),
+                                blurRadius: 3,
+                                offset: const Offset(0, 1),
                               ),
-                            ),
-                          if (message.contentNotice != null)
-                            ContentNoticeView(
-                              notice: message.contentNotice!,
-                              color: foreground,
-                            ),
-                        ],
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (message.replyTo != null) ...[
+                              _QuoteBlock(
+                                quote: message.replyTo!,
+                                isMine: isMine,
+                                onTap: onQuoteTap != null
+                                    ? () => onQuoteTap!(message.replyTo!.id)
+                                    : null,
+                              ),
+                              const SizedBox(height: Space.xs),
+                            ],
+                            if (message.attachments.isNotEmpty)
+                              _Attachments(message: message),
+                            if (message.text.isNotEmpty)
+                              Text(
+                                message.text,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: foreground,
+                                  height: 1.35,
+                                ),
+                              ),
+                            if (message.contentNotice != null)
+                              ContentNoticeView(
+                                notice: message.contentNotice!,
+                                color: foreground,
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 3),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: _MetaRow(message: message),
-                  ),
-                  if (failed) ...[
-                    const SizedBox(height: Space.xs),
-                    _FailureActions(
-                      message: message,
-                      onRetry: onRetry,
-                      onDiscard: onDiscard,
+                    const SizedBox(height: 3),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: _MetaRow(message: message, provider: provider),
                     ),
+                    if (failed) ...[
+                      const SizedBox(height: Space.xs),
+                      _FailureActions(
+                        message: message,
+                        onRetry: onRetry,
+                        onDiscard: onDiscard,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -179,16 +259,173 @@ class MessageBubble extends StatelessWidget {
   }
 }
 
+/// The text the long-press Copy action puts on the clipboard, or null when
+/// there is none worth copying (an image/document/voice-only message).
+///
+/// Only ever the body text the bubble itself displays — never the quoted
+/// message, attachment names, ids or `[media: …]` markers, which
+/// [Message.fromJson] has already stripped from [Message.text].
+String? copyableMessageText(String text) {
+  final trimmed = text.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
+
+/// The long-press menu on a bubble (and on an internal note) — Reply, Copy
+/// and/or Delete, whichever the caller made available. Positioned at the
+/// touch point rather than anchored to the bubble, matching the platform's
+/// own context-menu placement.
+void showMessageActionsMenu(
+  BuildContext context, {
+  required Offset position,
+  VoidCallback? onReply,
+  String? copyText,
+  VoidCallback? onDelete,
+}) {
+  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+  // Captured now: the menu route is gone by the time Copy runs.
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  final copiedLabel = context.l10n.messageCopiedSnackbar;
+  showMenu<VoidCallback>(
+    context: context,
+    position: RelativeRect.fromRect(
+      position & const Size(1, 1),
+      Offset.zero & overlay.size,
+    ),
+    items: [
+      if (onReply != null)
+        PopupMenuItem<VoidCallback>(
+          value: onReply,
+          child: ListTile(
+            leading: const Icon(Icons.reply_outlined),
+            title: Text(context.l10n.replyMessageAction),
+          ),
+        ),
+      if (copyText != null)
+        PopupMenuItem<VoidCallback>(
+          value: () async {
+            await Clipboard.setData(ClipboardData(text: copyText));
+            messenger
+              ?..hideCurrentSnackBar()
+              ..showSnackBar(SnackBar(content: Text(copiedLabel)));
+          },
+          child: ListTile(
+            leading: const Icon(Icons.copy_outlined),
+            title: Text(context.l10n.copyMessageAction),
+          ),
+        ),
+      if (onDelete != null)
+        PopupMenuItem<VoidCallback>(
+          value: onDelete,
+          child: ListTile(
+            leading: Icon(
+              Icons.delete_outline,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            title: Text(
+              context.l10n.deleteMessageAction,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ),
+    ],
+  ).then((selected) => selected?.call());
+}
+
+/// The quote block a reply shows above its own content — a snapshot of the
+/// message it answers, rendered the same whether the original is still
+/// loaded, deleted, or (rarely) outside this employee's visibility.
+class _QuoteBlock extends StatelessWidget {
+  const _QuoteBlock({required this.quote, required this.isMine, this.onTap});
+
+  final QuotedMessage quote;
+  final bool isMine;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accentColor = isMine
+        ? Colors.white.withValues(alpha: 0.85)
+        : theme.colorScheme.primary;
+    final backgroundColor = isMine
+        ? Colors.white.withValues(alpha: 0.12)
+        : theme.colorScheme.primary.withValues(alpha: 0.08);
+    final textColor = isMine
+        ? Colors.white.withValues(alpha: 0.85)
+        : theme.colorScheme.onSurfaceVariant;
+
+    final summary = quote.isDeleted
+        ? context.l10n.quotedMessageDeletedLabel
+        : !quote.available
+        ? context.l10n.quotedMessageUnavailableLabel
+        : quote.text.isNotEmpty
+        ? quote.text
+        : switch (quote.messageType) {
+            'IMAGE' => context.l10n.photoMessageLabel,
+            'AUDIO' => context.l10n.voiceMessageLabel,
+            _ => context.l10n.attachmentMessageLabel,
+          };
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Space.sm,
+            vertical: 6,
+          ),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(8),
+            border: BorderDirectional(
+              start: BorderSide(color: accentColor, width: 3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (quote.senderName.isNotEmpty)
+                Text(
+                  quote.senderName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: accentColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              Text(
+                summary,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(color: textColor),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MetaRow extends StatelessWidget {
-  const _MetaRow({required this.message});
+  const _MetaRow({required this.message, this.provider = ''});
 
   final Message message;
+  final String provider;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final labels = <String>[
-      if (message.isOutbound && message.senderName.isNotEmpty)
+      if (message.isOutbound && message.sentFromPlatform)
+        context.l10n.sentFromPlatformLabel(
+          ConversationBadges.providerLabel(context, provider),
+        )
+      else if (message.isOutbound && message.senderName.isNotEmpty)
         message.senderName,
       formatTime(context, message.sentAt),
     ];
@@ -240,11 +477,10 @@ class _DeliveryIcon extends StatelessWidget {
       );
     }
 
-    final (icon, color) = switch (message.deliveryStatus) {
-      'READ' => (Icons.done_all, ScenarioColors.info),
-      'DELIVERED' => (Icons.done_all, theme.textTheme.labelSmall?.color),
-      _ => (Icons.done, theme.textTheme.labelSmall?.color),
-    };
+    final (icon, color) = ConversationBadges.deliveryStatusIcon(
+      context,
+      message.deliveryStatus,
+    );
 
     return Icon(icon, size: 12, color: color);
   }
@@ -298,7 +534,8 @@ class ContentNoticeView extends StatelessWidget {
 
     if (notice.kind == 'share_post') {
       final uri = Uri.tryParse(notice.url);
-      final canOpen = uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
+      final canOpen =
+          uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -407,21 +644,77 @@ class _Attachments extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final widgets = <Widget>[];
+    final attachments = message.attachments;
+
+    var i = 0;
+    while (i < attachments.length) {
+      final current = attachments[i];
+      if (current.isInlineImage) {
+        final imageGroup = <MessageAttachment>[current];
+        var j = i + 1;
+        while (j < attachments.length && attachments[j].isInlineImage) {
+          imageGroup.add(attachments[j]);
+          j++;
+        }
+
+        if (imageGroup.length >= 2) {
+          widgets.add(
+            MediaGroupGrid(
+              attachments: imageGroup,
+              messageId: message.id,
+              isOutbound: message.isOutbound,
+              onTapImage: (index) async {
+                final headers = await ref
+                    .read(apiClientProvider)
+                    .mediaAuthHeaders();
+                if (!context.mounted) return;
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => _ImageViewerScreen(
+                      attachments: imageGroup,
+                      initialIndex: index,
+                      headers: headers,
+                      messageId: message.id,
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        } else {
+          widgets.add(
+            _Attachment(
+              attachment: current,
+              isOutbound: message.isOutbound,
+              messageId: message.id,
+            ),
+          );
+        }
+        i = j;
+      } else {
+        widgets.add(
+          _Attachment(
+            attachment: current,
+            isOutbound: message.isOutbound,
+            messageId: message.id,
+          ),
+        );
+        i++;
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < message.attachments.length; i++)
+        for (var idx = 0; idx < widgets.length; idx++)
           Padding(
             padding: EdgeInsets.only(
-              bottom:
-                  i == message.attachments.length - 1 && message.text.isEmpty
+              bottom: idx == widgets.length - 1 && message.text.isEmpty
                   ? 0
                   : Space.sm,
             ),
-            child: _Attachment(
-              attachment: message.attachments[i],
-              isOutbound: message.isOutbound,
-            ),
+            child: widgets[idx],
           ),
       ],
     );
@@ -429,10 +722,15 @@ class _Attachments extends ConsumerWidget {
 }
 
 class _Attachment extends ConsumerWidget {
-  const _Attachment({required this.attachment, this.isOutbound = true});
+  const _Attachment({
+    required this.attachment,
+    this.isOutbound = true,
+    this.messageId,
+  });
 
   final MessageAttachment attachment;
   final bool isOutbound;
+  final int? messageId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -441,14 +739,27 @@ class _Attachment extends ConsumerWidget {
     // on a server-sourced attachment, so this branch cannot apply to
     // inbound (customer) content.
     final localPath = attachment.localFilePath;
-    if (attachment.isImage && localPath != null && localPath.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(Radii.md),
-        child: Image.file(
-          File(localPath),
-          width: 220,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => _FileChip(attachment: attachment),
+    if (attachment.isInlineImage && localPath != null && localPath.isNotEmpty) {
+      return GestureDetector(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => _ImageViewerScreen(
+              url: '',
+              localPath: localPath,
+              headers: const {},
+              attachment: attachment,
+            ),
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(Radii.md),
+          child: Image.file(
+            File(localPath),
+            width: 220,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) =>
+                _FileChip(attachment: attachment, messageId: messageId),
+          ),
         ),
       );
     }
@@ -466,22 +777,35 @@ class _Attachment extends ConsumerWidget {
       );
     }
 
-    final safeUrl = SafeUrl.forImage(resolvedUrl);
-    if (attachment.isImage && safeUrl.isNotEmpty) {
-      return _AttachmentImage(attachment: attachment, url: safeUrl);
+    // Document attachments (such as images sent as WhatsApp documents) remain
+    // visually represented as document attachments.
+    if (!attachment.isDocument) {
+      final safeUrl = SafeUrl.forImage(resolvedUrl);
+      if (attachment.isImage && safeUrl.isNotEmpty) {
+        return _AttachmentImage(
+          attachment: attachment,
+          url: safeUrl,
+          messageId: messageId,
+        );
+      }
     }
 
-    return _FileChip(attachment: attachment);
+    return _FileChip(attachment: attachment, messageId: messageId);
   }
 }
 
 /// A received/sent image, rendered inline with a loading placeholder and an
 /// error fallback, and opening full-screen on tap.
 class _AttachmentImage extends ConsumerWidget {
-  const _AttachmentImage({required this.attachment, required this.url});
+  const _AttachmentImage({
+    required this.attachment,
+    required this.url,
+    this.messageId,
+  });
 
   final MessageAttachment attachment;
   final String url;
+  final int? messageId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -509,8 +833,12 @@ class _AttachmentImage extends ConsumerWidget {
         return GestureDetector(
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) =>
-                  _ImageViewerScreen(url: url, headers: headers ?? const {}),
+              builder: (_) => _ImageViewerScreen(
+                url: url,
+                headers: headers ?? const {},
+                attachment: attachment,
+                messageId: messageId,
+              ),
             ),
           ),
           child: ClipRRect(
@@ -531,7 +859,8 @@ class _AttachmentImage extends ConsumerWidget {
                   ),
                 ),
               ),
-              errorWidget: (_, _, _) => _FileChip(attachment: attachment),
+              errorWidget: (_, _, _) =>
+                  _FileChip(attachment: attachment, messageId: messageId),
             ),
           ),
         );
@@ -540,38 +869,147 @@ class _AttachmentImage extends ConsumerWidget {
   }
 }
 
-/// Full-screen, pinch-to-zoom view of an image attachment.
-class _ImageViewerScreen extends StatelessWidget {
-  const _ImageViewerScreen({required this.url, required this.headers});
+/// Full-screen, pinch-to-zoom view of an image attachment or multi-image gallery.
+class _ImageViewerScreen extends StatefulWidget {
+  const _ImageViewerScreen({
+    this.attachments = const [],
+    this.initialIndex = 0,
+    this.url = '',
+    this.headers = const {},
+    this.localPath,
+    this.attachment,
+    this.messageId,
+  });
 
+  final List<MessageAttachment> attachments;
+  final int initialIndex;
   final String url;
   final Map<String, String> headers;
+  final String? localPath;
+  final MessageAttachment? attachment;
+  final int? messageId;
+
+  @override
+  State<_ImageViewerScreen> createState() => _ImageViewerScreenState();
+}
+
+class _ImageViewerScreenState extends State<_ImageViewerScreen> {
+  late final PageController _pageController;
+  late int _currentIndex;
+  late final List<MessageAttachment> _galleryItems;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.attachments.isNotEmpty) {
+      _galleryItems = widget.attachments;
+      _currentIndex = widget.initialIndex.clamp(0, _galleryItems.length - 1);
+    } else if (widget.attachment != null) {
+      _galleryItems = [widget.attachment!];
+      _currentIndex = 0;
+    } else {
+      _galleryItems = [
+        MessageAttachment(
+          type: 'IMAGE',
+          url: widget.url,
+          localFilePath: widget.localPath,
+        ),
+      ];
+      _currentIndex = 0;
+    }
+    _pageController = PageController(initialPage: _currentIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final currentAttachment = _currentIndex < _galleryItems.length
+        ? _galleryItems[_currentIndex]
+        : null;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Center(
-        child: InteractiveViewer(
-          minScale: 1,
-          maxScale: 4,
-          child: CachedNetworkImage(
-            imageUrl: url,
-            httpHeaders: headers,
-            fit: BoxFit.contain,
-            placeholder: (_, _) => const CircularProgressIndicator(),
-            errorWidget: (_, _, _) => Icon(
-              Icons.broken_image_outlined,
-              color: Colors.white.withValues(alpha: 0.7),
-              size: 48,
+        title: _galleryItems.length > 1
+            ? Text(
+                '${_currentIndex + 1} / ${_galleryItems.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
+            : null,
+        actions: [
+          if (currentAttachment != null)
+            Consumer(
+              builder: (context, ref, _) => IconButton(
+                icon: const Icon(Icons.download_rounded),
+                tooltip: context.l10n.downloadAttachmentAction,
+                onPressed: () => AttachmentHelper.saveAttachmentToDownloads(
+                  context: context,
+                  attachment: currentAttachment,
+                  api: ref.read(apiClientProvider),
+                  messageId: widget.messageId,
+                ),
+              ),
             ),
-          ),
-        ),
+        ],
+      ),
+      body: PageView.builder(
+        controller: _pageController,
+        itemCount: _galleryItems.length,
+        onPageChanged: (idx) => setState(() => _currentIndex = idx),
+        itemBuilder: (context, index) {
+          final item = _galleryItems[index];
+          final localPath =
+              item.localFilePath ??
+              (index == 0 && widget.localPath != null
+                  ? widget.localPath
+                  : null);
+          final hasLocal =
+              localPath != null &&
+              localPath.isNotEmpty &&
+              File(localPath).existsSync();
+          final rawUrl = item.resolvedUrl.isNotEmpty
+              ? item.resolvedUrl
+              : widget.url;
+          final safeUrl = SafeUrl.forImage(rawUrl);
+
+          return Center(
+            child: InteractiveViewer(
+              minScale: 1,
+              maxScale: 4,
+              child: hasLocal
+                  ? Image.file(File(localPath), fit: BoxFit.contain)
+                  : CachedNetworkImage(
+                      imageUrl: safeUrl,
+                      httpHeaders: widget.headers,
+                      fit: BoxFit.contain,
+                      placeholder: (_, _) => const Center(
+                        child: Icon(
+                          Icons.image_outlined,
+                          color: Colors.white38,
+                          size: 48,
+                        ),
+                      ),
+                      errorWidget: (_, _, _) => Icon(
+                        Icons.broken_image_outlined,
+                        color: Colors.white.withValues(alpha: 0.7),
+                        size: 48,
+                      ),
+                    ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -599,26 +1037,93 @@ class _VoicePlayer extends ConsumerStatefulWidget {
 
 enum _PlaybackLoad { idle, loading, ready, error }
 
-class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
+class _VoicePlayerState extends ConsumerState<_VoicePlayer>
+    with AutomaticKeepAliveClientMixin {
+  late final String _playbackId =
+      '${identityHashCode(this)}_${widget.attachment.attachmentId}';
+
   AudioPlayer? _player;
   StreamSubscription<PlayerState>? _stateSub;
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<Duration>? _durationSub;
+  StreamSubscription<void>? _completeSub;
 
   _PlaybackLoad _load = _PlaybackLoad.idle;
   bool _playing = false;
   Duration _position = Duration.zero;
   Duration? _duration;
+  Uint8List? _cachedBytes;
 
   @override
-  void dispose() {
+  bool get wantKeepAlive => _playing || _load == _PlaybackLoad.loading;
+
+  @override
+  void didUpdateWidget(_VoicePlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.url != oldWidget.url ||
+        widget.localPath != oldWidget.localPath) {
+      _stopAndReset();
+    }
+  }
+
+  void _safePause() {
+    final p = _player;
+    if (p != null &&
+        p.state != PlayerState.disposed &&
+        p.state != PlayerState.stopped) {
+      try {
+        p.pause();
+      } catch (_) {}
+    }
+  }
+
+  void _disposePlayerOnly() {
     unawaited(_stateSub?.cancel());
     unawaited(_positionSub?.cancel());
     unawaited(_durationSub?.cancel());
-    // Best-effort, unawaited: nothing on screen still needs this once the
-    // widget is gone, and it must not hold the conversation screen's
-    // teardown open on a slow platform call.
-    unawaited(_player?.dispose());
+    unawaited(_completeSub?.cancel());
+    _stateSub = null;
+    _positionSub = null;
+    _durationSub = null;
+    _completeSub = null;
+    final p = _player;
+    _player = null;
+    unawaited(p?.dispose());
+  }
+
+  void _stopAndReset() {
+    try {
+      ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
+    } catch (_) {}
+    _disposePlayerOnly();
+    _cachedBytes = null;
+    _load = _PlaybackLoad.idle;
+    _playing = false;
+    _position = Duration.zero;
+    _duration = null;
+    if (mounted) setState(() {});
+  }
+
+  void _onCompleted() {
+    if (!mounted) return;
+    try {
+      ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
+    } catch (_) {}
+    if (_playing || _position != Duration.zero) {
+      setState(() {
+        _playing = false;
+        _position = Duration.zero;
+      });
+      updateKeepAlive();
+    }
+  }
+
+  @override
+  void dispose() {
+    try {
+      ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
+    } catch (_) {}
+    _disposePlayerOnly();
     super.dispose();
   }
 
@@ -626,27 +1131,70 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
     if (_load == _PlaybackLoad.loading) return;
 
     if (_playing) {
-      await _player?.pause();
+      _safePause();
+      try {
+        ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
+      } catch (_) {}
+      if (mounted) {
+        setState(() => _playing = false);
+        updateKeepAlive();
+      }
       return;
     }
 
+    // If currently paused mid-track or completed at 0:00, and player is still active, resume:
     if (_player != null && _load == _PlaybackLoad.ready) {
-      await _player!.resume();
-      return;
+      try {
+        ref
+            .read(activeVoicePlaybackProvider.notifier)
+            .setActive(
+              _playbackId,
+              onPause: () {
+                _safePause();
+                if (mounted) {
+                  setState(() => _playing = false);
+                  updateKeepAlive();
+                }
+              },
+            );
+      } catch (_) {}
+
+      try {
+        if (_position == Duration.zero) {
+          try {
+            await _player!
+                .seek(Duration.zero)
+                .timeout(const Duration(milliseconds: 300));
+          } catch (_) {}
+        }
+        await _player!.resume();
+        if (mounted) {
+          setState(() => _playing = true);
+          updateKeepAlive();
+        }
+        return;
+      } catch (_) {
+        _disposePlayerOnly();
+      }
     }
 
     final localPath = widget.localPath;
     final url = widget.url;
-    if ((localPath == null || localPath.isEmpty) && url.isEmpty) {
+    if (_cachedBytes == null &&
+        (localPath == null || localPath.isEmpty) &&
+        url.isEmpty) {
       if (mounted) setState(() => _load = _PlaybackLoad.error);
       return;
     }
 
     setState(() => _load = _PlaybackLoad.loading);
+    updateKeepAlive();
 
     try {
       Uint8List bytes;
-      if (localPath != null &&
+      if (_cachedBytes != null) {
+        bytes = _cachedBytes!;
+      } else if (localPath != null &&
           localPath.isNotEmpty &&
           File(localPath).existsSync()) {
         bytes = await File(localPath).readAsBytes();
@@ -663,22 +1211,49 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
         }
         bytes = Uint8List.fromList(data);
       }
+      _cachedBytes = bytes;
 
       if (!mounted) return;
 
       final player = AudioPlayer();
+      await player.setReleaseMode(ReleaseMode.stop);
+
       _stateSub = player.onPlayerStateChanged.listen((state) {
         if (!mounted) return;
-        setState(() => _playing = state == PlayerState.playing);
+        if (state == PlayerState.completed) {
+          _onCompleted();
+        } else {
+          setState(() => _playing = state == PlayerState.playing);
+          updateKeepAlive();
+        }
       });
       _positionSub = player.onPositionChanged.listen((position) {
         if (!mounted) return;
+        if (!_playing && _position == Duration.zero) return;
         setState(() => _position = position);
       });
       _durationSub = player.onDurationChanged.listen((duration) {
         if (!mounted) return;
         setState(() => _duration = duration);
       });
+      _completeSub = player.onPlayerComplete.listen((_) {
+        _onCompleted();
+      });
+
+      try {
+        ref
+            .read(activeVoicePlaybackProvider.notifier)
+            .setActive(
+              _playbackId,
+              onPause: () {
+                _safePause();
+                if (mounted) {
+                  setState(() => _playing = false);
+                  updateKeepAlive();
+                }
+              },
+            );
+      } catch (_) {}
 
       await player.play(BytesSource(bytes));
 
@@ -688,9 +1263,16 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
       }
 
       _player = player;
-      setState(() => _load = _PlaybackLoad.ready);
+      setState(() {
+        _load = _PlaybackLoad.ready;
+        _playing = true;
+      });
+      updateKeepAlive();
     } catch (_) {
-      if (mounted) setState(() => _load = _PlaybackLoad.error);
+      if (mounted) {
+        setState(() => _load = _PlaybackLoad.error);
+        updateKeepAlive();
+      }
     }
   }
 
@@ -702,6 +1284,8 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     final theme = Theme.of(context);
     final total = _duration ?? _durationFromAttachment();
     final progress = total != null && total.inMilliseconds > 0
@@ -736,7 +1320,6 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.mic_rounded,
@@ -744,12 +1327,34 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
                       color: textColor.withValues(alpha: 0.90),
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      context.l10n.voiceNoteLabel,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Text(
+                        context.l10n.voiceNoteLabel,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => AttachmentHelper.saveAttachmentToDownloads(
+                        context: context,
+                        attachment: widget.attachment,
+                        api: ref.read(apiClientProvider),
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Tooltip(
+                        message: context.l10n.downloadAttachmentAction,
+                        child: Padding(
+                          padding: const EdgeInsets.all(2),
+                          child: Icon(
+                            Icons.download_rounded,
+                            size: 16,
+                            color: textColor.withValues(alpha: 0.85),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -781,7 +1386,9 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
                                   total != null) {
                                 final targetMs =
                                     (total.inMilliseconds * fraction).round();
-                                _player!.seek(Duration(milliseconds: targetMs));
+                                final target = Duration(milliseconds: targetMs);
+                                setState(() => _position = target);
+                                _player!.seek(target);
                               }
                             },
                           ),
@@ -791,7 +1398,11 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer> {
                       Text(
                         _format(
                           total != null
-                              ? (_playing ? _position : total)
+                              ? (_playing ||
+                                        (_position > Duration.zero &&
+                                            _position < total)
+                                    ? _position
+                                    : total)
                               : _position,
                         ),
                         style: TextStyle(
@@ -996,40 +1607,134 @@ class _WaveformPainter extends CustomPainter {
       oldDelegate.inactiveColor != inactiveColor;
 }
 
-class _FileChip extends StatelessWidget {
-  const _FileChip({required this.attachment});
+class _FileChip extends ConsumerStatefulWidget {
+  const _FileChip({required this.attachment, this.messageId});
 
   final MessageAttachment attachment;
+  final int? messageId;
+
+  @override
+  ConsumerState<_FileChip> createState() => _FileChipState();
+}
+
+class _FileChipState extends ConsumerState<_FileChip> {
+  bool _isLoading = false;
+
+  Future<void> _handleTap() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      await AttachmentHelper.openAttachment(
+        context: context,
+        attachment: widget.attachment,
+        api: ref.read(apiClientProvider),
+        messageId: widget.messageId,
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final attachment = widget.attachment;
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Space.sm,
-        vertical: Space.xs,
-      ),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
+    final fileName = attachment.isAudio && attachment.durationMs != null
+        ? _formatDuration(attachment.durationMs!)
+        : (attachment.fileName.isEmpty
+              ? attachment.type.toLowerCase()
+              : attachment.fileName);
+
+    final ext = attachment.fileExtension.toUpperCase();
+    final size = attachment.formattedSize;
+    final details = [
+      if (size.isNotEmpty) size,
+      if (ext.isNotEmpty && !fileName.toUpperCase().endsWith('.$ext')) ext,
+    ].join(' · ');
+
+    final hasAction =
+        (attachment.localFilePath != null &&
+            attachment.localFilePath!.isNotEmpty) ||
+        attachment.resolvedUrl.isNotEmpty;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: (hasAction && !_isLoading) ? _handleTap : null,
         borderRadius: BorderRadius.circular(Radii.sm),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(_iconFor(attachment.type), size: 16),
-          const SizedBox(width: Space.xs),
-          Flexible(
-            child: Text(
-              attachment.isAudio && attachment.durationMs != null
-                  ? _formatDuration(attachment.durationMs!)
-                  : (attachment.fileName.isEmpty
-                        ? attachment.type.toLowerCase()
-                        : attachment.fileName),
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall,
-            ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Space.sm,
+            vertical: Space.xs,
           ),
-        ],
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(Radii.sm),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(_iconFor(attachment), size: 18),
+              const SizedBox(width: Space.xs),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      fileName,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (details.isNotEmpty)
+                      Text(
+                        details,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontSize: 10,
+                          color: theme.textTheme.labelSmall?.color?.withValues(
+                            alpha: 0.7,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (_isLoading) ...[
+                const SizedBox(width: Space.xs),
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ] else if (hasAction) ...[
+                const SizedBox(width: Space.xs),
+                IconButton(
+                  icon: const Icon(Icons.download_rounded, size: 16),
+                  tooltip: context.l10n.downloadAttachmentAction,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => AttachmentHelper.saveAttachmentToDownloads(
+                    context: context,
+                    attachment: attachment,
+                    api: ref.read(apiClientProvider),
+                    messageId: widget.messageId,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.open_in_new_rounded,
+                  size: 14,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.7,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1041,13 +1746,56 @@ class _FileChip extends StatelessWidget {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
-  static IconData _iconFor(String type) => switch (type) {
-    'IMAGE' => Icons.image_outlined,
-    'VIDEO' => Icons.videocam_outlined,
-    'AUDIO' => Icons.mic_none,
-    'LOCATION' => Icons.location_on_outlined,
-    _ => Icons.attach_file,
-  };
+  static IconData _iconFor(MessageAttachment attachment) {
+    if (attachment.isAudio) return Icons.mic_none;
+    if (attachment.hasImageFile || attachment.isImage) {
+      return Icons.image_outlined;
+    }
+    if (attachment.isVideo) return Icons.videocam_outlined;
+
+    final ext = attachment.fileExtension.toLowerCase();
+    final mime = attachment.mimeType.toLowerCase();
+
+    if (['mp4', 'mov', 'avi', 'mkv', 'webm'].contains(ext) ||
+        mime.startsWith('video/')) {
+      return Icons.videocam_outlined;
+    }
+    if (ext == 'pdf' || mime.contains('pdf')) {
+      return Icons.picture_as_pdf_outlined;
+    }
+    if (['doc', 'docx'].contains(ext) ||
+        mime.contains('word') ||
+        mime.contains('document')) {
+      return Icons.description_outlined;
+    }
+    if (['xls', 'xlsx', 'csv'].contains(ext) ||
+        mime.contains('excel') ||
+        mime.contains('spreadsheet')) {
+      return Icons.table_chart_outlined;
+    }
+    if (['ppt', 'pptx'].contains(ext) ||
+        mime.contains('presentation') ||
+        mime.contains('powerpoint')) {
+      return Icons.slideshow_outlined;
+    }
+    if (['zip', 'rar', '7z', 'tar', 'gz'].contains(ext) ||
+        mime.contains('zip') ||
+        mime.contains('compressed')) {
+      return Icons.folder_zip_outlined;
+    }
+    if (ext == 'txt' || mime.startsWith('text/')) {
+      return Icons.text_snippet_outlined;
+    }
+
+    return switch (attachment.type.toUpperCase()) {
+      'IMAGE' => Icons.image_outlined,
+      'VIDEO' => Icons.videocam_outlined,
+      'AUDIO' || 'VOICE' => Icons.mic_none,
+      'LOCATION' => Icons.location_on_outlined,
+      'FILE' => Icons.insert_drive_file_outlined,
+      _ => Icons.attach_file,
+    };
+  }
 }
 
 class _SystemLine extends StatelessWidget {

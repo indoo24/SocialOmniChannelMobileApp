@@ -24,7 +24,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get tabSecurity => 'الأمان';
 
   @override
-  String get tabAssignment => 'التوزيع';
+  String get tabAssignment => 'التوجيه';
 
   @override
   String get signOutDialogTitle => 'تسجيل الخروج؟';
@@ -67,6 +67,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get preferencesSectionTitle => 'التفضيلات';
+
+  @override
+  String get securitySectionTitle => 'الأمان';
 
   @override
   String get themeLabel => 'المظهر';
@@ -112,8 +115,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noChannelsTitle => 'لا توجد قنوات متصلة';
 
   @override
-  String get noChannelsMessage =>
-      'قم بربط Instagram أو Messenger أو WhatsApp من تطبيق الويب لبدء استقبال المحادثات.';
+  String get noChannelsMessage => 'لا توجد قنوات مسجلة لهذا العميل بعد.';
 
   @override
   String get channelStatusConnected => 'متصل';
@@ -374,6 +376,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get genericErrorFallbackMessage => 'يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get loginInvalidCredentialsError =>
+      'البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى التحقق من بياناتك والمحاولة مرة أخرى.';
 
   @override
   String get retryButton => 'إعادة المحاولة';
@@ -779,6 +785,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get attachmentTooltip => 'إرفاق';
 
   @override
+  String get attachDocumentAction => 'مستند';
+
+  @override
   String get attachFromGalleryAction => 'صورة من المعرض';
 
   @override
@@ -791,7 +800,39 @@ class AppLocalizationsAr extends AppLocalizations {
   String get attachmentUploadingLabel => 'جارٍ الرفع…';
 
   @override
+  String uploadingAttachmentsProgress(int current, int total) {
+    return 'جارٍ الرفع $current من $total…';
+  }
+
+  @override
+  String get attachmentLimitReached => 'يمكنك إرفاق حتى 10 ملفات لكل رسالة.';
+
+  @override
+  String get attachmentPartialUploadError =>
+      'تعذّر رفع بعض الملفات. حاول مرة أخرى.';
+
+  @override
   String get attachmentUploadFailedError => 'تعذّر رفع الملف. حاول مرة أخرى.';
+
+  @override
+  String get attachmentTooLargeError => 'هذا الملف أكبر من أن يُرسل.';
+
+  @override
+  String get cancelUploadTooltip => 'إلغاء الرفع';
+
+  @override
+  String get retryUploadTooltip => 'إعادة محاولة الرفع';
+
+  @override
+  String get attachmentUploadFailedLabel => 'فشل الرفع';
+
+  @override
+  String get attachmentUploadedLabel => 'تم الرفع';
+
+  @override
+  String attachmentUploadPercent(int percent) {
+    return '$percent%';
+  }
 
   @override
   String get attachmentPermissionDeniedError =>
@@ -866,6 +907,52 @@ class AppLocalizationsAr extends AppLocalizations {
   String get deleteMessageDeletedSnackbar => 'تم حذف الرسالة';
 
   @override
+  String get replyMessageAction => 'رد';
+
+  @override
+  String get copyMessageAction => 'نسخ';
+
+  @override
+  String get messageCopiedSnackbar => 'تم النسخ';
+
+  @override
+  String replyingToLabel(String name) {
+    return 'الرد على $name';
+  }
+
+  @override
+  String get cancelReplyTooltip => 'إلغاء الرد';
+
+  @override
+  String get quotedMessageDeletedLabel => 'تم حذف هذه الرسالة';
+
+  @override
+  String get quotedMessageUnavailableLabel => 'الرسالة الأصلية غير متاحة';
+
+  @override
+  String get photoMessageLabel => 'صورة';
+
+  @override
+  String get photosMessageLabel => 'صور';
+
+  @override
+  String get videoMessageLabel => 'فيديو';
+
+  @override
+  String get documentMessageLabel => 'مستند';
+
+  @override
+  String get attachmentMessageLabel => 'مرفق';
+
+  @override
+  String get attachmentsMessageLabel => 'مرفقات';
+
+  @override
+  String sentFromPlatformLabel(String provider) {
+    return 'أُرسلت من $provider';
+  }
+
+  @override
   String get customerTitle => 'العميل';
 
   @override
@@ -893,6 +980,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get lastMessageFieldLabel => 'آخر رسالة';
 
   @override
+  String get claimedByFieldLabel => 'استلمها';
+
+  @override
+  String get firstResponseFieldLabel => 'الرد الأول';
+
+  @override
+  String get resolvedFieldLabel => 'تم الحل في';
+
+  @override
+  String get lastAgentMessageFieldLabel => 'آخر رسالة من الموظف';
+
+  @override
   String get customerSectionTitle => 'العميل';
 
   @override
@@ -918,7 +1017,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String dashboardGreeting(String name) {
-    return 'سعداء برؤيتك، $name';
+    return 'مرحبًا $name';
   }
 
   @override
@@ -1052,6 +1151,61 @@ class AppLocalizationsAr extends AppLocalizations {
   String get autoAssignmentToggleLabel => 'تفعيل التوزيع التلقائي';
 
   @override
+  String get channelResponsibilityTitle => 'مسؤولية القناة';
+
+  @override
+  String get channelResponsibilityDescription =>
+      'اختر من يتم عرض المحادثات الجديدة عليه من كل قناة. تكون لقاعدة خاصة بحساب واحد الأولوية على قاعدة لكل الحسابات، ولقواعد الموظف الخاصة الأولوية على قواعد فريقه.';
+
+  @override
+  String get channelResponsibilityAccessNote =>
+      'هذا يحدد من يستقبل المحادثات الجديدة، وليس من يمكنه رؤيتها. يحتفظ الجميع بصلاحية الوصول التي يمنحها دورهم.';
+
+  @override
+  String get channelResponsibilityEditNote =>
+      'تُحدَّد قواعد الفريق في نموذج كل فريق ضمن صفحة الفرق. وتُحدَّد القنوات التي يتعامل معها الموظف في نموذجه ضمن صفحة الموظفين.';
+
+  @override
+  String get channelResponsibilityEmpty => 'لا توجد قواعد مسؤولية بعد.';
+
+  @override
+  String channelResponsibilityAllAccounts(String provider) {
+    return 'كل حسابات $provider';
+  }
+
+  @override
+  String channelResponsibilityAccountRule(String provider, String account) {
+    return 'حساب $provider · $account';
+  }
+
+  @override
+  String channelResponsibilityTeamPrefix(String name) {
+    return 'فريق $name';
+  }
+
+  @override
+  String get channelResponsibilityRetired => 'متقاعد';
+
+  @override
+  String get channelResponsibilityEditInTeams => 'تعديل في الفرق';
+
+  @override
+  String get channelResponsibilityFallbackTitle => 'عندما لا يتوفر أي مسؤول';
+
+  @override
+  String get channelResponsibilityFallbackDescription =>
+      'تنتقل المحادثة إلى بقية أعضاء المؤسسة، حتى لا يبقى أي عميل بلا مسؤول.';
+
+  @override
+  String get channelResponsibilityOfferToEveryone => 'عرضها على بقية الفريق';
+
+  @override
+  String get channelResponsibilityLeaveUnassigned => 'تركها بدون تعيين';
+
+  @override
+  String get channelResponsibilityFallbackSaved => 'تم تحديث سلوك الاحتياط';
+
+  @override
   String get defaultChatCapacityTitle => 'سعة المحادثات الافتراضية';
 
   @override
@@ -1081,14 +1235,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get saveTimezoneAction => 'حفظ المنطقة الزمنية';
 
   @override
-  String get assignmentPolicyUpdatedSnackbar => 'تم تحديث إعدادات التوزيع';
+  String get assignmentPolicyUpdatedSnackbar => 'تم تحديث إعدادات التوجيه';
 
   @override
-  String get routingPolicyLoadFailed => 'تعذر تحميل إعدادات التوزيع.';
+  String get routingPolicyLoadFailed => 'تعذر تحميل إعدادات التوجيه.';
 
   @override
   String get routingPermissionDenied =>
-      'ليس لديك صلاحية لإدارة إعدادات التوزيع.';
+      'ليس لديك صلاحية لإدارة إعدادات التوجيه.';
 
   @override
   String openUnreadSummary(int open, int unread) {
@@ -1170,10 +1324,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get locationFieldLabel => 'الموقع';
 
   @override
+  String get firstSeenFieldLabel => 'أول ظهور';
+
+  @override
   String get lastSeenFieldLabel => 'آخر ظهور';
 
   @override
   String get confirmedPurchasesFieldLabel => 'المشتريات المؤكدة';
+
+  @override
+  String get confirmedPurchasesSubtitle =>
+      'تم التحقق منها بواسطة موظف، وليس عبر نظام دفع.';
 
   @override
   String get customerNotesFieldLabel => 'ملاحظات';
@@ -1186,6 +1347,26 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noVisibleConversations => 'لا توجد محادثات يمكنك رؤيتها.';
+
+  @override
+  String get channelsCapsSectionTitle => 'القنوات';
+
+  @override
+  String get knownFactsCapsSectionTitle => 'الحقائق المعروفة';
+
+  @override
+  String get knownFactsSectionSubtitle =>
+      'مستخرجة من المحادثات. مستوى الثقة موضح لكل حقيقة.';
+
+  @override
+  String get noKnownFactsMessage => 'لا يوجد شيء معروف بعد.';
+
+  @override
+  String get ordersCapsSectionTitle => 'الطلبات';
+
+  @override
+  String get noOrdersForCustomerMessage =>
+      'لا توجد طلبات مسجلة لهذا العميل بعد.';
 
   @override
   String get searchCustomersHint =>
@@ -1217,6 +1398,24 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get onlineNowFilter => 'متصل الآن';
+
+  @override
+  String get employeeFilterAllRoles => 'كل الأدوار';
+
+  @override
+  String get employeeFilterAllTeams => 'كل الفرق';
+
+  @override
+  String get employeeFilterAllStatus => 'الكل';
+
+  @override
+  String get employeeFilterActive => 'نشط';
+
+  @override
+  String get employeeFilterInactive => 'غير نشط';
+
+  @override
+  String get employeeFilterReset => 'إعادة تعيين عوامل التصفية';
 
   @override
   String totalCountSuffix(int total) {
@@ -1288,6 +1487,26 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get noOrdersRecordedMessage =>
       'لا توجد طلبات مسجَّلة من هذه المحادثة.';
+
+  @override
+  String get contactSectionTitle => 'جهة الاتصال';
+
+  @override
+  String get contactEditButton => 'تعديل';
+
+  @override
+  String get customerDataTitle => 'بيانات العميل';
+
+  @override
+  String get customerDataDetailButton => 'تفصيل';
+
+  @override
+  String get customerDataEmpty => 'لم يتم تسجيل أي تفاصيل للعميل بعد.';
+
+  @override
+  String customerDataMoreCount(int count) {
+    return '+$count أخرى';
+  }
 
   @override
   String get employeeSourceBadge => 'موظف';
@@ -1386,6 +1605,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get confirmedByUnknownEmployee => 'أحد الموظفين';
 
   @override
+  String orderedAtLabel(String date) {
+    return 'تم الطلب في $date';
+  }
+
+  @override
   String recordedByMessage(String name) {
     return 'تم التسجيل بواسطة $name';
   }
@@ -1451,6 +1675,48 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get customFieldClear => 'مسح';
+
+  @override
+  String get customerFieldFilterButton => 'تصفية حسب الحقل';
+
+  @override
+  String get customerFieldFilterTitle => 'تصفية حسب الحقل';
+
+  @override
+  String get customerFieldFilterNoFields =>
+      'لا توجد حقول مخصصة معدّة لهذه المؤسسة.';
+
+  @override
+  String get customerFieldFilterFieldLabel => 'الحقل';
+
+  @override
+  String get customerFieldFilterValueLabel => 'القيمة';
+
+  @override
+  String get customerFieldFilterFromLabel => 'من';
+
+  @override
+  String get customerFieldFilterToLabel => 'إلى';
+
+  @override
+  String get customerFieldFilterReset => 'إعادة تعيين';
+
+  @override
+  String get customerFieldFilterSelectFieldError => 'اختر حقلاً أولاً.';
+
+  @override
+  String get customerFieldFilterEnterValueError => 'أدخل قيمة للتصفية بها.';
+
+  @override
+  String get customerFieldFilterSelectValueError => 'اختر قيمة للتصفية بها.';
+
+  @override
+  String get customerFieldFilterInvalidRange =>
+      'يجب أن يكون \"من\" قبل \"إلى\".';
+
+  @override
+  String get customerFieldFilterNoResults =>
+      'لا يوجد عملاء مطابقون لهذا الحقل.';
 
   @override
   String get orderDeliverySectionTitle => 'بيانات التوصيل (اختيارية)';
@@ -1805,6 +2071,30 @@ class AppLocalizationsAr extends AppLocalizations {
   String get employeesLoadFailedMessage => 'تعذّر تحميل الموظفين.';
 
   @override
+  String get teamResponsibilitiesTitle => 'مسؤوليات القنوات';
+
+  @override
+  String get teamResponsibilitiesDescription =>
+      'القنوات التي يُعرض على هذا الفريق محادثاتها الجديدة. هذا يحدد من يُعرض عليه العمل أولاً — ولا يغيّر أبدًا من يمكنه رؤية المحادثة.';
+
+  @override
+  String get teamResponsibilityNone => 'لا شيء';
+
+  @override
+  String get teamResponsibilityAll => 'جميع الحسابات';
+
+  @override
+  String get teamResponsibilitySelected => 'حسابات محددة';
+
+  @override
+  String get teamResponsibilitiesLoadFailedMessage =>
+      'تعذّر تحميل المسؤوليات الحالية.';
+
+  @override
+  String get teamResponsibilityNoChannelsMessage =>
+      'لا توجد حسابات متصلة بهذه القناة بعد.';
+
+  @override
   String get deactivateTeamConfirmTitle => 'إلغاء تفعيل الفريق؟';
 
   @override
@@ -2093,6 +2383,54 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get sendTemplateAction => 'إرسال';
+
+  @override
+  String sendTemplateSheetTitle(String name) {
+    return 'إرسال \"$name\"';
+  }
+
+  @override
+  String sendTemplateSheetSubtitle(String account) {
+    return 'من $account. سيتم فتح محادثة جديدة إن لم تكن موجودة بالفعل.';
+  }
+
+  @override
+  String get sendTemplateRecipientLabel => 'المستلم';
+
+  @override
+  String get sendTemplateExistingCustomer => 'عميل حالي';
+
+  @override
+  String get sendTemplateNewPhone => 'رقم هاتف جديد';
+
+  @override
+  String get sendTemplateCustomerSearchHint =>
+      'ابحث بالاسم أو الهاتف أو البريد الإلكتروني...';
+
+  @override
+  String get sendTemplateNoCustomersFound =>
+      'لا يوجد عملاء مطابقون لهذا البحث.';
+
+  @override
+  String get sendTemplateNoPhoneOnFile => 'لا يوجد رقم هاتف مسجل';
+
+  @override
+  String get sendTemplatePhoneLabel => 'رقم الهاتف';
+
+  @override
+  String get sendTemplatePhoneHelper =>
+      'أدخل رمز الدولة. الرقم الذي يبدأ بـ 0 يُرفض بدلاً من تخمينه — ويُنشأ العميل تلقائيًا إذا كان جديدًا.';
+
+  @override
+  String get sendTemplatePreviewLabel => 'معاينة';
+
+  @override
+  String sendTemplateSentSnackbar(String name) {
+    return 'تم إرسال القالب إلى $name';
+  }
+
+  @override
   String get loadingTemplates => 'جارٍ تحميل القوالب…';
 
   @override
@@ -2290,6 +2628,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get chatCapacityInvalidRangeError => 'يجب أن تكون السعة بين 0 و200.';
 
   @override
+  String get routingChannelScopeTitle => 'نطاق القنوات';
+
+  @override
+  String get routingChannelScopeDescription =>
+      'حد صارم على القنوات التي يمكن إسناد أو توجيه محادثاتها لهذا الشخص. تضييق هذا النطاق لا يزيل المحادثات التي يملكها بالفعل.';
+
+  @override
+  String get routingChannelScopeAll => 'جميع القنوات';
+
+  @override
+  String get routingChannelScopeSelected => 'قنوات محددة';
+
+  @override
+  String get routingChannelScopeRequiredError => 'اختر قناة واحدة على الأقل.';
+
+  @override
   String get workingHoursTitle => 'ساعات العمل';
 
   @override
@@ -2460,8 +2814,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get savedRepliesLoading => 'جارٍ تحميل الردود المحفوظة…';
 
   @override
-  String get savedRepliesEmpty =>
-      'لا توجد ردود محفوظة بعد. أنشئها من الإعدادات على الويب.';
+  String get savedRepliesEmpty => 'لا توجد ردود محفوظة بعد.';
 
   @override
   String get savedRepliesNoMatch => 'لا يوجد رد محفوظ يطابق بحثك.';
@@ -2623,4 +2976,316 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get updateRestartAction => 'إعادة التشغيل';
+  String historyFallbackAssigned(String name) {
+    return 'أُسندت إلى $name (احتياطيًا)';
+  }
+
+  @override
+  String historyFallbackReasonsLabel(String reasons) {
+    return 'السبب: $reasons';
+  }
+
+  @override
+  String historyRerouted(String previousName, String name) {
+    return 'أُعيد توجيهها من $previousName إلى $name';
+  }
+
+  @override
+  String historyReleasedFrom(String previousName) {
+    return 'أُفرجت من $previousName وعادت إلى قائمة الانتظار';
+  }
+
+  @override
+  String get tabCustomerFields => 'حقول العملاء';
+
+  @override
+  String get customerFieldsPermissionDenied =>
+      'ليست لديك صلاحية عرض حقول العملاء.';
+
+  @override
+  String get customerFieldsTabTitle => 'حقول العملاء';
+
+  @override
+  String get customerFieldsTabDescription =>
+      'تُخزَّن هذه الحقول في سجل كل عميل ويمكن تعبئتها من الملف الشخصي للعميل. يمكن فقط للمسؤولين المخوَّلين إضافتها أو تعديلها أو إعادة ترتيبها أو تعطيلها.';
+
+  @override
+  String get addFieldAction => 'إضافة حقل';
+
+  @override
+  String get noCustomerFieldsTitle => 'لا توجد حقول مخصصة بعد';
+
+  @override
+  String get noCustomerFieldsMessage =>
+      'أضف حقلاً لبدء جمعه في ملفات العملاء الشخصية.';
+
+  @override
+  String customerFieldKeyLabel(String key) {
+    return 'المفتاح: $key';
+  }
+
+  @override
+  String get customerFieldDisabledBadge => 'معطَّل';
+
+  @override
+  String get moveFieldUpAction => 'تحريك لأعلى';
+
+  @override
+  String get moveFieldDownAction => 'تحريك لأسفل';
+
+  @override
+  String get enableFieldAction => 'تفعيل';
+
+  @override
+  String get disableFieldAction => 'تعطيل';
+
+  @override
+  String get customerFieldEnabledSnackbar => 'تم تفعيل الحقل';
+
+  @override
+  String get customerFieldDisabledSnackbar => 'تم تعطيل الحقل';
+
+  @override
+  String get customerFieldReorderedSnackbar => 'تم تحديث ترتيب الحقول';
+
+  @override
+  String get addFieldTitle => 'إضافة حقل';
+
+  @override
+  String get editFieldTitle => 'تعديل الحقل';
+
+  @override
+  String get fieldLabelFieldLabel => 'التسمية';
+
+  @override
+  String get fieldLabelRequiredError => 'أدخل تسمية.';
+
+  @override
+  String get fieldKeyFieldLabel => 'المفتاح';
+
+  @override
+  String get fieldKeyHelperTextGenerated => 'يُنشأ تلقائيًا من التسمية.';
+
+  @override
+  String get fieldKeyHelperTextFixed =>
+      'لا يمكن تغيير المفتاح بعد إنشاء الحقل.';
+
+  @override
+  String get fieldKeyInvalidError =>
+      'استخدم فقط أحرفًا إنجليزية وأرقامًا وشرطات سفلية.';
+
+  @override
+  String get fieldTypeFieldLabel => 'النوع';
+
+  @override
+  String get fieldRequiredToggleLabel => 'إلزامي';
+
+  @override
+  String get fieldRequiredToggleHelper => 'لا يمكن حفظ حقل إلزامي فارغًا.';
+
+  @override
+  String get fieldHelpTextFieldLabel => 'نص مساعد';
+
+  @override
+  String get fieldHelpTextFieldHint => 'إرشاد اختياري يظهر أسفل الحقل';
+
+  @override
+  String get fieldPlaceholderFieldLabel => 'النص التوضيحي';
+
+  @override
+  String get fieldPlaceholderFieldHint => 'نص مثال اختياري يظهر داخل الحقل';
+
+  @override
+  String get fieldAddedSnackbar => 'تمت إضافة الحقل';
+
+  @override
+  String get fieldUpdatedSnackbar => 'تم تحديث الحقل';
+
+  @override
+  String get fieldTypeText => 'نص';
+
+  @override
+  String get fieldTypeLongText => 'نص طويل';
+
+  @override
+  String get fieldTypeNumber => 'رقم صحيح';
+
+  @override
+  String get fieldTypeDecimal => 'رقم عشري';
+
+  @override
+  String get fieldTypeDate => 'تاريخ';
+
+  @override
+  String get fieldTypeDatetime => 'تاريخ ووقت';
+
+  @override
+  String get fieldTypeBoolean => 'نعم / لا';
+
+  @override
+  String get fieldTypeSelect => 'اختيار واحد';
+
+  @override
+  String get fieldTypeMultiSelect => 'اختيار متعدد';
+
+  @override
+  String get fieldTypePhone => 'هاتف';
+
+  @override
+  String get fieldTypeEmail => 'بريد إلكتروني';
+
+  @override
+  String get tabSavedReplies => 'الردود المحفوظة';
+
+  @override
+  String get savedRepliesPermissionDenied =>
+      'ليست لديك صلاحية عرض الردود المحفوظة.';
+
+  @override
+  String get savedRepliesTabDescription =>
+      'نص قابل لإعادة الاستخدام تُدرجه في مربع الرد وتعدّله قبل الإرسال. هذه ليست قوالب واتساب ولا تحتاج إلى موافقة ميتا.';
+
+  @override
+  String get newSavedReplyAction => 'رد محفوظ جديد';
+
+  @override
+  String get noSavedRepliesTitle => 'لا توجد ردود محفوظة بعد.';
+
+  @override
+  String get noSavedRepliesMessage =>
+      'أضف ردًا محفوظًا لإعادة استخدامه من مربع الرد.';
+
+  @override
+  String get savedReplyDisabledBadge => 'معطَّل';
+
+  @override
+  String savedReplyShortcutLabel(String shortcut) {
+    return 'الاختصار: /$shortcut';
+  }
+
+  @override
+  String savedReplyCategoryLabel(String category) {
+    return 'الفئة: $category';
+  }
+
+  @override
+  String get addSavedReplyTitle => 'رد محفوظ جديد';
+
+  @override
+  String get editSavedReplyTitle => 'تعديل الرد المحفوظ';
+
+  @override
+  String get savedReplyTitleFieldLabel => 'العنوان';
+
+  @override
+  String get savedReplyTitleRequiredError => 'أدخل عنوانًا.';
+
+  @override
+  String get savedReplyShortcutFieldLabel => 'الاختصار';
+
+  @override
+  String get savedReplyShortcutFieldHint => '/شكرا';
+
+  @override
+  String get savedReplyShortcutHelperText =>
+      'اختياري. اكتب / متبوعة بالاختصار في مربع الرد لإدراجه.';
+
+  @override
+  String get savedReplyCategoryFieldLabel => 'الفئة';
+
+  @override
+  String get savedReplyScopeFieldLabel => 'من يمكنه استخدامه';
+
+  @override
+  String get savedReplyBodyFieldLabel => 'النص';
+
+  @override
+  String get savedReplyBodyRequiredError => 'أدخل نص الرد.';
+
+  @override
+  String savedReplyBodyHelperText(String customerToken, String agentToken) {
+    return 'استخدم $customerToken أو $agentToken لملء الأسماء تلقائيًا عند إدراج الرد.';
+  }
+
+  @override
+  String get savedReplyAddedSnackbar => 'تمت إضافة الرد المحفوظ';
+
+  @override
+  String get savedReplyUpdatedSnackbar => 'تم تحديث الرد المحفوظ';
+
+  @override
+  String get deleteSavedReplyAction => 'حذف';
+
+  @override
+  String get deleteSavedReplyConfirmTitle => 'حذف الرد المحفوظ؟';
+
+  @override
+  String deleteSavedReplyConfirmBody(String title) {
+    return 'لن يعود \"$title\" متاحًا للإدراج. لا يمكن التراجع عن هذا من هنا.';
+  }
+
+  @override
+  String get savedReplyDeletedSnackbar => 'تم حذف الرد المحفوظ';
+
+  @override
+  String get exportCsvAction => 'تصدير CSV';
+
+  @override
+  String get exportRateLimitedMessage =>
+      'عمليات تصدير كثيرة خلال الدقيقة الماضية. يرجى الانتظار والمحاولة مرة أخرى.';
+
+  @override
+  String get exportFailedMessage =>
+      'تعذّر إكمال التصدير. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get csvExportSuccessMessage => 'تم تصدير ملف CSV بنجاح';
+
+  @override
+  String get openFileAction => 'فتح';
+
+  @override
+  String get downloadAttachmentAction => 'تنزيل';
+
+  @override
+  String get downloadingAttachmentMessage => 'جارٍ التنزيل…';
+
+  @override
+  String attachmentDownloadSuccess(String path) {
+    return 'تم الحفظ في $path';
+  }
+
+  @override
+  String get attachmentDownloadError =>
+      'تعذّر تنزيل المرفق. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get noAppToOpenFileError => 'لم يتم العثور على تطبيق لفتح هذا الملف.';
+
+  @override
+  String get shareCsvAction => 'مشاركة CSV';
+
+  @override
+  String get tabMoreSettings => 'المزيد';
+
+  @override
+  String get exportDataSectionTitle => 'تصدير البيانات';
+
+  @override
+  String get exportDataSectionDescription => 'تصدير بيانات تطبيقك كملفات CSV.';
+
+  @override
+  String get exportConversationsCsvAction => 'تصدير المحادثات كـ CSV';
+
+  @override
+  String get exportCustomersCsvAction => 'تصدير العملاء كـ CSV';
+
+  @override
+  String get exportConversationsSubtitle => 'تصدير جميع المحادثات كملف CSV.';
+
+  @override
+  String get exportCustomersSubtitle => 'تصدير جميع العملاء كملف CSV.';
+
+  @override
+  String get exportActionLabel => 'تصدير';
 }

@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @tabAssignment.
   ///
   /// In en, this message translates to:
-  /// **'Assignment'**
+  /// **'Routing'**
   String get tabAssignment;
 
   /// No description provided for @signOutDialogTitle.
@@ -211,6 +211,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PREFERENCES'**
   String get preferencesSectionTitle;
+
+  /// No description provided for @securitySectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SECURITY'**
+  String get securitySectionTitle;
 
   /// No description provided for @themeLabel.
   ///
@@ -299,7 +305,7 @@ abstract class AppLocalizations {
   /// No description provided for @noChannelsMessage.
   ///
   /// In en, this message translates to:
-  /// **'Connect Instagram, Messenger or WhatsApp from the web app to start receiving conversations.'**
+  /// **'No channels recorded for this customer yet.'**
   String get noChannelsMessage;
 
   /// No description provided for @channelStatusConnected.
@@ -739,6 +745,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please try again.'**
   String get genericErrorFallbackMessage;
+
+  /// Sign-in failed with backend code invalid_credentials. Covers wrong password, unknown address and deactivated account alike — the backend deliberately does not say which.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email or password. Please check your credentials and try again.'**
+  String get loginInvalidCredentialsError;
 
   /// No description provided for @retryButton.
   ///
@@ -1532,6 +1544,12 @@ abstract class AppLocalizations {
   /// **'Attach'**
   String get attachmentTooltip;
 
+  /// No description provided for @attachDocumentAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Document'**
+  String get attachDocumentAction;
+
   /// No description provided for @attachFromGalleryAction.
   ///
   /// In en, this message translates to:
@@ -1556,11 +1574,65 @@ abstract class AppLocalizations {
   /// **'Uploading…'**
   String get attachmentUploadingLabel;
 
+  /// No description provided for @uploadingAttachmentsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading {current} of {total}…'**
+  String uploadingAttachmentsProgress(int current, int total);
+
+  /// No description provided for @attachmentLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You can attach up to 10 files per message.'**
+  String get attachmentLimitReached;
+
+  /// No description provided for @attachmentPartialUploadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Some files couldn\'t be uploaded. Please try again.'**
+  String get attachmentPartialUploadError;
+
   /// No description provided for @attachmentUploadFailedError.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t upload that file. Please try again.'**
   String get attachmentUploadFailedError;
+
+  /// No description provided for @attachmentTooLargeError.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is too large to send.'**
+  String get attachmentTooLargeError;
+
+  /// No description provided for @cancelUploadTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel upload'**
+  String get cancelUploadTooltip;
+
+  /// No description provided for @retryUploadTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry upload'**
+  String get retryUploadTooltip;
+
+  /// No description provided for @attachmentUploadFailedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failed'**
+  String get attachmentUploadFailedLabel;
+
+  /// No description provided for @attachmentUploadedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploaded'**
+  String get attachmentUploadedLabel;
+
+  /// Share of an attachment already uploaded, on its composer card.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String attachmentUploadPercent(int percent);
 
   /// No description provided for @attachmentPermissionDeniedError.
   ///
@@ -1694,6 +1766,90 @@ abstract class AppLocalizations {
   /// **'Message deleted'**
   String get deleteMessageDeletedSnackbar;
 
+  /// No description provided for @replyMessageAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get replyMessageAction;
+
+  /// No description provided for @copyMessageAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copyMessageAction;
+
+  /// No description provided for @messageCopiedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get messageCopiedSnackbar;
+
+  /// No description provided for @replyingToLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Replying to {name}'**
+  String replyingToLabel(String name);
+
+  /// No description provided for @cancelReplyTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel reply'**
+  String get cancelReplyTooltip;
+
+  /// No description provided for @quotedMessageDeletedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'This message was deleted'**
+  String get quotedMessageDeletedLabel;
+
+  /// No description provided for @quotedMessageUnavailableLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Original message unavailable'**
+  String get quotedMessageUnavailableLabel;
+
+  /// No description provided for @photoMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get photoMessageLabel;
+
+  /// No description provided for @photosMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get photosMessageLabel;
+
+  /// No description provided for @videoMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get videoMessageLabel;
+
+  /// No description provided for @documentMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Document'**
+  String get documentMessageLabel;
+
+  /// No description provided for @attachmentMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment'**
+  String get attachmentMessageLabel;
+
+  /// No description provided for @attachmentsMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments'**
+  String get attachmentsMessageLabel;
+
+  /// No description provided for @sentFromPlatformLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent from {provider}'**
+  String sentFromPlatformLabel(String provider);
+
   /// No description provided for @customerTitle.
   ///
   /// In en, this message translates to:
@@ -1748,6 +1904,30 @@ abstract class AppLocalizations {
   /// **'Last message'**
   String get lastMessageFieldLabel;
 
+  /// No description provided for @claimedByFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Claimed by'**
+  String get claimedByFieldLabel;
+
+  /// No description provided for @firstResponseFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'First response'**
+  String get firstResponseFieldLabel;
+
+  /// No description provided for @resolvedFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved at'**
+  String get resolvedFieldLabel;
+
+  /// No description provided for @lastAgentMessageFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last agent message'**
+  String get lastAgentMessageFieldLabel;
+
   /// No description provided for @customerSectionTitle.
   ///
   /// In en, this message translates to:
@@ -1799,7 +1979,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashboardGreeting.
   ///
   /// In en, this message translates to:
-  /// **'Good to see you, {name}'**
+  /// **'Hi {name}'**
   String dashboardGreeting(String name);
 
   /// No description provided for @conversationsSectionTitle.
@@ -2030,6 +2210,96 @@ abstract class AppLocalizations {
   /// **'Enable automatic assignment'**
   String get autoAssignmentToggleLabel;
 
+  /// No description provided for @channelResponsibilityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel responsibility'**
+  String get channelResponsibilityTitle;
+
+  /// No description provided for @channelResponsibilityDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose who is offered new conversations from each channel. A rule for one specific account takes precedence over a rule for all accounts, and an employee\'s own rules take precedence over their team\'s.'**
+  String get channelResponsibilityDescription;
+
+  /// No description provided for @channelResponsibilityAccessNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This decides who receives new conversations, not who can see them. Everyone keeps the access their role gives them.'**
+  String get channelResponsibilityAccessNote;
+
+  /// No description provided for @channelResponsibilityEditNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Team rules are set in each team\'s form on the Teams page. Which channels an employee handles is set in their form on the Employees page.'**
+  String get channelResponsibilityEditNote;
+
+  /// No description provided for @channelResponsibilityEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No responsibility rules yet.'**
+  String get channelResponsibilityEmpty;
+
+  /// No description provided for @channelResponsibilityAllAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'All {provider} accounts'**
+  String channelResponsibilityAllAccounts(String provider);
+
+  /// No description provided for @channelResponsibilityAccountRule.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider} account · {account}'**
+  String channelResponsibilityAccountRule(String provider, String account);
+
+  /// No description provided for @channelResponsibilityTeamPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Team {name}'**
+  String channelResponsibilityTeamPrefix(String name);
+
+  /// No description provided for @channelResponsibilityRetired.
+  ///
+  /// In en, this message translates to:
+  /// **'Retired'**
+  String get channelResponsibilityRetired;
+
+  /// No description provided for @channelResponsibilityEditInTeams.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit in Teams'**
+  String get channelResponsibilityEditInTeams;
+
+  /// No description provided for @channelResponsibilityFallbackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'When nobody responsible is available'**
+  String get channelResponsibilityFallbackTitle;
+
+  /// No description provided for @channelResponsibilityFallbackDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The conversation goes to the rest of the organization, so no customer is left without an owner.'**
+  String get channelResponsibilityFallbackDescription;
+
+  /// No description provided for @channelResponsibilityOfferToEveryone.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer to everyone else'**
+  String get channelResponsibilityOfferToEveryone;
+
+  /// No description provided for @channelResponsibilityLeaveUnassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave unassigned'**
+  String get channelResponsibilityLeaveUnassigned;
+
+  /// No description provided for @channelResponsibilityFallbackSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Fallback behavior updated'**
+  String get channelResponsibilityFallbackSaved;
+
   /// No description provided for @defaultChatCapacityTitle.
   ///
   /// In en, this message translates to:
@@ -2087,19 +2357,19 @@ abstract class AppLocalizations {
   /// No description provided for @assignmentPolicyUpdatedSnackbar.
   ///
   /// In en, this message translates to:
-  /// **'Assignment settings updated'**
+  /// **'Routing settings updated'**
   String get assignmentPolicyUpdatedSnackbar;
 
   /// No description provided for @routingPolicyLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load assignment settings.'**
+  /// **'Couldn\'t load routing settings.'**
   String get routingPolicyLoadFailed;
 
   /// No description provided for @routingPermissionDenied.
   ///
   /// In en, this message translates to:
-  /// **'You don\'t have permission to manage assignment settings.'**
+  /// **'You don\'t have permission to manage routing settings.'**
   String get routingPermissionDenied;
 
   /// No description provided for @openUnreadSummary.
@@ -2234,6 +2504,12 @@ abstract class AppLocalizations {
   /// **'Location'**
   String get locationFieldLabel;
 
+  /// No description provided for @firstSeenFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'First seen'**
+  String get firstSeenFieldLabel;
+
   /// No description provided for @lastSeenFieldLabel.
   ///
   /// In en, this message translates to:
@@ -2245,6 +2521,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirmed purchases'**
   String get confirmedPurchasesFieldLabel;
+
+  /// No description provided for @confirmedPurchasesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified by an employee, not by a payment system.'**
+  String get confirmedPurchasesSubtitle;
 
   /// No description provided for @customerNotesFieldLabel.
   ///
@@ -2269,6 +2551,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No conversations you can see.'**
   String get noVisibleConversations;
+
+  /// No description provided for @channelsCapsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANNELS'**
+  String get channelsCapsSectionTitle;
+
+  /// No description provided for @knownFactsCapsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'KNOWN FACTS'**
+  String get knownFactsCapsSectionTitle;
+
+  /// No description provided for @knownFactsSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Extracted from conversations. Confidence shown per fact.'**
+  String get knownFactsSectionSubtitle;
+
+  /// No description provided for @noKnownFactsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing known yet.'**
+  String get noKnownFactsMessage;
+
+  /// No description provided for @ordersCapsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'ORDERS'**
+  String get ordersCapsSectionTitle;
+
+  /// No description provided for @noOrdersForCustomerMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No orders recorded for this customer yet.'**
+  String get noOrdersForCustomerMessage;
 
   /// No description provided for @searchCustomersHint.
   ///
@@ -2305,6 +2623,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Online now'**
   String get onlineNowFilter;
+
+  /// No description provided for @employeeFilterAllRoles.
+  ///
+  /// In en, this message translates to:
+  /// **'All roles'**
+  String get employeeFilterAllRoles;
+
+  /// No description provided for @employeeFilterAllTeams.
+  ///
+  /// In en, this message translates to:
+  /// **'All teams'**
+  String get employeeFilterAllTeams;
+
+  /// No description provided for @employeeFilterAllStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get employeeFilterAllStatus;
+
+  /// No description provided for @employeeFilterActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get employeeFilterActive;
+
+  /// No description provided for @employeeFilterInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get employeeFilterInactive;
+
+  /// No description provided for @employeeFilterReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset filters'**
+  String get employeeFilterReset;
 
   /// No description provided for @totalCountSuffix.
   ///
@@ -2407,6 +2761,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No orders recorded from this conversation.'**
   String get noOrdersRecordedMessage;
+
+  /// No description provided for @contactSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get contactSectionTitle;
+
+  /// No description provided for @contactEditButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get contactEditButton;
+
+  /// No description provided for @customerDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer data'**
+  String get customerDataTitle;
+
+  /// No description provided for @customerDataDetailButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Detail'**
+  String get customerDataDetailButton;
+
+  /// No description provided for @customerDataEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No customer details recorded yet.'**
+  String get customerDataEmpty;
+
+  /// No description provided for @customerDataMoreCount.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String customerDataMoreCount(int count);
 
   /// No description provided for @employeeSourceBadge.
   ///
@@ -2582,6 +2972,12 @@ abstract class AppLocalizations {
   /// **'an employee'**
   String get confirmedByUnknownEmployee;
 
+  /// No description provided for @orderedAtLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ordered {date}'**
+  String orderedAtLabel(String date);
+
   /// No description provided for @recordedByMessage.
   ///
   /// In en, this message translates to:
@@ -2707,6 +3103,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear'**
   String get customFieldClear;
+
+  /// No description provided for @customerFieldFilterButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by field'**
+  String get customerFieldFilterButton;
+
+  /// No description provided for @customerFieldFilterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by field'**
+  String get customerFieldFilterTitle;
+
+  /// No description provided for @customerFieldFilterNoFields.
+  ///
+  /// In en, this message translates to:
+  /// **'No custom fields are set up for this organization.'**
+  String get customerFieldFilterNoFields;
+
+  /// No description provided for @customerFieldFilterFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Field'**
+  String get customerFieldFilterFieldLabel;
+
+  /// No description provided for @customerFieldFilterValueLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get customerFieldFilterValueLabel;
+
+  /// No description provided for @customerFieldFilterFromLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get customerFieldFilterFromLabel;
+
+  /// No description provided for @customerFieldFilterToLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get customerFieldFilterToLabel;
+
+  /// No description provided for @customerFieldFilterReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get customerFieldFilterReset;
+
+  /// No description provided for @customerFieldFilterSelectFieldError.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a field first.'**
+  String get customerFieldFilterSelectFieldError;
+
+  /// No description provided for @customerFieldFilterEnterValueError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value to filter by.'**
+  String get customerFieldFilterEnterValueError;
+
+  /// No description provided for @customerFieldFilterSelectValueError.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a value to filter by.'**
+  String get customerFieldFilterSelectValueError;
+
+  /// No description provided for @customerFieldFilterInvalidRange.
+  ///
+  /// In en, this message translates to:
+  /// **'\"From\" must be before \"To\".'**
+  String get customerFieldFilterInvalidRange;
+
+  /// No description provided for @customerFieldFilterNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No customers match this field filter.'**
+  String get customerFieldFilterNoResults;
 
   /// No description provided for @orderDeliverySectionTitle.
   ///
@@ -3284,6 +3758,48 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load employees.'**
   String get employeesLoadFailedMessage;
 
+  /// Heading for the team form's channel-responsibilities section
+  ///
+  /// In en, this message translates to:
+  /// **'Channel responsibilities'**
+  String get teamResponsibilitiesTitle;
+
+  /// Explanation text below the team responsibilities section
+  ///
+  /// In en, this message translates to:
+  /// **'Which channels this team is offered new conversations from. This decides who is offered work first — it never changes who can see a conversation.'**
+  String get teamResponsibilitiesDescription;
+
+  /// No description provided for @teamResponsibilityNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get teamResponsibilityNone;
+
+  /// No description provided for @teamResponsibilityAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All accounts'**
+  String get teamResponsibilityAll;
+
+  /// No description provided for @teamResponsibilitySelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected accounts'**
+  String get teamResponsibilitySelected;
+
+  /// No description provided for @teamResponsibilitiesLoadFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load current responsibilities.'**
+  String get teamResponsibilitiesLoadFailedMessage;
+
+  /// No description provided for @teamResponsibilityNoChannelsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No connected accounts for this channel yet.'**
+  String get teamResponsibilityNoChannelsMessage;
+
   /// No description provided for @deactivateTeamConfirmTitle.
   ///
   /// In en, this message translates to:
@@ -3769,6 +4285,84 @@ abstract class AppLocalizations {
   /// **'Unsupported components: {components}'**
   String templateUnsupportedNotice(String components);
 
+  /// Button on each template row that opens the send sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get sendTemplateAction;
+
+  /// Title of the send-template sheet, naming the template
+  ///
+  /// In en, this message translates to:
+  /// **'Send \"{name}\"'**
+  String sendTemplateSheetTitle(String name);
+
+  /// Subtitle naming the sending WhatsApp Business account
+  ///
+  /// In en, this message translates to:
+  /// **'From {account}. This opens a conversation if there isn\'t one already.'**
+  String sendTemplateSheetSubtitle(String account);
+
+  /// Section label above the recipient type selector
+  ///
+  /// In en, this message translates to:
+  /// **'Recipient'**
+  String get sendTemplateRecipientLabel;
+
+  /// Recipient option: pick a customer already in the system
+  ///
+  /// In en, this message translates to:
+  /// **'Existing customer'**
+  String get sendTemplateExistingCustomer;
+
+  /// Recipient option: type a phone number by hand
+  ///
+  /// In en, this message translates to:
+  /// **'New phone number'**
+  String get sendTemplateNewPhone;
+
+  /// Placeholder in the customer search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name, phone or email...'**
+  String get sendTemplateCustomerSearchHint;
+
+  /// Empty state when the customer search returns nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No customers match that search.'**
+  String get sendTemplateNoCustomersFound;
+
+  /// Shown under a customer who has no phone number stored
+  ///
+  /// In en, this message translates to:
+  /// **'No phone number on file'**
+  String get sendTemplateNoPhoneOnFile;
+
+  /// Label for the manual phone number field
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get sendTemplatePhoneLabel;
+
+  /// Helper text explaining the backend phone rules
+  ///
+  /// In en, this message translates to:
+  /// **'Include the country code. A number starting with 0 is refused rather than guessed at — the customer is created automatically if they are new.'**
+  String get sendTemplatePhoneHelper;
+
+  /// Label above the template body preview
+  ///
+  /// In en, this message translates to:
+  /// **'PREVIEW'**
+  String get sendTemplatePreviewLabel;
+
+  /// Success message after an outbound template send
+  ///
+  /// In en, this message translates to:
+  /// **'Template sent to {name}'**
+  String sendTemplateSentSnackbar(String name);
+
   /// No description provided for @loadingTemplates.
   ///
   /// In en, this message translates to:
@@ -4099,6 +4693,36 @@ abstract class AppLocalizations {
   /// **'Capacity must be between 0 and 200.'**
   String get chatCapacityInvalidRangeError;
 
+  /// Heading for the employee form's channel-scope section
+  ///
+  /// In en, this message translates to:
+  /// **'Channel scope'**
+  String get routingChannelScopeTitle;
+
+  /// Explanation text below the channel scope section
+  ///
+  /// In en, this message translates to:
+  /// **'A hard limit on which channels this person can be assigned or routed conversations from. Narrowing this never removes conversations they already own.'**
+  String get routingChannelScopeDescription;
+
+  /// No description provided for @routingChannelScopeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All channels'**
+  String get routingChannelScopeAll;
+
+  /// No description provided for @routingChannelScopeSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected channels'**
+  String get routingChannelScopeSelected;
+
+  /// Error when SELECTED scope is chosen but no provider is picked
+  ///
+  /// In en, this message translates to:
+  /// **'Choose at least one channel.'**
+  String get routingChannelScopeRequiredError;
+
   /// Heading for the working hours section
   ///
   /// In en, this message translates to:
@@ -4414,7 +5038,7 @@ abstract class AppLocalizations {
   /// No description provided for @savedRepliesEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No saved replies yet. Create them on the web in Settings.'**
+  /// **'No saved replies yet.'**
   String get savedRepliesEmpty;
 
   /// No description provided for @savedRepliesNoMatch.
@@ -4668,6 +5292,569 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restart'**
   String get updateRestartAction;
+  /// No description provided for @historyFallbackAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned to {name} (fallback)'**
+  String historyFallbackAssigned(String name);
+
+  /// No description provided for @historyFallbackReasonsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason: {reasons}'**
+  String historyFallbackReasonsLabel(String reasons);
+
+  /// No description provided for @historyRerouted.
+  ///
+  /// In en, this message translates to:
+  /// **'Rerouted from {previousName} to {name}'**
+  String historyRerouted(String previousName, String name);
+
+  /// No description provided for @historyReleasedFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Released from {previousName} back to the queue'**
+  String historyReleasedFrom(String previousName);
+
+  /// No description provided for @tabCustomerFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer fields'**
+  String get tabCustomerFields;
+
+  /// No description provided for @customerFieldsPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to view customer fields.'**
+  String get customerFieldsPermissionDenied;
+
+  /// No description provided for @customerFieldsTabTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer fields'**
+  String get customerFieldsTabTitle;
+
+  /// No description provided for @customerFieldsTabDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'These fields are stored on every customer record and can be filled in from a customer\'s profile. Only authorized admins can add, edit, reorder or disable them.'**
+  String get customerFieldsTabDescription;
+
+  /// No description provided for @addFieldAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add field'**
+  String get addFieldAction;
+
+  /// No description provided for @noCustomerFieldsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No custom fields yet'**
+  String get noCustomerFieldsTitle;
+
+  /// No description provided for @noCustomerFieldsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a field to start collecting it on customer profiles.'**
+  String get noCustomerFieldsMessage;
+
+  /// No description provided for @customerFieldKeyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Key: {key}'**
+  String customerFieldKeyLabel(String key);
+
+  /// No description provided for @customerFieldDisabledBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get customerFieldDisabledBadge;
+
+  /// No description provided for @moveFieldUpAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get moveFieldUpAction;
+
+  /// No description provided for @moveFieldDownAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get moveFieldDownAction;
+
+  /// No description provided for @enableFieldAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get enableFieldAction;
+
+  /// No description provided for @disableFieldAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable'**
+  String get disableFieldAction;
+
+  /// No description provided for @customerFieldEnabledSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Field enabled'**
+  String get customerFieldEnabledSnackbar;
+
+  /// No description provided for @customerFieldDisabledSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Field disabled'**
+  String get customerFieldDisabledSnackbar;
+
+  /// No description provided for @customerFieldReorderedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Field order updated'**
+  String get customerFieldReorderedSnackbar;
+
+  /// No description provided for @addFieldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add field'**
+  String get addFieldTitle;
+
+  /// No description provided for @editFieldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit field'**
+  String get editFieldTitle;
+
+  /// No description provided for @fieldLabelFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Label'**
+  String get fieldLabelFieldLabel;
+
+  /// No description provided for @fieldLabelRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a label.'**
+  String get fieldLabelRequiredError;
+
+  /// No description provided for @fieldKeyFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get fieldKeyFieldLabel;
+
+  /// No description provided for @fieldKeyHelperTextGenerated.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated automatically from the label.'**
+  String get fieldKeyHelperTextGenerated;
+
+  /// No description provided for @fieldKeyHelperTextFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'The key cannot be changed after the field is created.'**
+  String get fieldKeyHelperTextFixed;
+
+  /// No description provided for @fieldKeyInvalidError.
+  ///
+  /// In en, this message translates to:
+  /// **'Use only English letters, numbers and underscores.'**
+  String get fieldKeyInvalidError;
+
+  /// No description provided for @fieldTypeFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get fieldTypeFieldLabel;
+
+  /// No description provided for @fieldRequiredToggleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get fieldRequiredToggleLabel;
+
+  /// No description provided for @fieldRequiredToggleHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'A required field cannot be saved empty.'**
+  String get fieldRequiredToggleHelper;
+
+  /// No description provided for @fieldHelpTextFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Help text'**
+  String get fieldHelpTextFieldLabel;
+
+  /// No description provided for @fieldHelpTextFieldHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional guidance shown under the field'**
+  String get fieldHelpTextFieldHint;
+
+  /// No description provided for @fieldPlaceholderFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Placeholder'**
+  String get fieldPlaceholderFieldLabel;
+
+  /// No description provided for @fieldPlaceholderFieldHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional example text shown inside the field'**
+  String get fieldPlaceholderFieldHint;
+
+  /// No description provided for @fieldAddedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Field added'**
+  String get fieldAddedSnackbar;
+
+  /// No description provided for @fieldUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Field updated'**
+  String get fieldUpdatedSnackbar;
+
+  /// No description provided for @fieldTypeText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get fieldTypeText;
+
+  /// No description provided for @fieldTypeLongText.
+  ///
+  /// In en, this message translates to:
+  /// **'Long text'**
+  String get fieldTypeLongText;
+
+  /// No description provided for @fieldTypeNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole number'**
+  String get fieldTypeNumber;
+
+  /// No description provided for @fieldTypeDecimal.
+  ///
+  /// In en, this message translates to:
+  /// **'Decimal number'**
+  String get fieldTypeDecimal;
+
+  /// No description provided for @fieldTypeDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get fieldTypeDate;
+
+  /// No description provided for @fieldTypeDatetime.
+  ///
+  /// In en, this message translates to:
+  /// **'Date & time'**
+  String get fieldTypeDatetime;
+
+  /// No description provided for @fieldTypeBoolean.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes / No'**
+  String get fieldTypeBoolean;
+
+  /// No description provided for @fieldTypeSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Single choice'**
+  String get fieldTypeSelect;
+
+  /// No description provided for @fieldTypeMultiSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple choice'**
+  String get fieldTypeMultiSelect;
+
+  /// No description provided for @fieldTypePhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get fieldTypePhone;
+
+  /// No description provided for @fieldTypeEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get fieldTypeEmail;
+
+  /// No description provided for @tabSavedReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved replies'**
+  String get tabSavedReplies;
+
+  /// No description provided for @savedRepliesPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to view saved replies.'**
+  String get savedRepliesPermissionDenied;
+
+  /// No description provided for @savedRepliesTabDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Reusable text you insert into the reply box and edit before sending. These are not WhatsApp templates and do not need Meta approval.'**
+  String get savedRepliesTabDescription;
+
+  /// No description provided for @newSavedReplyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'New saved reply'**
+  String get newSavedReplyAction;
+
+  /// No description provided for @noSavedRepliesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved replies yet.'**
+  String get noSavedRepliesTitle;
+
+  /// No description provided for @noSavedRepliesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a saved reply to reuse it from the composer.'**
+  String get noSavedRepliesMessage;
+
+  /// No description provided for @savedReplyDisabledBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get savedReplyDisabledBadge;
+
+  /// No description provided for @savedReplyShortcutLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortcut: /{shortcut}'**
+  String savedReplyShortcutLabel(String shortcut);
+
+  /// No description provided for @savedReplyCategoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category: {category}'**
+  String savedReplyCategoryLabel(String category);
+
+  /// No description provided for @addSavedReplyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New saved reply'**
+  String get addSavedReplyTitle;
+
+  /// No description provided for @editSavedReplyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit saved reply'**
+  String get editSavedReplyTitle;
+
+  /// No description provided for @savedReplyTitleFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get savedReplyTitleFieldLabel;
+
+  /// No description provided for @savedReplyTitleRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a title.'**
+  String get savedReplyTitleRequiredError;
+
+  /// No description provided for @savedReplyShortcutFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortcut'**
+  String get savedReplyShortcutFieldLabel;
+
+  /// No description provided for @savedReplyShortcutFieldHint.
+  ///
+  /// In en, this message translates to:
+  /// **'/thanks'**
+  String get savedReplyShortcutFieldHint;
+
+  /// No description provided for @savedReplyShortcutHelperText.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Type / followed by the shortcut in the reply box to insert it.'**
+  String get savedReplyShortcutHelperText;
+
+  /// No description provided for @savedReplyCategoryFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get savedReplyCategoryFieldLabel;
+
+  /// No description provided for @savedReplyScopeFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Who can use it'**
+  String get savedReplyScopeFieldLabel;
+
+  /// No description provided for @savedReplyBodyFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get savedReplyBodyFieldLabel;
+
+  /// No description provided for @savedReplyBodyRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the reply text.'**
+  String get savedReplyBodyRequiredError;
+
+  /// No description provided for @savedReplyBodyHelperText.
+  ///
+  /// In en, this message translates to:
+  /// **'Use {customerToken} or {agentToken} to fill in names when the reply is inserted.'**
+  String savedReplyBodyHelperText(String customerToken, String agentToken);
+
+  /// No description provided for @savedReplyAddedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved reply added'**
+  String get savedReplyAddedSnackbar;
+
+  /// No description provided for @savedReplyUpdatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved reply updated'**
+  String get savedReplyUpdatedSnackbar;
+
+  /// No description provided for @deleteSavedReplyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteSavedReplyAction;
+
+  /// No description provided for @deleteSavedReplyConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete saved reply?'**
+  String get deleteSavedReplyConfirmTitle;
+
+  /// No description provided for @deleteSavedReplyConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" will no longer be available to insert. This cannot be undone from here.'**
+  String deleteSavedReplyConfirmBody(String title);
+
+  /// No description provided for @savedReplyDeletedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved reply deleted'**
+  String get savedReplyDeletedSnackbar;
+
+  /// No description provided for @exportCsvAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Export CSV'**
+  String get exportCsvAction;
+
+  /// No description provided for @exportRateLimitedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many exports in the last minute. Please wait and try again.'**
+  String get exportRateLimitedMessage;
+
+  /// No description provided for @exportFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The export could not be completed. Please try again.'**
+  String get exportFailedMessage;
+
+  /// No description provided for @csvExportSuccessMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV exported successfully'**
+  String get csvExportSuccessMessage;
+
+  /// No description provided for @openFileAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get openFileAction;
+
+  /// No description provided for @downloadAttachmentAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get downloadAttachmentAction;
+
+  /// No description provided for @downloadingAttachmentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get downloadingAttachmentMessage;
+
+  /// No description provided for @attachmentDownloadSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {path}'**
+  String attachmentDownloadSuccess(String path);
+
+  /// No description provided for @attachmentDownloadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t download attachment. Please try again.'**
+  String get attachmentDownloadError;
+
+  /// No description provided for @noAppToOpenFileError.
+  ///
+  /// In en, this message translates to:
+  /// **'No application found to open this file.'**
+  String get noAppToOpenFileError;
+
+  /// No description provided for @shareCsvAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Share CSV'**
+  String get shareCsvAction;
+
+  /// No description provided for @tabMoreSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get tabMoreSettings;
+
+  /// No description provided for @exportDataSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export data'**
+  String get exportDataSectionTitle;
+
+  /// No description provided for @exportDataSectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Export your application data as CSV files.'**
+  String get exportDataSectionDescription;
+
+  /// No description provided for @exportConversationsCsvAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Export conversations CSV'**
+  String get exportConversationsCsvAction;
+
+  /// No description provided for @exportCustomersCsvAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Export customers CSV'**
+  String get exportCustomersCsvAction;
+
+  /// No description provided for @exportConversationsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export all conversations as a CSV file.'**
+  String get exportConversationsSubtitle;
+
+  /// No description provided for @exportCustomersSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export all customers as a CSV file.'**
+  String get exportCustomersSubtitle;
+
+  /// No description provided for @exportActionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportActionLabel;
 }
 
 class _AppLocalizationsDelegate

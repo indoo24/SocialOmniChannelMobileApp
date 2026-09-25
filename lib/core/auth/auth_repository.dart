@@ -38,6 +38,9 @@ class AuthRepository {
       final data = await _api.post<Map<String, dynamic>>(
         '/auth/login/',
         body: {'email': email.trim(), 'password': password},
+        // A 401 here means wrong credentials, not an expired session: it
+        // must surface on the login form and never end another session.
+        authExpiryExempt: true,
       );
 
       final employee = Employee.fromJson(

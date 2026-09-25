@@ -1,5 +1,6 @@
 import '../utils/json_safe.dart';
 import 'conversation.dart';
+import 'message.dart';
 
 /// Represents a customer-level grouping of conversations in the Inbox.
 ///
@@ -76,15 +77,34 @@ class CustomerConversationGroup {
   /// Latest message activity timestamp across all conversations in this group.
   DateTime? get lastMessageAt => primaryConversation.lastMessageAt;
 
-  /// Latest message preview across all conversations in this group.
-  String get lastMessagePreview {
+  /// The conversation [lastMessagePreview] actually reads from — same
+  /// selection rule, kept as its own getter so [lastMessageDirection] and
+  /// [lastMessageDeliveryStatus] describe that exact same message rather
+  /// than defaulting back to [primaryConversation] independently.
+  Conversation get _previewSource {
     for (final c in conversations) {
-      if (c.lastMessagePreview.isNotEmpty) {
-        return c.lastMessagePreview;
+      if (c.lastMessagePreview.isNotEmpty ||
+          c.lastMessageAttachments.isNotEmpty) {
+        return c;
       }
     }
-    return primaryConversation.lastMessagePreview;
+    return primaryConversation;
   }
+
+  /// Latest message preview across all conversations in this group.
+  String get lastMessagePreview => _previewSource.lastMessagePreview;
+
+  /// Latest message attachments across all conversations in this group.
+  List<MessageAttachment> get lastMessageAttachments =>
+      _previewSource.lastMessageAttachments;
+
+  /// Direction of the message [lastMessagePreview] is showing, for the
+  /// group row's delivery tick.
+  String get lastMessageDirection => _previewSource.lastMessageDirection;
+
+  /// Delivery status of the message [lastMessagePreview] is showing.
+  String get lastMessageDeliveryStatus =>
+      _previewSource.lastMessageDeliveryStatus;
 
   /// Groups a flat list of conversations into [CustomerConversationGroup] items.
   ///

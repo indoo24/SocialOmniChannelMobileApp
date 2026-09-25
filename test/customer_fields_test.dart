@@ -83,7 +83,12 @@ const _tags = [
 ];
 
 List<Map<String, Object?>> _rows({bool nicknameRequired = false}) => [
-  {'definition': _definition(1, 'vip', 'BOOLEAN'), 'value': true, 'fact_id': 10, 'updated_by_name': ''},
+  {
+    'definition': _definition(1, 'vip', 'BOOLEAN'),
+    'value': true,
+    'fact_id': 10,
+    'updated_by_name': '',
+  },
   {
     'definition': _definition(2, 'customer_type', 'SELECT', options: _types),
     'value': 'wholesale',
@@ -97,12 +102,22 @@ List<Map<String, Object?>> _rows({bool nicknameRequired = false}) => [
     'updated_by_name': '',
   },
   {
-    'definition': _definition(4, 'nickname', 'TEXT', required: nicknameRequired),
+    'definition': _definition(
+      4,
+      'nickname',
+      'TEXT',
+      required: nicknameRequired,
+    ),
     'value': null,
     'fact_id': null,
     'updated_by_name': '',
   },
-  {'definition': _definition(5, 'birth_date', 'DATE'), 'value': null, 'fact_id': null, 'updated_by_name': ''},
+  {
+    'definition': _definition(5, 'birth_date', 'DATE'),
+    'value': null,
+    'fact_id': null,
+    'updated_by_name': '',
+  },
 ];
 
 class _Server {
@@ -123,7 +138,9 @@ class _Server {
         }
         return _json(rows);
       }
-      if (path == '/customers/42/conversations/') return _json({'count': 0, 'results': []});
+      if (path == '/customers/42/conversations/') {
+        return _json({'count': 0, 'results': []});
+      }
       if (path == '/customers/42/') {
         return _json({
           'id': 42,
@@ -134,12 +151,26 @@ class _Server {
           'identities': [],
           'facts': [
             {
-              'id': 1, 'key': 'adress', 'value': '10 st.', 'confidence': 1.0, 'source': 'EMPLOYEE',
-              'status': 'CONFIRMED', 'needs_review': false, 'definition': null, 'validation_error': null,
+              'id': 1,
+              'key': 'adress',
+              'value': '10 st.',
+              'confidence': 1.0,
+              'source': 'EMPLOYEE',
+              'status': 'CONFIRMED',
+              'needs_review': false,
+              'definition': null,
+              'validation_error': null,
             },
             {
-              'id': 2, 'key': 'vip', 'value': 'true', 'confidence': 1.0, 'source': 'EMPLOYEE',
-              'status': 'CONFIRMED', 'needs_review': false, 'definition': 1, 'validation_error': null,
+              'id': 2,
+              'key': 'vip',
+              'value': 'true',
+              'confidence': 1.0,
+              'source': 'EMPLOYEE',
+              'status': 'CONFIRMED',
+              'needs_review': false,
+              'definition': 1,
+              'validation_error': null,
             },
           ],
         });
@@ -150,7 +181,9 @@ class _Server {
   }
 }
 
-Employee _employee({Set<String> permissions = const {Perm.customerView, Perm.customerManage}}) => Employee(
+Employee _employee({
+  Set<String> permissions = const {Perm.customerView, Perm.customerManage},
+}) => Employee(
   id: 1,
   email: 'agent@acme.test',
   fullName: 'Agent Alex',
@@ -163,18 +196,19 @@ Employee _employee({Set<String> permissions = const {Perm.customerView, Perm.cus
   organization: const Organization(id: 1, name: 'Acme'),
 );
 
-Widget _harness(ApiClient client, Widget child, {Employee? employee}) => ProviderScope(
-  overrides: [
-    apiClientProvider.overrideWithValue(client),
-    currentEmployeeProvider.overrideWithValue(employee ?? _employee()),
-  ],
-  child: MaterialApp(
-    locale: const Locale('en'),
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: Scaffold(body: SingleChildScrollView(child: child)),
-  ),
-);
+Widget _harness(ApiClient client, Widget child, {Employee? employee}) =>
+    ProviderScope(
+      overrides: [
+        apiClientProvider.overrideWithValue(client),
+        currentEmployeeProvider.overrideWithValue(employee ?? _employee()),
+      ],
+      child: MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(body: SingleChildScrollView(child: child)),
+      ),
+    );
 
 void main() {
   group('metadata', () {
@@ -191,7 +225,12 @@ void main() {
 
     test('tolerates a field type this build does not know', () {
       final row = CustomerFieldRow.fromJson({
-        'definition': {'id': 9, 'key': 'future', 'label': 'Future', 'field_type': 'COLOR'},
+        'definition': {
+          'id': 9,
+          'key': 'future',
+          'label': 'Future',
+          'field_type': 'COLOR',
+        },
         'value': '#ff0000',
       });
       expect(row.definition.fieldType, 'COLOR');
@@ -200,23 +239,42 @@ void main() {
 
     test('marks typed facts and their validation error', () {
       final typed = CustomerFact.fromJson({
-        'id': 1, 'key': 'birth_date', 'value': '2 April', 'confidence': 0.6, 'source': 'ANALYZER',
-        'status': 'SUGGESTED', 'needs_review': true, 'definition': 5, 'validation_error': 'Enter a date as YYYY-MM-DD.',
+        'id': 1,
+        'key': 'birth_date',
+        'value': '2 April',
+        'confidence': 0.6,
+        'source': 'ANALYZER',
+        'status': 'SUGGESTED',
+        'needs_review': true,
+        'definition': 5,
+        'validation_error': 'Enter a date as YYYY-MM-DD.',
       });
       final legacy = CustomerFact.fromJson({
-        'id': 2, 'key': 'adress', 'value': '10 st.', 'confidence': 1, 'source': 'EMPLOYEE',
-        'status': 'CONFIRMED', 'needs_review': false,
+        'id': 2,
+        'key': 'adress',
+        'value': '10 st.',
+        'confidence': 1,
+        'source': 'EMPLOYEE',
+        'status': 'CONFIRMED',
+        'needs_review': false,
       });
 
-      expect((typed.isTypedField, typed.validationError), (true, 'Enter a date as YYYY-MM-DD.'));
+      expect(
+        (typed.isTypedField, typed.validationError),
+        (true, 'Enter a date as YYYY-MM-DD.'),
+      );
       expect((legacy.isTypedField, legacy.validationError), (false, null));
     });
   });
 
   group('the section', () {
-    testWidgets('is absent when the organization has no fields', (tester) async {
+    testWidgets('is absent when the organization has no fields', (
+      tester,
+    ) async {
       final server = _Server();
-      await tester.pumpWidget(_harness(server.client(), const CustomFieldsSection(customerId: 42)));
+      await tester.pumpWidget(
+        _harness(server.client(), const CustomFieldsSection(customerId: 42)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('custom-fields-section')), findsNothing);
@@ -224,7 +282,9 @@ void main() {
 
     testWidgets('shows each value as it reads', (tester) async {
       final server = _Server(rows: _rows());
-      await tester.pumpWidget(_harness(server.client(), const CustomFieldsSection(customerId: 42)));
+      await tester.pumpWidget(
+        _harness(server.client(), const CustomFieldsSection(customerId: 42)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Custom fields'), findsOneWidget);
@@ -252,7 +312,9 @@ void main() {
 
   group('editing', () {
     Future<void> openSheet(WidgetTester tester, _Server server) async {
-      await tester.pumpWidget(_harness(server.client(), const CustomFieldsSection(customerId: 42)));
+      await tester.pumpWidget(
+        _harness(server.client(), const CustomFieldsSection(customerId: 42)),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('custom-fields-edit')));
       await tester.pumpAndSettle();
@@ -266,7 +328,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('No').last);
       await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('custom-field-nickname')), 'Mo');
+      await tester.enterText(
+        find.byKey(const Key('custom-field-nickname')),
+        'Mo',
+      );
       await tester.tap(find.byKey(const Key('custom-field-tags-late_payer')));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const Key('custom-fields-save')));
@@ -282,7 +347,9 @@ void main() {
       expect((values['tags'] as List).toSet(), {'vip', 'late_payer'});
     });
 
-    testWidgets('shows the server refusal under the field it is about', (tester) async {
+    testWidgets('shows the server refusal under the field it is about', (
+      tester,
+    ) async {
       final server = _Server(
         rows: _rows(),
         patchResponse: (
@@ -291,7 +358,9 @@ void main() {
               'code': 'invalid',
               'message': 'The submitted data was invalid.',
               'details': {
-                'values': {'nickname': ['Use a single line.']},
+                'values': {
+                  'nickname': ['Use a single line.'],
+                },
               },
             },
           },
@@ -300,7 +369,10 @@ void main() {
       );
       await openSheet(tester, server);
 
-      await tester.enterText(find.byKey(const Key('custom-field-nickname')), 'Mo');
+      await tester.enterText(
+        find.byKey(const Key('custom-field-nickname')),
+        'Mo',
+      );
       await tester.ensureVisible(find.byKey(const Key('custom-fields-save')));
       await tester.tap(find.byKey(const Key('custom-fields-save')));
       await tester.pumpAndSettle();
@@ -309,7 +381,9 @@ void main() {
       expect(find.text('Edit custom fields'), findsOneWidget);
     });
 
-    testWidgets('refuses to clear a required field without a request', (tester) async {
+    testWidgets('refuses to clear a required field without a request', (
+      tester,
+    ) async {
       final server = _Server(rows: _rows(nicknameRequired: true));
       await openSheet(tester, server);
 
@@ -322,28 +396,31 @@ void main() {
     });
   });
 
-  testWidgets('the customer profile keeps free-form details and shows typed values once', (tester) async {
-    final server = _Server(rows: _rows());
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          apiClientProvider.overrideWithValue(server.client()),
-          currentEmployeeProvider.overrideWithValue(_employee()),
-        ],
-        child: MaterialApp(
-          locale: const Locale('en'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: const CustomerProfileScreen(customerId: 42),
+  testWidgets(
+    'the customer profile keeps free-form details and shows typed values once',
+    (tester) async {
+      final server = _Server(rows: _rows());
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            apiClientProvider.overrideWithValue(server.client()),
+            currentEmployeeProvider.overrideWithValue(_employee()),
+          ],
+          child: MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const CustomerProfileScreen(customerId: 42),
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('10 st.'), findsOneWidget);
-    expect(find.text('Custom fields'), findsOneWidget);
-    expect(find.text('Yes'), findsOneWidget);
-    // The typed fact's raw stored value is not repeated as a free-form detail.
-    expect(find.text('true'), findsNothing);
-  });
+      expect(find.text('10 st.'), findsOneWidget);
+      expect(find.text('Custom fields'), findsOneWidget);
+      expect(find.text('Yes'), findsOneWidget);
+      // The typed fact's raw stored value is not repeated as a free-form detail.
+      expect(find.text('true'), findsNothing);
+    },
+  );
 }

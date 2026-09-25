@@ -31,8 +31,10 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/conversations/inbox_controller.dart';
+import '../../features/dashboard/dashboard_cache.dart';
 import '../../features/dashboard/dashboard_date_filter_state.dart';
 import '../../features/directory/directory_providers.dart';
+import '../../features/directory/employee_filter_state.dart';
 import '../../features/messages/conversation_controller.dart';
 import '../logging/app_log.dart';
 import '../realtime/realtime_bridge.dart';
@@ -61,10 +63,19 @@ void clearSessionScopedState(Ref ref) {
   ref.invalidate(realtimeMessageCacheProvider);
   ref.invalidate(activeConversationProvider);
 
+  // Dashboard/Analytics session caches. These outlive `ref.invalidate` by
+  // design — the whole point is that a provider rebuild replays a stored
+  // answer instead of refetching — so invalidating the providers alone would
+  // hand the next agent the previous one's numbers, which is the disclosure
+  // this function exists to prevent. Clear the stores themselves first.
+  ref.read(dashboardCacheProvider).clear();
+  ref.read(analyticsCacheProvider).clear();
+
   // Directory, reporting and settings reads. Each holds customer or employee
   // records for the previous agent's visibility scope.
   ref.invalidate(dashboardProvider);
   ref.invalidate(dashboardDateFilterProvider);
+  ref.invalidate(dashboardPerformanceProvider);
   ref.invalidate(channelVolumeProvider);
   ref.invalidate(teamsProvider);
   ref.invalidate(channelsProvider);
@@ -81,6 +92,10 @@ void clearSessionScopedState(Ref ref) {
   // Typed search terms are themselves customer identifiers.
   ref.invalidate(employeeSearchProvider);
   ref.invalidate(customerSearchProvider);
+
+  // Team/role/status selections are scoped to the previous org's team list
+  // and would otherwise silently narrow the next agent's Employees screen.
+  ref.invalidate(employeeFiltersProvider);
 
   // Latency traces hold conversation and message ids.
   RealtimeLogger.reset();

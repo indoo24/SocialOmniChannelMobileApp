@@ -53,7 +53,9 @@ ApiClient _stubClient(
   return client;
 }
 
-Employee _createEmployee({Set<String> permissions = const {Perm.orderManage}}) {
+Employee _createEmployee({
+  Set<String> permissions = const {Perm.orderManage, Perm.customerManage},
+}) {
   return Employee(
     id: 1,
     email: 'supervisor@acme.test',
@@ -208,11 +210,14 @@ void main() {
         await tester.tap(find.text('open sheet'));
         await tester.pumpAndSettle();
 
-        // 1. Customer Details section header has "+ Add" button
-        expect(find.text('Customer details'), findsOneWidget);
-        expect(find.widgetWithText(TextButton, 'Add'), findsOneWidget);
+        // 1. Contact section (was "Customer details"), with Edit rather than
+        // "+ Add" — recording a detail moved to the Customer data sheet.
+        expect(find.text('Contact'), findsOneWidget);
+        expect(find.text('Customer details'), findsNothing);
+        expect(find.widgetWithText(TextButton, 'Edit'), findsOneWidget);
 
-        // 2. Recorded facts are displayed with Employee pill
+        // 2. Recorded facts preview under Customer data, with source pill.
+        expect(find.text('Customer data'), findsOneWidget);
         expect(find.textContaining('Num: 01126737783'), findsOneWidget);
         expect(find.textContaining('Adress: 10 st.'), findsOneWidget);
         expect(find.text('Employee'), findsAtLeastNWidgets(2));
@@ -260,7 +265,9 @@ void main() {
         await tester.tap(find.text('open sheet'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Customer details'), findsOneWidget);
+        expect(find.text('Contact'), findsOneWidget);
+        // No customer.manage -> no Edit; no order.manage -> no record actions.
+        expect(find.widgetWithText(TextButton, 'Edit'), findsNothing);
         expect(find.widgetWithText(TextButton, 'Add'), findsNothing);
 
         await tester.scrollUntilVisible(
@@ -274,7 +281,7 @@ void main() {
     );
 
     testWidgets(
-      'tapping Add button in bottom sheet opens customer detail dialog without collapsing section',
+      'opening Customer data and tapping + Detail opens the record dialog',
       (tester) async {
         final client = _clientFor();
 
@@ -294,21 +301,36 @@ void main() {
         await tester.tap(find.text('open sheet'));
         await tester.pumpAndSettle();
 
-        // Tap Add button
-        await tester.tap(find.widgetWithText(TextButton, 'Add'));
+        // Open the Customer data sheet from its section card.
+        await tester.tap(find.byIcon(Icons.chevron_right).first);
         await tester.pumpAndSettle();
 
-        // Dialog should be open
+        // "+ Detail" lives in the sheet header.
+        await tester.tap(find.widgetWithText(TextButton, 'Detail'));
+        await tester.pumpAndSettle();
+
+        // The existing record dialog opens, unchanged.
         expect(find.text('Record a customer detail'), findsOneWidget);
+        expect(
+          find.text(
+            'Something the customer shared — an address, a phone number, a '
+            'preference.',
+          ),
+          findsOneWidget,
+        );
         expect(find.widgetWithText(FilledButton, 'Save'), findsOneWidget);
 
-        // Cancel dialog
         await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
         await tester.pumpAndSettle();
 
-        // Dialog is dismissed, Customer Details content is still visible (card did NOT collapse)
+        // Dialog dismissed, the Customer data list still shows the facts.
+        // At least one: the sheet is open over the conversation sheet, whose
+        // preview card still holds its own copy of the same row.
         expect(find.text('Record a customer detail'), findsNothing);
-        expect(find.textContaining('Num: 01126737783'), findsOneWidget);
+        expect(
+          find.textContaining('Num: 01126737783'),
+          findsAtLeastNWidgets(1),
+        );
       },
     );
 

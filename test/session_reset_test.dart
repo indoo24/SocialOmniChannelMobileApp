@@ -16,14 +16,19 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:scenario_mobile/core/models/directory.dart';
 import 'package:scenario_mobile/core/models/message.dart';
 import 'package:scenario_mobile/core/realtime/realtime_bridge.dart';
 import 'package:scenario_mobile/core/realtime/realtime_client.dart';
 import 'package:scenario_mobile/core/realtime/realtime_logger.dart';
+import 'package:scenario_mobile/core/session/session_epoch.dart';
 import 'package:scenario_mobile/core/session/session_reset.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
 import 'package:scenario_mobile/features/conversations/conversation_repository.dart';
 import 'package:scenario_mobile/features/conversations/inbox_controller.dart';
+import 'package:scenario_mobile/features/dashboard/dashboard_cache.dart';
+import 'package:scenario_mobile/features/dashboard/dashboard_date_filter_state.dart';
+import 'package:scenario_mobile/features/directory/employee_filter_state.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// A provider whose only job is to hand [clearSessionScopedState] a `Ref`.
@@ -87,6 +92,23 @@ void main() {
       );
     });
 
+    test('clears employee role/team/status filters', () {
+      container.read(employeeFiltersProvider.notifier).setRole('ADMIN');
+      container.read(employeeFiltersProvider.notifier).setTeamId(7);
+      container.read(employeeFiltersProvider.notifier).setIsActive(false);
+      expect(container.read(employeeFiltersProvider).isEmpty, isFalse);
+
+      clearSessionScopedState(container.read(_refProvider));
+
+      expect(
+        container.read(employeeFiltersProvider).isEmpty,
+        isTrue,
+        reason:
+            "a team id is scoped to the previous org's team list and must "
+            'not silently narrow the next agent\'s Employees screen',
+      );
+    });
+
     test('clears retained latency traces', () {
       RealtimeLogger.markStep(
         'trace-1',
@@ -99,6 +121,32 @@ void main() {
       clearSessionScopedState(container.read(_refProvider));
 
       expect(RealtimeLogger.findTraceByMessageOrConvo('7', null), isNull);
+    });
+
+    test('empties the Dashboard and Analytics session caches', () {
+      // These outlive `ref.invalidate` by design — a provider rebuild replays
+      // the stored answer instead of refetching — so invalidating the
+      // providers alone would hand the next agent the previous one's numbers.
+      final dashboard = container.read(dashboardCacheProvider);
+      final analytics = container.read(analyticsCacheProvider);
+
+      dashboard.summary.set(
+        dashboardSummaryKey(const DashboardDateFilterState()),
+        DashboardSummary.fromJson(const {
+          'conversations': {'open': 5},
+          'intelligence': <String, dynamic>{},
+          'team': {'online_agents': 0, 'workload': []},
+          'recent_conversations': [],
+        }),
+      );
+      analytics.channelVolume.set(channelVolumeKey(), const []);
+      expect(dashboard.summary.length, 1);
+      expect(analytics.channelVolume.length, 1);
+
+      clearSessionScopedState(container.read(_refProvider));
+
+      expect(dashboard.summary.length, 0);
+      expect(analytics.channelVolume.length, 0);
     });
 
     test('is safe to call when nothing was loaded', () {
@@ -134,9 +182,10 @@ void main() {
       // No session to end: the guard must hold from the very first call, and
       // repeated calls must neither throw nor disturb the state a legitimate
       // restore is relying on.
-      await controller.onSessionExpired();
-      await controller.onSessionExpired();
-      await controller.onSessionExpired();
+      final epoch = container.read(sessionEpochProvider).value;
+      await controller.onSessionExpired(epoch);
+      await controller.onSessionExpired(epoch);
+      await controller.onSessionExpired(epoch);
 
       final after = container.read(authControllerProvider);
       expect(after.isAuthenticated, isFalse);

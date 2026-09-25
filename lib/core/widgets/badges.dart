@@ -185,4 +185,24 @@ class ConversationBadges {
     'TIKTOK' => const Color(0xFF010101),
     _ => const Color(0xFF0F766E),
   };
+
+  /// The plain server-reported delivery tick, for surfaces with no local
+  /// send/failure state of their own (the inbox row's `last_message_*`
+  /// fields) — `FAILED` shown the same error red the bubble uses, so a
+  /// supervisor scanning the list catches a stuck send without opening it.
+  /// A bubble's own [message_bubble.dart] `_DeliveryIcon` additionally
+  /// distinguishes a locally pending/failed send, which has no server
+  /// status yet to switch on.
+  static (IconData, Color?) deliveryStatusIcon(
+    BuildContext context,
+    String status,
+  ) => switch (status) {
+    'FAILED' => (Icons.error_outline, Theme.of(context).colorScheme.error),
+    'READ' => (Icons.done_all, ScenarioColors.info),
+    'DELIVERED' => (
+      Icons.done_all,
+      Theme.of(context).textTheme.labelSmall?.color,
+    ),
+    _ => (Icons.done, Theme.of(context).textTheme.labelSmall?.color),
+  };
 }

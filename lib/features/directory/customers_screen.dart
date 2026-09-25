@@ -15,8 +15,11 @@ import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
+import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
+import 'customer_field_filter_sheet.dart';
+import 'customer_field_filter_state.dart';
 import 'directory_providers.dart';
 import 'directory_search_field.dart';
 
@@ -33,6 +36,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   @override
   Widget build(BuildContext context) {
     final customers = ref.watch(customerDirectoryProvider);
+    final fieldFilter = ref.watch(customerFieldFilterProvider);
 
     return SectionScaffold(
       title: context.l10n.navCustomers,
@@ -59,40 +63,63 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
         ref.invalidate(customerDirectoryProvider);
         await ref.read(customerDirectoryProvider.future);
       },
-      body: customers.when(
-        loading: () => ListView.separated(
-          itemCount: 8,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (_, _) => const ConversationSkeleton(),
-        ),
-        error: (error, _) => ErrorStateView(
-          error: error,
-          onRetry: () => ref.invalidate(customerDirectoryProvider),
-        ),
-        data: (rows) {
-          if (rows.isEmpty) {
-            return ListView(
-              children: [
-                SizedBox(
-                  height: MediaQuery.sizeOf(context).height * 0.6,
-                  child: EmptyState(
-                    icon: Icons.people_outline,
-                    title: context.l10n.noCustomersTitle,
-                    message: context.l10n.noCustomersMessage,
-                  ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Space.lg,
+              Space.sm,
+              Space.lg,
+              Space.sm,
+            ),
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: const CustomerFieldFilterButton(),
+            ),
+          ),
+          Expanded(
+            child: customers.when(
+              loading: () => AppShimmer(
+                child: ListView.separated(
+                  itemCount: 8,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (_, _) => const ConversationSkeleton(),
                 ),
-              ],
-            );
-          }
+              ),
+              error: (error, _) => ErrorStateView(
+                error: error,
+                onRetry: () => ref.invalidate(customerDirectoryProvider),
+              ),
+              data: (rows) {
+                if (rows.isEmpty) {
+                  return ListView(
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.sizeOf(context).height * 0.5,
+                        child: EmptyState(
+                          icon: Icons.people_outline,
+                          title: context.l10n.noCustomersTitle,
+                          message: fieldFilter != null && fieldFilter.hasValue
+                              ? context.l10n.customerFieldFilterNoResults
+                              : context.l10n.noCustomersMessage,
+                        ),
+                      ),
+                    ],
+                  );
+                }
 
-          return ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: rows.length,
-            separatorBuilder: (_, _) => const Divider(height: 1, indent: 68),
-            itemBuilder: (context, index) =>
-                _CustomerRow(customer: rows[index]),
-          );
-        },
+                return ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: rows.length,
+                  separatorBuilder: (_, _) =>
+                      const Divider(height: 1, indent: 68),
+                  itemBuilder: (context, index) =>
+                      _CustomerRow(customer: rows[index]),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -163,6 +190,10 @@ class _CustomerRow extends StatelessWidget {
   static String _initials(String name) {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);
     if (parts.isEmpty) return '?';
-    return parts.take(2).map((p) => p[0].toUpperCase()).join();
+    // `.characters.first` rather than `p[0]`: a display name can start with
+    // an emoji or other multi-code-unit character, and raw UTF-16 indexing
+    // would split it mid surrogate pair — a string `TextPainter` then throws
+    // "not well-formed UTF-16" trying to render.
+    return parts.take(2).map((p) => p.characters.first.toUpperCase()).join();
   }
 }

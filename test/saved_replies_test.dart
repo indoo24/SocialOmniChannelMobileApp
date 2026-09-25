@@ -56,6 +56,9 @@ const _page = '''
 ]}
 ''';
 
+const _emptyPage =
+    '{"count": 0, "next": null, "previous": null, "results": []}';
+
 void main() {
   group('renderSavedReply', () {
     test('fills known names', () {
@@ -95,7 +98,10 @@ void main() {
 
     test('leaves other placeholders exactly as written', () {
       expect(
-        renderSavedReply('Order {{1}} for {{customer_name}}', customerName: 'Sam'),
+        renderSavedReply(
+          'Order {{1}} for {{customer_name}}',
+          customerName: 'Sam',
+        ),
         'Order {{1}} for Sam',
       );
     });
@@ -145,7 +151,8 @@ void main() {
       client = ApiClient.create(cookieJar: CookieJar());
       client.raw.httpClientAdapter = _StubAdapter((options) {
         requests.add(options);
-        if (options.path.contains('/saved-replies/') && options.method == 'GET') {
+        if (options.path.contains('/saved-replies/') &&
+            options.method == 'GET') {
           return _json(_page, 200);
         }
         return _json('{}', 404);
@@ -179,7 +186,9 @@ void main() {
       return chosen;
     }
 
-    testWidgets('lists usable replies and returns the one tapped', (tester) async {
+    testWidgets('lists usable replies and returns the one tapped', (
+      tester,
+    ) async {
       final chosen = await openAndPick(tester, 'Phone number');
 
       expect(tester.takeException(), isNull);
@@ -187,7 +196,9 @@ void main() {
       expect(chosen?.body, 'Please send your phone number.');
     });
 
-    testWidgets('only ever reads — choosing a reply sends nothing', (tester) async {
+    testWidgets('only ever reads — choosing a reply sends nothing', (
+      tester,
+    ) async {
       await openAndPick(tester, 'Thanks');
 
       expect(requests, isNotEmpty);
@@ -210,7 +221,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byKey(const Key('savedReplySearch')), 'phone');
+      await tester.enterText(
+        find.byKey(const Key('savedReplySearch')),
+        'phone',
+      );
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
 
@@ -219,6 +233,83 @@ void main() {
         isTrue,
       );
     });
+
+    testWidgets(
+      'searching to zero results does not overflow the picker sheet',
+      (tester) async {
+        // Regression: EmptyState (icon + title + message + Space.xxl
+        // padding on every side) used to assume its parent always had
+        // generous height, which broke inside the real
+        // DraggableScrollableSheet this picker opens through — not the bare,
+        // unbounded Scaffold the other tests above use. Reproducing it needs
+        // several things together: the actual sheet (opened via
+        // showSavedReplyPicker, at its real initialChildSize: 0.7), a small
+        // phone-sized screen (matching composer_attachment_test.dart's own
+        // "narrow Android width" convention — the default 800×600 test
+        // surface has enough headroom to hide the overflow), the on-screen
+        // keyboard actually open — exactly what happens while typing a
+        // search term, and what SavedReplyPickerSheet's own
+        // `Padding(bottom: MediaQuery.viewInsets.bottom)` anticipates —
+        // shrinking the sheet's usable height further, and a server that
+        // genuinely returns no matches for the typed term (the shared
+        // `client` stub above always answers with the same two replies
+        // regardless of the query).
+        tester.view.devicePixelRatio = 1.0;
+        tester.view.physicalSize = const Size(320, 640);
+        tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+          tester.view.resetViewInsets();
+        });
+
+        final emptySearchClient = ApiClient.create(cookieJar: CookieJar());
+        emptySearchClient.raw.httpClientAdapter = _StubAdapter((options) {
+          if (options.path.contains('/saved-replies/') &&
+              options.method == 'GET') {
+            final search = options.queryParameters['search'] as String?;
+            return _json(
+              search == null || search.isEmpty ? _page : _emptyPage,
+              200,
+            );
+          }
+          return _json('{}', 404);
+        });
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [apiClientProvider.overrideWithValue(emptySearchClient)],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(
+                body: Builder(
+                  builder: (context) => ElevatedButton(
+                    onPressed: () => showSavedReplyPicker(context),
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('open'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byKey(const Key('savedReplySearch')),
+          'zzz-no-match',
+        );
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(
+          find.text('No saved reply matches your search.'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 
   group('the conversation composer', () {
@@ -230,7 +321,11 @@ void main() {
       role: 'AGENT',
       roleDisplay: 'Agent',
       availability: 'ONLINE',
-      permissions: {Perm.conversationReply, Perm.conversationNote, Perm.channelView},
+      permissions: {
+        Perm.conversationReply,
+        Perm.conversationNote,
+        Perm.channelView,
+      },
       visibilityScope: 'ALL',
       organization: Organization(id: 1, name: 'Scenario Corp'),
     );
@@ -279,7 +374,9 @@ void main() {
             200,
           );
         }
-        if (path.contains('/templates/')) return _json('{"templates": []}', 200);
+        if (path.contains('/templates/')) {
+          return _json('{"templates": []}', 200);
+        }
         return _json('{}', 200);
       });
       return client;
@@ -343,7 +440,9 @@ void main() {
       },
     );
 
-    testWidgets('is not offered past WhatsApp\'s 24-hour window', (tester) async {
+    testWidgets('is not offered past WhatsApp\'s 24-hour window', (
+      tester,
+    ) async {
       final client = serverWith(sinceCustomerWrote: const Duration(hours: 48));
       await pumpScreen(tester, client);
 
@@ -352,9 +451,14 @@ void main() {
     });
   });
 
-  test('the saved replies feature never posts anything', () {
-    // Structural: the only way a saved reply reaches a customer is through the
-    // composer and ConversationRepository.reply().
+  test('the saved replies feature never reaches a customer except through '
+      'the ordinary reply path', () {
+    // Structural: the only way a saved reply's text reaches a customer is
+    // through the composer and ConversationRepository.reply() — nothing in
+    // this feature calls that, or any endpoint under /conversations/,
+    // itself. `saved_replies_providers.dart` is the one file allowed to
+    // write, and only ever to /saved-replies/ — managing the reply
+    // definitions themselves, never sending on a customer's behalf.
     final dir = Directory('lib/features/saved_replies');
     for (final file in dir.listSync().whereType<File>()) {
       // Code only: doc comments explaining the rule must not trip it.
@@ -362,10 +466,12 @@ void main() {
           .readAsLinesSync()
           .where((line) => !line.trimLeft().startsWith('//'))
           .join('\n');
+      expect(source.contains('.reply('), isFalse, reason: file.path);
+      expect(source.contains('/conversations/'), isFalse, reason: file.path);
+      if (file.path.endsWith('saved_replies_providers.dart')) continue;
       expect(source.contains('.post<'), isFalse, reason: file.path);
       expect(source.contains('.patch<'), isFalse, reason: file.path);
       expect(source.contains('.delete<'), isFalse, reason: file.path);
-      expect(source.contains('.reply('), isFalse, reason: file.path);
     }
   });
 }
