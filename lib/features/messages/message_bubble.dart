@@ -29,6 +29,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../core/utils/attachment_helper.dart';
 import 'highlight_message_coordinator.dart';
+import 'audio_duration.dart';
 import 'media_group_grid.dart';
 import 'swipe_to_reply.dart';
 import 'voice_playback_coordinator.dart';
@@ -1016,8 +1017,22 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
 }
 
 /// A voice-message bubble: mic glyph, duration, waveform, and a play/pause control
-/// with playback progress. Audio bytes are fetched lazily, only when the
-/// agent actually taps play — never pre-loaded or auto-played.
+/// with playback progress, behaving like WhatsApp's:
+///
+/// * **Idle** — play button, the recording's full length (`0:42`), no speed
+///   control.
+/// * **Playing** — pause button, the elapsed position counting up from `0:00`,
+///   and a small `1x / 1.5x / 2x` speed control.
+/// * **Paused** — play button; the position and speed control stay, and play
+///   resumes from the same point at the same speed.
+/// * **Completed**, or stopped because another voice note started — back to
+///   idle: full length shown, speed control hidden, the next play starts from
+///   `0:00` at `1x`.
+///
+/// Audio is played by one [AudioPlayer], created on first play. Before that,
+/// the full length comes from the backend's `duration_ms` or, when a note
+/// carries none, from the recording's own container header (fetched once and
+/// reused for playback — see `audio_duration.dart`).
 class _VoicePlayer extends ConsumerStatefulWidget {
   const _VoicePlayer({
     required this.attachment,
@@ -1042,6 +1057,9 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
   late final String _playbackId =
       '${identityHashCode(this)}_${widget.attachment.attachmentId}';
 
+  /// The speeds the speed control cycles through, as WhatsApp's does.
+  static const _playbackRates = [1.0, 1.5, 2.0];
+
   AudioPlayer? _player;
   StreamSubscription<PlayerState>? _stateSub;
   StreamSubscription<Duration>? _positionSub;
@@ -1050,12 +1068,39 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
 
   _PlaybackLoad _load = _PlaybackLoad.idle;
   bool _playing = false;
-  Duration _position = Duration.zero;
+
+  /// True from the moment playback starts until it completes or another
+  /// voice note takes over — including while paused. This is what switches
+  /// the label from the full length to the elapsed position, and shows the
+  /// speed control.
+  bool _started = false;
+
+  /// The player's position. A notifier rather than widget state: it ticks
+  /// several times a second, and only the waveform and the time label need
+  /// to repaint for it — not the rest of the bubble.
+  final ValueNotifier<Duration> _position = ValueNotifier(Duration.zero);
+
+  /// Reported by the player once the audio is loaded — the authority.
   Duration? _duration;
-  Uint8List? _cachedBytes;
+
+  /// Read from the recording's header before playback, for notes the backend
+  /// sent no `duration_ms` for.
+  Duration? _fileDuration;
+
+  double _rate = 1.0;
+
+  /// The recording's bytes, fetched at most once: for the header read that
+  /// finds the full length, and then for playback.
+  Future<Uint8List>? _bytes;
 
   @override
   bool get wantKeepAlive => _playing || _load == _PlaybackLoad.loading;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _resolveFileDuration());
+  }
 
   @override
   void didUpdateWidget(_VoicePlayer oldWidget) {
@@ -1063,6 +1108,58 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
     if (widget.url != oldWidget.url ||
         widget.localPath != oldWidget.localPath) {
       _stopAndReset();
+      _resolveFileDuration();
+    }
+  }
+
+  bool get _hasSource =>
+      (widget.localPath?.isNotEmpty ?? false) || widget.url.isNotEmpty;
+
+  Duration? _durationFromAttachment() {
+    final ms = widget.attachment.durationMs;
+    return ms == null || ms <= 0 ? null : Duration(milliseconds: ms);
+  }
+
+  /// The full length: the player's once it has one, otherwise the backend's
+  /// `duration_ms`, otherwise the one read from the file's header.
+  Duration? get _totalDuration =>
+      _duration ?? _durationFromAttachment() ?? _fileDuration;
+
+  Future<Uint8List> _loadBytes() => _bytes ??= _fetchBytes();
+
+  Future<Uint8List> _fetchBytes() async {
+    final localPath = widget.localPath;
+    if (localPath != null &&
+        localPath.isNotEmpty &&
+        File(localPath).existsSync()) {
+      return File(localPath).readAsBytes();
+    }
+    final api = ref.read(apiClientProvider);
+    final response = await api.raw.get<List<int>>(
+      widget.url,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    final status = response.statusCode ?? 0;
+    final data = response.data;
+    if (status < 200 || status >= 300 || data == null) {
+      throw StateError('attachment content fetch failed: $status');
+    }
+    return Uint8List.fromList(data);
+  }
+
+  /// Finds the full length before playback when the backend did not send
+  /// one, so an unplayed note shows `0:42` rather than `0:00`. Silent on
+  /// failure: pressing play retries the fetch and reports any error then.
+  Future<void> _resolveFileDuration() async {
+    if (!mounted || !_hasSource || _totalDuration != null) return;
+    try {
+      final bytes = await _loadBytes();
+      final duration = audioDurationFromBytes(bytes);
+      if (duration != null && mounted) {
+        setState(() => _fileDuration = duration);
+      }
+    } catch (_) {
+      _bytes = null;
     }
   }
 
@@ -1096,12 +1193,33 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
       ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
     } catch (_) {}
     _disposePlayerOnly();
-    _cachedBytes = null;
+    _bytes = null;
     _load = _PlaybackLoad.idle;
     _playing = false;
-    _position = Duration.zero;
+    _started = false;
+    _rate = 1.0;
+    _position.value = Duration.zero;
     _duration = null;
+    _fileDuration = null;
     if (mounted) setState(() {});
+  }
+
+  /// Back to idle, ready for a fresh play: full length shown, speed control
+  /// hidden, position rewound and speed back to 1x — on the player itself,
+  /// so the next session really does start at normal speed.
+  void _endSession() {
+    if (!mounted) return;
+    final player = _player;
+    if (_rate != 1.0 && player != null) {
+      unawaited(player.setPlaybackRate(1.0).catchError((_) {}));
+    }
+    setState(() {
+      _playing = false;
+      _started = false;
+      _rate = 1.0;
+    });
+    _position.value = Duration.zero;
+    updateKeepAlive();
   }
 
   void _onCompleted() {
@@ -1109,13 +1227,22 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
     try {
       ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
     } catch (_) {}
-    if (_playing || _position != Duration.zero) {
-      setState(() {
-        _playing = false;
-        _position = Duration.zero;
-      });
-      updateKeepAlive();
-    }
+    if (_playing || _started) _endSession();
+  }
+
+  /// Another voice note started playing: stop this one and reset it, rather
+  /// than leave it paused half-way with its speed control showing.
+  void _onPreempted() {
+    _safePause();
+    _endSession();
+  }
+
+  void _registerAsActive() {
+    try {
+      ref
+          .read(activeVoicePlaybackProvider.notifier)
+          .setActive(_playbackId, onPause: _onPreempted);
+    } catch (_) {}
   }
 
   @override
@@ -1124,6 +1251,7 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
       ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
     } catch (_) {}
     _disposePlayerOnly();
+    _position.dispose();
     super.dispose();
   }
 
@@ -1131,6 +1259,7 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
     if (_load == _PlaybackLoad.loading) return;
 
     if (_playing) {
+      // Paused, not ended: position and speed stay for the resume.
       _safePause();
       try {
         ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
@@ -1142,34 +1271,25 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
       return;
     }
 
-    // If currently paused mid-track or completed at 0:00, and player is still active, resume:
+    // Player already loaded: resume a paused session, or start a new one
+    // from the top after completion.
     if (_player != null && _load == _PlaybackLoad.ready) {
+      _registerAsActive();
       try {
-        ref
-            .read(activeVoicePlaybackProvider.notifier)
-            .setActive(
-              _playbackId,
-              onPause: () {
-                _safePause();
-                if (mounted) {
-                  setState(() => _playing = false);
-                  updateKeepAlive();
-                }
-              },
-            );
-      } catch (_) {}
-
-      try {
-        if (_position == Duration.zero) {
+        if (!_started) {
           try {
             await _player!
                 .seek(Duration.zero)
                 .timeout(const Duration(milliseconds: 300));
           } catch (_) {}
+          _position.value = Duration.zero;
         }
         await _player!.resume();
         if (mounted) {
-          setState(() => _playing = true);
+          setState(() {
+            _playing = true;
+            _started = true;
+          });
           updateKeepAlive();
         }
         return;
@@ -1178,11 +1298,7 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
       }
     }
 
-    final localPath = widget.localPath;
-    final url = widget.url;
-    if (_cachedBytes == null &&
-        (localPath == null || localPath.isEmpty) &&
-        url.isEmpty) {
+    if (_bytes == null && !_hasSource) {
       if (mounted) setState(() => _load = _PlaybackLoad.error);
       return;
     }
@@ -1191,29 +1307,9 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
     updateKeepAlive();
 
     try {
-      Uint8List bytes;
-      if (_cachedBytes != null) {
-        bytes = _cachedBytes!;
-      } else if (localPath != null &&
-          localPath.isNotEmpty &&
-          File(localPath).existsSync()) {
-        bytes = await File(localPath).readAsBytes();
-      } else {
-        final api = ref.read(apiClientProvider);
-        final response = await api.raw.get<List<int>>(
-          url,
-          options: Options(responseType: ResponseType.bytes),
-        );
-        final status = response.statusCode ?? 0;
-        final data = response.data;
-        if (status < 200 || status >= 300 || data == null) {
-          throw StateError('attachment content fetch failed: $status');
-        }
-        bytes = Uint8List.fromList(data);
-      }
-      _cachedBytes = bytes;
-
+      final bytes = await _loadBytes();
       if (!mounted) return;
+      _fileDuration ??= audioDurationFromBytes(bytes);
 
       final player = AudioPlayer();
       await player.setReleaseMode(ReleaseMode.stop);
@@ -1227,33 +1323,23 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
           updateKeepAlive();
         }
       });
+      // The real position stream — never a timer. Ignored outside a session
+      // so a late tick after completion cannot show a stale position.
       _positionSub = player.onPositionChanged.listen((position) {
-        if (!mounted) return;
-        if (!_playing && _position == Duration.zero) return;
-        setState(() => _position = position);
+        if (!mounted || !_started) return;
+        _position.value = position;
       });
       _durationSub = player.onDurationChanged.listen((duration) {
-        if (!mounted) return;
+        if (!mounted || duration <= Duration.zero) return;
         setState(() => _duration = duration);
       });
       _completeSub = player.onPlayerComplete.listen((_) {
         _onCompleted();
       });
 
-      try {
-        ref
-            .read(activeVoicePlaybackProvider.notifier)
-            .setActive(
-              _playbackId,
-              onPause: () {
-                _safePause();
-                if (mounted) {
-                  setState(() => _playing = false);
-                  updateKeepAlive();
-                }
-              },
-            );
-      } catch (_) {}
+      _registerAsActive();
+      _started = true;
+      _position.value = Duration.zero;
 
       await player.play(BytesSource(bytes));
 
@@ -1269,11 +1355,25 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
       });
       updateKeepAlive();
     } catch (_) {
+      _bytes = null;
+      _started = false;
       if (mounted) {
         setState(() => _load = _PlaybackLoad.error);
         updateKeepAlive();
       }
     }
+  }
+
+  /// 1x → 1.5x → 2x → 1x, on the player itself. Changes speed only: the
+  /// player neither restarts nor seeks, and a paused note stays paused.
+  Future<void> _cycleRate() async {
+    final next =
+        _playbackRates[(_playbackRates.indexOf(_rate) + 1) %
+            _playbackRates.length];
+    setState(() => _rate = next);
+    try {
+      await _player?.setPlaybackRate(next);
+    } catch (_) {}
   }
 
   String _format(Duration d) {
@@ -1287,10 +1387,7 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
     super.build(context);
 
     final theme = Theme.of(context);
-    final total = _duration ?? _durationFromAttachment();
-    final progress = total != null && total.inMilliseconds > 0
-        ? (_position.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0)
-        : 0.0;
+    final total = _totalDuration;
 
     final isOutbound = widget.isOutbound;
     final textColor = isOutbound ? Colors.white : theme.colorScheme.onSurface;
@@ -1338,6 +1435,14 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
                         ),
                       ),
                     ),
+                    if (_started) ...[
+                      _SpeedChip(
+                        rate: _rate,
+                        onTap: _cycleRate,
+                        isOutbound: isOutbound,
+                      ),
+                      const SizedBox(width: 4),
+                    ],
                     InkWell(
                       onTap: () => AttachmentHelper.saveAttachmentToDownloads(
                         context: context,
@@ -1371,48 +1476,66 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
                     ),
                   )
                 else
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 20,
-                          child: _AudioWaveform(
-                            progress: progress,
-                            activeColor: activeWaveColor,
-                            inactiveColor: inactiveWaveColor,
-                            onSeek: (fraction) {
-                              if (_load == _PlaybackLoad.ready &&
-                                  _player != null &&
-                                  total != null) {
-                                final targetMs =
-                                    (total.inMilliseconds * fraction).round();
-                                final target = Duration(milliseconds: targetMs);
-                                setState(() => _position = target);
-                                _player!.seek(target);
-                              }
-                            },
+                  ValueListenableBuilder<Duration>(
+                    valueListenable: _position,
+                    builder: (context, position, _) {
+                      final elapsed = total != null && position > total
+                          ? total
+                          : position;
+                      final progress =
+                          _started && total != null && total.inMilliseconds > 0
+                          ? (elapsed.inMilliseconds / total.inMilliseconds)
+                                .clamp(0.0, 1.0)
+                          : 0.0;
+                      // Idle: the full length. In a session (playing or
+                      // paused): the elapsed position.
+                      final shown = _started
+                          ? elapsed
+                          : (total ?? Duration.zero);
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 20,
+                              child: _AudioWaveform(
+                                progress: progress,
+                                activeColor: activeWaveColor,
+                                inactiveColor: inactiveWaveColor,
+                                onSeek: (fraction) {
+                                  if (_load == _PlaybackLoad.ready &&
+                                      _player != null &&
+                                      total != null) {
+                                    final target = Duration(
+                                      milliseconds:
+                                          (total.inMilliseconds * fraction)
+                                              .round(),
+                                    );
+                                    if (!_started) {
+                                      setState(() => _started = true);
+                                    }
+                                    _position.value = target;
+                                    _player!.seek(target);
+                                  }
+                                },
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _format(
-                          total != null
-                              ? (_playing ||
-                                        (_position > Duration.zero &&
-                                            _position < total)
-                                    ? _position
-                                    : total)
-                              : _position,
-                        ),
-                        style: TextStyle(
-                          color: textColor.withValues(alpha: 0.90),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ],
+                          const SizedBox(width: 8),
+                          Text(
+                            _format(shown),
+                            key: const ValueKey('voiceNoteTime'),
+                            style: TextStyle(
+                              color: textColor.withValues(alpha: 0.90),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
               ],
             ),
@@ -1421,10 +1544,60 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
       ),
     );
   }
+}
 
-  Duration? _durationFromAttachment() {
-    final ms = widget.attachment.durationMs;
-    return ms == null ? null : Duration(milliseconds: ms);
+/// The small `1x` / `1.5x` / `2x` control shown while a voice note is in a
+/// playback session — sized to sit inside the label row without making the
+/// bubble any taller.
+class _SpeedChip extends StatelessWidget {
+  const _SpeedChip({
+    required this.rate,
+    required this.onTap,
+    this.isOutbound = true,
+  });
+
+  final double rate;
+  final VoidCallback onTap;
+  final bool isOutbound;
+
+  static String label(double rate) =>
+      rate == rate.roundToDouble() ? '${rate.toInt()}x' : '${rate}x';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bgColor = isOutbound
+        ? Colors.white.withValues(alpha: 0.22)
+        : theme.colorScheme.primary.withValues(alpha: 0.12);
+    final textColor = isOutbound ? Colors.white : theme.colorScheme.primary;
+
+    return Tooltip(
+      message: context.l10n.playbackSpeedTooltip,
+      child: Material(
+        key: const ValueKey('voiceNoteSpeed'),
+        color: bgColor,
+        shape: const StadiumBorder(),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            child: Text(
+              label(rate),
+              // "1.5x" reads the same in Arabic; keep it from reordering.
+              textDirection: TextDirection.ltr,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                height: 1.3,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

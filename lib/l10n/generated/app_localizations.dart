@@ -1688,6 +1688,12 @@ abstract class AppLocalizations {
   /// **'Voice note'**
   String get voiceNoteLabel;
 
+  /// No description provided for @playbackSpeedTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get playbackSpeedTooltip;
+
   /// No description provided for @recordingText.
   ///
   /// In en, this message translates to:
