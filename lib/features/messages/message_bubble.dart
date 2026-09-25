@@ -14,6 +14,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart' show ResponseType, Options;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -109,6 +110,8 @@ class MessageBubble extends ConsumerWidget {
         ? Colors.white
         : theme.colorScheme.onSurface;
 
+    final copyText = copyableMessageText(message.text);
+
     final isTarget = ref.watch(
       highlightedMessageProvider.select((id) => id == message.id),
     );
@@ -139,129 +142,149 @@ class MessageBubble extends ConsumerWidget {
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.sizeOf(context).width * 0.78,
                 ),
-              child: Column(
-                crossAxisAlignment: isMine
-                    ? CrossAxisAlignment.end
-                    : CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onLongPressStart: (onReply != null || onDelete != null)
-                        ? (details) => _showBubbleMenu(
-                            context,
-                            position: details.globalPosition,
-                            onReply: onReply,
-                            onDelete: onDelete,
-                          )
-                        : null,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Space.md,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: background,
-                        borderRadius: BorderRadius.only(
-                          topLeft: const Radius.circular(16),
-                          topRight: const Radius.circular(16),
-                          bottomLeft: Radius.circular(isMine ? 16 : 4),
-                          bottomRight: Radius.circular(isMine ? 4 : 16),
-                        ),
-                        border: isMine && !failed
-                            ? null
-                            : Border.all(
-                                color: failed
-                                    ? theme.colorScheme.error.withValues(
-                                        alpha: 0.35,
-                                      )
-                                    : theme.colorScheme.outline,
-                              ),
-                        boxShadow: [
-                          if (activeHighlight)
-                            BoxShadow(
-                              color: theme.colorScheme.primary.withValues(
-                                alpha: 0.35,
-                              ),
-                              blurRadius: 8,
-                              spreadRadius: 1,
+                child: Column(
+                  crossAxisAlignment: isMine
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onLongPressStart:
+                          (onReply != null ||
+                              copyText != null ||
+                              onDelete != null)
+                          ? (details) => showMessageActionsMenu(
+                              context,
+                              position: details.globalPosition,
+                              onReply: onReply,
+                              copyText: copyText,
+                              onDelete: onDelete,
                             )
-                          else
-                            BoxShadow(
-                              color: Colors.black.withValues(
-                                alpha: theme.brightness == Brightness.dark
-                                    ? 0.15
-                                    : 0.03,
+                          : null,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Space.md,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: background,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(16),
+                            topRight: const Radius.circular(16),
+                            bottomLeft: Radius.circular(isMine ? 16 : 4),
+                            bottomRight: Radius.circular(isMine ? 4 : 16),
+                          ),
+                          border: isMine && !failed
+                              ? null
+                              : Border.all(
+                                  color: failed
+                                      ? theme.colorScheme.error.withValues(
+                                          alpha: 0.35,
+                                        )
+                                      : theme.colorScheme.outline,
+                                ),
+                          boxShadow: [
+                            if (activeHighlight)
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.35,
+                                ),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              )
+                            else
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: theme.brightness == Brightness.dark
+                                      ? 0.15
+                                      : 0.03,
+                                ),
+                                blurRadius: 3,
+                                offset: const Offset(0, 1),
                               ),
-                              blurRadius: 3,
-                              offset: const Offset(0, 1),
-                            ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (message.replyTo != null) ...[
-                            _QuoteBlock(
-                              quote: message.replyTo!,
-                              isMine: isMine,
-                              onTap: onQuoteTap != null
-                                  ? () => onQuoteTap!(message.replyTo!.id)
-                                  : null,
-                            ),
-                            const SizedBox(height: Space.xs),
                           ],
-                          if (message.attachments.isNotEmpty)
-                            _Attachments(message: message),
-                          if (message.text.isNotEmpty)
-                            Text(
-                              message.text,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: foreground,
-                                height: 1.35,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (message.replyTo != null) ...[
+                              _QuoteBlock(
+                                quote: message.replyTo!,
+                                isMine: isMine,
+                                onTap: onQuoteTap != null
+                                    ? () => onQuoteTap!(message.replyTo!.id)
+                                    : null,
                               ),
-                            ),
-                          if (message.contentNotice != null)
-                            ContentNoticeView(
-                              notice: message.contentNotice!,
-                              color: foreground,
-                            ),
-                        ],
+                              const SizedBox(height: Space.xs),
+                            ],
+                            if (message.attachments.isNotEmpty)
+                              _Attachments(message: message),
+                            if (message.text.isNotEmpty)
+                              Text(
+                                message.text,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: foreground,
+                                  height: 1.35,
+                                ),
+                              ),
+                            if (message.contentNotice != null)
+                              ContentNoticeView(
+                                notice: message.contentNotice!,
+                                color: foreground,
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 3),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: _MetaRow(message: message, provider: provider),
-                  ),
-                  if (failed) ...[
-                    const SizedBox(height: Space.xs),
-                    _FailureActions(
-                      message: message,
-                      onRetry: onRetry,
-                      onDiscard: onDiscard,
+                    const SizedBox(height: 3),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: _MetaRow(message: message, provider: provider),
                     ),
+                    if (failed) ...[
+                      const SizedBox(height: Space.xs),
+                      _FailureActions(
+                        message: message,
+                        onRetry: onRetry,
+                        onDiscard: onDiscard,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
   }
 }
 
-/// The long-press menu on a bubble — Reply and/or Delete, whichever the
-/// caller made available. Positioned at the touch point rather than anchored
-/// to the bubble, matching the platform's own context-menu placement.
-void _showBubbleMenu(
+/// The text the long-press Copy action puts on the clipboard, or null when
+/// there is none worth copying (an image/document/voice-only message).
+///
+/// Only ever the body text the bubble itself displays — never the quoted
+/// message, attachment names, ids or `[media: …]` markers, which
+/// [Message.fromJson] has already stripped from [Message.text].
+String? copyableMessageText(String text) {
+  final trimmed = text.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
+
+/// The long-press menu on a bubble (and on an internal note) — Reply, Copy
+/// and/or Delete, whichever the caller made available. Positioned at the
+/// touch point rather than anchored to the bubble, matching the platform's
+/// own context-menu placement.
+void showMessageActionsMenu(
   BuildContext context, {
   required Offset position,
-  required VoidCallback? onReply,
-  required VoidCallback? onDelete,
+  VoidCallback? onReply,
+  String? copyText,
+  VoidCallback? onDelete,
 }) {
   final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+  // Captured now: the menu route is gone by the time Copy runs.
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  final copiedLabel = context.l10n.messageCopiedSnackbar;
   showMenu<VoidCallback>(
     context: context,
     position: RelativeRect.fromRect(
@@ -275,6 +298,19 @@ void _showBubbleMenu(
           child: ListTile(
             leading: const Icon(Icons.reply_outlined),
             title: Text(context.l10n.replyMessageAction),
+          ),
+        ),
+      if (copyText != null)
+        PopupMenuItem<VoidCallback>(
+          value: () async {
+            await Clipboard.setData(ClipboardData(text: copyText));
+            messenger
+              ?..hideCurrentSnackBar()
+              ..showSnackBar(SnackBar(content: Text(copiedLabel)));
+          },
+          child: ListTile(
+            leading: const Icon(Icons.copy_outlined),
+            title: Text(context.l10n.copyMessageAction),
           ),
         ),
       if (onDelete != null)
@@ -629,8 +665,9 @@ class _Attachments extends ConsumerWidget {
               messageId: message.id,
               isOutbound: message.isOutbound,
               onTapImage: (index) async {
-                final headers =
-                    await ref.read(apiClientProvider).mediaAuthHeaders();
+                final headers = await ref
+                    .read(apiClientProvider)
+                    .mediaAuthHeaders();
                 if (!context.mounted) return;
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -720,10 +757,8 @@ class _Attachment extends ConsumerWidget {
             File(localPath),
             width: 220,
             fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => _FileChip(
-              attachment: attachment,
-              messageId: messageId,
-            ),
+            errorBuilder: (_, _, _) =>
+                _FileChip(attachment: attachment, messageId: messageId),
           ),
         ),
       );
@@ -824,10 +859,8 @@ class _AttachmentImage extends ConsumerWidget {
                   ),
                 ),
               ),
-              errorWidget: (_, _, _) => _FileChip(
-                attachment: attachment,
-                messageId: messageId,
-              ),
+              errorWidget: (_, _, _) =>
+                  _FileChip(attachment: attachment, messageId: messageId),
             ),
           ),
         );
@@ -895,8 +928,9 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentAttachment =
-        _currentIndex < _galleryItems.length ? _galleryItems[_currentIndex] : null;
+    final currentAttachment = _currentIndex < _galleryItems.length
+        ? _galleryItems[_currentIndex]
+        : null;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -936,12 +970,18 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
         onPageChanged: (idx) => setState(() => _currentIndex = idx),
         itemBuilder: (context, index) {
           final item = _galleryItems[index];
-          final localPath = item.localFilePath ??
-              (index == 0 && widget.localPath != null ? widget.localPath : null);
-          final hasLocal = localPath != null &&
+          final localPath =
+              item.localFilePath ??
+              (index == 0 && widget.localPath != null
+                  ? widget.localPath
+                  : null);
+          final hasLocal =
+              localPath != null &&
               localPath.isNotEmpty &&
               File(localPath).existsSync();
-          final rawUrl = item.resolvedUrl.isNotEmpty ? item.resolvedUrl : widget.url;
+          final rawUrl = item.resolvedUrl.isNotEmpty
+              ? item.resolvedUrl
+              : widget.url;
           final safeUrl = SafeUrl.forImage(rawUrl);
 
           return Center(

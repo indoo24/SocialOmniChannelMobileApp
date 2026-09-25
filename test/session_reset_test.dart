@@ -21,6 +21,7 @@ import 'package:scenario_mobile/core/models/message.dart';
 import 'package:scenario_mobile/core/realtime/realtime_bridge.dart';
 import 'package:scenario_mobile/core/realtime/realtime_client.dart';
 import 'package:scenario_mobile/core/realtime/realtime_logger.dart';
+import 'package:scenario_mobile/core/session/session_epoch.dart';
 import 'package:scenario_mobile/core/session/session_reset.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
 import 'package:scenario_mobile/features/conversations/conversation_repository.dart';
@@ -181,9 +182,10 @@ void main() {
       // No session to end: the guard must hold from the very first call, and
       // repeated calls must neither throw nor disturb the state a legitimate
       // restore is relying on.
-      await controller.onSessionExpired();
-      await controller.onSessionExpired();
-      await controller.onSessionExpired();
+      final epoch = container.read(sessionEpochProvider).value;
+      await controller.onSessionExpired(epoch);
+      await controller.onSessionExpired(epoch);
+      await controller.onSessionExpired(epoch);
 
       final after = container.read(authControllerProvider);
       expect(after.isAuthenticated, isFalse);

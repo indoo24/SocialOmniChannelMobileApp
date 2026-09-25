@@ -398,9 +398,9 @@ Future<void> _pumpConversation(
   await tester.pumpAndSettle();
 }
 
-/// Advances frames while a busy spinner is on screen, without
-/// `pumpAndSettle()` — its indeterminate `CircularProgressIndicator`
-/// animation never naturally goes idle, so `pumpAndSettle()` hangs for the
+/// Advances frames while a busy indicator is on screen (a spinner, or an
+/// attachment card's upload bar), without `pumpAndSettle()` — an
+/// indeterminate progress animation never naturally goes idle, so `pumpAndSettle()` hangs for the
 /// whole duration of any of this composer's in-flight async calls (upload,
 /// discard, stop-and-send). Bounded, so a genuinely stuck future still fails
 /// the test instead of hanging it. Must be called from inside `runAsync()`
@@ -421,7 +421,10 @@ Future<void> _pumpUntilIdle(
     for (var i = 0; i < maxPumps; i++) {
       await Future<void>.delayed(const Duration(milliseconds: 20));
       await tester.pump();
-      if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
+      if (find.byType(CircularProgressIndicator).evaluate().isEmpty &&
+          find.byType(LinearProgressIndicator).evaluate().isEmpty) {
+        break;
+      }
     }
     // A few more short frames so anything the busy state's completion just
     // triggered (a SnackBar's entrance animation, a rebuild) has landed too
@@ -865,7 +868,7 @@ void main() {
         final imagePaths = <String>[];
         for (var i = 1; i <= 5; i++) {
           final f = File('${tempDir.path}/img$i.jpg');
-          await f.writeAsBytes(_tinyJpegBytes);
+          f.writeAsBytesSync(_tinyJpegBytes);
           imagePaths.add(f.path);
         }
 
@@ -918,9 +921,9 @@ void main() {
       'selecting multiple documents stages file cards with name, extension, and size',
       (tester) async {
         final pdfFile = File('${tempDir.path}/spec.pdf');
-        await pdfFile.writeAsBytes(List.filled(2048, 0));
+        pdfFile.writeAsBytesSync(List.filled(2048, 0));
         final docxFile = File('${tempDir.path}/report.docx');
-        await docxFile.writeAsBytes(List.filled(4096, 0));
+        docxFile.writeAsBytesSync(List.filled(4096, 0));
 
         FilePickerPlatform.instance = _FakeFilePicker(
           files: [
@@ -996,7 +999,7 @@ void main() {
       );
 
       final docFile = File('${tempDir.path}/guide.pdf');
-      await docFile.writeAsBytes(List.filled(1024, 0));
+      docFile.writeAsBytesSync(List.filled(1024, 0));
       FilePickerPlatform.instance = _FakeFilePicker(
         files: [
           _TestPlatformFile(
@@ -1063,9 +1066,9 @@ void main() {
       'removing one attachment from a multi-attachment selection leaves others staged',
       (tester) async {
         final doc1 = File('${tempDir.path}/a.pdf');
-        await doc1.writeAsBytes(List.filled(512, 0));
+        doc1.writeAsBytesSync(List.filled(512, 0));
         final doc2 = File('${tempDir.path}/b.pdf');
-        await doc2.writeAsBytes(List.filled(512, 0));
+        doc2.writeAsBytesSync(List.filled(512, 0));
 
         FilePickerPlatform.instance = _FakeFilePicker(
           files: [
@@ -1144,9 +1147,9 @@ void main() {
       'sending multiple attachments sends all attachment_ids in reply payload',
       (tester) async {
         final doc1 = File('${tempDir.path}/doc1.pdf');
-        await doc1.writeAsBytes(List.filled(512, 0));
+        doc1.writeAsBytesSync(List.filled(512, 0));
         final doc2 = File('${tempDir.path}/doc2.pdf');
-        await doc2.writeAsBytes(List.filled(512, 0));
+        doc2.writeAsBytesSync(List.filled(512, 0));
 
         FilePickerPlatform.instance = _FakeFilePicker(
           files: [
@@ -1239,9 +1242,9 @@ void main() {
       'partial upload failure shows error snackbar while preserving successful files',
       (tester) async {
         final goodFile = File('${tempDir.path}/good.pdf');
-        await goodFile.writeAsBytes(List.filled(512, 0));
+        goodFile.writeAsBytesSync(List.filled(512, 0));
         final badFile = File('${tempDir.path}/bad.xyz');
-        await badFile.writeAsBytes(List.filled(512, 0));
+        badFile.writeAsBytesSync(List.filled(512, 0));
 
         FilePickerPlatform.instance = _FakeFilePicker(
           files: [
@@ -1295,11 +1298,13 @@ void main() {
         await _tapAndPumpUntilIdle(tester, find.text('Document'));
 
         expect(find.text('good.pdf'), findsOneWidget);
-        expect(find.text('bad.xyz'), findsNothing);
-        expect(
-          find.text("Some files couldn't be uploaded. Please try again."),
-          findsOneWidget,
-        );
+        // The rejected file keeps its own card, in a failed state, and the
+        // server's reason is shown — it is not silently dropped.
+        expect(find.text('bad.xyz'), findsOneWidget);
+        expect(find.text('Upload failed'), findsOneWidget);
+        expect(find.text('Unsupported file.'), findsOneWidget);
+        // A rejected type fails identically every time: no retry offered.
+        expect(find.byTooltip('Retry upload'), findsNothing);
       },
     );
 
@@ -1309,7 +1314,7 @@ void main() {
       final files = <PlatformFile>[];
       for (var i = 1; i <= 11; i++) {
         final f = File('${tempDir.path}/doc$i.pdf');
-        await f.writeAsBytes(List.filled(64, 0));
+        f.writeAsBytesSync(List.filled(64, 0));
         files.add(
           _TestPlatformFile(name: 'doc$i.pdf', filePath: f.path, sizeBytes: 64),
         );

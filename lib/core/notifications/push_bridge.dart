@@ -27,6 +27,7 @@ import '../../l10n/l10n_extensions.dart';
 import '../api/api_exception.dart';
 import '../providers.dart';
 import '../realtime/realtime_bridge.dart';
+import '../session/session_epoch.dart';
 import '../theme/tokens.dart';
 import 'push_service.dart';
 
@@ -138,12 +139,26 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     );
   }
 
+  /// True while the session this setup started under is still the current
+  /// one (and this widget is still mounted).
+  bool _isCurrent(int epoch) =>
+      mounted && ref.read(sessionEpochProvider).isCurrent(epoch);
+
   /// Runs on first launch with a restored session, and on every fresh login.
   /// Registration is idempotent and cheap, so this is safe to repeat.
+  ///
+  /// Bound to the session it started for. Several of these awaits can take a
+  /// long time — Firebase start-up, the OS permission dialog, the token
+  /// fetch — and the session can end (or be replaced) during any of them.
+  /// Every step re-checks, so an old session's setup stops instead of
+  /// registering the device, or sending requests, under a later session.
   Future<void> _setUpForSignedInAgent() async {
+    final epoch = ref.read(sessionEpochProvider).value;
     _log('_setUpForSignedInAgent() start');
     await PushService.instance.ensureInitialized();
-    await _registerDevice();
+    if (!_isCurrent(epoch)) return _abandoned('after initialize');
+    await _registerDevice(epoch: epoch);
+    if (!_isCurrent(epoch)) return _abandoned('after register');
 
     if (!PushService.instance.isAvailable) {
       _log('_setUpForSignedInAgent() — Firebase unavailable, push stays off.');
@@ -151,9 +166,12 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     }
 
     final granted = await PushService.instance.requestPermission();
+    if (!_isCurrent(epoch)) return _abandoned('after permission');
     _log('_setUpForSignedInAgent() — permission granted: $granted');
     final token = await PushService.instance.getToken();
-    if (token != null) await _registerDevice(token: token);
+    if (!_isCurrent(epoch)) return _abandoned('after token');
+    if (token != null) await _registerDevice(token: token, epoch: epoch);
+    if (!_isCurrent(epoch)) return _abandoned('after token register');
 
     if (!_streamsAttached) {
       _streamsAttached = true;
@@ -161,7 +179,10 @@ class _PushBridgeState extends ConsumerState<PushBridge>
       _tokenRefreshSub = PushService.instance.onTokenRefresh.listen((newToken) {
         _log('onTokenRefresh fired — re-registering device.');
         if (ref.read(authControllerProvider).isAuthenticated) {
-          _registerDevice(token: newToken);
+          _registerDevice(
+            token: newToken,
+            epoch: ref.read(sessionEpochProvider).value,
+          );
         } else {
           _log('onTokenRefresh — not authenticated, skipping register.');
         }
@@ -187,8 +208,17 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     }
   }
 
-  Future<void> _registerDevice({String? token}) async {
+  void _abandoned(String stage) => _log(
+    '_setUpForSignedInAgent() — session changed ($stage); stopping setup.',
+  );
+
+  /// Registers this device for the session identified by [epoch] — skipped
+  /// if that session is no longer current by the time the device id has been
+  /// read, so a registration can never go out under a session that already
+  /// ended.
+  Future<void> _registerDevice({String? token, required int epoch}) async {
     final deviceId = await ref.read(secureStoreProvider).deviceId();
+    if (!_isCurrent(epoch)) return;
     try {
       await ref
           .read(deviceRepositoryProvider)
@@ -206,16 +236,19 @@ class _PushBridgeState extends ConsumerState<PushBridge>
   }
 
   Future<void> _heartbeat() async {
+    final epoch = ref.read(sessionEpochProvider).value;
     final deviceId = await ref.read(secureStoreProvider).deviceId();
+    if (!_isCurrent(epoch)) return;
     try {
       final token = await PushService.instance.getToken();
+      if (!_isCurrent(epoch)) return;
       await ref
           .read(deviceRepositoryProvider)
           .heartbeat(deviceIdentifier: deviceId, pushToken: token);
     } on ApiException catch (error) {
       if (error.code == 'not_registered') {
         _log('_heartbeat() — device row gone, re-registering.');
-        await _registerDevice();
+        await _registerDevice(epoch: epoch);
       } else {
         _log('_heartbeat() failed: ${error.message}');
       }

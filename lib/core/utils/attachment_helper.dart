@@ -1,18 +1,20 @@
 /// Helper utilities for downloading, saving, and opening attachments.
 library;
 
+import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:mime/mime.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../api/api_client.dart';
+import '../api/api_exception.dart';
 import '../logging/app_log.dart';
 import '../models/message.dart';
 import '../../l10n/l10n_extensions.dart';
+import 'safe_url.dart';
 
 class AttachmentHelper {
   const AttachmentHelper._();
@@ -47,10 +49,89 @@ class AttachmentHelper {
     return Directory.systemTemp;
   }
 
+  /// The MIME type to declare for a local file being uploaded, or null when
+  /// nothing about it is recognisable (the transport then sends the honest
+  /// `application/octet-stream`).
+  ///
+  /// The file's own leading bytes ([headerBytes]) win over its name: a
+  /// renamed PNG is still a PNG. The extension — of the display [fileName]
+  /// first, which is what the user saw and picked, then of the on-disk
+  /// [filePath] — is only a fallback for formats with no signature (text,
+  /// CSV, and ZIP-based Office files, which must not be reported as ZIP).
+  /// This is a declaration, not a verdict: the backend re-derives the type
+  /// from the bytes and decides what is accepted.
+  static String? detectMimeType({
+    required String fileName,
+    String? filePath,
+    List<int>? headerBytes,
+  }) {
+    final bytes = (headerBytes == null || headerBytes.isEmpty)
+        ? null
+        : headerBytes;
+    if (bytes != null) {
+      final sniffed = lookupMimeType('', headerBytes: bytes);
+      if (sniffed != null) return sniffed;
+    }
+    return lookupMimeType(fileName) ??
+        (filePath == null ? null : lookupMimeType(filePath));
+  }
+
+  /// The first bytes of [path] — enough for [detectMimeType]'s signature
+  /// check — or null if the file cannot be read. Reads only that prefix,
+  /// whatever the file's size.
+  static Future<List<int>?> readHeaderBytes(String path) async {
+    RandomAccessFile? handle;
+    try {
+      handle = await File(path).open();
+      return await handle.read(defaultMagicNumbersMaxLength);
+    } on FileSystemException {
+      return null;
+    } finally {
+      await handle?.close();
+    }
+  }
+
+  /// Longest filename, in UTF-8 bytes, this writes to disk: under the
+  /// 255-byte limit of ext4/F2FS/APFS with room for a " (12)" collision
+  /// suffix and a cache-key prefix. An Arabic name is two bytes a character,
+  /// so a character count alone is not a safe measure.
+  static const maxFileNameBytes = 180;
+
+  /// [name] made safe to use as a single path segment: no separators or
+  /// reserved/control characters, never `.`/`..`, never empty, and trimmed
+  /// to [maxBytes] UTF-8 bytes with the extension kept.
+  static String safeFileName(String name, {int maxBytes = maxFileNameBytes}) {
+    var sanitized = name
+        .replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1F\x7F]'), '_')
+        .trim();
+    if (sanitized.isEmpty || RegExp(r'^\.+$').hasMatch(sanitized)) {
+      sanitized = 'file';
+    }
+    if (utf8.encode(sanitized).length <= maxBytes) return sanitized;
+
+    final dot = sanitized.lastIndexOf('.');
+    var ext = dot > 0 ? sanitized.substring(dot) : '';
+    // An "extension" too long to be one is just part of the name.
+    if (utf8.encode(ext).length > 16) ext = '';
+    var stem = ext.isEmpty ? sanitized : sanitized.substring(0, dot);
+    final budget = maxBytes - utf8.encode(ext).length;
+    // Trim whole characters (runes), never a UTF-8 sequence in half.
+    final runes = stem.runes.toList();
+    var used = 0;
+    var keep = 0;
+    for (final rune in runes) {
+      final size = utf8.encode(String.fromCharCode(rune)).length;
+      if (used + size > budget) break;
+      used += size;
+      keep++;
+    }
+    stem = String.fromCharCodes(runes.take(keep)).trim();
+    return '${stem.isEmpty ? 'file' : stem}$ext';
+  }
+
   /// Sanitizes and ensures a unique filename in [directory].
   static String getUniqueFilePath(Directory directory, String baseName) {
-    var sanitized = baseName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_').trim();
-    if (sanitized.isEmpty) sanitized = 'file';
+    final sanitized = safeFileName(baseName);
 
     final dotIndex = sanitized.lastIndexOf('.');
     final name = dotIndex != -1 ? sanitized.substring(0, dotIndex) : sanitized;
@@ -191,12 +272,19 @@ class AttachmentHelper {
   ) async {
     final dir = await getAttachmentsDirectory();
     final fileName = suggestFileName(attachment);
-    final key = attachment.attachmentId.isNotEmpty
-        ? attachment.attachmentId
-        : attachment.resolvedUrl.hashCode.abs().toString();
-    final safeName = fileName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-    return File('${dir.path}/${key}_$safeName');
+    final key = safeFileName(
+      attachment.attachmentId.isNotEmpty
+          ? attachment.attachmentId
+          : attachment.resolvedUrl.hashCode.abs().toString(),
+      maxBytes: 64,
+    );
+    return File('${dir.path}/${key}_${safeFileName(fileName)}');
   }
+
+  /// Downloads in progress, by cache path — a second tap on the same file
+  /// joins the first transfer instead of starting a competing one that
+  /// writes to the same place.
+  static final Map<String, Future<File?>> _inFlight = {};
 
   /// Checks if [attachment] is already downloaded and available locally.
   static Future<File?> findLocalAttachment(MessageAttachment attachment) async {
@@ -216,8 +304,13 @@ class AttachmentHelper {
     return null;
   }
 
-  /// Downloads the attachment bytes using [api] (including authentication cookies)
+  /// Downloads the attachment using [api] (including authentication cookies)
   /// or returns existing local file if already downloaded and cached locally.
+  ///
+  /// The body is streamed to a `.part` file beside the cache entry and only
+  /// renamed into place once complete, so the cache can never hold a
+  /// truncated file that [findLocalAttachment] would then serve as whole —
+  /// and a large document never passes through memory.
   static Future<File?> downloadAttachmentFile({
     required MessageAttachment attachment,
     required ApiClient api,
@@ -227,73 +320,75 @@ class AttachmentHelper {
     final local = await findLocalAttachment(attachment);
     if (local != null) return local;
 
-    final url = attachment.resolvedUrl;
+    final target = await getCachedAttachmentFile(attachment);
+    return _inFlight[target.path] ??= _download(
+      attachment: attachment,
+      api: api,
+      target: target,
+      messageId: messageId,
+    ).whenComplete(() {
+      // A block, not `=>`: remove() returns this very future, and
+      // whenComplete would wait on it — waiting on itself forever.
+      _inFlight.remove(target.path);
+    });
+  }
+
+  static Future<File?> _download({
+    required MessageAttachment attachment,
+    required ApiClient api,
+    required File target,
+    int? messageId,
+  }) async {
+    // Same rule as every other server-supplied media URL: https (or the
+    // configured dev host), never anything the session cookie should not
+    // follow.
+    final url = SafeUrl.forImage(attachment.resolvedUrl);
     if (url.isEmpty) {
       AppLog.debug(
         'AttachmentHelper',
-        'Download aborted: missing URL for attachmentId=${attachment.attachmentId}, '
-        'messageId=$messageId, mimeType=${attachment.mimeType}, fileName=${attachment.fileName}',
+        'Download aborted: no usable URL for attachmentId=${attachment.attachmentId}, '
+        'messageId=$messageId',
       );
       return null;
     }
 
+    final part = File('${target.path}.part');
     try {
-      final response = await api.raw.get<List<int>>(
-        url,
-        options: Options(
-          responseType: ResponseType.bytes,
-          followRedirects: true,
-        ),
-      );
-
-      final status = response.statusCode ?? 0;
-      final bytes = response.data;
-
-      if (status != 200 && status != 206) {
+      await api.downloadToFile(url, part.path);
+      if (!part.existsSync() || part.lengthSync() == 0) {
         AppLog.debug(
           'AttachmentHelper',
-          'Download failed: status=$status, attachmentId=${attachment.attachmentId}, '
-          'messageId=$messageId, mimeType=${attachment.mimeType}, fileName=${attachment.fileName}',
-        );
-        AppLog.warn(
-          'AttachmentHelper',
-          'Attachment download failed (HTTP status $status)',
+          'Download returned empty payload: attachmentId=${attachment.attachmentId}, '
+          'messageId=$messageId',
         );
         return null;
       }
-
-      if (bytes == null || bytes.isEmpty) {
-        AppLog.debug(
-          'AttachmentHelper',
-          'Download returned empty payload: status=$status, attachmentId=${attachment.attachmentId}, '
-          'messageId=$messageId, mimeType=${attachment.mimeType}, fileName=${attachment.fileName}',
-        );
-        return null;
-      }
-
-      final targetFile = await getCachedAttachmentFile(attachment);
-      targetFile.writeAsBytesSync(bytes, flush: true);
-      return targetFile;
-    } on DioException catch (e) {
-      final status = e.response?.statusCode ?? 0;
+      return await part.rename(target.path);
+    } on ApiException catch (e) {
       AppLog.debug(
         'AttachmentHelper',
-        'Download transport failure: status=$status, type=${e.type}, '
+        'Download failed: status=${e.statusCode}, code=${e.code}, '
         'attachmentId=${attachment.attachmentId}, messageId=$messageId, '
-        'mimeType=${attachment.mimeType}, fileName=${attachment.fileName}',
+        'mimeType=${attachment.mimeType}',
       );
       AppLog.warn(
         'AttachmentHelper',
-        'Attachment download transport error ($status)',
+        'Attachment download failed (HTTP status ${e.statusCode})',
       );
       return null;
     } catch (e) {
       AppLog.debug(
         'AttachmentHelper',
-        'Download unexpected exception: $e, attachmentId=${attachment.attachmentId}, '
-        'messageId=$messageId, mimeType=${attachment.mimeType}, fileName=${attachment.fileName}',
+        'Download unexpected exception: ${e.runtimeType}, '
+        'attachmentId=${attachment.attachmentId}, messageId=$messageId',
       );
       return null;
+    } finally {
+      try {
+        if (part.existsSync()) part.deleteSync();
+      } on FileSystemException {
+        // A leftover .part is never read as a finished file.
+      }
     }
   }
 
@@ -367,11 +462,9 @@ class AttachmentHelper {
         messenger.hideCurrentSnackBar();
         messenger.showSnackBar(
           SnackBar(
-            content: Text(
-              openResult.message.isNotEmpty
-                  ? openResult.message
-                  : context.l10n.attachmentDownloadError,
-            ),
+            // The plugin's own message is a diagnostic (paths, permission
+            // names), not copy for the agent.
+            content: Text(context.l10n.attachmentDownloadError),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -405,11 +498,8 @@ class AttachmentHelper {
   }) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final local = await findLocalAttachment(attachment);
-      Uint8List bytes;
-      if (local != null) {
-        bytes = await local.readAsBytes();
-      } else {
+      var source = await findLocalAttachment(attachment);
+      if (source == null) {
         if (context.mounted) {
           messenger.showSnackBar(
             SnackBar(
@@ -428,14 +518,15 @@ class AttachmentHelper {
         if (downloaded == null || !downloaded.existsSync()) {
           throw StateError('Download failed');
         }
-        bytes = await downloaded.readAsBytes();
+        source = downloaded;
       }
 
       final dir = await getAccessibleDirectory();
       final fileName = suggestFileName(attachment);
       final targetPath = getUniqueFilePath(dir, fileName);
-      final file = File(targetPath);
-      file.writeAsBytesSync(bytes, flush: true);
+      // A file-to-file copy: never the whole document in memory, never a
+      // blocking write on the UI thread.
+      final file = await source.copy(targetPath);
 
       if (!context.mounted) return;
       messenger.hideCurrentSnackBar();
@@ -487,11 +578,9 @@ class AttachmentHelper {
           context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              openResult.message.isNotEmpty
-                  ? openResult.message
-                  : context.l10n.attachmentDownloadError,
-            ),
+            // The plugin's own message is a diagnostic (paths, permission
+            // names), not copy for the agent.
+            content: Text(context.l10n.attachmentDownloadError),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );

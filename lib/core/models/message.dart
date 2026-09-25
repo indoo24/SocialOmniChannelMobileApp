@@ -469,7 +469,22 @@ class Message {
           );
         }
       }
-      text = text.replaceAll(markerRegex, '').trim();
+      // A marker takes the spaces around it with it; a single space is put
+      // back only where it separated two words, so "receipt: [[media:IMAGE]]
+      // and" reads "receipt: and", not "receipt:  and". Spacing elsewhere in
+      // the customer's own text is left exactly as sent.
+      final source = text;
+      text = source.replaceAllMapped(
+        RegExp(
+          '[ \\t]*(?:${markerRegex.pattern})[ \\t]*',
+          caseSensitive: false,
+        ),
+        (m) {
+          final before = m.start == 0 ? '' : source[m.start - 1];
+          final after = m.end >= source.length ? '' : source[m.end];
+          return before.trim().isNotEmpty && after.trim().isNotEmpty ? ' ' : '';
+        },
+      ).trim();
     }
 
     final id = JsonSafe.asInt(json['id'], fallback: -1);
