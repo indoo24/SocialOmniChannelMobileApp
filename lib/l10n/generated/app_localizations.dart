@@ -5251,6 +5251,47 @@ abstract class AppLocalizations {
   /// **'Returned to {name}, who had already taken this conversation'**
   String historyClaimedOwnerRestored(String name);
 
+  /// Title of the optional app-update dialog shown when Google Play has a newer build than the one installed
+  ///
+  /// In en, this message translates to:
+  /// **'Update available'**
+  String get updateAvailableTitle;
+
+  /// Body of the optional app-update dialog
+  ///
+  /// In en, this message translates to:
+  /// **'A new version of Scenario is available. Update now to get the latest improvements.'**
+  String get updateAvailableBody;
+
+  /// Primary button of the update dialog; starts Google Play's in-app update, or opens this app's Play listing when that is unavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Update now'**
+  String get updateNowAction;
+
+  /// Dismiss button of the update dialogs; the update is optional and is offered again on a future launch
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get updateLaterAction;
+
+  /// Title of the dialog shown once Google Play has finished downloading an update the agent accepted
+  ///
+  /// In en, this message translates to:
+  /// **'Update ready to install'**
+  String get updateReadyTitle;
+
+  /// Body of the update-downloaded dialog
+  ///
+  /// In en, this message translates to:
+  /// **'The new version of Scenario has been downloaded. Restart the app to finish installing it.'**
+  String get updateReadyBody;
+
+  /// Primary button of the update-downloaded dialog; restarts the app into the new version
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get updateRestartAction;
   /// No description provided for @historyFallbackAssigned.
   ///
   /// In en, this message translates to:

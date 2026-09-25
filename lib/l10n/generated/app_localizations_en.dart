@@ -2935,6 +2935,27 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get updateAvailableTitle => 'Update available';
+
+  @override
+  String get updateAvailableBody =>
+      'A new version of Scenario is available. Update now to get the latest improvements.';
+
+  @override
+  String get updateNowAction => 'Update now';
+
+  @override
+  String get updateLaterAction => 'Later';
+
+  @override
+  String get updateReadyTitle => 'Update ready to install';
+
+  @override
+  String get updateReadyBody =>
+      'The new version of Scenario has been downloaded. Restart the app to finish installing it.';
+
+  @override
+  String get updateRestartAction => 'Restart';
   String historyFallbackAssigned(String name) {
     return 'Assigned to $name (fallback)';
   }

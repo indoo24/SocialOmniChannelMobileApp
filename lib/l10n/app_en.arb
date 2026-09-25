@@ -1608,6 +1608,35 @@
   "@historyClaimedByReplying": {"placeholders": {"name": {"type": "String"}}},
   "historyClaimedOwnerRestored": "Returned to {name}, who had already taken this conversation",
   "@historyClaimedOwnerRestored": {"placeholders": {"name": {"type": "String"}}},
+
+  "updateAvailableTitle": "Update available",
+  "@updateAvailableTitle": {
+    "description": "Title of the optional app-update dialog shown when Google Play has a newer build than the one installed"
+  },
+  "updateAvailableBody": "A new version of Scenario is available. Update now to get the latest improvements.",
+  "@updateAvailableBody": {
+    "description": "Body of the optional app-update dialog"
+  },
+  "updateNowAction": "Update now",
+  "@updateNowAction": {
+    "description": "Primary button of the update dialog; starts Google Play's in-app update, or opens this app's Play listing when that is unavailable"
+  },
+  "updateLaterAction": "Later",
+  "@updateLaterAction": {
+    "description": "Dismiss button of the update dialogs; the update is optional and is offered again on a future launch"
+  },
+  "updateReadyTitle": "Update ready to install",
+  "@updateReadyTitle": {
+    "description": "Title of the dialog shown once Google Play has finished downloading an update the agent accepted"
+  },
+  "updateReadyBody": "The new version of Scenario has been downloaded. Restart the app to finish installing it.",
+  "@updateReadyBody": {
+    "description": "Body of the update-downloaded dialog"
+  },
+  "updateRestartAction": "Restart",
+  "@updateRestartAction": {
+    "description": "Primary button of the update-downloaded dialog; restarts the app into the new version"
+  }
   "historyFallbackAssigned": "Assigned to {name} (fallback)",
   "@historyFallbackAssigned": {"placeholders": {"name": {"type": "String"}}},
   "historyFallbackReasonsLabel": "Reason: {reasons}",

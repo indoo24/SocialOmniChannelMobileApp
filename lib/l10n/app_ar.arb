@@ -927,6 +927,14 @@
   "tiktokReadinessReference": "مرجع TikTok: {reference}",
   "historyClaimedByReplying": "استلم {name} المحادثة بعد الرد عليها",
   "historyClaimedOwnerRestored": "أُعيدت المحادثة إلى {name} الذي كان قد استلمها سابقًا",
+
+  "updateAvailableTitle": "يتوفر تحديث جديد",
+  "updateAvailableBody": "يتوفر إصدار جديد من Scenario. حدّث الآن للحصول على أحدث التحسينات.",
+  "updateNowAction": "تحديث الآن",
+  "updateLaterAction": "لاحقًا",
+  "updateReadyTitle": "التحديث جاهز للتثبيت",
+  "updateReadyBody": "تم تنزيل الإصدار الجديد من Scenario. أعد تشغيل التطبيق لإكمال التثبيت.",
+  "updateRestartAction": "إعادة التشغيل"
   "historyFallbackAssigned": "أُسندت إلى {name} (احتياطيًا)",
   "historyFallbackReasonsLabel": "السبب: {reasons}",
   "historyRerouted": "أُعيد توجيهها من {previousName} إلى {name}",
