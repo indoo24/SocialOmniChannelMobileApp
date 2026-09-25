@@ -870,6 +870,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceNoteLabel => 'Voice note';
 
   @override
+  String get playbackSpeedTooltip => 'Playback speed';
+
+  @override
   String get recordingText => 'Recording';
 
   @override

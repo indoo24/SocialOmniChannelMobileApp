@@ -389,6 +389,7 @@
   "recordingFailedError": "Couldn't start recording. Please try again.",
   "voiceMessageLabel": "Voice message",
   "voiceNoteLabel": "Voice note",
+  "playbackSpeedTooltip": "Playback speed",
   "recordingText": "Recording",
   "playVoiceMessageTooltip": "Play voice message",
   "pauseVoiceMessageTooltip": "Pause voice message",

@@ -294,6 +294,7 @@
   "recordingFailedError": "تعذّر بدء التسجيل. حاول مرة أخرى.",
   "voiceMessageLabel": "رسالة صوتية",
   "voiceNoteLabel": "تسجيل صوتي",
+  "playbackSpeedTooltip": "سرعة التشغيل",
   "recordingText": "تسجيل",
   "playVoiceMessageTooltip": "تشغيل الرسالة الصوتية",
   "pauseVoiceMessageTooltip": "إيقاف الرسالة الصوتية مؤقتًا",

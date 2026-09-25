@@ -866,6 +866,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get voiceNoteLabel => 'تسجيل صوتي';
 
   @override
+  String get playbackSpeedTooltip => 'سرعة التشغيل';
+
+  @override
   String get recordingText => 'تسجيل';
 
   @override
