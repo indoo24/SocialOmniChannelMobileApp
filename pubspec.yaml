@@ -70,6 +70,18 @@ dependencies:
   image_picker: ^1.1.2
   record: ^7.1.1
 
+  # Google Play In-App Updates (Play Core `AppUpdateManager`). This is the
+  # only mechanism that answers "does Play have a newer build than the one
+  # installed?" without this app shipping a version number of its own: the
+  # Play Store app on the device already knows the published versionCode for
+  # this package and reports it back. Nothing is hard-coded and no backend
+  # endpoint is involved.
+  #
+  # Android-only by design — it is a Play Core binding, and its plugin
+  # declares no iOS platform, so it is a no-op elsewhere and
+  # `AppUpdateService` guards every call with a Platform.isAndroid check.
+  in_app_update: ^5.0.0
+
   # Voice-message playback in the conversation thread — play/pause and
   # progress for a received or sent voice note, streamed straight from the
   # authenticated attachment-content endpoint (a Cookie header, same as

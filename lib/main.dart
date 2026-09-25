@@ -19,6 +19,7 @@ import 'core/preferences/preferences_controller.dart';
 import 'core/providers.dart';
 import 'core/realtime/realtime_bridge.dart';
 import 'core/theme/app_theme.dart';
+import 'core/update/app_update_bridge.dart';
 import 'core/widgets/states.dart';
 import 'features/authentication/auth_controller.dart';
 import 'features/splash/splash_screen.dart';
@@ -162,14 +163,19 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: ref.watch(routerProvider),
+      // Three lifecycle bridges, mounted once above the router rather than
+      // inside any screen: the socket, push, and the Play update check. Each
+      // owns its own WidgetsBindingObserver for its own concern.
       builder: (context, child) => RealtimeBridge(
         child: PushBridge(
-          child: MediaQuery.withClampedTextScaling(
-            // Respect the reader's text size, but stop extreme scaling from
-            // destroying the inbox layout entirely.
-            minScaleFactor: 0.85,
-            maxScaleFactor: 1.4,
-            child: child ?? const SizedBox.shrink(),
+          child: AppUpdateBridge(
+            child: MediaQuery.withClampedTextScaling(
+              // Respect the reader's text size, but stop extreme scaling from
+              // destroying the inbox layout entirely.
+              minScaleFactor: 0.85,
+              maxScaleFactor: 1.4,
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
         ),
       ),
