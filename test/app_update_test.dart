@@ -9,14 +9,21 @@
 /// reason.
 ///
 /// Covers:
-/// - no update available -> no dialog
+/// - no update available / already latest -> no dialog
 /// - update available -> exactly one dialog
-/// - "Update now" -> opens this app's Play listing (market:// then https://)
+/// - "Update now" -> Play's flexible in-app flow; the Play listing
+///   (market:// then https://) only when that flow cannot run
+/// - download finished -> "restart to install" -> Play completes the install
 /// - "Later" -> dismisses, and does not re-ask in the same session
-/// - a resume while the dialog is up cannot stack a second dialog
-/// - a failing check / network failure never crashes and shows nothing
+/// - a resume while the dialog is up, or mid-download, cannot stack a second
+/// - resumes are throttled; a check runs again once the interval has passed
+/// - no check before sign-in; the session survives the bridge remounting
+/// - a failing check / network failure / failed download never crashes
 /// - English and Arabic strings, RTL and LTR, dark mode, small-phone layout
 library;
+
+import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,13 +35,27 @@ import 'package:scenario_mobile/core/update/update_available_dialog.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Answers a canned status, or throws, without a platform channel.
+/// Plays Google Play's part without a platform channel: a canned check
+/// result, a canned (or held-open) flexible flow, and a record of every call.
 class _FakeChecker implements UpdateChecker {
-  _FakeChecker(this.status, {this.error});
+  _FakeChecker(
+    this.status, {
+    this.error,
+    this.flexibleResult = FlexibleUpdateResult.downloaded,
+  });
 
   AppUpdateStatus status;
   Object? error;
+  FlexibleUpdateResult flexibleResult;
+  Object? flexibleError;
+
+  /// When set, the flexible flow stays "downloading" until this completes —
+  /// how a test observes the app while Play is still fetching the update.
+  Completer<FlexibleUpdateResult>? download;
+
   int checkCount = 0;
+  int flexibleStarts = 0;
+  int completeCalls = 0;
 
   @override
   Future<AppUpdateStatus> check() async {
@@ -42,22 +63,33 @@ class _FakeChecker implements UpdateChecker {
     if (error != null) throw error!;
     return status;
   }
+
+  @override
+  Future<FlexibleUpdateResult> startFlexibleUpdate() async {
+    flexibleStarts++;
+    if (flexibleError != null) throw flexibleError!;
+    return download?.future ?? flexibleResult;
+  }
+
+  @override
+  Future<void> completeFlexibleUpdate() async {
+    completeCalls++;
+  }
 }
 
 /// A checker that fails the way the real one does — swallowing the error and
 /// reporting "no update" — so the bridge is exercised against a realistic
 /// failure rather than an exception production code never actually emits.
-class _SwallowingChecker implements UpdateChecker {
-  _SwallowingChecker(this.error);
+class _SwallowingChecker extends _FakeChecker {
+  _SwallowingChecker(this.failure) : super(AppUpdateStatus.notAvailable);
 
-  final Object error;
-  int checkCount = 0;
+  final Object failure;
 
   @override
   Future<AppUpdateStatus> check() async {
     checkCount++;
     try {
-      throw error;
+      throw failure;
     } catch (_) {
       return AppUpdateStatus.notAvailable;
     }
@@ -95,14 +127,17 @@ AppUpdateService _service(UpdateChecker checker, _FakeOpener opener) =>
 /// `showDialog(context: context)` would throw there and show nothing — while
 /// passing happily under a simpler `home:` harness. Mounting the real shape is
 /// what makes these tests able to catch that.
-Widget _app({
-  required AppUpdateService service,
-  Locale locale = const Locale('en'),
-  ThemeMode themeMode = ThemeMode.light,
-  Duration startupDelay = const Duration(milliseconds: 10),
-}) {
+///
+/// One harness per test, rebuilt with different arguments to model sign-in
+/// ([enabled]) or `main.dart` swapping the bridge out and back ([withBridge]).
+/// Each gets its own [AppUpdateSession] so no test inherits another's.
+class _Harness {
+  _Harness(this.service);
+
+  final AppUpdateService service;
+  final session = AppUpdateSession();
   final navigatorKey = GlobalKey<NavigatorState>();
-  final router = GoRouter(
+  late final router = GoRouter(
     navigatorKey: navigatorKey,
     routes: [
       GoRoute(
@@ -113,21 +148,46 @@ Widget _app({
     ],
   );
 
-  return MaterialApp.router(
-    theme: AppTheme.light,
-    darkTheme: AppTheme.dark,
-    themeMode: themeMode,
-    locale: locale,
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    routerConfig: router,
-    builder: (context, child) => AppUpdateBridge(
-      service: service,
-      startupDelay: startupDelay,
-      navigatorKey: navigatorKey,
-      child: child ?? const SizedBox.shrink(),
-    ),
-  );
+  Widget build({
+    bool enabled = true,
+    bool withBridge = true,
+    Locale locale = const Locale('en'),
+    ThemeMode themeMode = ThemeMode.light,
+    Duration startupDelay = const Duration(milliseconds: 10),
+  }) {
+    return MaterialApp.router(
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      routerConfig: router,
+      builder: (context, child) => withBridge
+          ? AppUpdateBridge(
+              enabled: enabled,
+              service: service,
+              session: session,
+              startupDelay: startupDelay,
+              navigatorKey: navigatorKey,
+              child: child ?? const SizedBox.shrink(),
+            )
+          : child ?? const SizedBox.shrink(),
+    );
+  }
+}
+
+Widget _app({
+  required AppUpdateService service,
+  Locale locale = const Locale('en'),
+  ThemeMode themeMode = ThemeMode.light,
+}) => _Harness(service).build(locale: locale, themeMode: themeMode);
+
+/// A lifecycle round trip: background (or the shade, or Play's sheet) and back.
+Future<void> _resume(WidgetTester tester) async {
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+  await tester.pumpAndSettle();
 }
 
 /// Pumps past the bridge's startup timer and lets the dialog settle.
@@ -137,11 +197,13 @@ Future<void> _settle(WidgetTester tester) async {
 }
 
 const _enBody =
-    'A new version of the app is available. Please update to get the latest '
-    'improvements and fixes.';
+    'A new version of Scenario is available. Update now to get the latest '
+    'improvements.';
 const _arBody =
-    'يوجد إصدار جديد من التطبيق. حدّث التطبيق للحصول على أحدث التحسينات '
-    'والإصلاحات.';
+    'يتوفر إصدار جديد من Scenario. حدّث الآن للحصول على أحدث التحسينات.';
+const _enReadyBody =
+    'The new version of Scenario has been downloaded. Restart the app to '
+    'finish installing it.';
 
 void main() {
   group('AppUpdateService', () {
@@ -213,6 +275,128 @@ void main() {
 
       expect(await service.openStoreListing(), isFalse);
     });
+
+    test('the package name matches applicationId in build.gradle.kts', () {
+      // Read from the file itself, so renaming the app without updating the
+      // listing URL fails here rather than sending agents to someone else's
+      // (or no) Play page.
+      final gradle = File('android/app/build.gradle.kts').readAsStringSync();
+      final applicationId = RegExp(
+        r'applicationId\s*=\s*"([^"]+)"',
+      ).firstMatch(gradle)?.group(1);
+
+      expect(applicationId, AppUpdateService.androidPackageName);
+    });
+
+    test('startUpdate: a finished download is ready to install', () async {
+      final opener = _FakeOpener();
+      final service = _service(_FakeChecker(AppUpdateStatus.available), opener);
+
+      expect(await service.startUpdate(), UpdateFlowOutcome.readyToInstall);
+      expect(opener.opened, isEmpty);
+    });
+
+    test('startUpdate: declining Play sheet opens nothing', () async {
+      final opener = _FakeOpener();
+      final service = _service(
+        _FakeChecker(
+          AppUpdateStatus.available,
+          flexibleResult: FlexibleUpdateResult.declined,
+        ),
+        opener,
+      );
+
+      expect(await service.startUpdate(), UpdateFlowOutcome.declined);
+      expect(opener.opened, isEmpty);
+    });
+
+    test(
+      'startUpdate: unavailable in-app flow opens the Play listing',
+      () async {
+        final opener = _FakeOpener();
+        final service = _service(
+          _FakeChecker(
+            AppUpdateStatus.available,
+            flexibleResult: FlexibleUpdateResult.unavailable,
+          ),
+          opener,
+        );
+
+        expect(
+          await service.startUpdate(),
+          UpdateFlowOutcome.openedStoreListing,
+        );
+        expect(opener.opened, [AppUpdateService.marketUri]);
+      },
+    );
+
+    test(
+      'startUpdate: a throwing in-app flow opens the Play listing',
+      () async {
+        final opener = _FakeOpener();
+        final checker = _FakeChecker(AppUpdateStatus.available)
+          ..flexibleError = Exception('REQUIRE_FOREGROUND_ACTIVITY');
+        final service = _service(checker, opener);
+
+        expect(
+          await service.startUpdate(),
+          UpdateFlowOutcome.openedStoreListing,
+        );
+        expect(opener.opened, [AppUpdateService.marketUri]);
+      },
+    );
+
+    test(
+      'startUpdate: a failed download does not yank the agent into Play',
+      () async {
+        final opener = _FakeOpener();
+        final service = _service(
+          _FakeChecker(
+            AppUpdateStatus.available,
+            flexibleResult: FlexibleUpdateResult.failed,
+          ),
+          opener,
+        );
+
+        expect(await service.startUpdate(), UpdateFlowOutcome.failed);
+        expect(opener.opened, isEmpty);
+      },
+    );
+
+    test('checkForUpdate never throws, even if the checker does', () async {
+      final service = _service(
+        _FakeChecker(AppUpdateStatus.available, error: Exception('boom')),
+        _FakeOpener(),
+      );
+
+      expect(await service.checkForUpdate(), AppUpdateStatus.notAvailable);
+    });
+
+    test('installDownloadedUpdate hands over to Play', () async {
+      final checker = _FakeChecker(AppUpdateStatus.downloaded);
+      await _service(checker, _FakeOpener()).installDownloadedUpdate();
+
+      expect(checker.completeCalls, 1);
+    });
+
+    test(
+      'the real Play checker degrades cleanly without Google Play',
+      () async {
+        // The test host is not an Android device with Play, which is exactly
+        // the sideloaded / no-Play case: no update is reported, and "Update
+        // now" still lands on the official listing.
+        final opener = _FakeOpener();
+        final service = AppUpdateService(openUrl: opener.call);
+
+        expect(await service.checkForUpdate(), AppUpdateStatus.notAvailable);
+        expect(
+          await service.startUpdate(),
+          UpdateFlowOutcome.openedStoreListing,
+        );
+        expect(opener.opened, [AppUpdateService.marketUri]);
+        await service.installDownloadedUpdate();
+      },
+    );
   });
 
   group('AppUpdateBridge', () {
@@ -245,19 +429,41 @@ void main() {
       expect(find.text('Later'), findsOneWidget);
     });
 
-    testWidgets('Update now opens this app Play listing', (tester) async {
+    testWidgets('Update now starts Play in-app flexible update', (
+      tester,
+    ) async {
+      final checker = _FakeChecker(AppUpdateStatus.available)
+        ..download = Completer();
       final opener = _FakeOpener();
-      await tester.pumpWidget(
-        _app(
-          service: _service(_FakeChecker(AppUpdateStatus.available), opener),
-        ),
-      );
+      await tester.pumpWidget(_app(service: _service(checker, opener)));
       await _settle(tester);
 
       await tester.tap(find.text('Update now'));
       await tester.pumpAndSettle();
 
-      expect(opener.opened.first, AppUpdateService.marketUri);
+      // Play's flow, not the listing — and the dialog is gone, so the agent
+      // keeps working while it downloads.
+      expect(checker.flexibleStarts, 1);
+      expect(opener.opened, isEmpty);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text('inbox'), findsOneWidget);
+    });
+
+    testWidgets('Update now falls back to the Play listing when the in-app '
+        'flow is unavailable', (tester) async {
+      final checker = _FakeChecker(
+        AppUpdateStatus.available,
+        flexibleResult: FlexibleUpdateResult.unavailable,
+      );
+      final opener = _FakeOpener();
+      await tester.pumpWidget(_app(service: _service(checker, opener)));
+      await _settle(tester);
+
+      await tester.tap(find.text('Update now'));
+      await tester.pumpAndSettle();
+
+      expect(checker.flexibleStarts, 1);
+      expect(opener.opened, [AppUpdateService.marketUri]);
       expect(find.byType(AlertDialog), findsNothing);
     });
 
@@ -387,7 +593,13 @@ void main() {
       final opener = _FakeOpener(succeedOn: 'no-such-scheme');
       await tester.pumpWidget(
         _app(
-          service: _service(_FakeChecker(AppUpdateStatus.available), opener),
+          service: _service(
+            _FakeChecker(
+              AppUpdateStatus.available,
+              flexibleResult: FlexibleUpdateResult.unavailable,
+            ),
+            opener,
+          ),
         ),
       );
       await _settle(tester);
@@ -424,6 +636,262 @@ void main() {
 
       expect(find.byType(AlertDialog), findsNothing);
       expect(find.text('inbox'), findsOneWidget);
+    });
+  });
+
+  group('AppUpdateBridge — download, install and session', () {
+    testWidgets('download completes -> restart prompt -> Play installs', (
+      tester,
+    ) async {
+      final checker = _FakeChecker(AppUpdateStatus.available)
+        ..download = Completer();
+      final harness = _Harness(_service(checker, _FakeOpener()));
+      await tester.pumpWidget(harness.build());
+      await _settle(tester);
+
+      await tester.tap(find.text('Update now'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(harness.session.busy, isTrue);
+
+      // Play finishes downloading in the background.
+      checker.download!.complete(FlexibleUpdateResult.downloaded);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Update ready to install'), findsOneWidget);
+      expect(find.text(_enReadyBody), findsOneWidget);
+      expect(find.text('Restart'), findsOneWidget);
+
+      await tester.tap(find.text('Restart'));
+      await tester.pumpAndSettle();
+
+      expect(checker.completeCalls, 1);
+      expect(find.byType(AlertDialog), findsNothing);
+      // The flow is over: nothing is left marked in progress.
+      expect(harness.session.busy, isFalse);
+    });
+
+    testWidgets('Later on the restart prompt leaves the update for later', (
+      tester,
+    ) async {
+      final checker = _FakeChecker(AppUpdateStatus.available);
+      final harness = _Harness(_service(checker, _FakeOpener()));
+      await tester.pumpWidget(harness.build());
+      await _settle(tester);
+
+      await tester.tap(find.text('Update now'));
+      await tester.pumpAndSettle();
+      expect(find.text('Update ready to install'), findsOneWidget);
+
+      await tester.tap(find.text('Later'));
+      await tester.pumpAndSettle();
+      await _resume(tester);
+
+      expect(checker.completeCalls, 0);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(harness.session.busy, isFalse);
+      expect(find.text('inbox'), findsOneWidget);
+    });
+
+    testWidgets('an update downloaded earlier is offered for install', (
+      tester,
+    ) async {
+      // The agent accepted in a previous session and never restarted.
+      final checker = _FakeChecker(AppUpdateStatus.downloaded);
+      await tester.pumpWidget(_app(service: _service(checker, _FakeOpener())));
+      await _settle(tester);
+
+      expect(find.text('Update ready to install'), findsOneWidget);
+      expect(checker.flexibleStarts, 0);
+
+      await tester.tap(find.text('Restart'));
+      await tester.pumpAndSettle();
+      expect(checker.completeCalls, 1);
+    });
+
+    testWidgets('resuming mid-download neither re-checks nor re-prompts', (
+      tester,
+    ) async {
+      final checker = _FakeChecker(AppUpdateStatus.available)
+        ..download = Completer();
+      final harness = _Harness(_service(checker, _FakeOpener()));
+      await tester.pumpWidget(harness.build());
+      await _settle(tester);
+      await tester.tap(find.text('Update now'));
+      await tester.pumpAndSettle();
+
+      // Even with the throttle out of the way.
+      harness.session.lastCheck = DateTime.now().subtract(
+        AppUpdateBridge.minimumCheckInterval * 2,
+      );
+      await _resume(tester);
+      await _resume(tester);
+
+      expect(checker.checkCount, 1);
+      expect(checker.flexibleStarts, 1);
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('declining Play sheet ends the flow quietly', (tester) async {
+      final checker = _FakeChecker(
+        AppUpdateStatus.available,
+        flexibleResult: FlexibleUpdateResult.declined,
+      );
+      final opener = _FakeOpener();
+      final harness = _Harness(_service(checker, opener));
+      await tester.pumpWidget(harness.build());
+      await _settle(tester);
+
+      await tester.tap(find.text('Update now'));
+      await tester.pumpAndSettle();
+      await _resume(tester);
+
+      expect(opener.opened, isEmpty);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(harness.session.busy, isFalse);
+    });
+
+    testWidgets('a failed download leaves the app usable', (tester) async {
+      final checker = _FakeChecker(
+        AppUpdateStatus.available,
+        flexibleResult: FlexibleUpdateResult.failed,
+      );
+      final opener = _FakeOpener();
+      final harness = _Harness(_service(checker, opener));
+      await tester.pumpWidget(harness.build());
+      await _settle(tester);
+
+      await tester.tap(find.text('Update now'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(opener.opened, isEmpty);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(harness.session.busy, isFalse);
+      expect(find.text('inbox'), findsOneWidget);
+    });
+
+    testWidgets('a throwing in-app flow falls back without crashing', (
+      tester,
+    ) async {
+      final checker = _FakeChecker(AppUpdateStatus.available)
+        ..flexibleError = Exception('Play Store unavailable');
+      final opener = _FakeOpener();
+      await tester.pumpWidget(_app(service: _service(checker, opener)));
+      await _settle(tester);
+
+      await tester.tap(find.text('Update now'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(opener.opened, [AppUpdateService.marketUri]);
+      expect(find.text('inbox'), findsOneWidget);
+    });
+
+    testWidgets('startup check and a resume racing it show one dialog', (
+      tester,
+    ) async {
+      final checker = _FakeChecker(AppUpdateStatus.available);
+      await tester.pumpWidget(_app(service: _service(checker, _FakeOpener())));
+
+      // A resume lands in the same instant the startup timer fires.
+      await tester.pump(const Duration(milliseconds: 10));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(checker.checkCount, 1);
+      expect(find.byType(UpdateAvailableDialog), findsOneWidget);
+    });
+
+    testWidgets('a resume after the interval checks Play again', (
+      tester,
+    ) async {
+      final checker = _FakeChecker(AppUpdateStatus.notAvailable);
+      final harness = _Harness(_service(checker, _FakeOpener()));
+      await tester.pumpWidget(harness.build());
+      await _settle(tester);
+      expect(checker.checkCount, 1);
+
+      harness.session.lastCheck = DateTime.now().subtract(
+        AppUpdateBridge.minimumCheckInterval + const Duration(minutes: 1),
+      );
+      await _resume(tester);
+
+      // Checked again — and, already on the latest version, still nothing.
+      expect(checker.checkCount, 2);
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('a newer build published mid-session is offered on resume', (
+      tester,
+    ) async {
+      final checker = _FakeChecker(AppUpdateStatus.notAvailable);
+      final harness = _Harness(_service(checker, _FakeOpener()));
+      await tester.pumpWidget(harness.build());
+      await _settle(tester);
+      expect(find.byType(AlertDialog), findsNothing);
+
+      checker.status = AppUpdateStatus.available;
+      harness.session.lastCheck = DateTime.now().subtract(
+        AppUpdateBridge.minimumCheckInterval + const Duration(minutes: 1),
+      );
+      await _resume(tester);
+
+      expect(find.byType(UpdateAvailableDialog), findsOneWidget);
+    });
+
+    testWidgets('does not check before sign-in, then checks once signed in', (
+      tester,
+    ) async {
+      final checker = _FakeChecker(AppUpdateStatus.available);
+      final harness = _Harness(_service(checker, _FakeOpener()));
+      await tester.pumpWidget(harness.build(enabled: false));
+      await _settle(tester);
+      await _resume(tester);
+
+      // The login screen: no check, no dialog over the form.
+      expect(checker.checkCount, 0);
+      expect(find.byType(AlertDialog), findsNothing);
+
+      await tester.pumpWidget(harness.build());
+      await _settle(tester);
+
+      expect(checker.checkCount, 1);
+      expect(find.byType(UpdateAvailableDialog), findsOneWidget);
+    });
+
+    testWidgets('signing out before the startup check cancels it', (
+      tester,
+    ) async {
+      final checker = _FakeChecker(AppUpdateStatus.available);
+      final harness = _Harness(_service(checker, _FakeOpener()));
+      await tester.pumpWidget(harness.build());
+      await tester.pumpWidget(harness.build(enabled: false));
+      await _settle(tester);
+
+      expect(checker.checkCount, 0);
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('the bridge remounting does not ask a second time', (
+      tester,
+    ) async {
+      final checker = _FakeChecker(AppUpdateStatus.available);
+      final harness = _Harness(_service(checker, _FakeOpener()));
+      await tester.pumpWidget(harness.build());
+      await _settle(tester);
+      await tester.tap(find.text('Later'));
+      await tester.pumpAndSettle();
+
+      // `main.dart` swapping MaterialApps drops the bridge and builds a new
+      // one; the session outlives it.
+      await tester.pumpWidget(harness.build(withBridge: false));
+      await tester.pumpWidget(harness.build());
+      await _settle(tester);
+
+      expect(checker.checkCount, 1);
+      expect(find.byType(AlertDialog), findsNothing);
     });
   });
 
@@ -516,6 +984,34 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('تحديث الآن'), findsOneWidget);
       expect(find.text('لاحقًا'), findsOneWidget);
+    });
+
+    testWidgets('restart prompt: Arabic, dark mode, small phone', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(320 * 2, 480 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _app(
+          service: _service(
+            _FakeChecker(AppUpdateStatus.downloaded),
+            _FakeOpener(),
+          ),
+          locale: const Locale('ar'),
+          themeMode: ThemeMode.dark,
+        ),
+      );
+      await _settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('التحديث جاهز للتثبيت'), findsOneWidget);
+      expect(find.text('إعادة التشغيل'), findsOneWidget);
+      expect(find.text('لاحقًا'), findsOneWidget);
+      final context = tester.element(find.byType(UpdateAvailableDialog));
+      expect(Theme.of(context).brightness, Brightness.dark);
+      expect(Directionality.of(context), TextDirection.rtl);
     });
   });
 }

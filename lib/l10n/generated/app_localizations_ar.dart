@@ -2600,4 +2600,27 @@ class AppLocalizationsAr extends AppLocalizations {
   String historyClaimedOwnerRestored(String name) {
     return 'أُعيدت المحادثة إلى $name الذي كان قد استلمها سابقًا';
   }
+
+  @override
+  String get updateAvailableTitle => 'يتوفر تحديث جديد';
+
+  @override
+  String get updateAvailableBody =>
+      'يتوفر إصدار جديد من Scenario. حدّث الآن للحصول على أحدث التحسينات.';
+
+  @override
+  String get updateNowAction => 'تحديث الآن';
+
+  @override
+  String get updateLaterAction => 'لاحقًا';
+
+  @override
+  String get updateReadyTitle => 'التحديث جاهز للتثبيت';
+
+  @override
+  String get updateReadyBody =>
+      'تم تنزيل الإصدار الجديد من Scenario. أعد تشغيل التطبيق لإكمال التثبيت.';
+
+  @override
+  String get updateRestartAction => 'إعادة التشغيل';
 }

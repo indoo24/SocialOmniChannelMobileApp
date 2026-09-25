@@ -1,4 +1,5 @@
-/// The "an update is available" dialog.
+/// The "an update is available" dialog, and its "update downloaded, restart
+/// to install" follow-up.
 ///
 /// Presentational and optional-only: it offers, it never blocks. There is no
 /// barrier lock, no `PopScope` interception and no force-update path — the
@@ -17,9 +18,22 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/l10n_extensions.dart';
 
+/// Which question the dialog is asking.
+enum UpdateDialogStage {
+  /// Play has a newer build: "Update now" starts downloading it.
+  available,
+
+  /// The agent already accepted and Play finished downloading: the primary
+  /// action restarts the app into the new version.
+  readyToInstall,
+}
+
 /// What the agent chose. Returned by [showUpdateAvailableDialog]; `null` when
 /// the dialog was dismissed without a choice (back gesture or scrim tap),
 /// which is treated exactly like [later].
+///
+/// [updateNow] is the primary action in either stage — "Update now" or
+/// "Restart".
 enum UpdateDialogChoice { updateNow, later }
 
 /// Shows the optional-update dialog and resolves to the agent's choice.
@@ -29,30 +43,41 @@ enum UpdateDialogChoice { updateNow, later }
 /// router's navigator and therefore has none of its own — it passes the
 /// navigator's own context instead. Getting this wrong does not degrade
 /// gracefully: `showDialog` throws, and the dialog simply never appears.
-Future<UpdateDialogChoice?> showUpdateAvailableDialog(BuildContext context) {
+Future<UpdateDialogChoice?> showUpdateAvailableDialog(
+  BuildContext context, {
+  UpdateDialogStage stage = UpdateDialogStage.available,
+}) {
   return showDialog<UpdateDialogChoice>(
     context: context,
     // Dismissible on purpose: this is an optional update (see the library
     // comment). The guard against a second dialog lives in the caller, not in
     // a modal barrier here.
     barrierDismissible: true,
-    builder: (dialogContext) => const UpdateAvailableDialog(),
+    builder: (dialogContext) => UpdateAvailableDialog(stage: stage),
   );
 }
 
 /// The dialog body. Public so it can be pumped directly in tests without
 /// standing up a navigator route.
 class UpdateAvailableDialog extends StatelessWidget {
-  const UpdateAvailableDialog({super.key});
+  const UpdateAvailableDialog({
+    this.stage = UpdateDialogStage.available,
+    super.key,
+  });
+
+  final UpdateDialogStage stage;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final ready = stage == UpdateDialogStage.readyToInstall;
 
     return AlertDialog(
-      icon: const Icon(Icons.system_update_outlined),
-      title: Text(l10n.updateAvailableTitle),
-      content: Text(l10n.updateAvailableBody),
+      icon: Icon(
+        ready ? Icons.download_done_outlined : Icons.system_update_outlined,
+      ),
+      title: Text(ready ? l10n.updateReadyTitle : l10n.updateAvailableTitle),
+      content: Text(ready ? l10n.updateReadyBody : l10n.updateAvailableBody),
       // Stacked rather than side by side: "Update now" and "Later" are both
       // long enough in Arabic that a Row overflows a small phone once the
       // text scales up.
@@ -61,7 +86,7 @@ class UpdateAvailableDialog extends StatelessWidget {
         FilledButton(
           onPressed: () =>
               Navigator.of(context).pop(UpdateDialogChoice.updateNow),
-          child: Text(l10n.updateNowAction),
+          child: Text(ready ? l10n.updateRestartAction : l10n.updateNowAction),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(UpdateDialogChoice.later),

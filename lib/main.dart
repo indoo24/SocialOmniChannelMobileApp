@@ -169,6 +169,9 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
       builder: (context, child) => RealtimeBridge(
         child: PushBridge(
           child: AppUpdateBridge(
+            // Only once signed in: the prompt belongs in the app proper, not
+            // on top of the login form.
+            enabled: auth.isAuthenticated,
             child: MediaQuery.withClampedTextScaling(
               // Respect the reader's text size, but stop extreme scaling from
               // destroying the inbox layout entirely.
