@@ -2956,6 +2956,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateRestartAction => 'Restart';
+
+  @override
   String historyFallbackAssigned(String name) {
     return 'Assigned to $name (fallback)';
   }

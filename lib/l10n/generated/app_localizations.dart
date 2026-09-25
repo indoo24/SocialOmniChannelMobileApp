@@ -5292,6 +5292,7 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restart'**
   String get updateRestartAction;
+
   /// No description provided for @historyFallbackAssigned.
   ///
   /// In en, this message translates to:

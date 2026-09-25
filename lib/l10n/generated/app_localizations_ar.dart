@@ -2976,6 +2976,8 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get updateRestartAction => 'إعادة التشغيل';
+
+  @override
   String historyFallbackAssigned(String name) {
     return 'أُسندت إلى $name (احتياطيًا)';
   }

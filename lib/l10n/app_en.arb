@@ -1636,7 +1636,7 @@
   "updateRestartAction": "Restart",
   "@updateRestartAction": {
     "description": "Primary button of the update-downloaded dialog; restarts the app into the new version"
-  }
+  },
   "historyFallbackAssigned": "Assigned to {name} (fallback)",
   "@historyFallbackAssigned": {"placeholders": {"name": {"type": "String"}}},
   "historyFallbackReasonsLabel": "Reason: {reasons}",
