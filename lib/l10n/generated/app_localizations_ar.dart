@@ -815,6 +815,26 @@ class AppLocalizationsAr extends AppLocalizations {
   String get attachmentUploadFailedError => 'تعذّر رفع الملف. حاول مرة أخرى.';
 
   @override
+  String get attachmentTooLargeError => 'هذا الملف أكبر من أن يُرسل.';
+
+  @override
+  String get cancelUploadTooltip => 'إلغاء الرفع';
+
+  @override
+  String get retryUploadTooltip => 'إعادة محاولة الرفع';
+
+  @override
+  String get attachmentUploadFailedLabel => 'فشل الرفع';
+
+  @override
+  String get attachmentUploadedLabel => 'تم الرفع';
+
+  @override
+  String attachmentUploadPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
   String get attachmentPermissionDeniedError =>
       'تم رفض الإذن. فعّله من إعدادات جهازك لإرفاق الصور.';
 
@@ -888,6 +908,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get replyMessageAction => 'رد';
+
+  @override
+  String get copyMessageAction => 'نسخ';
+
+  @override
+  String get messageCopiedSnackbar => 'تم النسخ';
 
   @override
   String replyingToLabel(String name) {

@@ -58,6 +58,17 @@ class _StubAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+/// Pumps on the real event loop until [done] (bounded). Opening a document
+/// streams its download to disk with real async file I/O, which completes
+/// only on a real event loop — so a test that taps a file chip drives it
+/// from inside `runAsync()`, the same way the composer upload tests do.
+Future<void> _pumpRealUntil(WidgetTester tester, bool Function() done) async {
+  for (var i = 0; i < 100 && !done(); i++) {
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await tester.pump();
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -506,15 +517,16 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.byIcon(Icons.download_rounded), findsOneWidget);
 
-      // Tap the chip to start download
-      await tester.tap(find.text('blueprint.pdf'));
-      await tester.pump();
-
-      // Progress spinner is visible while download is in flight
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-      // Complete the download
+      // Tap the chip to start download. Inside runAsync: the download
+      // streams to disk with real async file I/O.
       await tester.runAsync(() async {
+        await tester.tap(find.text('blueprint.pdf'));
+        await tester.pump();
+
+        // Progress spinner is visible while download is in flight
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+        // Complete the download
         completer.complete(
           ResponseBody.fromBytes(
             Uint8List.fromList([37, 80, 68, 70]),
@@ -524,9 +536,8 @@ void main() {
             },
           ),
         );
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await _pumpRealUntil(tester, () => openFileCalls.isNotEmpty);
       });
-      await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
       // Spinner is gone, openFileRunner was invoked
@@ -744,11 +755,9 @@ void main() {
         expect(find.byIcon(Icons.image_outlined), findsOneWidget);
 
         // Tap the chip to download & open
-        await tester.tap(find.text('IMG-20260921-WA0010.jpg'));
-        await tester.pump();
-
         await tester.runAsync(() async {
-          await Future<void>.delayed(const Duration(milliseconds: 100));
+          await tester.tap(find.text('IMG-20260921-WA0010.jpg'));
+          await _pumpRealUntil(tester, () => openFileCalls.isNotEmpty);
         });
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
@@ -820,11 +829,9 @@ void main() {
         expect(find.byType(CachedNetworkImage), findsNothing);
         expect(find.text('screenshot.png'), findsOneWidget);
 
-        await tester.tap(find.text('screenshot.png'));
-        await tester.pump();
-
         await tester.runAsync(() async {
-          await Future<void>.delayed(const Duration(milliseconds: 100));
+          await tester.tap(find.text('screenshot.png'));
+          await _pumpRealUntil(tester, () => openFileCalls.isNotEmpty);
         });
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));

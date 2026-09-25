@@ -15,6 +15,7 @@
 ///   login rather than showing a generic error
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -233,19 +234,141 @@ class ApiClient {
     ),
   );
 
+  /// How long a file transfer may go without moving a single byte before it
+  /// is treated as stalled.
+  static const transferIdleTimeout = Duration(seconds: 30);
+
+  /// A multipart upload — [post] for a body that can take minutes to send.
+  ///
+  /// The client-wide `sendTimeout` bounds the *whole* request body (Dio
+  /// wraps the entire body stream in one timeout), which is right for JSON
+  /// and wrong for a file: at 1 Mbit/s a 30-second budget is ~3.7 MB, so
+  /// every larger document failed identically however often it was retried.
+  /// Here that total budget is replaced by [idleTimeout] — the upload only
+  /// fails if it stops *progressing*, however long a healthy one takes.
+  ///
+  /// [cancelToken] lets the caller abandon it; that surfaces as
+  /// [RequestCancelledException], never as an error to show.
+  Future<T> upload<T>(
+    String path, {
+    required FormData body,
+    ProgressCallback? onSendProgress,
+    CancelToken? cancelToken,
+    Duration idleTimeout = transferIdleTimeout,
+  }) {
+    final token = cancelToken ?? CancelToken();
+    final watchdog = _IdleWatchdog(idleTimeout, token)..arm();
+    return _send<T>(
+      () => _dio.post<dynamic>(
+        path,
+        data: body,
+        cancelToken: token,
+        options: Options(sendTimeout: Duration.zero),
+        onSendProgress: (sent, total) {
+          // Once the last byte is out, the wait for the server's answer is
+          // the ordinary receiveTimeout's job.
+          if (total > 0 && sent >= total) {
+            watchdog.stop();
+          } else {
+            watchdog.arm();
+          }
+          onSendProgress?.call(sent, total);
+        },
+      ),
+      watchdog: watchdog,
+    );
+  }
+
+  /// Streams [url] straight to [savePath] — never through memory — and only
+  /// leaves a file there if the whole body arrived with a success status.
+  ///
+  /// Session expiry and error statuses behave as for every other request;
+  /// a transfer that stops progressing for [idleTimeout] fails as a
+  /// timeout rather than hanging (Dio's receiveTimeout only covers the wait
+  /// for headers, not the body after them).
+  Future<void> downloadToFile(
+    String url,
+    String savePath, {
+    CancelToken? cancelToken,
+    Duration idleTimeout = transferIdleTimeout,
+  }) async {
+    final token = cancelToken ?? CancelToken();
+    final watchdog = _IdleWatchdog(idleTimeout, token)..arm();
+    final file = File(savePath);
+    late final Response<dynamic> response;
+    try {
+      response = await _dio.download(
+        url,
+        savePath,
+        cancelToken: token,
+        onReceiveProgress: (_, _) => watchdog.arm(),
+      );
+    } on DioException catch (error) {
+      _logTransportError(error);
+      _deleteQuietly(file);
+      throw _mapTransportError(error, stalled: watchdog.fired);
+    } finally {
+      watchdog.stop();
+    }
+
+    final status = response.statusCode ?? 0;
+    final requestLabel = 'GET ${AppLog.redactUri(Uri.tryParse(url))}';
+    if (status < 200 || status >= 300) {
+      // validateStatus accepts everything, so an error body was just written
+      // where the file should be. It is not the file.
+      _deleteQuietly(file);
+      _log('$requestLabel -> $status');
+      if (status == 401) {
+        _reportExpiry(response);
+        throw SessionExpiredException();
+      }
+      throw ApiException.fromResponse(status, null);
+    }
+
+    // A connection that closes early still ends the stream "successfully";
+    // only the declared length can tell a truncated file from a whole one.
+    final declared = int.tryParse(
+      response.headers.value(Headers.contentLengthHeader) ?? '',
+    );
+    final encoded =
+        (response.headers.value(Headers.contentEncodingHeader) ?? '')
+            .isNotEmpty;
+    if (declared != null && !encoded && file.lengthSync() != declared) {
+      _deleteQuietly(file);
+      _log('$requestLabel -> $status (truncated)');
+      throw NetworkException(
+        'The download was interrupted. Check your connection and try again.',
+      );
+    }
+    _log('$requestLabel -> $status');
+  }
+
+  static void _deleteQuietly(File file) {
+    try {
+      if (file.existsSync()) file.deleteSync();
+    } on FileSystemException {
+      // Nothing more to do; the caller never treats it as a finished file.
+    }
+  }
+
   Future<T> patch<T>(String path, {Object? body}) =>
       _send<T>(() => _dio.patch<dynamic>(path, data: body));
 
   Future<T> delete<T>(String path, {Object? body}) =>
       _send<T>(() => _dio.delete<dynamic>(path, data: body));
 
-  Future<T> _send<T>(Future<Response<dynamic>> Function() request) async {
+  Future<T> _send<T>(
+    Future<Response<dynamic>> Function() request, {
+    _IdleWatchdog? watchdog,
+  }) async {
     late final Response<dynamic> response;
     try {
       response = await request();
     } on DioException catch (error) {
       _logTransportError(error);
-      throw _mapTransportError(error);
+      throw _mapTransportError(error, stalled: watchdog?.fired ?? false);
+    } finally {
+      watchdog?.stop();
     }
 
     final status = response.statusCode ?? 0;
@@ -289,6 +412,8 @@ class ApiClient {
     throw ApiException.fromResponse(status, response.data);
   }
 
+  /// [stalled] marks a cancel issued by an [_IdleWatchdog] rather than by
+  /// the caller: that one is a timeout to report, not a silent cancel.
   /// Signing in: a 401 there is a credentials failure for the caller to
   /// show, never a session expiry — it falls through to the ordinary
   /// [ApiException] mapping instead.
@@ -302,11 +427,15 @@ class ApiClient {
     _onSessionExpired?.call(epoch is int ? epoch : null);
   }
 
-  ApiException _mapTransportError(DioException error) {
+  ApiException _mapTransportError(DioException error, {bool stalled = false}) {
+    if (error.type == DioExceptionType.cancel && !stalled) {
+      return RequestCancelledException();
+    }
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
+      case DioExceptionType.cancel:
         return NetworkException(
           'The server took too long to respond. Check your connection and try again.',
         );
@@ -320,8 +449,6 @@ class ApiClient {
         return NetworkException(
           'The server\'s certificate could not be verified.',
         );
-      case DioExceptionType.cancel:
-        return NetworkException('The request was cancelled.');
       default:
         return NetworkException('Something went wrong talking to the server.');
     }
@@ -344,6 +471,34 @@ class ApiClient {
       '${AppLog.redactUri(error.requestOptions.uri)} — type: ${error.type}, '
       'message: ${error.message}, error: ${error.error}',
     );
+  }
+}
+
+/// Cancels a transfer that has gone [timeout] without progress.
+///
+/// Re-[arm]ed on every progress callback, so it measures silence rather than
+/// total duration. [fired] tells the caller the cancel was a stall, not a
+/// user's own cancel on the same token.
+class _IdleWatchdog {
+  _IdleWatchdog(this.timeout, this.token);
+
+  final Duration timeout;
+  final CancelToken token;
+  Timer? _timer;
+  bool fired = false;
+
+  void arm() {
+    _timer?.cancel();
+    _timer = Timer(timeout, () {
+      if (token.isCancelled) return;
+      fired = true;
+      token.cancel('No progress for ${timeout.inSeconds}s');
+    });
+  }
+
+  void stop() {
+    _timer?.cancel();
+    _timer = null;
   }
 }
 

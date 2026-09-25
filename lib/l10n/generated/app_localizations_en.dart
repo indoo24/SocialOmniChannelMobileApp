@@ -818,6 +818,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t upload that file. Please try again.';
 
   @override
+  String get attachmentTooLargeError => 'That file is too large to send.';
+
+  @override
+  String get cancelUploadTooltip => 'Cancel upload';
+
+  @override
+  String get retryUploadTooltip => 'Retry upload';
+
+  @override
+  String get attachmentUploadFailedLabel => 'Upload failed';
+
+  @override
+  String get attachmentUploadedLabel => 'Uploaded';
+
+  @override
+  String attachmentUploadPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
   String get attachmentPermissionDeniedError =>
       'Permission was denied. Enable it in your device settings to attach photos.';
 
@@ -892,6 +912,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get replyMessageAction => 'Reply';
+
+  @override
+  String get copyMessageAction => 'Copy';
+
+  @override
+  String get messageCopiedSnackbar => 'Copied';
 
   @override
   String replyingToLabel(String name) {
