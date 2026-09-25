@@ -31,6 +31,8 @@ import 'package:scenario_mobile/features/messages/composer_attachment.dart';
 import 'package:scenario_mobile/features/messages/conversation_screen.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
+import 'support/composer_upload_harness.dart';
+
 // ---------------------------------------------------------------------------
 // Fakes
 // ---------------------------------------------------------------------------
@@ -214,7 +216,8 @@ Employee _employee() => const Employee(
   organization: Organization(id: 1, name: 'Acme Retail'),
 );
 
-/// The attachment button alone, reporting what it staged or the error.
+/// The attachment button and its upload queue, reporting what was staged
+/// or the error.
 Future<void> _pumpButton(
   WidgetTester tester,
   _StubAdapter adapter, {
@@ -229,12 +232,7 @@ Future<void> _pumpButton(
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Center(
-            child: ComposerAttachmentButton(
-              conversationId: 42,
-              enabled: true,
-              onStaged: staged.addAll,
-              onError: (e) => errors?.add(e),
-            ),
+            child: ComposerUploadHarness(staged: staged, errors: errors),
           ),
         ),
       ),
@@ -252,7 +250,10 @@ Future<void> _choose(WidgetTester tester, String option) async {
     for (var i = 0; i < 40; i++) {
       await Future<void>.delayed(const Duration(milliseconds: 20));
       await tester.pump();
-      if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
+      if (find.byType(CircularProgressIndicator).evaluate().isEmpty &&
+          find.byType(LinearProgressIndicator).evaluate().isEmpty) {
+        break;
+      }
     }
   });
   await tester.pump(const Duration(milliseconds: 300));
@@ -266,7 +267,12 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tempDir.exists()) await tempDir.delete(recursive: true);
+    try {
+      if (await tempDir.exists()) await tempDir.delete(recursive: true);
+    } on FileSystemException {
+      // Windows refuses to delete a file an image card's thumbnail decode
+      // still has open; the OS reclaims its temp directory regardless.
+    }
   });
 
   /// A real file on disk named [name] holding [size] bytes.

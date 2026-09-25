@@ -363,6 +363,18 @@
   "attachmentLimitReached": "You can attach up to 10 files per message.",
   "attachmentPartialUploadError": "Some files couldn't be uploaded. Please try again.",
   "attachmentUploadFailedError": "Couldn't upload that file. Please try again.",
+  "attachmentTooLargeError": "That file is too large to send.",
+  "cancelUploadTooltip": "Cancel upload",
+  "retryUploadTooltip": "Retry upload",
+  "attachmentUploadFailedLabel": "Upload failed",
+  "attachmentUploadedLabel": "Uploaded",
+  "attachmentUploadPercent": "{percent}%",
+  "@attachmentUploadPercent": {
+    "description": "Share of an attachment already uploaded, on its composer card.",
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
   "attachmentPermissionDeniedError": "Permission was denied. Enable it in your device settings to attach photos.",
   "recordVoiceTooltip": "Record a voice message",
   "recordingLabel": "Recording {duration}",

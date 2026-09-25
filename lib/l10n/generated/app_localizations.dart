@@ -1598,6 +1598,42 @@ abstract class AppLocalizations {
   /// **'Couldn\'t upload that file. Please try again.'**
   String get attachmentUploadFailedError;
 
+  /// No description provided for @attachmentTooLargeError.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is too large to send.'**
+  String get attachmentTooLargeError;
+
+  /// No description provided for @cancelUploadTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel upload'**
+  String get cancelUploadTooltip;
+
+  /// No description provided for @retryUploadTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry upload'**
+  String get retryUploadTooltip;
+
+  /// No description provided for @attachmentUploadFailedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failed'**
+  String get attachmentUploadFailedLabel;
+
+  /// No description provided for @attachmentUploadedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploaded'**
+  String get attachmentUploadedLabel;
+
+  /// Share of an attachment already uploaded, on its composer card.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String attachmentUploadPercent(int percent);
+
   /// No description provided for @attachmentPermissionDeniedError.
   ///
   /// In en, this message translates to:

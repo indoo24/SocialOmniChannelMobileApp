@@ -288,6 +288,12 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   /// non-negative id) — the backend refuses an optimistic id here, so
   /// quoting another still-pending bubble is not offered by the UI in the
   /// first place.
+  ///
+  /// [reuseLocalId] is for [retry] only: resending under the failed attempt's own
+  /// id keeps the same `client_message_id`, which is what lets the backend
+  /// recognise a retry of a send that actually landed (response lost to a
+  /// timeout or a dropped connection) and return that message instead of
+  /// sending the customer a second copy. A fresh send gets a fresh id.
   Future<void> send(
     String text, {
     String? attachmentId,
@@ -295,6 +301,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     List<String>? attachmentIds,
     List<MessageAttachment>? attachmentPreviews,
     QuotedMessage? replyTo,
+    String? reuseLocalId,
   }) async {
     final current = state.value;
     final trimmed = text.trim();
@@ -311,7 +318,8 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     if (current == null || (trimmed.isEmpty && !hasAttachments)) return;
 
     final employee = ref.read(currentEmployeeProvider);
-    final localId = 'local-${DateTime.now().microsecondsSinceEpoch}';
+    final localId =
+        reuseLocalId ?? 'local-${DateTime.now().microsecondsSinceEpoch}';
 
     final pending = Message.pending(
       localId: localId,
@@ -455,7 +463,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   /// The failed row is removed before resending rather than kept alongside,
   /// so a retry can never leave two copies of the same reply on screen — and
   /// the backend's own `client_message_id` idempotency covers the case
-  /// where the first attempt actually landed but the response was lost.
+  /// where the first attempt actually landed but the response was lost. That
+  /// only holds because the retry reuses the failed row's [Message.localId]
+  /// as its `client_message_id`; a fresh id would read as a new message.
   ///
   /// If the failed row carried an attachment, its draft id
   /// ([Message.pendingAttachmentId]) is resent against — the draft itself
@@ -482,6 +492,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       attachmentIds: failed.pendingAttachmentIds,
       attachmentPreviews: failed.attachments,
       replyTo: failed.replyTo,
+      reuseLocalId: localId,
     );
   }
 

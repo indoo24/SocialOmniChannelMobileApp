@@ -2019,12 +2019,12 @@ class _ComposerState extends ConsumerState<_Composer> {
   bool _sendingTemplate = false;
   bool _userToggledMode = false;
 
-  /// Files already picked and uploaded, waiting to be sent (or removed).
-  /// Voice notes skip this state entirely — recording finishes and sends in
-  /// one motion, matching WhatsApp's own behavior, rather than sitting as a
-  /// staged preview the agent could otherwise edit alongside typed text.
-  final List<StagedAttachment> _stagedAttachments = [];
-  bool _isUploadingAttachments = false;
+  /// Files picked for this message — uploading, uploaded or failed — each
+  /// shown as its own card until sent or removed. Voice notes skip this
+  /// entirely — recording finishes and sends in one motion, matching
+  /// WhatsApp's own behavior, rather than sitting as a staged preview the
+  /// agent could otherwise edit alongside typed text.
+  late final ComposerUploadQueue _uploads;
   bool _isRecording = false;
   final _voiceRecorderKey = GlobalKey<ComposerVoiceRecorderState>();
 
@@ -2035,22 +2035,43 @@ class _ComposerState extends ConsumerState<_Composer> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _onAttachmentsStaged(List<StagedAttachment> stagedList) {
-    setState(() {
-      for (final s in stagedList) {
-        if (_stagedAttachments.length < 10) {
-          _stagedAttachments.add(s);
-        }
-      }
-    });
+  @override
+  void initState() {
+    super.initState();
+    // Created up front, never lazily: dispose() must not be the first
+    // touch, when `ref` can no longer be read.
+    _uploads = ComposerUploadQueue(
+      repository: ref.read(conversationRepositoryProvider),
+      conversationId: widget.conversationId,
+      onFailed: _explainUploadFailure,
+    )..addListener(_onUploadsChanged);
   }
 
-  void _onAttachmentRemoved(int index) {
-    setState(() {
-      if (index >= 0 && index < _stagedAttachments.length) {
-        _stagedAttachments.removeAt(index);
-      }
-    });
+  @override
+  void dispose() {
+    _uploads
+      ..removeListener(_onUploadsChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  /// A card was added, removed or changed state — the only upload events
+  /// the composer itself cares about (the card count, and whether Send has
+  /// to wait). Byte progress repaints the card alone.
+  void _onUploadsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// The card says a file failed; this says why.
+  void _explainUploadFailure(ComposerUpload upload) {
+    final error = upload.error;
+    _showMessage(
+      error == null || error.message.isEmpty
+          ? context.l10n.attachmentUploadFailedError
+          : error.statusCode == 413
+          ? context.l10n.attachmentTooLargeError
+          : error.message,
+    );
   }
 
   /// Put a saved reply into the reply box, at the caret.
@@ -2249,20 +2270,16 @@ class _ComposerState extends ConsumerState<_Composer> {
                       ),
                     ),
                   ),
-                if (_stagedAttachments.isNotEmpty)
+                if (_uploads.count > 0)
                   Align(
                     alignment: AlignmentDirectional.centerStart,
-                    child: ComposerAttachmentsPreviewBar(
-                      conversationId: widget.conversationId,
-                      attachments: _stagedAttachments,
-                      onRemoved: _onAttachmentRemoved,
-                    ),
+                    child: ComposerAttachmentsPreviewBar(uploads: _uploads),
                   ),
                 if (_isRecording)
                   ComposerVoiceRecorder(
                     key: _voiceRecorderKey,
                     conversationId: widget.conversationId,
-                    enabled: !widget.sending && !_isUploadingAttachments,
+                    enabled: !widget.sending && !_uploads.hasActiveUploads,
                     onStaged: _onVoiceStaged,
                     onError: _showMessage,
                     onRecordingChanged: (recording) {
@@ -2277,19 +2294,14 @@ class _ComposerState extends ConsumerState<_Composer> {
                       // platform accepts files, so it never offers a send
                       // that is certain to fail.
                       if (outboundMedia)
+                        // Stays usable while files upload: each card shows
+                        // its own progress, and more can be added.
                         ComposerAttachmentButton(
                           conversationId: widget.conversationId,
-                          enabled: !widget.sending && !_isUploadingAttachments,
-                          currentStagedCount: _stagedAttachments.length,
-                          onStaged: _onAttachmentsStaged,
+                          enabled: !widget.sending,
+                          currentStagedCount: _uploads.count,
+                          onPicked: _uploads.add,
                           onError: _showMessage,
-                          onUploadingChanged: (uploading) {
-                            if (mounted) {
-                              setState(
-                                () => _isUploadingAttachments = uploading,
-                              );
-                            }
-                          },
                         ),
                       // Saved replies: inserts text for the agent to edit,
                       // never sends. Only in this row, which exists only while
@@ -2302,9 +2314,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                         child: IconButton(
                           key: const Key('savedRepliesButton'),
                           tooltip: context.l10n.savedRepliesTooltip,
-                          onPressed: (widget.sending || _isUploadingAttachments)
-                              ? null
-                              : _insertSavedReply,
+                          onPressed: widget.sending ? null : _insertSavedReply,
                           icon: const Icon(Icons.quickreply_outlined, size: 22),
                         ),
                       ),
@@ -2333,7 +2343,8 @@ class _ComposerState extends ConsumerState<_Composer> {
                         ComposerVoiceRecorder(
                           key: _voiceRecorderKey,
                           conversationId: widget.conversationId,
-                          enabled: !widget.sending && !_isUploadingAttachments,
+                          enabled:
+                              !widget.sending && !_uploads.hasActiveUploads,
                           onStaged: _onVoiceStaged,
                           onError: _showMessage,
                           onRecordingChanged: (recording) {
@@ -2348,15 +2359,14 @@ class _ComposerState extends ConsumerState<_Composer> {
                         width: 44,
                         height: 44,
                         child: IconButton.filled(
-                          onPressed: (widget.sending || _isUploadingAttachments)
+                          // Waits only for files still uploading, so a
+                          // message never leaves without one. Failed cards
+                          // are not sent and stay put to retry or remove.
+                          onPressed:
+                              (widget.sending || _uploads.hasActiveUploads)
                               ? null
                               : () {
-                                  final staged = List<StagedAttachment>.from(
-                                    _stagedAttachments,
-                                  );
-                                  if (staged.isNotEmpty) {
-                                    setState(() => _stagedAttachments.clear());
-                                  }
+                                  final staged = _uploads.takeUploaded();
                                   widget.onSend(
                                     attachmentIds: staged
                                         .map((s) => s.draftId)
