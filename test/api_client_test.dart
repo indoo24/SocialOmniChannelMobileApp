@@ -181,7 +181,7 @@ void _sessionExpiryTests() {
 
     final client = ApiClient.create(
       cookieJar: CookieJar(),
-      onSessionExpired: () => notifications += 1,
+      onSessionExpired: (_) => notifications += 1,
     );
     client.raw.httpClientAdapter = _StubAdapter((_) => json('{}', 401));
 
@@ -206,7 +206,7 @@ void _sessionExpiryTests() {
       ]) {
         final client = ApiClient.create(
           cookieJar: CookieJar(),
-          onSessionExpired: () => paths.add(path),
+          onSessionExpired: (_) => paths.add(path),
         );
         client.raw.httpClientAdapter = _StubAdapter((_) => json('{}', 401));
 
@@ -226,7 +226,7 @@ void _sessionExpiryTests() {
     for (final status in const [400, 403, 404, 429, 500]) {
       final client = ApiClient.create(
         cookieJar: CookieJar(),
-        onSessionExpired: () => notifications += 1,
+        onSessionExpired: (_) => notifications += 1,
       );
       client.raw.httpClientAdapter = _StubAdapter((_) => json('{}', status));
 
@@ -261,7 +261,7 @@ void _sessionExpiryTests() {
 
     final client = ApiClient.create(
       cookieJar: CookieJar(),
-      onSessionExpired: () => notifications += 1,
+      onSessionExpired: (_) => notifications += 1,
     );
     client.raw.httpClientAdapter = _StubAdapter(
       (_) => json(
@@ -285,7 +285,7 @@ void _sessionExpiryTests() {
 
     final client = ApiClient.create(
       cookieJar: CookieJar(),
-      onSessionExpired: () => notifications += 1,
+      onSessionExpired: (_) => notifications += 1,
     );
     client.raw.httpClientAdapter = _StubAdapter(
       (_) => json(

@@ -215,7 +215,7 @@ void _closeCodeTests() {
           channel = _ClosingChannel(closeCode);
           return channel;
         },
-        onUnauthorized: () => unauthorizedCalls += 1,
+        onUnauthorized: (_) => unauthorizedCalls += 1,
       );
 
       await client.connect();
@@ -251,7 +251,7 @@ void _closeCodeTests() {
           channel = _ClosingChannel(null);
           return channel;
         },
-        onUnauthorized: () => unauthorizedCalls += 1,
+        onUnauthorized: (_) => unauthorizedCalls += 1,
       );
 
       await client.connect();
