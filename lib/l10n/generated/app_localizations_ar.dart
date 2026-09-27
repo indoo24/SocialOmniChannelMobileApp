@@ -930,6 +930,43 @@ class AppLocalizationsAr extends AppLocalizations {
   String get quotedMessageUnavailableLabel => 'الرسالة الأصلية غير متاحة';
 
   @override
+  String get conversationSourceFromAd => 'جاء من إعلان على Meta';
+
+  @override
+  String get conversationSourceFromPost => 'جاء من منشور على Meta';
+
+  @override
+  String get conversationSourceUnknown => 'لم يُحدَّد المصدر';
+
+  @override
+  String conversationSourceOnPlatform(String platform) {
+    return 'على $platform';
+  }
+
+  @override
+  String get conversationSourceTitle => 'المصدر';
+
+  @override
+  String get conversationSourceMostRecent => 'الأحدث';
+
+  @override
+  String conversationSourceSeenOn(String date) {
+    return 'ظهر في $date';
+  }
+
+  @override
+  String get conversationSourceShortcut => 'مصدر المحادثة';
+
+  @override
+  String get conversationSourceJumpTo => 'الانتقال إلى مصدر المحادثة';
+
+  @override
+  String get conversationSourceOpenAd => 'فتح الإعلان الأصلي على Meta';
+
+  @override
+  String get conversationSourceOpenPost => 'فتح المنشور الأصلي على Meta';
+
+  @override
   String get photoMessageLabel => 'صورة';
 
   @override

@@ -1808,6 +1808,72 @@ abstract class AppLocalizations {
   /// **'Original message unavailable'**
   String get quotedMessageUnavailableLabel;
 
+  /// No description provided for @conversationSourceFromAd.
+  ///
+  /// In en, this message translates to:
+  /// **'Came from a Meta ad'**
+  String get conversationSourceFromAd;
+
+  /// No description provided for @conversationSourceFromPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Came from a Meta post'**
+  String get conversationSourceFromPost;
+
+  /// No description provided for @conversationSourceUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Source not reported'**
+  String get conversationSourceUnknown;
+
+  /// No description provided for @conversationSourceOnPlatform.
+  ///
+  /// In en, this message translates to:
+  /// **'on {platform}'**
+  String conversationSourceOnPlatform(String platform);
+
+  /// No description provided for @conversationSourceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Source'**
+  String get conversationSourceTitle;
+
+  /// No description provided for @conversationSourceMostRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Most recent'**
+  String get conversationSourceMostRecent;
+
+  /// No description provided for @conversationSourceSeenOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Seen {date}'**
+  String conversationSourceSeenOn(String date);
+
+  /// No description provided for @conversationSourceShortcut.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation source'**
+  String get conversationSourceShortcut;
+
+  /// No description provided for @conversationSourceJumpTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to the conversation source'**
+  String get conversationSourceJumpTo;
+
+  /// No description provided for @conversationSourceOpenAd.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the original advertisement on Meta'**
+  String get conversationSourceOpenAd;
+
+  /// No description provided for @conversationSourceOpenPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the original post on Meta'**
+  String get conversationSourceOpenPost;
+
   /// No description provided for @photoMessageLabel.
   ///
   /// In en, this message translates to:

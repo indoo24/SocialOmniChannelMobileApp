@@ -934,6 +934,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quotedMessageUnavailableLabel => 'Original message unavailable';
 
   @override
+  String get conversationSourceFromAd => 'Came from a Meta ad';
+
+  @override
+  String get conversationSourceFromPost => 'Came from a Meta post';
+
+  @override
+  String get conversationSourceUnknown => 'Source not reported';
+
+  @override
+  String conversationSourceOnPlatform(String platform) {
+    return 'on $platform';
+  }
+
+  @override
+  String get conversationSourceTitle => 'Source';
+
+  @override
+  String get conversationSourceMostRecent => 'Most recent';
+
+  @override
+  String conversationSourceSeenOn(String date) {
+    return 'Seen $date';
+  }
+
+  @override
+  String get conversationSourceShortcut => 'Conversation source';
+
+  @override
+  String get conversationSourceJumpTo => 'Go to the conversation source';
+
+  @override
+  String get conversationSourceOpenAd =>
+      'Open the original advertisement on Meta';
+
+  @override
+  String get conversationSourceOpenPost => 'Open the original post on Meta';
+
+  @override
   String get photoMessageLabel => 'Photo';
 
   @override
