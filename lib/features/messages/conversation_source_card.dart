@@ -9,18 +9,12 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/logging/app_log.dart';
 import '../../core/models/conversation_attribution.dart';
 import '../../core/theme/tokens.dart';
+import '../../core/utils/external_link.dart';
 import '../../core/utils/formatting.dart';
 import '../../l10n/l10n_extensions.dart';
-
-/// Opens a referral's source link. Replaceable in tests.
-@visibleForTesting
-Future<bool> Function(Uri uri) openSourceUrl = (uri) =>
-    launchUrl(uri, mode: LaunchMode.externalApplication);
 
 class ConversationSourceCard extends StatelessWidget {
   const ConversationSourceCard({required this.attribution, super.key});
@@ -54,16 +48,7 @@ class ConversationSourceCard extends StatelessWidget {
   }
 }
 
-Future<void> _open(Uri uri) async {
-  try {
-    final opened = await openSourceUrl(uri);
-    if (!opened) {
-      AppLog.debug('ConversationSource', 'no app to open ${uri.host}');
-    }
-  } catch (error) {
-    AppLog.debug('ConversationSource', 'opening source failed: $error');
-  }
-}
+Future<void> _open(Uri uri) => openExternalLink(uri);
 
 class _PrimaryReferral extends StatelessWidget {
   const _PrimaryReferral({required this.referral});

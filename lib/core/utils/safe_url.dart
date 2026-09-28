@@ -60,4 +60,27 @@ class SafeUrl {
 
     return '';
   }
+
+  /// Returns the web link [url] names when it may be offered as a tappable
+  /// link that opens outside the app, else null.
+  ///
+  /// Message text is written by customers, so a link in it is as untrusted as
+  /// an avatar URL. Only `http` and `https` with a host qualify: never
+  /// `javascript:`, `data:`, `file:`, `content:`, `intent:` or any other
+  /// scheme that would run or reach something on the device instead of
+  /// opening a page. Plain `http` is allowed here, unlike [forImage]: opening
+  /// a page the agent chose to tap is not a silent background fetch. A URL
+  /// carrying credentials (`https://bank.example@evil.example`) is refused
+  /// too — it reads as one host and opens another.
+  static Uri? forLink(String? url) {
+    if (url == null) return null;
+    final uri = Uri.tryParse(url.trim());
+    if (uri == null) return null;
+    final scheme = uri.scheme.toLowerCase();
+    if (scheme != 'http' && scheme != 'https') return null;
+    if (!uri.hasAuthority || uri.host.isEmpty || uri.userInfo.isNotEmpty) {
+      return null;
+    }
+    return uri;
+  }
 }
