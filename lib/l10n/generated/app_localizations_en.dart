@@ -480,6 +480,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchConversationsHint => 'Search conversations';
 
   @override
+  String get inboxPreviousPage => 'Previous';
+
+  @override
+  String get inboxNextPage => 'Next';
+
+  @override
+  String inboxPageOf(int page, int total) {
+    return 'Page $page of $total';
+  }
+
+  @override
+  String inboxPageNumber(int page) {
+    return 'Page $page';
+  }
+
+  @override
+  String inboxCurrentPage(int page) {
+    return 'Page $page, current page';
+  }
+
+  @override
+  String get inboxGoToPage => 'Go to page';
+
+  @override
+  String inboxGoToPageInvalid(int total) {
+    return 'Enter a page from 1 to $total';
+  }
+
+  @override
+  String get inboxGoToPageAction => 'Go';
+
+  @override
+  String inboxPageLoadFailed(int page) {
+    return 'Couldn\'t load page $page';
+  }
+
+  @override
+  String get inboxNewActivity => 'New activity';
+
+  @override
   String get filtersTooltip => 'Filters';
 
   @override
@@ -937,6 +977,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quotedMessageUnavailableLabel => 'Original message unavailable';
 
   @override
+  String get conversationSourceFromAd => 'Came from a Meta ad';
+
+  @override
+  String get conversationSourceFromPost => 'Came from a Meta post';
+
+  @override
+  String get conversationSourceUnknown => 'Source not reported';
+
+  @override
+  String conversationSourceOnPlatform(String platform) {
+    return 'on $platform';
+  }
+
+  @override
+  String get conversationSourceTitle => 'Source';
+
+  @override
+  String get conversationSourceMostRecent => 'Most recent';
+
+  @override
+  String conversationSourceSeenOn(String date) {
+    return 'Seen $date';
+  }
+
+  @override
+  String get conversationSourceShortcut => 'Conversation source';
+
+  @override
+  String get conversationSourceJumpTo => 'Go to the conversation source';
+
+  @override
+  String get conversationSourceOpenAd =>
+      'Open the original advertisement on Meta';
+
+  @override
+  String get conversationSourceOpenPost => 'Open the original post on Meta';
+
+  @override
   String get photoMessageLabel => 'Photo';
 
   @override
@@ -1152,6 +1230,59 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get autoAssignmentToggleLabel => 'Enable automatic assignment';
+
+  @override
+  String get workloadWindowTitle => 'Distribution workload period';
+
+  @override
+  String get workloadWindowHint =>
+      'Conversations go to the employee who has received the fewest during the selected period — whether they were newly assigned or transferred to them, and regardless of read or reply status.';
+
+  @override
+  String get workloadWindowNote =>
+      'This is not the number of conversations an employee currently holds. Work they were given earlier than the period no longer counts against them.';
+
+  @override
+  String get workloadWindowLastHour => 'Last hour';
+
+  @override
+  String get workloadWindowLast24Hours => 'Last 24 hours';
+
+  @override
+  String get workloadWindowLast7Days => 'Last 7 days';
+
+  @override
+  String get workloadWindowLast30Days => 'Last 30 days';
+
+  @override
+  String get workloadWindowSaved => 'Workload period saved';
+
+  @override
+  String get workloadPreviewTitle => 'Received during this period';
+
+  @override
+  String get workloadPreviewHint =>
+      'Live figures, counted the way the allocator counts them. The next conversation goes to the top of this list.';
+
+  @override
+  String get workloadPreviewEmpty =>
+      'No employee has received a conversation during this period yet.';
+
+  @override
+  String workloadPreviewReceived(int n) {
+    return '$n received';
+  }
+
+  @override
+  String get workloadPreviewNotReceiving => 'Not receiving work';
+
+  @override
+  String workloadPreviewHeld(int n) {
+    return '$n currently held';
+  }
+
+  @override
+  String get workloadPreviewLoadFailed => 'Couldn\'t load the live figures.';
 
   @override
   String get channelResponsibilityTitle => 'Channel responsibility';

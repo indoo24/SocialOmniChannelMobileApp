@@ -34,6 +34,7 @@ import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
 import 'conversation_resolve_button.dart';
 import 'conversation_skeleton.dart';
+import 'conversation_source_card.dart';
 import 'media_group_grid.dart';
 import 'message_bubble.dart';
 import 'package:flutter/rendering.dart';
@@ -54,6 +55,15 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _composerController = TextEditingController();
   final _scrollController = ScrollController();
   final Map<int, GlobalKey> _bubbleKeys = {};
+
+  /// The conversation-source card's key — how "Jump to source" finds the
+  /// card's actual rendered position, and how its visibility is measured.
+  final _sourceCardKey = GlobalKey(debugLabel: 'conversation_source');
+
+  /// Whether any part of the source card is inside the viewport. The
+  /// "Conversation source" pill shows while it is not — including while the
+  /// card is not built yet because older history is still unloaded.
+  bool _sourceCardVisible = false;
   late final ActiveConversation _activeNotifier;
   late final InboxController _inboxNotifier;
   late ProviderContainer _container;
@@ -119,8 +129,90 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     if (!pos.hasContentDimensions) return;
     final distanceFromBottom = pos.maxScrollExtent - pos.pixels;
     final show = distanceFromBottom > 150;
-    if (show != _showScrollToBottom) {
-      setState(() => _showScrollToBottom = show);
+    final sourceVisible = _isSourceCardInViewport();
+    if (show != _showScrollToBottom || sourceVisible != _sourceCardVisible) {
+      setState(() {
+        _showScrollToBottom = show;
+        _sourceCardVisible = sourceVisible;
+      });
+    }
+  }
+
+  /// True when the source card is built and at least partly on screen — the
+  /// same "intersecting at all" test the web's IntersectionObserver uses.
+  bool _isSourceCardInViewport() {
+    final context = _sourceCardKey.currentContext;
+    if (context == null || !context.mounted) return false;
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize || !box.attached) return false;
+    if (!_scrollController.hasClients) return false;
+    final position = _scrollController.position;
+    if (!position.hasContentDimensions) return false;
+    final top = RenderAbstractViewport.of(box).getOffsetToReveal(box, 0).offset;
+    final bottom = top + box.size.height;
+    return bottom > position.pixels &&
+        top < position.pixels + position.viewportDimension;
+  }
+
+  /// Whether [state] renders the source card: an attribution to show, and
+  /// the history loaded back to its start, where the card belongs.
+  static bool _showsSourceCard(ConversationState? state) =>
+      state != null && state.conversation.attribution != null && !state.hasMore;
+
+  /// "Jump to source": loads the rest of the older history through the
+  /// normal pagination (the card sits above the oldest message), then
+  /// scrolls to where the card is actually rendered.
+  Future<void> _jumpToSource() async {
+    final opId = ++_currentScrollOpId;
+    // Same flag the quoted-message jump uses: the prepend compensation must
+    // not fight a deliberate scroll to the top.
+    _isNavigatingToReply = true;
+    try {
+      final controller = ref.read(
+        conversationControllerProvider(widget.conversationId).notifier,
+      );
+      var state = ref
+          .read(conversationControllerProvider(widget.conversationId))
+          .value;
+      var attempts = 0;
+      while (state != null && state.hasMore && attempts < 50) {
+        attempts++;
+        if (state.isLoadingMore) {
+          // A top-of-list load is already running; wait for it.
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+        } else {
+          await controller.loadOlder();
+        }
+        if (!mounted || opId != _currentScrollOpId) return;
+        state = ref
+            .read(conversationControllerProvider(widget.conversationId))
+            .value;
+      }
+      if (!_showsSourceCard(state)) return;
+
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted || opId != _currentScrollOpId) return;
+
+      // The card is the list's first item. If it is outside the lazily built
+      // range, bring the top into range first so it is laid out…
+      if (_sourceCardKey.currentContext == null &&
+          _scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted || opId != _currentScrollOpId) return;
+      }
+      // …then align to its real rendered position.
+      final cardContext = _sourceCardKey.currentContext;
+      if (cardContext == null || !cardContext.mounted) return;
+      await Scrollable.ensureVisible(
+        cardContext,
+        alignment: 0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+      );
+      if (mounted) _onScroll();
+    } finally {
+      if (opId == _currentScrollOpId) _isNavigatingToReply = false;
     }
   }
 
@@ -696,6 +788,19 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     ) {
       final prevMessages = previous?.value?.messages ?? const [];
       final nextMessages = next.value?.messages ?? const [];
+
+      // The source card is inserted above everything. When it arrives
+      // together with the oldest page, the prepend compensation below already
+      // measures it; when it arrives on its own (attribution on a later
+      // detail refresh), compensate the same way so the thread stays put.
+      final cardAppeared =
+          !_showsSourceCard(previous?.value) && _showsSourceCard(next.value);
+      if (cardAppeared &&
+          _initialScrollDone &&
+          _prependedCount(prevMessages, nextMessages) == 0) {
+        _preserveScrollPositionAfterPrepend();
+      }
+
       if (nextMessages.length <= prevMessages.length) return;
 
       final prependedCount = _prependedCount(prevMessages, nextMessages);
@@ -823,10 +928,26 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                                 onReply: canReply ? _startReplyingTo : null,
                                 onQuoteTap: _scrollToQuotedMessage,
                                 keyForMessage: _bubbleKeyFor,
+                                sourceCardKey: _sourceCardKey,
                               ),
                             ),
                           ),
                   ),
+                  if (state.conversation.attribution != null &&
+                      state.messages.isNotEmpty &&
+                      _initialScrollDone &&
+                      !_sourceCardVisible)
+                    Positioned(
+                      top: Space.sm,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: ConversationSourceJumpButton(
+                          key: const ValueKey('conversationSourceJump'),
+                          onPressed: _jumpToSource,
+                        ),
+                      ),
+                    ),
                   PositionedDirectional(
                     end: Space.md,
                     bottom: Space.sm,
@@ -1403,6 +1524,7 @@ class _MessageList extends ConsumerWidget {
     this.onReply,
     this.onQuoteTap,
     this.keyForMessage,
+    this.sourceCardKey,
   });
 
   final ConversationState state;
@@ -1421,6 +1543,9 @@ class _MessageList extends ConsumerWidget {
   /// Provides stable GlobalKeys for message bubbles so they can be scrolled to.
   final GlobalKey Function(int messageId)? keyForMessage;
 
+  /// Key for the conversation-source card, so the screen can find it.
+  final GlobalKey? sourceCardKey;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canDelete = ref.watch(canProvider(Perm.conversationDeleteMessage));
@@ -1433,6 +1558,12 @@ class _MessageList extends ConsumerWidget {
         _TimelineEntry(message: m, time: m.sentAt),
       for (final n in notes) _TimelineEntry(note: n, time: n.createdAt),
     ]..sort((a, b) => a.time.compareTo(b.time));
+
+    // Where the customer came from — shown once the history is loaded back to
+    // its start (no older page left), which is where it belongs. With older
+    // pages still unloaded the card waits: its place is above messages the
+    // list does not have yet.
+    final attribution = state.hasMore ? null : state.conversation.attribution;
 
     if (onInitialLayout != null && entries.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1454,7 +1585,10 @@ class _MessageList extends ConsumerWidget {
         controller: controller,
         padding: const EdgeInsets.symmetric(vertical: Space.md),
         addAutomaticKeepAlives: false,
-        itemCount: entries.length + (state.isLoadingMore ? 1 : 0),
+        itemCount:
+            entries.length +
+            (state.isLoadingMore ? 1 : 0) +
+            (attribution != null ? 1 : 0),
         itemBuilder: (context, index) {
           if (state.isLoadingMore && index == 0) {
             return const Padding(
@@ -1469,7 +1603,19 @@ class _MessageList extends ConsumerWidget {
             );
           }
 
-          final offset = state.isLoadingMore ? index - 1 : index;
+          // Conversation-level, not a message: one card above the oldest
+          // message, keyed so a rebuild reuses it rather than adding another.
+          if (attribution != null && index == 0) {
+            return KeyedSubtree(
+              key: sourceCardKey ?? const ValueKey('conversation_source'),
+              child: ConversationSourceCard(attribution: attribution),
+            );
+          }
+
+          final offset =
+              index -
+              (state.isLoadingMore ? 1 : 0) -
+              (attribution != null ? 1 : 0);
           final entry = entries[offset];
           final previous = offset > 0 ? entries[offset - 1] : null;
           final showDay =

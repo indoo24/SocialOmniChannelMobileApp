@@ -3,6 +3,30 @@
 /// The list is authoritative from REST. WebSocket events do not patch rows —
 /// they mark the list stale and trigger a refetch, which is what keeps the app
 /// from becoming a second database that slowly disagrees with the server.
+///
+/// ## Pagination
+///
+/// `GET /conversations/` is DRF page-number pagination (`?page=N`, 30 rows
+/// per page by default — the web sends no `page_size` either). The inbox
+/// shows one page at a time and holds only that page: Previous, Next, a page
+/// number or "Go to page" replace it with another ([goToPage]). New filters
+/// or a new search start again at page 1. Navigation is the only thing that
+/// changes the page number — the agent's own action.
+///
+/// Page contents can shift while the agent browses (the inbox is ordered by
+/// activity and conversations move); the backend's response is taken as it
+/// is. Everything page-specific is behind [goToPage] / [InboxState], so a
+/// cursor-paginated backend would change this controller, not the screen.
+///
+/// ## Realtime against a paged list
+///
+/// A realtime refetch re-reads the page on screen, keeping its page number —
+/// the web does the same with the one page it shows. There is no endpoint to
+/// refresh a single row (the detail GET marks the thread read). The refetch
+/// applies while the agent is at the top of the list; further down it would
+/// reshuffle rows under them, so [InboxState.hasPendingUpdates] is set
+/// instead and it runs once they are back at the top (or tap the "new
+/// activity" pill).
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -156,31 +180,67 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
 class InboxState {
   InboxState({
     this.conversations = const [],
-    this.isLoadingMore = false,
-    this.hasMore = false,
+    this.page = 1,
+    this.totalPages = 1,
     this.total = 0,
-    this.nextPage = 2,
+    this.hasNext = false,
+    this.hasPrevious = false,
+    this.loadingPage,
+    this.failedPage,
+    this.hasPendingUpdates = false,
+    this.navigation = 0,
     List<CustomerConversationGroup>? groups,
   }) : groups =
            groups ??
            CustomerConversationGroup.groupConversations(conversations);
 
+  /// The current page's conversations — the only ones held in memory.
   final List<Conversation> conversations;
   final List<CustomerConversationGroup> groups;
-  final bool isLoadingMore;
-  final bool hasMore;
+
+  /// The page on screen, 1-based, and what the backend says there is.
+  final int page;
+  final int totalPages;
+
+  /// Conversations matching the filters, across all pages (`count`).
   final int total;
-  final int nextPage;
+  final bool hasNext;
+  final bool hasPrevious;
+
+  /// The page being requested, while a navigation is in flight. The page on
+  /// screen stays [page] until it lands.
+  final int? loadingPage;
+
+  /// The page a navigation last failed to load, for the retry. The agent
+  /// stays on [page].
+  final int? failedPage;
+
+  /// Something changed while the agent was scrolled down, so the page was
+  /// deliberately not refetched under them — see the library comment.
+  final bool hasPendingUpdates;
+
+  /// Bumped each time a different page (or a different filter's page 1)
+  /// replaces the list at the agent's request. The screen scrolls to the top
+  /// when it changes; a quiet realtime refresh of the same page keeps it.
+  final int navigation;
 
   bool get isEmpty => conversations.isEmpty;
+  bool get isNavigating => loadingPage != null;
 
   InboxState copyWith({
     List<Conversation>? conversations,
     List<CustomerConversationGroup>? groups,
-    bool? isLoadingMore,
-    bool? hasMore,
+    int? page,
+    int? totalPages,
     int? total,
-    int? nextPage,
+    bool? hasNext,
+    bool? hasPrevious,
+    int? loadingPage,
+    bool clearLoadingPage = false,
+    int? failedPage,
+    bool clearFailedPage = false,
+    bool? hasPendingUpdates,
+    int? navigation,
   }) => InboxState(
     conversations: conversations ?? this.conversations,
     groups:
@@ -188,20 +248,49 @@ class InboxState {
         (conversations != null
             ? CustomerConversationGroup.groupConversations(conversations)
             : this.groups),
-    isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-    hasMore: hasMore ?? this.hasMore,
+    page: page ?? this.page,
+    totalPages: totalPages ?? this.totalPages,
     total: total ?? this.total,
-    nextPage: nextPage ?? this.nextPage,
+    hasNext: hasNext ?? this.hasNext,
+    hasPrevious: hasPrevious ?? this.hasPrevious,
+    loadingPage: clearLoadingPage ? null : (loadingPage ?? this.loadingPage),
+    failedPage: clearFailedPage ? null : (failedPage ?? this.failedPage),
+    hasPendingUpdates: hasPendingUpdates ?? this.hasPendingUpdates,
+    navigation: navigation ?? this.navigation,
   );
 }
 
 class InboxController extends AsyncNotifier<InboxState> {
   ConversationFilters? _lastFilters;
 
+  /// The filters the page on screen was fetched with. Every page request
+  /// uses these, never whatever the filter bar says at that moment.
+  ConversationFilters _listFilters = const ConversationFilters();
+
+  /// Bumped whenever a request that will replace the page starts (filters
+  /// changed, navigation, refresh). A response for an older one is for a
+  /// list that is no longer wanted and is dropped on arrival — only the
+  /// latest request may update the screen.
+  int _generation = 0;
+
+  /// Source of [InboxState.navigation].
+  int _navigation = 0;
+
+  /// Whether the agent is at the top of the list, as reported by the screen
+  /// ([followHead]). True when no screen reports (nothing on screen to
+  /// disturb), so a background refresh simply refetches the page.
+  bool _atHead = true;
+
+  bool _quietRefreshRunning = false;
+  bool _quietRefreshAgain = false;
+
   @override
   Future<InboxState> build() async {
     // Rebuilds whenever the filters change — no manual resubscription.
     final filters = ref.watch(inboxFiltersProvider);
+    // Whatever was loading for the previous list is dropped when it lands;
+    // this build is the list now.
+    _generation++;
 
     // Watch channelsProvider changes so that when channels update (e.g. disconnected,
     // removed, or reconnected), we update our list without forcing the AsyncNotifier
@@ -274,11 +363,19 @@ class InboxController extends AsyncNotifier<InboxState> {
         channels,
         selectedAccounts: filters.selectedAccounts,
       );
-      return current.copyWith(conversations: filtered);
+      // A navigation in flight was dropped by the generation bump above.
+      return current.copyWith(conversations: filtered, clearLoadingPage: true);
     }
 
+    // New filters (or a new search) always start again at page 1.
     _lastFilters = filters;
-    return _fetchFirstPage(filters, channels: channels);
+    _listFilters = filters;
+    return _fetchPage(
+      filters,
+      1,
+      channels: channels,
+      navigation: ++_navigation,
+    );
   }
 
   static List<Conversation> _filterByActiveChannels(
@@ -302,105 +399,225 @@ class InboxController extends AsyncNotifier<InboxState> {
     }).toList();
   }
 
-  Future<InboxState> _fetchFirstPage(
-    ConversationFilters filters, {
+  /// One page of [filters] as the whole list.
+  Future<InboxState> _fetchPage(
+    ConversationFilters filters,
+    int page, {
+    required int navigation,
     List<ChannelConnection>? channels,
   }) async {
-    final page = await ref
+    final result = await ref
         .read(conversationRepositoryProvider)
         .list(
           filters: filters,
-          page: 1,
+          page: page,
           currentEmployeeId: ref.read(currentEmployeeProvider)?.id,
         );
 
     final effectiveChannels = channels ?? ref.read(channelsProvider).value;
     final filtered = _filterByActiveChannels(
-      page.results,
+      result.results,
       effectiveChannels,
       selectedAccounts: filters.selectedAccounts,
     );
 
+    final current = result.page > 0 ? result.page : page;
     return InboxState(
       conversations: filtered,
-      hasMore: page.hasMore,
-      total: page.count,
-      nextPage: 2,
+      page: current,
+      totalPages: _totalPages(result, current),
+      total: result.count,
+      hasNext: result.hasMore,
+      hasPrevious: current > 1,
+      navigation: navigation,
     );
   }
 
-  /// Pull to refresh. Keeps the previous list visible while refetching so the
+  /// `total_pages` as sent; derived from `count` for a response without it
+  /// (30 per page, the backend default), never less than what `next` proves.
+  static int _totalPages(Paginated<Conversation> result, int page) {
+    if (result.totalPages > 0) return result.totalPages;
+    final size = result.pageSize > 0 ? result.pageSize : 30;
+    final fromCount = (result.count + size - 1) ~/ size;
+    final atLeast = result.hasMore ? page + 1 : page;
+    return fromCount > atLeast ? fromCount : atLeast;
+  }
+
+  /// [page], or — when it no longer exists because the list shrank (the
+  /// backend answers 404) — the list's new last page. The page the agent was
+  /// on is gone either way; this is the nearest one that still exists.
+  Future<InboxState> _fetchPageOrNearest(
+    ConversationFilters filters,
+    int page, {
+    required int navigation,
+  }) async {
+    try {
+      return await _fetchPage(filters, page, navigation: navigation);
+    } on ApiException catch (error) {
+      if (error.statusCode != 404 || page <= 1) rethrow;
+      final first = await _fetchPage(filters, 1, navigation: navigation);
+      if (first.totalPages <= 1 || first.totalPages >= page) return first;
+      return _fetchPage(filters, first.totalPages, navigation: navigation);
+    }
+  }
+
+  /// Opens [page] in place of the current one — Previous, Next, a page
+  /// number, or a page typed into "Go to page". One navigation at a time:
+  /// while one is loading the controls are disabled and further calls are
+  /// ignored. A failure keeps the current page on screen, on the same page
+  /// number, and records [InboxState.failedPage] for the retry.
+  Future<void> goToPage(int page) async {
+    if (!ref.mounted) return;
+    final current = state.value;
+    if (current == null ||
+        state.isLoading ||
+        current.isNavigating ||
+        page < 1 ||
+        page > current.totalPages) {
+      return;
+    }
+
+    final generation = ++_generation;
+    final filters = _listFilters;
+    state = AsyncData(
+      current.copyWith(loadingPage: page, clearFailedPage: true),
+    );
+
+    try {
+      final fresh = await _fetchPage(filters, page, navigation: ++_navigation);
+      if (!ref.mounted || generation != _generation) return;
+      state = AsyncData(fresh);
+    } catch (_) {
+      if (!ref.mounted || generation != _generation) return;
+      final latest = state.value ?? current;
+      state = AsyncData(
+        latest.copyWith(clearLoadingPage: true, failedPage: page),
+      );
+    }
+  }
+
+  Future<void> nextPage() async {
+    final current = state.value;
+    if (current != null && current.hasNext) await goToPage(current.page + 1);
+  }
+
+  Future<void> previousPage() async {
+    final current = state.value;
+    if (current != null && current.page > 1) {
+      await goToPage(current.page - 1);
+    }
+  }
+
+  /// The retry after a failed navigation: the same page again.
+  Future<void> retryPage() async {
+    final failed = state.value?.failedPage;
+    if (failed != null) await goToPage(failed);
+  }
+
+  /// Pull to refresh, and the "new activity" pill: the current page again,
+  /// on the same page number. Keeps the page visible while refetching so the
   /// screen does not blank out under the agent's thumb.
   Future<void> refresh() async {
+    final generation = ++_generation;
     try {
       ref.invalidate(channelsProvider);
       ref.invalidate(conversationCountsProvider);
-      final fresh = await _fetchFirstPage(ref.read(inboxFiltersProvider));
+      final filters = ref.read(inboxFiltersProvider);
+      final fresh = await _fetchPageOrNearest(
+        filters,
+        state.value?.page ?? 1,
+        navigation: ++_navigation,
+      );
+      if (!ref.mounted || generation != _generation) return;
+      _listFilters = filters;
       state = AsyncData(fresh);
     } on ApiException catch (error, stack) {
+      if (!ref.mounted || generation != _generation) return;
       state = AsyncError(error, stack);
     }
   }
 
-  /// Infinite scroll. Guarded against overlapping calls, because a fast
-  /// scroller can trigger the threshold several times before the first
-  /// response lands and would otherwise append the same page twice.
-  Future<void> loadMore() async {
-    final current = state.value;
-    if (current == null || current.isLoadingMore || !current.hasMore) return;
+  /// Called by the realtime bridge and after the agent's own actions.
+  /// Silent — no spinner for a background refresh the agent did not ask
+  /// for. It refetches the page on screen, keeping its page number, while
+  /// the agent is at the top of the list; scrolled down it only flags
+  /// [InboxState.hasPendingUpdates] (see the library comment). It never
+  /// changes the page.
+  Future<void> refreshQuietly() async {
+    ref.invalidate(channelsProvider);
+    ref.invalidate(conversationCountsProvider);
+    await _refetchQuietly();
+  }
 
-    state = AsyncData(current.copyWith(isLoadingMore: true));
-
-    try {
-      final filters = ref.read(inboxFiltersProvider);
-      final page = await ref
-          .read(conversationRepositoryProvider)
-          .list(
-            filters: filters,
-            page: current.nextPage,
-            currentEmployeeId: ref.read(currentEmployeeProvider)?.id,
-          );
-
-      final channels = ref.read(channelsProvider).value;
-      final filteredResults = _filterByActiveChannels(
-        page.results,
-        channels,
-        selectedAccounts: filters.selectedAccounts,
-      );
-
-      // De-duplicate on id: a conversation can move between pages while the
-      // agent is scrolling, and a repeated row is a visible bug.
-      final seen = current.conversations.map((c) => c.id).toSet();
-      final merged = [
-        ...current.conversations,
-        ...filteredResults.where((c) => seen.add(c.id)),
-      ];
-
-      state = AsyncData(
-        current.copyWith(
-          conversations: merged,
-          hasMore: page.hasMore,
-          total: page.count,
-          nextPage: current.nextPage + 1,
-          isLoadingMore: false,
-        ),
-      );
-    } on ApiException {
-      // Keep what is on screen; the footer shows the retry affordance.
-      state = AsyncData(current.copyWith(isLoadingMore: false));
+  /// The screen reports whether the agent is at the top of the list. Coming
+  /// back to the top applies a refetch that was held back.
+  void followHead(bool atHead) {
+    _atHead = atHead;
+    if (atHead &&
+        !_quietRefreshRunning &&
+        (state.value?.hasPendingUpdates ?? false)) {
+      _refetchQuietly();
     }
   }
 
-  /// Called by the realtime bridge. Silent — no spinner for a background
-  /// refresh the agent did not ask for.
-  Future<void> refreshQuietly() async {
+  /// The inbox screen went away: nothing is on screen to disturb, so later
+  /// refetches apply directly again. A held-back one stays flagged until the
+  /// screen is back and at the top.
+  void screenDetached() => _atHead = true;
+
+  Future<void> _refetchQuietly() async {
+    final current = state.value;
+    // A navigation brings a fresh page anyway.
+    if (current != null && current.isNavigating) return;
+    if (!_atHead && current != null) {
+      if (!current.hasPendingUpdates && state is AsyncData<InboxState>) {
+        state = AsyncData(current.copyWith(hasPendingUpdates: true));
+      }
+      return;
+    }
+    // Events arrive in bursts: one refetch at a time, plus one more if any
+    // arrived while it ran, instead of a request per event racing the rest.
+    if (_quietRefreshRunning) {
+      _quietRefreshAgain = true;
+      return;
+    }
+    _quietRefreshRunning = true;
     try {
-      ref.invalidate(channelsProvider);
-      ref.invalidate(conversationCountsProvider);
-      final fresh = await _fetchFirstPage(ref.read(inboxFiltersProvider));
+      do {
+        _quietRefreshAgain = false;
+        await _refetchCurrentPage();
+      } while (_quietRefreshAgain && ref.mounted && _atHead);
+    } finally {
+      _quietRefreshRunning = false;
+    }
+    // More arrived after the agent scrolled away: hold it back as well.
+    if (_quietRefreshAgain && ref.mounted) {
+      _quietRefreshAgain = false;
+      await _refetchQuietly();
+    }
+  }
+
+  Future<void> _refetchCurrentPage() async {
+    final current = state.value;
+    final generation = ++_generation;
+    try {
+      final filters = ref.read(inboxFiltersProvider);
+      final page = current?.page ?? 1;
+      // Same page, same place: the navigation counter is kept unless the
+      // page itself had to change (it no longer exists).
+      var fresh = await _fetchPageOrNearest(
+        filters,
+        page,
+        navigation: current?.navigation ?? ++_navigation,
+      );
+      if (!ref.mounted || generation != _generation) return;
+      if (fresh.page != page) {
+        fresh = fresh.copyWith(navigation: ++_navigation);
+      }
+      _listFilters = filters;
       state = AsyncData(fresh);
     } on ApiException {
-      // Leave the existing list in place.
+      // Leave the page on screen as it is.
     }
   }
 

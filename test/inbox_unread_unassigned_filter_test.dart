@@ -503,7 +503,7 @@ void main() {
 
         // Confirm state starts on a fresh first page.
         final initialState = container.read(inboxControllerProvider).value!;
-        expect(initialState.nextPage, equals(2));
+        expect(initialState.page, equals(1));
 
         container
             .read(inboxFiltersProvider.notifier)
@@ -511,7 +511,7 @@ void main() {
         await tester.pumpAndSettle();
 
         final refreshedState = container.read(inboxControllerProvider).value!;
-        expect(refreshedState.nextPage, equals(2));
+        expect(refreshedState.page, equals(1));
 
         final lastConvoReq = adapter.received.lastWhere(_isListRequest);
         expect(lastConvoReq.uri.queryParameters['page'], equals('1'));

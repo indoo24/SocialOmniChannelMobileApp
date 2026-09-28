@@ -207,62 +207,60 @@ void main() {
       },
     );
 
-    test(
-      'a stale conversation loaded via loadMore() (page 2) also drops on reconcile',
-      () async {
-        // Page 1: Conversation A only, with a next page. Page 2: Conversation
-        // B2 — a second row on the soon-to-be-removed channel, reached only
-        // via infinite scroll. After the disconnect, a full reconciliation
-        // (page 1 again) must not leave B2 behind even though it was never
-        // part of the very first response.
-        var disconnected = false;
-        final adapter = _StubAdapter((options) {
-          if (options.path != '/conversations/') {
-            throw StateError('Unexpected request: ${options.path}');
-          }
-          final page = options.queryParameters['page'];
-          if (page == 2 && !disconnected) {
-            return _json(_page([_conversationBPage2]), 200);
-          }
-          final results = disconnected ? [_conversationA] : [_conversationA];
-          return _json(
-            _page(results, hasNext: !disconnected, count: disconnected ? 1 : 2),
-            200,
-          );
-        });
-        final client = ApiClient.create(cookieJar: CookieJar());
-        client.raw.httpClientAdapter = adapter;
-
-        final container = ProviderContainer(
-          overrides: [
-            apiClientProvider.overrideWithValue(client),
-            currentEmployeeProvider.overrideWithValue(_adminEmployee),
-          ],
+    test('a stale conversation on page 2 also drops on reconcile', () async {
+      // Page 1: Conversation A only, with a next page. Page 2: Conversation
+      // B2 — a second row on the soon-to-be-removed channel, reached only
+      // by going to page 2. After the disconnect, the realtime refetch of
+      // that page must not leave B2 behind — even though the list has
+      // shrunk to a single page meanwhile.
+      var disconnected = false;
+      final adapter = _StubAdapter((options) {
+        if (options.path != '/conversations/') {
+          throw StateError('Unexpected request: ${options.path}');
+        }
+        final page = options.queryParameters['page'];
+        if (page == 2 && !disconnected) {
+          return _json(_page([_conversationBPage2]), 200);
+        }
+        final results = disconnected ? [_conversationA] : [_conversationA];
+        return _json(
+          _page(results, hasNext: !disconnected, count: disconnected ? 1 : 2),
+          200,
         );
-        addTearDown(container.dispose);
+      });
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
 
-        // Cold load page 1 (A, hasMore: true), then scroll to load page 2 (B2).
-        await container.read(inboxControllerProvider.future);
-        await container.read(inboxControllerProvider.notifier).loadMore();
+      final container = ProviderContainer(
+        overrides: [
+          apiClientProvider.overrideWithValue(client),
+          currentEmployeeProvider.overrideWithValue(_adminEmployee),
+        ],
+      );
+      addTearDown(container.dispose);
 
-        final withStalePage2 = container.read(inboxControllerProvider).value!;
-        expect(withStalePage2.conversations.map((c) => c.id), [101, 104]);
+      // Cold load page 1 (A, with a next page), then go to page 2 (B2).
+      await container.read(inboxControllerProvider.future);
+      await container.read(inboxControllerProvider.notifier).goToPage(2);
 
-        // The channel behind conversation 104 is now disconnected.
-        disconnected = true;
-        await container.read(inboxControllerProvider.notifier).refreshQuietly();
+      final onPage2 = container.read(inboxControllerProvider).value!;
+      expect(onPage2.page, 2);
+      expect(onPage2.conversations.map((c) => c.id), [104]);
 
-        final after = container.read(inboxControllerProvider).value!;
-        expect(after.conversations.map((c) => c.id), [101]);
-        expect(
-          after.conversations.any((c) => c.id == 104),
-          isFalse,
-          reason:
-              'refreshQuietly() replaces state wholesale from page 1 — a '
-              'row only ever seen via loadMore() must not survive it',
-        );
-      },
-    );
+      // The channel behind conversation 104 is now disconnected.
+      disconnected = true;
+      await container.read(inboxControllerProvider.notifier).refreshQuietly();
+
+      final after = container.read(inboxControllerProvider).value!;
+      expect(after.conversations.map((c) => c.id), [101]);
+      expect(
+        after.conversations.any((c) => c.id == 104),
+        isFalse,
+        reason:
+            'refreshQuietly() refetches the page on screen — a row only '
+            'ever seen on page 2 must not survive it',
+      );
+    });
 
     test('pull-to-refresh (refresh()) reconciles the same way', () async {
       var disconnected = false;

@@ -1,7 +1,9 @@
 import 'package:characters/characters.dart';
 
+import '../logging/app_log.dart';
 import '../utils/json_safe.dart';
 
+import 'conversation_attribution.dart';
 import 'employee.dart';
 import 'message.dart';
 
@@ -181,6 +183,7 @@ class Conversation {
     this.firstResponseAt,
     this.resolvedAt,
     this.lastAgentMessageAt,
+    this.attribution,
   });
 
   final int id;
@@ -238,6 +241,11 @@ class Conversation {
   /// `media_capabilities`; a row without it keeps the old behaviour, except
   /// TikTok, which accepts no outbound media.
   final bool outboundMedia;
+
+  /// The Meta ad or post the customer arrived from, when Meta reported one.
+  /// Detail responses only — list rows do not carry it. See
+  /// [ConversationAttribution] for the (web-derived) field contract.
+  final ConversationAttribution? attribution;
 
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
     id: JsonSafe.asInt(json['id'], fallback: -1),
@@ -298,6 +306,7 @@ class Conversation {
     firstResponseAt: _parseDate(json['first_response_at']),
     resolvedAt: _parseDate(json['resolved_at']),
     lastAgentMessageAt: _parseDate(json['last_agent_message_at']),
+    attribution: _parseAttribution(json['attribution']),
   );
 
   /// True when the platform's own limits refuse another message right now.
@@ -383,7 +392,19 @@ class Conversation {
     firstResponseAt: firstResponseAt,
     resolvedAt: resolvedAt,
     lastAgentMessageAt: lastAgentMessageAt,
+    attribution: attribution,
   );
+}
+
+/// Never lets an undocumented, untyped field break conversation loading: a
+/// shape the parser did not expect means "no source card", not an error.
+ConversationAttribution? _parseAttribution(Object? value) {
+  try {
+    return ConversationAttribution.fromJson(value);
+  } catch (error) {
+    AppLog.debug('Conversation', 'ignored malformed attribution: $error');
+    return null;
+  }
 }
 
 DateTime? _parseDate(Object? value) {
@@ -391,19 +412,27 @@ DateTime? _parseDate(Object? value) {
   return DateTime.tryParse(value)?.toLocal();
 }
 
-/// DRF's page envelope: `{count, next, previous, results}`.
+/// DRF's page envelope: `{count, next, previous, results}`, plus the
+/// `page` / `page_size` / `total_pages` the backend's page-number paginator
+/// adds (0 when a response does not carry them).
 class Paginated<T> {
   const Paginated({
     required this.results,
     required this.count,
     this.next,
     this.previous,
+    this.page = 0,
+    this.pageSize = 0,
+    this.totalPages = 0,
   });
 
   final List<T> results;
   final int count;
   final String? next;
   final String? previous;
+  final int page;
+  final int pageSize;
+  final int totalPages;
 
   bool get hasMore => next != null && next!.isNotEmpty;
 
@@ -419,5 +448,8 @@ class Paginated<T> {
     count: JsonSafe.asInt(json['count']),
     next: JsonSafe.asStringOrNull(json['next']),
     previous: JsonSafe.asStringOrNull(json['previous']),
+    page: JsonSafe.asInt(json['page']),
+    pageSize: JsonSafe.asInt(json['page_size']),
+    totalPages: JsonSafe.asInt(json['total_pages']),
   );
 }
