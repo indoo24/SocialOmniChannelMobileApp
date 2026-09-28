@@ -19,10 +19,10 @@ import 'package:scenario_mobile/core/models/conversation_attribution.dart';
 import 'package:scenario_mobile/core/models/employee.dart';
 import 'package:scenario_mobile/core/providers.dart';
 import 'package:scenario_mobile/core/theme/app_theme.dart';
+import 'package:scenario_mobile/core/utils/external_link.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
 import 'package:scenario_mobile/features/messages/conversation_controller.dart';
 import 'package:scenario_mobile/features/messages/conversation_screen.dart';
-import 'package:scenario_mobile/features/messages/conversation_source_card.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
 // ---------------------------------------------------------------------------
@@ -339,13 +339,13 @@ void main() {
 
     setUp(() {
       opened = [];
-      realOpener = openSourceUrl;
-      openSourceUrl = (uri) async {
+      realOpener = launchExternalUrl;
+      launchExternalUrl = (uri) async {
         opened.add(uri);
         return true;
       };
     });
-    tearDown(() => openSourceUrl = realOpener);
+    tearDown(() => launchExternalUrl = realOpener);
 
     testWidgets('1. a full attribution renders the web card', (tester) async {
       await _open(tester, attribution: {'first': _referral()});

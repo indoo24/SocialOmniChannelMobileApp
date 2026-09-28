@@ -16,15 +16,16 @@ import 'package:dio/dio.dart' show ResponseType, Options;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/models/message.dart';
 import '../../core/providers.dart';
 import '../../core/realtime/realtime_logger.dart';
 import '../../core/theme/tokens.dart';
+import '../../core/utils/external_link.dart';
 import '../../core/utils/safe_url.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/badges.dart';
+import '../../core/widgets/linkified_text.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../core/utils/attachment_helper.dart';
@@ -220,12 +221,19 @@ class MessageBubble extends ConsumerWidget {
                             if (message.attachments.isNotEmpty)
                               _Attachments(message: message),
                             if (message.text.isNotEmpty)
-                              Text(
+                              // Text only — attachments above never are.
+                              LinkifiedText(
                                 message.text,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: foreground,
                                   height: 1.35,
                                 ),
+                                // The brand colour would vanish on the
+                                // agent's own indigo bubble: there a link is
+                                // the bubble's white, underlined.
+                                linkColor: isMine && !failed
+                                    ? foreground
+                                    : theme.colorScheme.primary,
                               ),
                             if (message.contentNotice != null)
                               ContentNoticeView(
@@ -548,8 +556,7 @@ class ContentNoticeView extends StatelessWidget {
                 minimumSize: const Size(0, 32),
                 foregroundColor: color,
               ),
-              onPressed: () =>
-                  launchUrl(uri, mode: LaunchMode.externalApplication),
+              onPressed: () => openExternalLink(uri),
               icon: const Icon(Icons.open_in_new, size: 16),
               label: Text(l10n.tiktokOpenOnTikTok),
             ),
