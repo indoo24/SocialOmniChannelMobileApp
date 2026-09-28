@@ -1,7 +1,9 @@
 import 'package:characters/characters.dart';
 
+import '../logging/app_log.dart';
 import '../utils/json_safe.dart';
 
+import 'conversation_attribution.dart';
 import 'employee.dart';
 import 'message.dart';
 
@@ -181,6 +183,7 @@ class Conversation {
     this.firstResponseAt,
     this.resolvedAt,
     this.lastAgentMessageAt,
+    this.attribution,
   });
 
   final int id;
@@ -238,6 +241,11 @@ class Conversation {
   /// `media_capabilities`; a row without it keeps the old behaviour, except
   /// TikTok, which accepts no outbound media.
   final bool outboundMedia;
+
+  /// The Meta ad or post the customer arrived from, when Meta reported one.
+  /// Detail responses only — list rows do not carry it. See
+  /// [ConversationAttribution] for the (web-derived) field contract.
+  final ConversationAttribution? attribution;
 
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
     id: JsonSafe.asInt(json['id'], fallback: -1),
@@ -298,6 +306,7 @@ class Conversation {
     firstResponseAt: _parseDate(json['first_response_at']),
     resolvedAt: _parseDate(json['resolved_at']),
     lastAgentMessageAt: _parseDate(json['last_agent_message_at']),
+    attribution: _parseAttribution(json['attribution']),
   );
 
   /// True when the platform's own limits refuse another message right now.
@@ -383,7 +392,19 @@ class Conversation {
     firstResponseAt: firstResponseAt,
     resolvedAt: resolvedAt,
     lastAgentMessageAt: lastAgentMessageAt,
+    attribution: attribution,
   );
+}
+
+/// Never lets an undocumented, untyped field break conversation loading: a
+/// shape the parser did not expect means "no source card", not an error.
+ConversationAttribution? _parseAttribution(Object? value) {
+  try {
+    return ConversationAttribution.fromJson(value);
+  } catch (error) {
+    AppLog.debug('Conversation', 'ignored malformed attribution: $error');
+    return null;
+  }
 }
 
 DateTime? _parseDate(Object? value) {

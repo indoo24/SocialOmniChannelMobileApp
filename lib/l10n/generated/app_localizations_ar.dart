@@ -973,6 +973,43 @@ class AppLocalizationsAr extends AppLocalizations {
   String get quotedMessageUnavailableLabel => 'الرسالة الأصلية غير متاحة';
 
   @override
+  String get conversationSourceFromAd => 'جاء من إعلان على Meta';
+
+  @override
+  String get conversationSourceFromPost => 'جاء من منشور على Meta';
+
+  @override
+  String get conversationSourceUnknown => 'لم يُحدَّد المصدر';
+
+  @override
+  String conversationSourceOnPlatform(String platform) {
+    return 'على $platform';
+  }
+
+  @override
+  String get conversationSourceTitle => 'المصدر';
+
+  @override
+  String get conversationSourceMostRecent => 'الأحدث';
+
+  @override
+  String conversationSourceSeenOn(String date) {
+    return 'ظهر في $date';
+  }
+
+  @override
+  String get conversationSourceShortcut => 'مصدر المحادثة';
+
+  @override
+  String get conversationSourceJumpTo => 'الانتقال إلى مصدر المحادثة';
+
+  @override
+  String get conversationSourceOpenAd => 'فتح الإعلان الأصلي على Meta';
+
+  @override
+  String get conversationSourceOpenPost => 'فتح المنشور الأصلي على Meta';
+
+  @override
   String get photoMessageLabel => 'صورة';
 
   @override
@@ -1192,6 +1229,59 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get autoAssignmentToggleLabel => 'تفعيل التوزيع التلقائي';
+
+  @override
+  String get workloadWindowTitle => 'فترة حساب حمل التوزيع';
+
+  @override
+  String get workloadWindowHint =>
+      'يتم توزيع المحادثات على الموظف الذي استقبل أقل عدد من المحادثات خلال الفترة المحددة، سواء كانت المحادثات جديدة أو محوّلة إليه، وبغض النظر عن حالة القراءة أو الرد.';
+
+  @override
+  String get workloadWindowNote =>
+      'هذا ليس عدد المحادثات التي يحتفظ بها الموظف حاليًا. المحادثات التي استقبلها قبل الفترة لم تعد محسوبة عليه.';
+
+  @override
+  String get workloadWindowLastHour => 'آخر ساعة';
+
+  @override
+  String get workloadWindowLast24Hours => 'آخر 24 ساعة';
+
+  @override
+  String get workloadWindowLast7Days => 'آخر 7 أيام';
+
+  @override
+  String get workloadWindowLast30Days => 'آخر 30 يومًا';
+
+  @override
+  String get workloadWindowSaved => 'تم حفظ فترة حساب الحمل';
+
+  @override
+  String get workloadPreviewTitle => 'المستقبل خلال الفترة';
+
+  @override
+  String get workloadPreviewHint =>
+      'أرقام مباشرة، محسوبة بنفس طريقة التوزيع. المحادثة التالية تذهب للأول في هذه القائمة.';
+
+  @override
+  String get workloadPreviewEmpty =>
+      'لم يستقبل أي موظف محادثة خلال هذه الفترة بعد.';
+
+  @override
+  String workloadPreviewReceived(int n) {
+    return 'استقبل $n';
+  }
+
+  @override
+  String get workloadPreviewNotReceiving => 'لا يستقبل محادثات';
+
+  @override
+  String workloadPreviewHeld(int n) {
+    return 'يحتفظ بـ $n';
+  }
+
+  @override
+  String get workloadPreviewLoadFailed => 'تعذّر تحميل الأرقام المباشرة.';
 
   @override
   String get channelResponsibilityTitle => 'مسؤولية القناة';

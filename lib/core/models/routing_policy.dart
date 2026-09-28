@@ -13,6 +13,7 @@ class RoutingPolicy {
     this.stickyConversationOwnership = false,
     this.escalationMaxHops = 3,
     this.strictResponsibility = false,
+    this.workloadWindow = '',
   });
 
   /// Whether automatic assignment of incoming conversations to available agents is active.
@@ -42,6 +43,11 @@ class RoutingPolicy {
   /// responsibility becomes a hard requirement, not just a preference.
   final bool strictResponsibility;
 
+  /// How far back the allocator counts what each employee has received
+  /// (`workload_window`: `1h` | `24h` | `7d` | `30d`), kept as sent — see
+  /// `WorkloadWindow` for the documented values.
+  final String workloadWindow;
+
   factory RoutingPolicy.fromJson(Map<String, dynamic> json) => RoutingPolicy(
     isEnabled: JsonSafe.asBool(json['is_enabled'], fallback: true),
     maxOpenChatsPerAgent: JsonSafe.asInt(
@@ -66,6 +72,7 @@ class RoutingPolicy {
       json['strict_responsibility'],
       fallback: false,
     ),
+    workloadWindow: JsonSafe.asString(json['workload_window']),
   );
 
   RoutingPolicy copyWith({
@@ -77,6 +84,7 @@ class RoutingPolicy {
     bool? stickyConversationOwnership,
     int? escalationMaxHops,
     bool? strictResponsibility,
+    String? workloadWindow,
   }) => RoutingPolicy(
     isEnabled: isEnabled ?? this.isEnabled,
     maxOpenChatsPerAgent: maxOpenChatsPerAgent ?? this.maxOpenChatsPerAgent,
@@ -88,6 +96,7 @@ class RoutingPolicy {
         stickyConversationOwnership ?? this.stickyConversationOwnership,
     strictResponsibility: strictResponsibility ?? this.strictResponsibility,
     escalationMaxHops: escalationMaxHops ?? this.escalationMaxHops,
+    workloadWindow: workloadWindow ?? this.workloadWindow,
   );
 }
 

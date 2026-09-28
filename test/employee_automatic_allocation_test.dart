@@ -145,7 +145,9 @@ Widget _harness({
       apiClientProvider.overrideWithValue(apiClient),
       currentEmployeeProvider.overrideWithValue(employee),
       if (routingPolicy != null)
-        routingPolicyProvider.overrideWith((ref) async => routingPolicy),
+        routingPolicyProvider.overrideWithBuild(
+          (ref, _) async => routingPolicy,
+        ),
     ],
     child: MaterialApp(
       theme: theme ?? AppTheme.light,

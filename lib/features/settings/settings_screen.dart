@@ -43,6 +43,7 @@ import '../messages/conversation_controller.dart';
 import 'channel_connect_sheets.dart';
 import 'more_settings_tab.dart';
 import 'settings_skeleton.dart';
+import 'workload_window_card.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -2180,11 +2181,30 @@ const _standardIanaTimezones = [
   'UTC',
 ];
 
-class _AssignmentTab extends ConsumerWidget {
+class _AssignmentTab extends ConsumerStatefulWidget {
   const _AssignmentTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AssignmentTab> createState() => _AssignmentTabState();
+}
+
+class _AssignmentTabState extends ConsumerState<_AssignmentTab> {
+  @override
+  void initState() {
+    super.initState();
+    // The policy is organization-wide and can be changed on the web: a
+    // policy already on hand is reloaded on every visit (and stays shown
+    // meanwhile), so the tab never keeps presenting a superseded one.
+    if (ref.exists(routingPolicyProvider) &&
+        ref.read(canProvider(Perm.routingManage))) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ref.invalidate(routingPolicyProvider);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final canManage = ref.watch(canProvider(Perm.routingManage));
     if (!canManage) {
       return Center(
@@ -2200,6 +2220,7 @@ class _AssignmentTab extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(routingPolicyProvider);
+        ref.invalidate(routingWorkloadProvider);
         await ref.read(routingPolicyProvider.future);
       },
       child: policyAsync.when(
@@ -2231,6 +2252,8 @@ class _AssignmentTabContentState extends State<_AssignmentTabContent> {
       padding: const EdgeInsets.all(Space.lg),
       children: [
         _AutoAssignmentCard(policy: widget.policy),
+        const SizedBox(height: Space.lg),
+        WorkloadWindowCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
         _ChatCapacityCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
