@@ -391,19 +391,27 @@ DateTime? _parseDate(Object? value) {
   return DateTime.tryParse(value)?.toLocal();
 }
 
-/// DRF's page envelope: `{count, next, previous, results}`.
+/// DRF's page envelope: `{count, next, previous, results}`, plus the
+/// `page` / `page_size` / `total_pages` the backend's page-number paginator
+/// adds (0 when a response does not carry them).
 class Paginated<T> {
   const Paginated({
     required this.results,
     required this.count,
     this.next,
     this.previous,
+    this.page = 0,
+    this.pageSize = 0,
+    this.totalPages = 0,
   });
 
   final List<T> results;
   final int count;
   final String? next;
   final String? previous;
+  final int page;
+  final int pageSize;
+  final int totalPages;
 
   bool get hasMore => next != null && next!.isNotEmpty;
 
@@ -419,5 +427,8 @@ class Paginated<T> {
     count: JsonSafe.asInt(json['count']),
     next: JsonSafe.asStringOrNull(json['next']),
     previous: JsonSafe.asStringOrNull(json['previous']),
+    page: JsonSafe.asInt(json['page']),
+    pageSize: JsonSafe.asInt(json['page_size']),
+    totalPages: JsonSafe.asInt(json['total_pages']),
   );
 }

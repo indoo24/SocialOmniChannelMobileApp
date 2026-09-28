@@ -32,6 +32,7 @@ import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
 import 'customer_conversation_group_sheet.dart';
 import 'inbox_controller.dart';
+import 'inbox_pagination_bar.dart';
 import 'inbox_filters_sheet.dart';
 import 'inbox_quick_filter_bar.dart';
 import 'platform_account_filter_bar.dart';
@@ -44,31 +45,63 @@ class InboxScreen extends ConsumerStatefulWidget {
 }
 
 class _InboxScreenState extends ConsumerState<InboxScreen> {
-  final _scrollController = ScrollController();
+  /// Within this much of the top the agent is "at the top": a realtime
+  /// refetch may refresh the page there without moving anything they are
+  /// reading.
+  static const _headExtent = 150.0;
+
+  /// A new page starts at the top (see [_renderedNavigation]);
+  /// `keepScrollOffset: false` also stops PageStorage from restoring an old
+  /// list's depth into a new one.
+  final _scrollController = ScrollController(keepScrollOffset: false);
   final _searchController = TextEditingController();
   bool _searching = false;
+  late final InboxController _inbox;
+  bool? _reportedAtHead;
+
+  /// The [InboxState.navigation] last put on screen. When a different page
+  /// arrives (Next, a page number, new filters…) the list goes back to the
+  /// top — after that page has been laid out, never before.
+  int? _renderedNavigation;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
+    _inbox = ref.read(inboxControllerProvider.notifier);
+    _scrollController.addListener(_syncHead);
   }
 
   @override
   void dispose() {
+    _inbox.screenDetached();
     _scrollController
-      ..removeListener(_onScroll)
+      ..removeListener(_syncHead)
       ..dispose();
     _searchController.dispose();
     super.dispose();
   }
 
-  void _onScroll() {
-    // Prefetch a screen early so the list does not visibly stall at the end.
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 600) {
-      ref.read(inboxControllerProvider.notifier).loadMore();
+  void _syncHead() {
+    if (!mounted || !_scrollController.hasClients) return;
+    final atHead = _scrollController.position.pixels <= _headExtent;
+    if (atHead != _reportedAtHead) {
+      _reportedAtHead = atHead;
+      _inbox.followHead(atHead);
     }
+  }
+
+  /// Called while building a page: if it is a different page from the one
+  /// on screen, scroll to its top once this frame has laid it out.
+  void _scrollToTopIfNewPage(InboxState state) {
+    if (state.navigation == _renderedNavigation) return;
+    final first = _renderedNavigation == null;
+    _renderedNavigation = state.navigation;
+    if (first) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
+    });
   }
 
   @override
@@ -76,6 +109,12 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     final inbox = ref.watch(inboxControllerProvider);
     final filters = ref.watch(inboxFiltersProvider);
     final employee = ref.watch(currentEmployeeProvider);
+    // The bar only takes room when the keyboard is not already taking it.
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+
+    ref.listen(inboxControllerProvider, (_, _) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _syncHead());
+    });
 
     // Keeps the socket alive and the cache invalidated while this screen lives.
     ref.watch(realtimeEventProvider);
@@ -126,7 +165,10 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
             child: RefreshIndicator(
               onRefresh: () =>
                   ref.read(inboxControllerProvider.notifier).refresh(),
+              // New filters keep the old page on screen, dimmed, until the
+              // new page 1 arrives — like any other page change.
               child: inbox.when(
+                skipLoadingOnReload: true,
                 loading: () => AppShimmer(
                   child: ListView.separated(
                     itemCount: 8,
@@ -149,7 +191,8 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                   ],
                 ),
                 data: (state) {
-                  if (state.isEmpty) {
+                  final loading = state.isNavigating || inbox.isLoading;
+                  if (state.isEmpty && !loading) {
                     return ListView(
                       children: [
                         SizedBox(
@@ -177,31 +220,23 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                     );
                   }
 
+                  _scrollToTopIfNewPage(state);
                   final groups = state.groups;
 
-                  return ListView.separated(
+                  // The current page only — at most one page of rows is
+                  // ever built or held.
+                  final list = ListView.separated(
+                    key: const ValueKey('inboxList'),
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: groups.length + (state.hasMore ? 1 : 0),
+                    itemCount: groups.length,
                     separatorBuilder: (_, _) =>
                         const Divider(height: 1, indent: 68),
                     itemBuilder: (context, index) {
-                      if (index >= groups.length) {
-                        return const Padding(
-                          padding: EdgeInsets.all(Space.lg),
-                          child: Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                        );
-                      }
-
                       final group = groups[index];
                       if (group.isMultiConversation) {
                         return ConversationGroupRow(
+                          key: ValueKey('inbox-group-${group.groupKey}'),
                           group: group,
                           onTap: () => CustomerConversationGroupSheet.show(
                             context,
@@ -212,6 +247,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
 
                       final conversation = group.primaryConversation;
                       return ConversationRow(
+                        key: ValueKey('inbox-conversation-${conversation.id}'),
                         conversation: conversation,
                         currentEmployeeId: employee?.id,
                         onTap: () =>
@@ -219,11 +255,100 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                       );
                     },
                   );
+
+                  return Stack(
+                    children: [
+                      // While another page loads, the one on screen is
+                      // plainly not the active one: dimmed and not tappable.
+                      IgnorePointer(
+                        ignoring: loading,
+                        child: AnimatedOpacity(
+                          opacity: loading ? 0.45 : 1,
+                          duration: const Duration(milliseconds: 150),
+                          child: list,
+                        ),
+                      ),
+                      if (loading)
+                        PositionedDirectional(
+                          key: const ValueKey('inboxPageLoading'),
+                          top: 0,
+                          start: 0,
+                          end: 0,
+                          child: Semantics(
+                            label: state.loadingPage == null
+                                ? null
+                                : context.l10n.inboxPageOf(
+                                    state.loadingPage!,
+                                    state.totalPages,
+                                  ),
+                            child: const LinearProgressIndicator(minHeight: 2),
+                          ),
+                        ),
+                      if (state.hasPendingUpdates && !loading)
+                        PositionedDirectional(
+                          top: Space.sm,
+                          start: 0,
+                          end: 0,
+                          child: Center(
+                            child: _NewActivityPill(onTap: _inbox.refresh),
+                          ),
+                        ),
+                    ],
+                  );
                 },
               ),
             ),
           ),
+          if (!keyboardOpen) const InboxPaginationBar(),
         ],
+      ),
+    );
+  }
+}
+
+/// Shown while scrolled down when the page on screen changed — it is not
+/// reshuffled under the agent; tapping reloads the same page, from the top.
+class _NewActivityPill extends StatelessWidget {
+  const _NewActivityPill({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      key: const ValueKey('inboxNewActivity'),
+      color: scheme.primary,
+      elevation: 2,
+      shape: const StadiumBorder(),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Space.md,
+            vertical: Space.xs + 2,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.arrow_upward_rounded,
+                size: 16,
+                color: scheme.onPrimary,
+              ),
+              const SizedBox(width: Space.xs),
+              Text(
+                context.l10n.inboxNewActivity,
+                style: TextStyle(
+                  color: scheme.onPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -480,6 +480,46 @@ class AppLocalizationsAr extends AppLocalizations {
   String get searchConversationsHint => 'البحث في المحادثات';
 
   @override
+  String get inboxPreviousPage => 'السابق';
+
+  @override
+  String get inboxNextPage => 'التالي';
+
+  @override
+  String inboxPageOf(int page, int total) {
+    return 'صفحة $page من $total';
+  }
+
+  @override
+  String inboxPageNumber(int page) {
+    return 'صفحة $page';
+  }
+
+  @override
+  String inboxCurrentPage(int page) {
+    return 'صفحة $page، الصفحة الحالية';
+  }
+
+  @override
+  String get inboxGoToPage => 'الانتقال إلى صفحة';
+
+  @override
+  String inboxGoToPageInvalid(int total) {
+    return 'أدخل رقم صفحة من 1 إلى $total';
+  }
+
+  @override
+  String get inboxGoToPageAction => 'انتقال';
+
+  @override
+  String inboxPageLoadFailed(int page) {
+    return 'تعذّر تحميل الصفحة $page';
+  }
+
+  @override
+  String get inboxNewActivity => 'نشاط جديد';
+
+  @override
   String get filtersTooltip => 'التصفية';
 
   @override
