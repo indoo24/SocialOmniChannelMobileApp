@@ -262,7 +262,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -286,7 +286,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -307,7 +307,7 @@ void main() {
       'unauthorized users cannot edit routing settings (Routing tab absent)',
       (tester) async {
         tester.view.devicePixelRatio = 1.0;
-        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.physicalSize = const Size(800, 2600);
         addTearDown(() {
           tester.view.resetPhysicalSize();
           tester.view.resetDevicePixelRatio();
@@ -337,7 +337,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -415,7 +415,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -461,7 +461,7 @@ void main() {
       'saving chat capacity sends PATCH with ONLY max_open_chats_per_agent',
       (tester) async {
         tester.view.devicePixelRatio = 1.0;
-        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.physicalSize = const Size(800, 2600);
         addTearDown(() {
           tester.view.resetPhysicalSize();
           tester.view.resetDevicePixelRatio();
@@ -512,7 +512,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -546,7 +546,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -603,7 +603,7 @@ void main() {
 
     testWidgets('handles PATCH API error gracefully', (tester) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -639,7 +639,7 @@ void main() {
 
     testWidgets('renders properly in Arabic (RTL)', (tester) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -696,7 +696,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -747,7 +747,7 @@ void main() {
 
     testWidgets('shows empty state when there are no rules', (tester) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -775,7 +775,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -814,7 +814,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -852,7 +852,7 @@ void main() {
       '"Offer to everyone else" sends PATCH with strict_responsibility=false',
       (tester) async {
         tester.view.devicePixelRatio = 1.0;
-        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.physicalSize = const Size(800, 2600);
         addTearDown(() {
           tester.view.resetPhysicalSize();
           tester.view.resetDevicePixelRatio();
@@ -918,7 +918,7 @@ void main() {
       '"Leave unassigned" sends PATCH with strict_responsibility=true',
       (tester) async {
         tester.view.devicePixelRatio = 1.0;
-        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.physicalSize = const Size(800, 2600);
         addTearDown(() {
           tester.view.resetPhysicalSize();
           tester.view.resetDevicePixelRatio();
@@ -999,7 +999,7 @@ void main() {
 
     testWidgets('renders in dark mode without error', (tester) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -1049,7 +1049,7 @@ void main() {
       'saving reassign minutes sends PATCH with first_response_sla_seconds in seconds',
       (tester) async {
         tester.view.devicePixelRatio = 1.0;
-        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.physicalSize = const Size(800, 2600);
         addTearDown(() {
           tester.view.resetPhysicalSize();
           tester.view.resetDevicePixelRatio();
@@ -1102,7 +1102,7 @@ void main() {
       'reassign minutes rejects values below 1 or above 1440 locally',
       (tester) async {
         tester.view.devicePixelRatio = 1.0;
-        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.physicalSize = const Size(800, 2600);
         addTearDown(() {
           tester.view.resetPhysicalSize();
           tester.view.resetDevicePixelRatio();
@@ -1151,7 +1151,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -1187,7 +1187,7 @@ void main() {
       'toggling sticky conversation ownership sends PATCH with boolean',
       (tester) async {
         tester.view.devicePixelRatio = 1.0;
-        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.physicalSize = const Size(800, 2600);
         addTearDown(() {
           tester.view.resetPhysicalSize();
           tester.view.resetDevicePixelRatio();
@@ -1239,7 +1239,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -1271,7 +1271,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -1321,7 +1321,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2600);
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -1363,7 +1363,7 @@ void main() {
       'when automatic assignment is disabled, reassignment controls are disabled',
       (tester) async {
         tester.view.devicePixelRatio = 1.0;
-        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.physicalSize = const Size(800, 2600);
         addTearDown(() {
           tester.view.resetPhysicalSize();
           tester.view.resetDevicePixelRatio();

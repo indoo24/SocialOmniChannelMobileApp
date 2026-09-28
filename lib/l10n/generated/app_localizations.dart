@@ -2276,6 +2276,96 @@ abstract class AppLocalizations {
   /// **'Enable automatic assignment'**
   String get autoAssignmentToggleLabel;
 
+  /// No description provided for @workloadWindowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Distribution workload period'**
+  String get workloadWindowTitle;
+
+  /// No description provided for @workloadWindowHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations go to the employee who has received the fewest during the selected period — whether they were newly assigned or transferred to them, and regardless of read or reply status.'**
+  String get workloadWindowHint;
+
+  /// No description provided for @workloadWindowNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not the number of conversations an employee currently holds. Work they were given earlier than the period no longer counts against them.'**
+  String get workloadWindowNote;
+
+  /// No description provided for @workloadWindowLastHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Last hour'**
+  String get workloadWindowLastHour;
+
+  /// No description provided for @workloadWindowLast24Hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 24 hours'**
+  String get workloadWindowLast24Hours;
+
+  /// No description provided for @workloadWindowLast7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get workloadWindowLast7Days;
+
+  /// No description provided for @workloadWindowLast30Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get workloadWindowLast30Days;
+
+  /// No description provided for @workloadWindowSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Workload period saved'**
+  String get workloadWindowSaved;
+
+  /// No description provided for @workloadPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Received during this period'**
+  String get workloadPreviewTitle;
+
+  /// No description provided for @workloadPreviewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Live figures, counted the way the allocator counts them. The next conversation goes to the top of this list.'**
+  String get workloadPreviewHint;
+
+  /// No description provided for @workloadPreviewEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No employee has received a conversation during this period yet.'**
+  String get workloadPreviewEmpty;
+
+  /// No description provided for @workloadPreviewReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} received'**
+  String workloadPreviewReceived(int n);
+
+  /// No description provided for @workloadPreviewNotReceiving.
+  ///
+  /// In en, this message translates to:
+  /// **'Not receiving work'**
+  String get workloadPreviewNotReceiving;
+
+  /// No description provided for @workloadPreviewHeld.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} currently held'**
+  String workloadPreviewHeld(int n);
+
+  /// No description provided for @workloadPreviewLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the live figures.'**
+  String get workloadPreviewLoadFailed;
+
   /// No description provided for @channelResponsibilityTitle.
   ///
   /// In en, this message translates to:

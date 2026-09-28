@@ -3,7 +3,8 @@
 /// `FutureProvider` rather than `AsyncNotifier` throughout: none of these hold
 /// local state beyond the fetch itself, and pull-to-refresh is
 /// `ref.invalidate` + `ref.read(...future)`. The inbox is the exception and
-/// keeps its `AsyncNotifier`, because it paginates and merges realtime updates.
+/// keeps its `AsyncNotifier`, because it paginates and merges realtime updates;
+/// the routing policy is one too, so a save can hand back the saved policy.
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,7 @@ import '../../core/models/customer_fields.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
 import '../../core/models/routing_policy.dart';
+import '../../core/models/routing_workload.dart';
 import '../../core/providers.dart';
 import '../authentication/auth_controller.dart';
 import '../dashboard/dashboard_cache.dart';
@@ -48,8 +50,33 @@ final dashboardProvider = FutureProvider<DashboardSummary>((ref) {
   );
 });
 
-final routingPolicyProvider = FutureProvider<RoutingPolicy>((ref) {
-  return ref.watch(directoryRepositoryProvider).routingPolicy();
+/// The organization's routing policy. An `AsyncNotifier` rather than a
+/// `FutureProvider` only so a save can [RoutingPolicyController.confirm] the
+/// policy the backend returned — the PATCH response is the policy as saved,
+/// so the screen shows it at once instead of the pre-save copy while a
+/// refetch runs. Every read and refresh still comes from `GET`.
+class RoutingPolicyController extends AsyncNotifier<RoutingPolicy> {
+  @override
+  Future<RoutingPolicy> build() =>
+      ref.watch(directoryRepositoryProvider).routingPolicy();
+
+  /// Replaces the policy with [saved], the backend's response to a PATCH.
+  void confirm(RoutingPolicy saved) => state = AsyncData(saved);
+}
+
+final routingPolicyProvider =
+    AsyncNotifierProvider<RoutingPolicyController, RoutingPolicy>(
+      RoutingPolicyController.new,
+    );
+
+/// Received-vs-held figures for the policy's workload window. Auto-disposed:
+/// the figures are live, so each visit to the Routing tab fetches fresh ones
+/// (as the web's `staleTime: 0` does) and none outlive the screen — or the
+/// signed-in employee.
+final routingWorkloadProvider = FutureProvider.autoDispose<WorkloadPreview>((
+  ref,
+) {
+  return ref.watch(directoryRepositoryProvider).routingWorkload();
 });
 
 /// Every routing-responsibility rule in the organization — the team form

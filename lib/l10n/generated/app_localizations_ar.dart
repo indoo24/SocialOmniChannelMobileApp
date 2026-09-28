@@ -1188,6 +1188,59 @@ class AppLocalizationsAr extends AppLocalizations {
   String get autoAssignmentToggleLabel => 'تفعيل التوزيع التلقائي';
 
   @override
+  String get workloadWindowTitle => 'فترة حساب حمل التوزيع';
+
+  @override
+  String get workloadWindowHint =>
+      'يتم توزيع المحادثات على الموظف الذي استقبل أقل عدد من المحادثات خلال الفترة المحددة، سواء كانت المحادثات جديدة أو محوّلة إليه، وبغض النظر عن حالة القراءة أو الرد.';
+
+  @override
+  String get workloadWindowNote =>
+      'هذا ليس عدد المحادثات التي يحتفظ بها الموظف حاليًا. المحادثات التي استقبلها قبل الفترة لم تعد محسوبة عليه.';
+
+  @override
+  String get workloadWindowLastHour => 'آخر ساعة';
+
+  @override
+  String get workloadWindowLast24Hours => 'آخر 24 ساعة';
+
+  @override
+  String get workloadWindowLast7Days => 'آخر 7 أيام';
+
+  @override
+  String get workloadWindowLast30Days => 'آخر 30 يومًا';
+
+  @override
+  String get workloadWindowSaved => 'تم حفظ فترة حساب الحمل';
+
+  @override
+  String get workloadPreviewTitle => 'المستقبل خلال الفترة';
+
+  @override
+  String get workloadPreviewHint =>
+      'أرقام مباشرة، محسوبة بنفس طريقة التوزيع. المحادثة التالية تذهب للأول في هذه القائمة.';
+
+  @override
+  String get workloadPreviewEmpty =>
+      'لم يستقبل أي موظف محادثة خلال هذه الفترة بعد.';
+
+  @override
+  String workloadPreviewReceived(int n) {
+    return 'استقبل $n';
+  }
+
+  @override
+  String get workloadPreviewNotReceiving => 'لا يستقبل محادثات';
+
+  @override
+  String workloadPreviewHeld(int n) {
+    return 'يحتفظ بـ $n';
+  }
+
+  @override
+  String get workloadPreviewLoadFailed => 'تعذّر تحميل الأرقام المباشرة.';
+
+  @override
   String get channelResponsibilityTitle => 'مسؤولية القناة';
 
   @override

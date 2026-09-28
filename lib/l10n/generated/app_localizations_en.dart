@@ -1189,6 +1189,59 @@ class AppLocalizationsEn extends AppLocalizations {
   String get autoAssignmentToggleLabel => 'Enable automatic assignment';
 
   @override
+  String get workloadWindowTitle => 'Distribution workload period';
+
+  @override
+  String get workloadWindowHint =>
+      'Conversations go to the employee who has received the fewest during the selected period — whether they were newly assigned or transferred to them, and regardless of read or reply status.';
+
+  @override
+  String get workloadWindowNote =>
+      'This is not the number of conversations an employee currently holds. Work they were given earlier than the period no longer counts against them.';
+
+  @override
+  String get workloadWindowLastHour => 'Last hour';
+
+  @override
+  String get workloadWindowLast24Hours => 'Last 24 hours';
+
+  @override
+  String get workloadWindowLast7Days => 'Last 7 days';
+
+  @override
+  String get workloadWindowLast30Days => 'Last 30 days';
+
+  @override
+  String get workloadWindowSaved => 'Workload period saved';
+
+  @override
+  String get workloadPreviewTitle => 'Received during this period';
+
+  @override
+  String get workloadPreviewHint =>
+      'Live figures, counted the way the allocator counts them. The next conversation goes to the top of this list.';
+
+  @override
+  String get workloadPreviewEmpty =>
+      'No employee has received a conversation during this period yet.';
+
+  @override
+  String workloadPreviewReceived(int n) {
+    return '$n received';
+  }
+
+  @override
+  String get workloadPreviewNotReceiving => 'Not receiving work';
+
+  @override
+  String workloadPreviewHeld(int n) {
+    return '$n currently held';
+  }
+
+  @override
+  String get workloadPreviewLoadFailed => 'Couldn\'t load the live figures.';
+
+  @override
   String get channelResponsibilityTitle => 'Channel responsibility';
 
   @override

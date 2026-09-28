@@ -16,6 +16,7 @@ import '../../core/models/customer_fields.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/performance.dart';
 import '../../core/models/routing_policy.dart';
+import '../../core/models/routing_workload.dart';
 import '../../core/utils/json_safe.dart';
 
 class DirectoryRepository {
@@ -724,6 +725,7 @@ class DirectoryRepository {
     bool? stickyConversationOwnership,
     int? escalationMaxHops,
     bool? strictResponsibility,
+    String? workloadWindow,
   }) async {
     final body = <String, dynamic>{
       'is_enabled': ?isEnabled,
@@ -733,12 +735,22 @@ class DirectoryRepository {
       'sticky_conversation_ownership': ?stickyConversationOwnership,
       'escalation_max_hops': ?escalationMaxHops,
       'strict_responsibility': ?strictResponsibility,
+      'workload_window': ?workloadWindow,
     };
     final data = await _api.patch<Map<String, dynamic>>(
       '/routing/policy/',
       body: body,
     );
     return RoutingPolicy.fromJson(data);
+  }
+
+  /// `GET /api/routing/workload/` — who has been given what inside the
+  /// policy's configured `workload_window`. Requires `routing.manage`. Takes
+  /// no parameters: the window is the policy's, changed through
+  /// [updateRoutingPolicy]. Computed live by the backend, in allocator order.
+  Future<WorkloadPreview> routingWorkload() async {
+    final data = await _api.get<Map<String, dynamic>>('/routing/workload/');
+    return WorkloadPreview.fromJson(data);
   }
 
   /// `GET /api/routing/responsibilities/` — every rule in the organization,
