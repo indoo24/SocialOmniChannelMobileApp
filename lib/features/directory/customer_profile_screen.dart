@@ -188,7 +188,7 @@ class _CustomerHeader extends StatelessWidget {
         ),
         const SizedBox(height: Space.xl),
         _Field(label: context.l10n.emailFieldLabel, value: customer.email),
-        _Field(label: context.l10n.phoneFieldLabel, value: customer.phone),
+        _Field(label: context.l10n.phoneFieldLabel, value: customer.displayPhone),
         _Field(
           label: context.l10n.locationFieldLabel,
           value: [

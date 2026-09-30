@@ -194,6 +194,11 @@ class ConversationRepository {
 
   final ApiClient _api;
 
+  /// The two list endpoints, named once so a log line and a request cannot
+  /// disagree about which one was called.
+  static const listPath = '/conversations/';
+  static const groupedPath = '/conversations/grouped/';
+
   Future<Paginated<Conversation>> list({
     ConversationFilters filters = const ConversationFilters(),
     int page = 1,
@@ -203,7 +208,7 @@ class ConversationRepository {
     final query = filters.toQuery(page, currentEmployeeId);
     if (pageSize != null) query['page_size'] = pageSize;
     final data = await _api.get<Map<String, dynamic>>(
-      '/conversations/',
+      listPath,
       query: query,
     );
     return Paginated.fromJson(data, Conversation.fromJson);
@@ -224,14 +229,22 @@ class ConversationRepository {
     );
   }
 
+  /// `GET /conversations/grouped/` — the inbox as the rows it displays. One
+  /// page is a page of **groups** (a customer and their threads), so `count`,
+  /// `total_pages` and `next` describe exactly what the agent pages through.
+  /// Takes the same [ConversationFilters] as [list]; the server applies them,
+  /// with visibility and muted channels, before it paginates.
   Future<Paginated<CustomerConversationGroup>> listGrouped({
     ConversationFilters filters = const ConversationFilters(),
     int page = 1,
     int? currentEmployeeId,
+    int? pageSize,
   }) async {
+    final query = filters.toQuery(page, currentEmployeeId);
+    if (pageSize != null) query['page_size'] = pageSize;
     final data = await _api.get<Map<String, dynamic>>(
-      '/conversations/grouped/',
-      query: filters.toQuery(page, currentEmployeeId),
+      groupedPath,
+      query: query,
     );
     return Paginated.fromJson(data, CustomerConversationGroup.fromJson);
   }
@@ -255,6 +268,10 @@ class ConversationRepository {
   /// the list, because they are answers from the list's own query, not a
   /// second, independently-implemented one. `pageSize: 1` keeps each of the
   /// five requests to a single-row response; only `count` is read.
+  ///
+  /// The inbox lists **groups** (`GET /conversations/grouped/`), so that is
+  /// the query each badge asks: a badge counts the rows the list would show,
+  /// so "Unread 5" is five rows and "Page 1 of N" agrees with "All".
   Future<Map<String, int>> counts({
     List<int>? channelConnections,
     int? currentEmployeeId,
@@ -262,7 +279,7 @@ class ConversationRepository {
     final base = ConversationFilters(channelConnections: channelConnections);
 
     Future<int> countFor(ConversationFilters filters) async {
-      final page = await list(
+      final page = await listGrouped(
         filters: filters,
         currentEmployeeId: currentEmployeeId,
         pageSize: 1,

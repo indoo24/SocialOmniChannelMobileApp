@@ -6,8 +6,14 @@
 ///
 /// ## Pagination
 ///
-/// `GET /conversations/` is DRF page-number pagination (`?page=N`, 30 rows
-/// per page by default — the web sends no `page_size` either). The inbox
+/// `GET /conversations/grouped/` is page-number pagination over **groups** —
+/// one row per customer, carrying their threads (`?page=N`, 30 groups per
+/// page by default). That is the dataset the inbox displays and the one the
+/// web inbox pages, so `count` and `total_pages` are exactly the rows on
+/// screen; the flat `/conversations/` counts threads and would report more
+/// pages than there are rows. Rows are shown as the server sent them: no
+/// client-side grouping or filtering, which would make a page's contents
+/// disagree with its own numbers. The inbox
 /// shows one page at a time and holds only that page: Previous, Next, a page
 /// number or "Go to page" replace it with another ([goToPage]). New filters
 /// or a new search start again at page 1. Navigation is the only thing that
@@ -39,6 +45,7 @@ import '../../core/providers.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
 import 'conversation_repository.dart';
+import 'inbox_pagination_log.dart';
 
 /// Computes allowed channel IDs across all platforms, matching Web's `pn(selection, connections)`.
 List<int>? computeAllowedChannelConnections(
@@ -178,8 +185,8 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
 }
 
 class InboxState {
-  InboxState({
-    this.conversations = const [],
+  const InboxState({
+    this.groups = const [],
     this.page = 1,
     this.totalPages = 1,
     this.total = 0,
@@ -189,20 +196,23 @@ class InboxState {
     this.failedPage,
     this.hasPendingUpdates = false,
     this.navigation = 0,
-    List<CustomerConversationGroup>? groups,
-  }) : groups =
-           groups ??
-           CustomerConversationGroup.groupConversations(conversations);
+  });
 
-  /// The current page's conversations — the only ones held in memory.
-  final List<Conversation> conversations;
+  /// The current page's rows — the only ones held in memory. Exactly what
+  /// `GET /conversations/grouped/` returned for this page: a customer and
+  /// their threads per row, never regrouped or filtered here.
   final List<CustomerConversationGroup> groups;
+
+  /// Every conversation nested in [groups], in row order.
+  List<Conversation> get conversations => [
+    for (final group in groups) ...group.conversations,
+  ];
 
   /// The page on screen, 1-based, and what the backend says there is.
   final int page;
   final int totalPages;
 
-  /// Conversations matching the filters, across all pages (`count`).
+  /// Rows (groups) matching the filters, across all pages (`count`).
   final int total;
   final bool hasNext;
   final bool hasPrevious;
@@ -224,11 +234,10 @@ class InboxState {
   /// when it changes; a quiet realtime refresh of the same page keeps it.
   final int navigation;
 
-  bool get isEmpty => conversations.isEmpty;
+  bool get isEmpty => groups.isEmpty;
   bool get isNavigating => loadingPage != null;
 
   InboxState copyWith({
-    List<Conversation>? conversations,
     List<CustomerConversationGroup>? groups,
     int? page,
     int? totalPages,
@@ -242,12 +251,7 @@ class InboxState {
     bool? hasPendingUpdates,
     int? navigation,
   }) => InboxState(
-    conversations: conversations ?? this.conversations,
-    groups:
-        groups ??
-        (conversations != null
-            ? CustomerConversationGroup.groupConversations(conversations)
-            : this.groups),
+    groups: groups ?? this.groups,
     page: page ?? this.page,
     totalPages: totalPages ?? this.totalPages,
     total: total ?? this.total,
@@ -261,8 +265,6 @@ class InboxState {
 }
 
 class InboxController extends AsyncNotifier<InboxState> {
-  ConversationFilters? _lastFilters;
-
   /// The filters the page on screen was fetched with. Every page request
   /// uses these, never whatever the filter bar says at that moment.
   ConversationFilters _listFilters = const ConversationFilters();
@@ -284,6 +286,10 @@ class InboxController extends AsyncNotifier<InboxState> {
   bool _quietRefreshRunning = false;
   bool _quietRefreshAgain = false;
 
+  /// Development-only `[INBOX_PAGINATION]` diagnostics. Observes; never steers.
+  final _pagelog = InboxPaginationLog();
+  bool _hasBuilt = false;
+
   @override
   Future<InboxState> build() async {
     // Rebuilds whenever the filters change — no manual resubscription.
@@ -292,9 +298,10 @@ class InboxController extends AsyncNotifier<InboxState> {
     // this build is the list now.
     _generation++;
 
-    // Watch channelsProvider changes so that when channels update (e.g. disconnected,
-    // removed, or reconnected), we update our list without forcing the AsyncNotifier
-    // into an AsyncLoading state or flashing a loading skeleton.
+    // When channels change (disconnected, removed, reconnected), drop a
+    // selected-account filter that points at a channel that is no longer
+    // usable. That changes the *filters*, so the server answers the new
+    // question; the rows themselves are never filtered here.
     ref.listen<AsyncValue<List<ChannelConnection>>>(channelsProvider, (
       prev,
       next,
@@ -332,98 +339,76 @@ class InboxController extends AsyncNotifier<InboxState> {
                     clearChannelConnections: allowed == null,
                   ),
                 );
-            return;
           }
         }
-
-        final filtered = _filterByActiveChannels(
-          current.conversations,
-          channels,
-          selectedAccounts: currentFilters.selectedAccounts,
-        );
-        state = AsyncData(current.copyWith(conversations: filtered));
       }
     });
 
-    List<ChannelConnection>? channels;
-    try {
-      channels = ref.read(channelsProvider).value;
-    } catch (_) {
-      channels = null;
-    }
-
-    final current = state.value;
-    if (_lastFilters == filters &&
-        current != null &&
-        current.conversations.isNotEmpty &&
-        channels != null &&
-        channels.isNotEmpty) {
-      final filtered = _filterByActiveChannels(
-        current.conversations,
-        channels,
-        selectedAccounts: filters.selectedAccounts,
-      );
-      // A navigation in flight was dropped by the generation bump above.
-      return current.copyWith(conversations: filtered, clearLoadingPage: true);
-    }
-
     // New filters (or a new search) always start again at page 1.
-    _lastFilters = filters;
     _listFilters = filters;
-    return _fetchPage(
-      filters,
-      1,
-      channels: channels,
-      navigation: ++_navigation,
+    _pagelog.refresh(
+      currentPage: 1,
+      reason: _hasBuilt ? 'filter_change' : 'initial_load',
     );
+    _hasBuilt = true;
+    return _fetchPage(filters, 1, navigation: ++_navigation);
   }
 
-  static List<Conversation> _filterByActiveChannels(
-    List<Conversation> conversations,
-    List<ChannelConnection>? channels, {
-    Map<String, int?> selectedAccounts = const {},
-  }) {
-    if (channels == null || channels.isEmpty) return conversations;
-    final activeIds = channels
-        .where((c) => c.isActive && c.isConnected && !c.isMuted)
-        .map((c) => c.id)
-        .toSet();
-    return conversations.where((c) {
-      if (c.channelId == null) return true;
-      if (!activeIds.contains(c.channelId)) return false;
-      final selectedForProvider = selectedAccounts[c.provider.toUpperCase()];
-      if (selectedForProvider != null && c.channelId != selectedForProvider) {
-        return false;
-      }
-      return true;
-    }).toList();
-  }
-
-  /// One page of [filters] as the whole list.
+  /// One page of [filters] as the whole list: the groups the backend returned
+  /// for it, and the paging numbers it sent, untouched. Nothing is filtered or
+  /// regrouped here — the server applies visibility, muted channels and every
+  /// filter *before* it paginates, so `count` and `total_pages` describe the
+  /// rows on screen.
   Future<InboxState> _fetchPage(
     ConversationFilters filters,
     int page, {
     required int navigation,
-    List<ChannelConnection>? channels,
   }) async {
-    final result = await ref
-        .read(conversationRepositoryProvider)
-        .list(
-          filters: filters,
-          page: page,
-          currentEmployeeId: ref.read(currentEmployeeProvider)?.id,
-        );
+    final employeeId = ref.read(currentEmployeeProvider)?.id;
+    // The same call the repository makes to build its query, so the log shows
+    // the parameters actually sent.
+    final query = filters.toQuery(page, employeeId);
+    _pagelog.fetchStart(
+      endpoint: ConversationRepository.groupedPath,
+      page: page,
+      filters: filters,
+      query: query,
+    );
 
-    final effectiveChannels = channels ?? ref.read(channelsProvider).value;
-    final filtered = _filterByActiveChannels(
-      result.results,
-      effectiveChannels,
-      selectedAccounts: filters.selectedAccounts,
+    final Paginated<CustomerConversationGroup> result;
+    try {
+      result = await ref
+          .read(conversationRepositoryProvider)
+          .listGrouped(
+            filters: filters,
+            page: page,
+            currentEmployeeId: employeeId,
+          );
+    } catch (error) {
+      _pagelog.error(
+        endpoint: ConversationRepository.groupedPath,
+        requestedPage: page,
+        knownTotalPages: state.value?.totalPages,
+        error: error,
+      );
+      rethrow;
+    }
+    _pagelog.apiResponse(
+      endpoint: ConversationRepository.groupedPath,
+      requestedPage: page,
+      result: result,
+      query: query,
     );
 
     final current = result.page > 0 ? result.page : page;
+    _pagelog.groupsParsed(
+      requestedPage: page,
+      responsePage: current,
+      totalPages: _totalPages(result, current),
+      groups: result.results,
+    );
     return InboxState(
-      conversations: filtered,
+      groups: result.results,
       page: current,
       totalPages: _totalPages(result, current),
       total: result.count,
@@ -435,7 +420,10 @@ class InboxController extends AsyncNotifier<InboxState> {
 
   /// `total_pages` as sent; derived from `count` for a response without it
   /// (30 per page, the backend default), never less than what `next` proves.
-  static int _totalPages(Paginated<Conversation> result, int page) {
+  static int _totalPages(
+    Paginated<CustomerConversationGroup> result,
+    int page,
+  ) {
     if (result.totalPages > 0) return result.totalPages;
     final size = result.pageSize > 0 ? result.pageSize : 30;
     final fromCount = (result.count + size - 1) ~/ size;
@@ -469,6 +457,24 @@ class InboxController extends AsyncNotifier<InboxState> {
   Future<void> goToPage(int page) async {
     if (!ref.mounted) return;
     final current = state.value;
+    if (current != null) {
+      final busy = state.isLoading || current.isNavigating;
+      final outOfRange = page < 1 || page > current.totalPages;
+      if (busy || outOfRange) {
+        _pagelog.pageChangeRefused(
+          fromPage: current.page,
+          toPage: page,
+          knownTotalPages: current.totalPages,
+          reason: outOfRange ? 'outside_known_total_pages' : 'busy',
+        );
+      } else {
+        _pagelog.pageChange(
+          fromPage: current.page,
+          toPage: page,
+          knownTotalPages: current.totalPages,
+        );
+      }
+    }
     if (current == null ||
         state.isLoading ||
         current.isNavigating ||
@@ -511,13 +517,20 @@ class InboxController extends AsyncNotifier<InboxState> {
   /// The retry after a failed navigation: the same page again.
   Future<void> retryPage() async {
     final failed = state.value?.failedPage;
-    if (failed != null) await goToPage(failed);
+    if (failed != null) {
+      _pagelog.refresh(currentPage: failed, reason: 'manual_retry');
+      await goToPage(failed);
+    }
   }
 
   /// Pull to refresh, and the "new activity" pill: the current page again,
   /// on the same page number. Keeps the page visible while refetching so the
   /// screen does not blank out under the agent's thumb.
   Future<void> refresh() async {
+    _pagelog.refresh(
+      currentPage: state.value?.page ?? 1,
+      reason: 'pull_to_refresh',
+    );
     final generation = ++_generation;
     try {
       ref.invalidate(channelsProvider);
@@ -570,6 +583,7 @@ class InboxController extends AsyncNotifier<InboxState> {
     // A navigation brings a fresh page anyway.
     if (current != null && current.isNavigating) return;
     if (!_atHead && current != null) {
+      _pagelog.refreshDeferred(currentPage: current.page, reason: 'realtime');
       if (!current.hasPendingUpdates && state is AsyncData<InboxState>) {
         state = AsyncData(current.copyWith(hasPendingUpdates: true));
       }
@@ -599,6 +613,9 @@ class InboxController extends AsyncNotifier<InboxState> {
 
   Future<void> _refetchCurrentPage() async {
     final current = state.value;
+    // Every caller is the quiet refresh: a realtime event, a push, or the
+    // agent's own action (assign, disconnect) — all logged as `realtime`.
+    _pagelog.refresh(currentPage: current?.page ?? 1, reason: 'realtime');
     final generation = ++_generation;
     try {
       final filters = ref.read(inboxFiltersProvider);
@@ -626,14 +643,18 @@ class InboxController extends AsyncNotifier<InboxState> {
     final current = state.value;
     if (current == null) return;
 
-    final updated = current.conversations.map((c) {
-      if (c.id == conversationId) {
-        return c.copyWith(unreadCount: 0);
-      }
-      return c;
-    }).toList();
+    // The conversation is nested in its group; the group's unread figures
+    // are computed from its threads, so patching the thread updates the row.
+    final updated = [
+      for (final group in current.groups)
+        group.conversations.any((c) => c.id == conversationId)
+            ? group.mapConversations(
+                (c) => c.id == conversationId ? c.copyWith(unreadCount: 0) : c,
+              )
+            : group,
+    ];
 
-    state = AsyncData(current.copyWith(conversations: updated));
+    state = AsyncData(current.copyWith(groups: updated));
   }
 
   /// Patches the row's delivery tick from a realtime `message.updated`
@@ -651,17 +672,22 @@ class InboxController extends AsyncNotifier<InboxState> {
     if (current == null) return;
 
     var changed = false;
-    final updated = current.conversations.map((c) {
-      if (c.id != conversationId) return c;
-      changed = true;
-      return c.copyWith(
-        lastMessageDirection: direction,
-        lastMessageDeliveryStatus: deliveryStatus,
-      );
-    }).toList();
+    final updated = [
+      for (final group in current.groups)
+        group.conversations.any((c) => c.id == conversationId)
+            ? group.mapConversations((c) {
+                if (c.id != conversationId) return c;
+                changed = true;
+                return c.copyWith(
+                  lastMessageDirection: direction,
+                  lastMessageDeliveryStatus: deliveryStatus,
+                );
+              })
+            : group,
+    ];
 
     if (!changed) return;
-    state = AsyncData(current.copyWith(conversations: updated));
+    state = AsyncData(current.copyWith(groups: updated));
   }
 }
 

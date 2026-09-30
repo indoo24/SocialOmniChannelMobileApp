@@ -194,12 +194,13 @@ final customerDirectoryProvider = FutureProvider<List<Customer>>((ref) async {
   return page.results;
 });
 
-final customerDetailProvider = FutureProvider.family<CustomerDetail, int>((
-  ref,
-  customerId,
-) {
-  return ref.watch(directoryRepositoryProvider).customerDetail(customerId);
-});
+/// `autoDispose` so reopening a profile refetches: a customer's identities
+/// (and the WhatsApp number derived from them) can change while no profile is
+/// open, and a cached copy would keep showing the old ones.
+final customerDetailProvider = FutureProvider.autoDispose
+    .family<CustomerDetail, int>((ref, customerId) {
+      return ref.watch(directoryRepositoryProvider).customerDetail(customerId);
+    });
 
 final customerConversationsProvider =
     FutureProvider.family<List<Conversation>, int>((ref, id) async {

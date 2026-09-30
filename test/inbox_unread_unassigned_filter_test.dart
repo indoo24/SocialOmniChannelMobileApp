@@ -18,6 +18,8 @@ import 'package:scenario_mobile/features/conversations/inbox_screen.dart';
 import 'package:scenario_mobile/features/directory/directory_providers.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
+import 'support/grouped_inbox.dart';
+
 class _StubAdapter implements HttpClientAdapter {
   _StubAdapter(this.handler);
 
@@ -240,7 +242,7 @@ void main() {
           });
           final results = ids.map((id) => _allConversations[id]!).toList();
 
-          return _json(_page(results), 200);
+          return _json(groupedBody(_page(results)), 200);
         }
         if (path.contains('/channels/')) {
           return _json(
@@ -528,7 +530,10 @@ void main() {
         }
         if (path.contains('/conversations/')) {
           final unread = options.uri.queryParameters['unread'] == 'true';
-          return _json(_page(unread ? [] : [_readAssigned]), 200);
+          return _json(
+            groupedBody(_page(unread ? [] : [_readAssigned])),
+            200,
+          );
         }
         if (path.contains('/channels/')) {
           return _json(

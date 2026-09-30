@@ -16,6 +16,8 @@ import 'package:scenario_mobile/features/conversations/inbox_screen.dart';
 import 'package:scenario_mobile/features/messages/conversation_screen.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
+import 'support/grouped_inbox.dart';
+
 class _StubAdapter implements HttpClientAdapter {
   _StubAdapter(this.handler);
 
@@ -399,7 +401,7 @@ void main() {
             return _json('{"total": 2, "unread": 0, "unassigned": 0}', 200);
           }
           if (options.path.contains('/conversations/')) {
-            return _json('''{
+            return _json(groupedBody('''{
                 "count": 2,
                 "next": null,
                 "previous": null,
@@ -429,7 +431,7 @@ void main() {
                     "follow_up_date": null
                   }
                 ]
-              }''', 200);
+              }'''), 200);
           }
           return _json('{}', 200);
         });
@@ -468,7 +470,7 @@ void main() {
             return _json('{"total": 1, "unread": 0, "unassigned": 0}', 200);
           }
           if (options.path.contains('/conversations/')) {
-            return _json('''{
+            return _json(groupedBody('''{
                 "count": 1,
                 "next": null,
                 "previous": null,
@@ -486,7 +488,7 @@ void main() {
                     "follow_up_date": null
                   }
                 ]
-              }''', 200);
+              }'''), 200);
           }
           return _json('{}', 200);
         });
@@ -522,7 +524,7 @@ void main() {
           return _json('{"total": 1, "unread": 0, "unassigned": 0}', 200);
         }
         if (options.path.contains('/conversations/')) {
-          return _json('''{
+          return _json(groupedBody('''{
                 "count": 1,
                 "next": null,
                 "previous": null,
@@ -541,7 +543,7 @@ void main() {
                     "follow_up_date": "2026-09-15T00:00:00Z"
                   }
                 ]
-              }''', 200);
+              }'''), 200);
         }
         return _json('{}', 200);
       });

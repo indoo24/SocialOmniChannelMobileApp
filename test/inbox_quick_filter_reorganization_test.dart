@@ -19,6 +19,8 @@ import 'package:scenario_mobile/features/conversations/platform_account_filter_b
 import 'package:scenario_mobile/features/directory/directory_providers.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
+import 'support/grouped_inbox.dart';
+
 class _StubAdapter implements HttpClientAdapter {
   _StubAdapter(this.handler);
 
@@ -219,7 +221,9 @@ void main() {
           }
 
           return _json(
-            '{"count": ${convos.length}, "next": null, "previous": null, "results": [${convos.join(',')}]}',
+            groupedBody(
+              '{"count": ${convos.length}, "next": null, "previous": null, "results": [${convos.join(',')}]}',
+            ),
             200,
           );
         }

@@ -123,6 +123,16 @@ class RoutingResponsibility {
   final String teamName;
   final int? employeeId;
   final String employeeName;
+
+  /// The provider this rule is about — `WHATSAPP`, `FACEBOOK`, `INSTAGRAM` or
+  /// `TIKTOK`.
+  ///
+  /// A rule that names one specific account is stored with a **blank**
+  /// top-level `provider` (the write contract allows `''` exactly when
+  /// `channel_connection_id` is given), and the provider is only on the
+  /// nested `channel_connection`. So this is the rule's own provider when it
+  /// has one, and the account's otherwise — never blank for a well-formed
+  /// rule, and always uppercase like the backend's enum.
   final String provider;
   final int? channelConnectionId;
   final String channelConnectionName;
@@ -137,6 +147,10 @@ class RoutingResponsibility {
     final team = json['team'];
     final employee = json['employee'];
     final channel = json['channel_connection'];
+    var provider = JsonSafe.asString(json['provider']).trim();
+    if (provider.isEmpty && channel is Map) {
+      provider = JsonSafe.asString(channel['provider']).trim();
+    }
     return RoutingResponsibility(
       id: JsonSafe.asInt(json['id'], fallback: -1),
       teamId: team is Map ? JsonSafe.asIntOrNull(team['id']) : null,
@@ -145,7 +159,7 @@ class RoutingResponsibility {
       employeeName: employee is Map
           ? JsonSafe.asString(employee['full_name'])
           : '',
-      provider: JsonSafe.asString(json['provider']),
+      provider: provider.toUpperCase(),
       channelConnectionId: channel is Map
           ? JsonSafe.asIntOrNull(channel['id'])
           : null,

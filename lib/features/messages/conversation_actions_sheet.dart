@@ -820,6 +820,15 @@ class _CustomerDetailsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final customer = conversation.customer;
+    // The conversation's `customer` carries no identities, so when it has no
+    // stored phone, fall back to the WhatsApp number on the customer detail.
+    final phone = customer.phone.isNotEmpty
+        ? customer.phone
+        : (customer.id > 0
+                  ? ref.watch(customerDetailProvider(customer.id)).value
+                  : null)
+              ?.displayPhone ??
+              '';
 
     final inboxState = ref.watch(inboxControllerProvider).value;
     final groups = inboxState?.groups ?? const [];
@@ -947,11 +956,8 @@ class _CustomerDetailsView extends ConsumerWidget {
             label: context.l10n.languageLabel,
             value: customer.preferredLanguage,
           ),
-        if (customer.phone.isNotEmpty)
-          _KeyValueRow(
-            label: context.l10n.phoneFieldLabel,
-            value: customer.phone,
-          ),
+        if (phone.isNotEmpty)
+          _KeyValueRow(label: context.l10n.phoneFieldLabel, value: phone),
         if (customer.email.isNotEmpty)
           _KeyValueRow(
             label: context.l10n.emailFieldLabel,

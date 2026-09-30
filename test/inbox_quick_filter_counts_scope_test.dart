@@ -14,6 +14,9 @@
 /// This makes the numbers correct by construction: they are answers from the
 /// list's own query, not a second, independently implemented one, so they
 /// cannot disagree with what the list shows.
+///
+/// The inbox lists *groups* (`GET /conversations/grouped/`), so the probes go
+/// to that endpoint: a badge counts the rows the list would show.
 library;
 
 import 'dart:async';
@@ -152,7 +155,7 @@ void main() {
 
         expect(adapter.received, hasLength(5));
         for (final request in adapter.received) {
-          expect(request.path, '/conversations/');
+          expect(request.path, '/conversations/grouped/');
           expect(request.queryParameters['page_size'], 1);
         }
         expect(
@@ -270,7 +273,7 @@ void main() {
       );
 
       final listRequest = adapter.received.firstWhere(_isListRequest);
-      expect(listRequest.path, '/conversations/');
+      expect(listRequest.path, '/conversations/grouped/');
     });
 
     testWidgets(

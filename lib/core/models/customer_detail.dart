@@ -53,6 +53,29 @@ class CustomerIdentity {
       );
 }
 
+/// The WhatsApp number among [identities] as `+<digits>`, or empty.
+///
+/// The single place a phone number is read off a customer's identities, shared
+/// by the profile (`CustomerDetail`) and the Customers list (`Customer`) so
+/// both show the same number. The most recently active WhatsApp identity wins;
+/// an id that is not a phone number is ignored.
+String whatsappPhoneOf(Iterable<CustomerIdentity> identities) {
+  final whatsapp = identities.where((i) => i.provider == 'WHATSAPP').toList()
+    ..sort((a, b) {
+      final at = a.lastInteractionAt;
+      final bt = b.lastInteractionAt;
+      if (at == null && bt == null) return 0;
+      if (at == null) return 1;
+      if (bt == null) return -1;
+      return bt.compareTo(at);
+    });
+  for (final identity in whatsapp) {
+    final digits = identity.externalId.replaceFirst(RegExp(r'^\+'), '');
+    if (RegExp(r'^\d{7,15}$').hasMatch(digits)) return '+$digits';
+  }
+  return '';
+}
+
 class CustomerDetail {
   const CustomerDetail({
     required this.id,
@@ -116,9 +139,28 @@ class CustomerDetail {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  /// The phone number to show for this customer.
+  ///
+  /// A number already stored on the customer ([phone]) always wins — it is
+  /// never overwritten. When the backend has none, the customer's WhatsApp
+  /// identity already carries the number the customer wrote from
+  /// (`identities[].external_id`, digits without a leading `+`), so it is
+  /// reused here rather than asking an employee to type it again. Nothing is
+  /// written back; this is a read-only fallback over data the backend sent.
+  /// Empty when neither exists.
+  String get displayPhone {
+    if (phone.trim().isNotEmpty) return phone;
+    return whatsappPhone;
+  }
+
+  /// The number of this customer's WhatsApp identity as `+<digits>`, or empty
+  /// when they have none (or its id is not a phone number). With several
+  /// WhatsApp identities the most recently active one is used.
+  String get whatsappPhone => whatsappPhoneOf(identities);
+
   String get subtitle {
     if (email.isNotEmpty) return email;
-    if (phone.isNotEmpty) return phone;
+    if (displayPhone.isNotEmpty) return displayPhone;
     if (city.isNotEmpty) return city;
     return '—';
   }

@@ -1,5 +1,5 @@
-/// Inbox page navigation against a large inbox: `GET /conversations/` is DRF
-/// page-number pagination (`?page=N`, 30 per page). One page is on screen
+/// Inbox page navigation against a large inbox: `GET /conversations/grouped/`
+/// is page-number pagination over groups (`?page=N`, 30 per page). One page is on screen
 /// and in memory at a time; Previous / Next / page numbers / "Go to page"
 /// replace it. Driven through the real [InboxScreen], [InboxPaginationBar]
 /// and [InboxController] against a small stateful fake server.
@@ -26,6 +26,8 @@ import 'package:scenario_mobile/features/conversations/inbox_pagination_bar.dart
 import 'package:scenario_mobile/features/conversations/inbox_screen.dart';
 import 'package:scenario_mobile/features/directory/directory_providers.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
+
+import 'support/grouped_inbox.dart';
 
 // ---------------------------------------------------------------------------
 // Fake server
@@ -104,7 +106,7 @@ class _Server implements HttpClientAdapter {
     Future<void>? _,
   ) async {
     final uri = options.uri;
-    if (!uri.path.endsWith('/conversations/')) {
+    if (!uri.path.endsWith('/conversations/grouped/')) {
       return _json({'count': 0, 'next': null, 'previous': null, 'results': []});
     }
     final q = uri.queryParameters;
@@ -152,12 +154,12 @@ class _Server implements HttpClientAdapter {
       'page_size': size,
       'total_pages': totalPages,
       'next': page < totalPages
-          ? 'https://example.test/api/conversations/?page=${page + 1}'
+          ? 'https://example.test/api/conversations/grouped/?page=${page + 1}'
           : null,
       'previous': page > 1
-          ? 'https://example.test/api/conversations/?page=${page - 1}'
+          ? 'https://example.test/api/conversations/grouped/?page=${page - 1}'
           : null,
-      'results': rows,
+      'results': groupedRows(rows),
     });
   }
 

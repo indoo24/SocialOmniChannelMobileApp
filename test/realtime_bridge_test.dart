@@ -17,6 +17,8 @@ import 'package:scenario_mobile/core/realtime/realtime_client.dart';
 import 'package:scenario_mobile/features/conversations/inbox_controller.dart';
 import 'package:scenario_mobile/features/messages/conversation_controller.dart';
 
+import 'support/grouped_inbox.dart';
+
 /// Lets a test pull a [Ref] out of a [ProviderContainer], to call
 /// [applyRealtimeEventForTesting] the same way the real bridge does.
 final _refProvider = Provider<Ref>((ref) => ref);
@@ -209,21 +211,25 @@ void main() {
         _makeConversation(id: 3, unreadCount: 1),
       ];
 
-      final state = InboxState(conversations: conversations, total: 3);
+      final state = inboxStateOf(conversations: conversations, total: 3);
 
-      // Simulate markAsRead for conversation 1
-      final updated = state.conversations.map((c) {
-        if (c.id == 1) return c.copyWith(unreadCount: 0);
-        return c;
-      }).toList();
+      // markAsRead for conversation 1 patches that thread inside its group.
+      final newState = state.copyWith(
+        groups: [
+          for (final g in state.groups)
+            g.mapConversations(
+              (c) => c.id == 1 ? c.copyWith(unreadCount: 0) : c,
+            ),
+        ],
+      );
 
-      final newState = state.copyWith(conversations: updated);
-
-      expect(newState.conversations[0].unreadCount, 0);
-      expect(newState.conversations[0].hasUnread, isFalse);
+      Conversation byId(int id) =>
+          newState.conversations.firstWhere((c) => c.id == id);
+      expect(byId(1).unreadCount, 0);
+      expect(byId(1).hasUnread, isFalse);
       // Others unchanged
-      expect(newState.conversations[1].unreadCount, 0);
-      expect(newState.conversations[2].unreadCount, 1);
+      expect(byId(2).unreadCount, 0);
+      expect(byId(3).unreadCount, 1);
     });
 
     test('ConversationState merge preserves pending messages', () {

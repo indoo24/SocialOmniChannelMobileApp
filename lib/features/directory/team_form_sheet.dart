@@ -13,10 +13,13 @@
 /// via `PATCH /teams/{id}/`.
 library;
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/logging/app_log.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/routing_policy.dart';
 import '../../core/providers.dart';
@@ -28,6 +31,11 @@ import 'directory_providers.dart';
 
 /// `RoutableProviderEnum`.
 const _routableProviders = ['WHATSAPP', 'FACEBOOK', 'INSTAGRAM', 'TIKTOK'];
+
+/// Development-only diagnostics for this section. Logs ids, providers, scopes
+/// and status codes — never names, cookies or anything about a customer.
+void _log(String message) =>
+    AppLog.debug('TEAM_CHANNEL_RESPONSIBILITY', message);
 
 /// Opens the Add Team sheet.
 Future<void> showAddTeamSheet(BuildContext context) {
@@ -125,7 +133,16 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
       (r) => r.isActive && r.teamId == widget.existing!.id,
     );
     final byProvider = <String, List<RoutingResponsibility>>{};
+    var skipped = 0;
     for (final rule in mine) {
+      // `RoutingResponsibility.provider` already falls back to the account's
+      // own provider for a rule that names one account. Anything still not a
+      // routable provider cannot be shown in a row, and must never be sent
+      // back (`TeamWrite` rejects it), so it is left out and counted.
+      if (!_routableProviders.contains(rule.provider)) {
+        skipped++;
+        continue;
+      }
       (byProvider[rule.provider] ??= []).add(rule);
     }
 
@@ -143,7 +160,24 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
         channelConnectionIds: channelSpecific,
       );
     }
+    _log(
+      'SEED teamId=${widget.existing!.id} activeRules=${mine.length} '
+      'skippedUnknownProvider=$skipped '
+      'seeded=${_responsibilities.values.map((r) => '${r.provider}:${r.scope}${r.channelConnectionIds}').join(',')}',
+    );
   }
+
+  /// `TeamWrite.responsibilities` for the current selection.
+  ///
+  /// Only the four routable providers, so a blank or unknown `provider` can
+  /// never be sent (the backend refuses it with `"" is not a valid choice`).
+  /// "None" for a provider is its absence from this list — the contract's own
+  /// meaning of "a provider left out has no responsibility" — never `null`
+  /// and never an empty string.
+  List<Map<String, dynamic>> _responsibilitiesPayload() => [
+    for (final r in _responsibilities.values)
+      if (_routableProviders.contains(r.provider)) r.toJson(),
+  ];
 
   @override
   void dispose() {
@@ -179,8 +213,17 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
     });
     try {
       if (widget.isEdit) {
-        await repository.updateTeam(widget.existing!.id, _diff());
+        final fields = _diff();
+        _log(
+          'SUBMIT teamId=${widget.existing!.id} fields=${fields.keys.toList()} '
+          'payload=${jsonEncode(fields['responsibilities'])}',
+        );
+        await repository.updateTeam(widget.existing!.id, fields);
+        _log('RESULT teamId=${widget.existing!.id} responseStatus=200');
       } else {
+        _log(
+          'SUBMIT teamId=new payload=${jsonEncode(_responsibilitiesPayload())}',
+        );
         await repository.createTeam({
           'name': name,
           if (_description.text.trim().isNotEmpty)
@@ -192,9 +235,7 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
           'member_ids': _memberIds.toList(),
           'leader_ids': _leaderIds.toList(),
           if (_responsibilities.isNotEmpty)
-            'responsibilities': _responsibilities.values
-                .map((r) => r.toJson())
-                .toList(),
+            'responsibilities': _responsibilitiesPayload(),
         });
       }
 
@@ -205,6 +246,10 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
       if (!mounted) return;
       ref.invalidate(teamsProvider);
       ref.invalidate(employeeDirectoryProvider);
+      // The saved rules live in this provider, and the next Edit Team (and
+      // the Settings list) re-read from it — a stale copy would show the
+      // selection from before this save.
+      ref.invalidate(routingResponsibilitiesProvider);
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -216,6 +261,10 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
         ),
       );
     } on ApiException catch (error) {
+      _log(
+        'RESULT teamId=${widget.existing?.id ?? 'new'} '
+        'responseStatus=${error.statusCode} error=${error.message}',
+      );
       if (!mounted) return;
       setState(() => _error = error.message);
     } finally {
@@ -255,9 +304,7 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
     // untouched would silently overwrite rules this form never displayed
     // (e.g. still loading when the admin hit Save).
     if (_responsibilitiesTouched) {
-      fields['responsibilities'] = _responsibilities.values
-          .map((r) => r.toJson())
-          .toList();
+      fields['responsibilities'] = _responsibilitiesPayload();
     }
 
     return fields;
@@ -343,6 +390,10 @@ class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
           responsibilities: _responsibilities,
           seedFrom: widget.isEdit ? _seedResponsibilities : null,
           onChanged: (provider, input) => setState(() {
+            _log(
+              'SELECT teamId=${widget.existing?.id ?? 'new'} channel=$provider '
+              'selectedValue=${input == null ? 'none' : '${input.scope}${input.channelConnectionIds}'}',
+            );
             _responsibilitiesTouched = true;
             if (input == null) {
               _responsibilities.remove(provider);

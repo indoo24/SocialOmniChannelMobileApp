@@ -17,6 +17,8 @@ import 'package:scenario_mobile/core/realtime/realtime_client.dart';
 import 'package:scenario_mobile/features/conversations/inbox_controller.dart';
 import 'package:scenario_mobile/features/messages/conversation_controller.dart';
 
+import 'support/grouped_inbox.dart';
+
 /// Lets a test pull a [Ref] out of a [ProviderContainer].
 final _refProvider = Provider<Ref>((ref) => ref);
 
@@ -146,7 +148,7 @@ void main() {
   group('InboxController.patchLastMessageDelivery', () {
     test('patches only the named conversation', () async {
       final controller = _FakeInboxController(
-        InboxState(
+        inboxStateOf(
           conversations: [
             _makeConversation(id: 1, lastMessageDirection: 'OUTBOUND'),
             _makeConversation(id: 2, lastMessageDirection: 'OUTBOUND'),
@@ -181,7 +183,7 @@ void main() {
     });
 
     test('a conversation not in the loaded list is a no-op', () async {
-      final initial = InboxState(conversations: [_makeConversation(id: 1)]);
+      final initial = inboxStateOf(conversations: [_makeConversation(id: 1)]);
       final controller = _FakeInboxController(initial);
       final container = ProviderContainer(
         overrides: [inboxControllerProvider.overrideWith(() => controller)],
@@ -205,7 +207,7 @@ void main() {
       'a delivery-status update for the last message patches the row tick',
       () async {
         final inboxController = _FakeInboxController(
-          InboxState(
+          inboxStateOf(
             conversations: [
               _makeConversation(
                 id: 1,
@@ -267,7 +269,7 @@ void main() {
     test('a delivery-status update whose last_message_id does not match any '
         'entry leaves the row untouched', () async {
       final inboxController = _FakeInboxController(
-        InboxState(
+        inboxStateOf(
           conversations: [
             _makeConversation(
               id: 1,
