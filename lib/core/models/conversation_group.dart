@@ -57,10 +57,20 @@ class CustomerConversationGroup {
 
   factory CustomerConversationGroup.fromJson(Map<String, dynamic> json) {
     final customer = CustomerBrief.fromJson(JsonSafe.asMap(json['customer']));
-    final rawConvos = JsonSafe.parseList(
-      json['conversations'],
-      Conversation.fromJson,
+    // The order of the threads *inside* a group is not part of the contract,
+    // and the row's preview, tick and "primary" thread all come from the
+    // first one — so make that the latest activity. Only this presentation
+    // order is fixed up; which groups a page holds, their order and the
+    // paging numbers stay exactly as the server sent them.
+    final rawConvos = _newestFirst(
+      JsonSafe.parseList(json['conversations'], Conversation.fromJson),
     );
+    // A group with no threads has nothing to open and no primary
+    // conversation. Refusing it here lets `Paginated.fromJson`'s per-row guard
+    // drop that one row rather than crash the page that holds it.
+    if (rawConvos.isEmpty) {
+      throw const FormatException('conversation group has no conversations');
+    }
     final providers = JsonSafe.asStringList(json['providers']);
     final provider = providers.isNotEmpty
         ? providers.first
@@ -73,6 +83,36 @@ class CustomerConversationGroup {
       conversations: rawConvos,
     );
   }
+
+  /// What makes two rows "the same group" when pages are combined: the
+  /// server's [groupKey], or — for a row that arrived without one — its
+  /// primary conversation, so a keyless row still cannot appear twice.
+  String get identity => groupKey.isNotEmpty
+      ? groupKey
+      : '${provider}_convo_${primaryConversation.id}';
+
+  /// This group holding exactly [conversations], keeping the server's key and
+  /// customer. For removing a thread (access revoked) without refetching.
+  CustomerConversationGroup withConversations(
+    List<Conversation> conversations,
+  ) => CustomerConversationGroup(
+    groupKey: groupKey,
+    customer: customer,
+    provider: provider,
+    conversations: List.unmodifiable(conversations),
+  );
+
+  /// This group with [update] applied to each of its conversations, keeping
+  /// the server's key, customer and thread order. How a nested conversation is
+  /// patched in place (read state, delivery tick) without refetching the page.
+  CustomerConversationGroup mapConversations(
+    Conversation Function(Conversation conversation) update,
+  ) => CustomerConversationGroup(
+    groupKey: groupKey,
+    customer: customer,
+    provider: provider,
+    conversations: List.unmodifiable(conversations.map(update)),
+  );
 
   /// Latest message activity timestamp across all conversations in this group.
   DateTime? get lastMessageAt => primaryConversation.lastMessageAt;
@@ -132,14 +172,7 @@ class CustomerConversationGroup {
     for (final entry in map.entries) {
       final convos = entry.value;
       // Sort conversations within the group by latest activity first.
-      convos.sort((a, b) {
-        final aTime = a.lastMessageAt ?? a.startedAt;
-        final bTime = b.lastMessageAt ?? b.startedAt;
-        if (aTime == null && bTime == null) return b.id.compareTo(a.id);
-        if (aTime == null) return 1;
-        if (bTime == null) return -1;
-        return bTime.compareTo(aTime);
-      });
+      convos.sort(_byRecency);
 
       final primary = convos.first;
 
@@ -167,6 +200,21 @@ class CustomerConversationGroup {
 
     return groups;
   }
+
+  /// Latest activity first; ties (and threads with no activity) by id, newest
+  /// first, so the order is deterministic.
+  static int _byRecency(Conversation a, Conversation b) {
+    final aTime = a.lastMessageAt ?? a.startedAt;
+    final bTime = b.lastMessageAt ?? b.startedAt;
+    if (aTime == null && bTime == null) return b.id.compareTo(a.id);
+    if (aTime == null) return 1;
+    if (bTime == null) return -1;
+    final byTime = bTime.compareTo(aTime);
+    return byTime != 0 ? byTime : b.id.compareTo(a.id);
+  }
+
+  static List<Conversation> _newestFirst(List<Conversation> conversations) =>
+      [...conversations]..sort(_byRecency);
 
   static String _makeGroupKey(Conversation convo) {
     final provider = convo.provider.toUpperCase();

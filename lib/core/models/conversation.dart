@@ -424,6 +424,7 @@ class Paginated<T> {
     this.page = 0,
     this.pageSize = 0,
     this.totalPages = 0,
+    this._rawResultsLength,
   });
 
   final List<T> results;
@@ -433,6 +434,13 @@ class Paginated<T> {
   final int page;
   final int pageSize;
   final int totalPages;
+
+  final int? _rawResultsLength;
+
+  /// How many rows the server sent, before the per-row parse in [fromJson]
+  /// dropped any it could not read. Diagnostic only: `results.length` is what
+  /// the app uses. Equals `results.length` for a hand-built page.
+  int get rawResultsLength => _rawResultsLength ?? results.length;
 
   bool get hasMore => next != null && next!.isNotEmpty;
 
@@ -451,5 +459,6 @@ class Paginated<T> {
     page: JsonSafe.asInt(json['page']),
     pageSize: JsonSafe.asInt(json['page_size']),
     totalPages: JsonSafe.asInt(json['total_pages']),
+    rawResultsLength: JsonSafe.asMapList(json['results']).length,
   );
 }

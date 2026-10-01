@@ -480,41 +480,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchConversationsHint => 'Search conversations';
 
   @override
-  String get inboxPreviousPage => 'Previous';
+  String get inboxScrollToTop => 'Scroll to top';
 
   @override
-  String get inboxNextPage => 'Next';
-
-  @override
-  String inboxPageOf(int page, int total) {
-    return 'Page $page of $total';
-  }
-
-  @override
-  String inboxPageNumber(int page) {
-    return 'Page $page';
-  }
-
-  @override
-  String inboxCurrentPage(int page) {
-    return 'Page $page, current page';
-  }
-
-  @override
-  String get inboxGoToPage => 'Go to page';
-
-  @override
-  String inboxGoToPageInvalid(int total) {
-    return 'Enter a page from 1 to $total';
-  }
-
-  @override
-  String get inboxGoToPageAction => 'Go';
-
-  @override
-  String inboxPageLoadFailed(int page) {
-    return 'Couldn\'t load page $page';
-  }
+  String get inboxLoadMoreFailed => 'Couldn\'t load more conversations';
 
   @override
   String get inboxNewActivity => 'New activity';

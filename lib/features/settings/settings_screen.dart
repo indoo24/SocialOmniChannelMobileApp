@@ -1691,7 +1691,10 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
     // stays the single source of truth — no local filtering by provider)
     // and let the open conversation, if any, discover on its own refresh
     // whether it is still reachable.
-    ref.read(inboxControllerProvider.notifier).refreshQuietly();
+    // A channel changed, which can add or remove rows anywhere in the
+    // list — not only at the top — so reload the list from the top rather
+    // than only refreshing its head.
+    ref.read(inboxControllerProvider.notifier).refreshQuietly(reset: true);
     ref.invalidate(conversationCountsProvider);
     final active = ref.read(activeConversationProvider);
     if (active != null) {
@@ -1749,7 +1752,10 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
       await repository.deleteChannel(channel.id);
     });
 
-    ref.read(inboxControllerProvider.notifier).refreshQuietly();
+    // A channel changed, which can add or remove rows anywhere in the
+    // list — not only at the top — so reload the list from the top rather
+    // than only refreshing its head.
+    ref.read(inboxControllerProvider.notifier).refreshQuietly(reset: true);
     ref.invalidate(conversationCountsProvider);
     final active = ref.read(activeConversationProvider);
     if (active != null) {

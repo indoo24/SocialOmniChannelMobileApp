@@ -268,7 +268,7 @@ class _WhatsAppConnectSheetState extends ConsumerState<_WhatsAppConnectSheet> {
       // carrying conversations the inbox has never fetched — same
       // reconciliation `_ChannelCardState._disconnect()` runs after a
       // disconnect, applied to the opposite direction of the same problem.
-      ref.read(inboxControllerProvider.notifier).refreshQuietly();
+      ref.read(inboxControllerProvider.notifier).refreshQuietly(reset: true);
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -437,7 +437,7 @@ class _InstagramTokenConnectSheetState
 
       if (!mounted) return;
       ref.invalidate(channelsProvider);
-      ref.read(inboxControllerProvider.notifier).refreshQuietly();
+      ref.read(inboxControllerProvider.notifier).refreshQuietly(reset: true);
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

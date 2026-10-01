@@ -282,6 +282,147 @@ void main() {
       expect(find.text('Last seen'), findsOneWidget);
     });
 
+    testWidgets('an empty phone is filled from the WhatsApp identity number', (
+      tester,
+    ) async {
+      final server = _Server(
+        detail: _customerDetailJson(
+          phone: '',
+          identities: [
+            _identityJson(
+              id: 1,
+              provider: 'WHATSAPP',
+              username: '@+201094680929',
+              externalId: '201094680929',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(_harness(server.client()));
+      await tester.pumpAndSettle();
+
+      // In the Phone row, not only in the Channels chip.
+      expect(find.text('+201094680929'), findsOneWidget);
+    });
+
+    testWidgets('a stored phone is kept over the WhatsApp identity number', (
+      tester,
+    ) async {
+      final server = _Server(
+        detail: _customerDetailJson(
+          phone: '+201112223344',
+          identities: [
+            _identityJson(
+              id: 1,
+              provider: 'WHATSAPP',
+              externalId: '201094680929',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(_harness(server.client()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('+201112223344'), findsOneWidget);
+      expect(find.text('+201094680929'), findsNothing);
+    });
+
+    testWidgets('a non-WhatsApp customer without a phone still shows —', (
+      tester,
+    ) async {
+      final server = _Server(
+        detail: _customerDetailJson(
+          email: '',
+          phone: '',
+          city: '',
+          country: '',
+          preferredLanguage: '',
+          identities: [
+            _identityJson(id: 2, provider: 'INSTAGRAM', externalId: 'ig_789'),
+          ],
+        ),
+      );
+      await tester.pumpWidget(_harness(server.client()));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('+20'), findsNothing);
+      // Email, phone, location and language all fall back to the placeholder.
+      expect(find.text('—'), findsAtLeastNWidgets(4));
+    });
+
+    testWidgets('reopening the profile refetches and shows the new number', (
+      tester,
+    ) async {
+      var phoneKnown = false;
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter((options) {
+        switch (options.path) {
+          case '/customers/42/':
+            return _json(
+              _customerDetailJson(
+                phone: '',
+                identities: [
+                  if (phoneKnown)
+                    _identityJson(
+                      id: 1,
+                      provider: 'WHATSAPP',
+                      externalId: '201094680929',
+                    ),
+                ],
+              ),
+            );
+          case '/customers/42/facts/' || '/customers/42/orders/':
+            return _json([]);
+          case '/customers/42/fields/' || '/customer-fields/':
+            return _json([]);
+          case '/customers/42/conversations/':
+            return _json({
+              'count': 0,
+              'next': null,
+              'previous': null,
+              'results': [],
+            });
+        }
+        return _json({});
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          apiClientProvider.overrideWithValue(client),
+          currentEmployeeProvider.overrideWithValue(_employee()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      Widget app(Widget home) => UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: home,
+        ),
+      );
+
+      await tester.pumpWidget(
+        app(const Scaffold(body: CustomerProfileScreen(customerId: 42))),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('+201094680929'), findsNothing);
+
+      // Close the profile, the customer writes from WhatsApp, reopen.
+      await tester.pumpWidget(app(const SizedBox()));
+      await tester.pumpAndSettle();
+      phoneKnown = true;
+      await tester.pumpWidget(
+        app(const Scaffold(body: CustomerProfileScreen(customerId: 42))),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('+201094680929'), findsOneWidget);
+    });
+
     testWidgets('missing fields show a placeholder rather than blank space', (
       tester,
     ) async {

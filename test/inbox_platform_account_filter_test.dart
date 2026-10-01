@@ -19,6 +19,8 @@ import 'package:scenario_mobile/features/conversations/platform_account_filter_b
 import 'package:scenario_mobile/features/directory/directory_providers.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
+import 'support/grouped_inbox.dart';
+
 class _StubAdapter implements HttpClientAdapter {
   _StubAdapter(this.handler);
 
@@ -316,9 +318,9 @@ void main() {
             if (allowed.contains(3)) filtered.add(_conversationIg1);
             if (allowed.contains(4)) filtered.add(_conversationIg2);
             if (allowed.contains(5)) filtered.add(_conversationWa1);
-            return _json(_page(filtered), 200);
+            return _json(groupedBody(_page(filtered)), 200);
           }
-          return _json(_page(all), 200);
+          return _json(groupedBody(_page(all)), 200);
         }
         if (path.contains('/channels/')) {
           return _json(
