@@ -214,64 +214,72 @@ void main() {
       },
     );
 
-    test('a stale conversation on page 2 also drops on reconcile', () async {
-      // Page 1: Conversation A only, with a next page. Page 2: Conversation
-      // B2 — a second row on the soon-to-be-removed channel, reached only
-      // by going to page 2. After the disconnect, the realtime refetch of
-      // that page must not leave B2 behind — even though the list has
-      // shrunk to a single page meanwhile.
-      var disconnected = false;
-      final adapter = _StubAdapter((options) {
-        if (options.path != '/conversations/grouped/') {
-          throw StateError('Unexpected request: ${options.path}');
-        }
-        final page = options.queryParameters['page'];
-        if (page == 2 && !disconnected) {
-          return _json(_grouped([_conversationBPage2]), 200);
-        }
-        final results = disconnected ? [_conversationA] : [_conversationA];
-        return _json(
-          _grouped(
-            results,
-            hasNext: !disconnected,
-            count: disconnected ? 1 : 2,
-          ),
-          200,
+    test(
+      'a stale conversation in a later batch also drops on reconcile',
+      () async {
+        // Page 1: Conversation A only, with a next page. Page 2: Conversation
+        // B2 — a second row on the soon-to-be-removed channel, reached only
+        // by going to page 2. After the disconnect, the realtime refetch of
+        // that page must not leave B2 behind — even though the list has
+        // shrunk to a single page meanwhile.
+        var disconnected = false;
+        final adapter = _StubAdapter((options) {
+          if (options.path != '/conversations/grouped/') {
+            throw StateError('Unexpected request: ${options.path}');
+          }
+          final page = options.queryParameters['page'];
+          if (page == 2 && !disconnected) {
+            return _json(_grouped([_conversationBPage2]), 200);
+          }
+          final results = disconnected ? [_conversationA] : [_conversationA];
+          return _json(
+            _grouped(
+              results,
+              hasNext: !disconnected,
+              count: disconnected ? 1 : 2,
+            ),
+            200,
+          );
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final container = ProviderContainer(
+          overrides: [
+            apiClientProvider.overrideWithValue(client),
+            currentEmployeeProvider.overrideWithValue(_adminEmployee),
+          ],
         );
-      });
-      final client = ApiClient.create(cookieJar: CookieJar());
-      client.raw.httpClientAdapter = adapter;
+        addTearDown(container.dispose);
 
-      final container = ProviderContainer(
-        overrides: [
-          apiClientProvider.overrideWithValue(client),
-          currentEmployeeProvider.overrideWithValue(_adminEmployee),
-        ],
-      );
-      addTearDown(container.dispose);
+        // Cold load page 1 (A, with a next page), then scroll on: page 2 (B2)
+        // is appended below it.
+        await container.read(inboxControllerProvider.future);
+        await container.read(inboxControllerProvider.notifier).loadMore();
 
-      // Cold load page 1 (A, with a next page), then go to page 2 (B2).
-      await container.read(inboxControllerProvider.future);
-      await container.read(inboxControllerProvider.notifier).goToPage(2);
+        final onPage2 = container.read(inboxControllerProvider).value!;
+        expect(onPage2.page, 2);
+        expect(onPage2.conversations.map((c) => c.id), [101, 104]);
 
-      final onPage2 = container.read(inboxControllerProvider).value!;
-      expect(onPage2.page, 2);
-      expect(onPage2.conversations.map((c) => c.id), [104]);
+        // The channel behind conversation 104 is now disconnected. The
+        // disconnect handler reloads the list from the top (`reset`), since a
+        // channel change can remove rows anywhere in it.
+        disconnected = true;
+        await container
+            .read(inboxControllerProvider.notifier)
+            .refreshQuietly(reset: true);
 
-      // The channel behind conversation 104 is now disconnected.
-      disconnected = true;
-      await container.read(inboxControllerProvider.notifier).refreshQuietly();
-
-      final after = container.read(inboxControllerProvider).value!;
-      expect(after.conversations.map((c) => c.id), [101]);
-      expect(
-        after.conversations.any((c) => c.id == 104),
-        isFalse,
-        reason:
-            'refreshQuietly() refetches the page on screen — a row only '
-            'ever seen on page 2 must not survive it',
-      );
-    });
+        final after = container.read(inboxControllerProvider).value!;
+        expect(after.conversations.map((c) => c.id), [101]);
+        expect(
+          after.conversations.any((c) => c.id == 104),
+          isFalse,
+          reason:
+              'a reset reloads from the first batch — a row only ever seen in '
+              'a later batch must not survive it',
+        );
+      },
+    );
 
     test('pull-to-refresh (refresh()) reconciles the same way', () async {
       var disconnected = false;
@@ -695,8 +703,7 @@ void main() {
       expect(state.total, 17750);
       expect(state.totalPages, 592);
       expect(state.page, 3);
-      expect(state.hasNext, isTrue);
-      expect(state.hasPrevious, isTrue);
+      expect(state.hasMore, isTrue, reason: 'the server sent a next link');
     });
 
     test('a multi-conversation group is shown whole, then shrinks only '

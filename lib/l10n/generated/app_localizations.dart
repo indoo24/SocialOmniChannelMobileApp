@@ -944,61 +944,13 @@ abstract class AppLocalizations {
   /// **'Search conversations'**
   String get searchConversationsHint;
 
-  /// Inbox pagination: go to the previous page of conversations
+  /// Shown at the end of the inbox list when loading the next batch failed; the conversations already loaded stay, with a Try again button next to it
   ///
   /// In en, this message translates to:
-  /// **'Previous'**
-  String get inboxPreviousPage;
+  /// **'Couldn\'t load more conversations'**
+  String get inboxLoadMoreFailed;
 
-  /// Inbox pagination: go to the next page of conversations
-  ///
-  /// In en, this message translates to:
-  /// **'Next'**
-  String get inboxNextPage;
-
-  /// Inbox pagination: the current page out of the total; tapping it opens "Go to page"
-  ///
-  /// In en, this message translates to:
-  /// **'Page {page} of {total}'**
-  String inboxPageOf(int page, int total);
-
-  /// Screen-reader label for a page-number button in the inbox pagination
-  ///
-  /// In en, this message translates to:
-  /// **'Page {page}'**
-  String inboxPageNumber(int page);
-
-  /// Screen-reader label for the current page-number button in the inbox pagination
-  ///
-  /// In en, this message translates to:
-  /// **'Page {page}, current page'**
-  String inboxCurrentPage(int page);
-
-  /// Title of the dialog for typing a page number to jump to in the inbox
-  ///
-  /// In en, this message translates to:
-  /// **'Go to page'**
-  String get inboxGoToPage;
-
-  /// Validation message in the "Go to page" dialog
-  ///
-  /// In en, this message translates to:
-  /// **'Enter a page from 1 to {total}'**
-  String inboxGoToPageInvalid(int total);
-
-  /// Confirm button of the "Go to page" dialog
-  ///
-  /// In en, this message translates to:
-  /// **'Go'**
-  String get inboxGoToPageAction;
-
-  /// Shown above the inbox pagination when opening a page failed; the agent stays on the page they were on
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load page {page}'**
-  String inboxPageLoadFailed(int page);
-
-  /// Pill shown while scrolled down in the inbox when conversations changed; tapping it reloads the current page
+  /// Pill shown while scrolled down in the inbox when conversations changed in a way that could not be shown without moving the list; tapping it reloads the list from the top
   ///
   /// In en, this message translates to:
   /// **'New activity'**

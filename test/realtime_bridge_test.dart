@@ -335,7 +335,7 @@ class _FakeInboxController extends InboxController {
   Future<InboxState> build() async => InboxState();
 
   @override
-  Future<void> refreshQuietly() async {
+  Future<void> refreshQuietly({bool reset = false}) async {
     refreshQuietlyCalls += 1;
   }
 }

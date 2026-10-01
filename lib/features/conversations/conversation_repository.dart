@@ -207,10 +207,7 @@ class ConversationRepository {
   }) async {
     final query = filters.toQuery(page, currentEmployeeId);
     if (pageSize != null) query['page_size'] = pageSize;
-    final data = await _api.get<Map<String, dynamic>>(
-      listPath,
-      query: query,
-    );
+    final data = await _api.get<Map<String, dynamic>>(listPath, query: query);
     return Paginated.fromJson(data, Conversation.fromJson);
   }
 

@@ -32,7 +32,6 @@ import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
 import 'customer_conversation_group_sheet.dart';
 import 'inbox_controller.dart';
-import 'inbox_pagination_bar.dart';
 import 'inbox_filters_sheet.dart';
 import 'inbox_quick_filter_bar.dart';
 import 'platform_account_filter_bar.dart';
@@ -46,22 +45,34 @@ class InboxScreen extends ConsumerStatefulWidget {
 
 class _InboxScreenState extends ConsumerState<InboxScreen> {
   /// Within this much of the top the agent is "at the top": a realtime
-  /// refetch may refresh the page there without moving anything they are
+  /// refresh may reorder rows there without moving anything they are
   /// reading.
   static const _headExtent = 150.0;
 
-  /// A new page starts at the top (see [_renderedNavigation]);
-  /// `keepScrollOffset: false` also stops PageStorage from restoring an old
-  /// list's depth into a new one.
+  /// The next batch is requested when the list builds a row within this many
+  /// of the last one loaded — about 600 px of rows, so loading starts well
+  /// before the end comes into view and the agent normally never sees it.
+  ///
+  /// Counted in rows, not pixels, on purpose: a lazy list does not re-estimate
+  /// its scroll extent when rows are appended beyond the built ones until the
+  /// next scroll-driven layout, so `extentAfter` right after a batch lands can
+  /// read "at the very end" and ask for a batch nobody scrolled towards.
+  /// Which rows are *built* is exact.
+  static const _prefetchRows = 8;
+
+  /// The one controller for the inbox list. A reloaded list starts at the top
+  /// (see [_renderedNavigation]); `keepScrollOffset: false` also stops
+  /// PageStorage from restoring an old list's depth into a new one.
   final _scrollController = ScrollController(keepScrollOffset: false);
   final _searchController = TextEditingController();
   bool _searching = false;
   late final InboxController _inbox;
   bool? _reportedAtHead;
 
-  /// The [InboxState.navigation] last put on screen. When a different page
-  /// arrives (Next, a page number, new filters…) the list goes back to the
-  /// top — after that page has been laid out, never before.
+  /// The [InboxState.navigation] last put on screen. When the list was
+  /// replaced from the top (pull to refresh, a reload) it goes back to the
+  /// top — after the new list has been laid out, never before. Appending a
+  /// batch or merging fresh rows never changes it.
   int? _renderedNavigation;
 
   @override
@@ -81,6 +92,29 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     super.dispose();
   }
 
+  /// Asks for the next batch — called while a row near the end of the loaded
+  /// list is being built, so it only *schedules*: a provider may not change
+  /// while the tree is building. Safe to call for every such row on every
+  /// build, as often as scrolling likes: it does nothing unless a batch is
+  /// wanted and none is on its way or has just failed, and the controller
+  /// itself ignores a second request, so there is no duplicate however fast
+  /// they scroll.
+  void _requestMoreIfNeeded(InboxState state) {
+    if (_loadRequested ||
+        !state.hasMore ||
+        state.isLoadingMore ||
+        state.loadMoreError != null) {
+      return;
+    }
+    _loadRequested = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRequested = false;
+      if (mounted) _inbox.loadMore();
+    });
+  }
+
+  bool _loadRequested = false;
+
   void _syncHead() {
     if (!mounted || !_scrollController.hasClients) return;
     final atHead = _scrollController.position.pixels <= _headExtent;
@@ -90,8 +124,8 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     }
   }
 
-  /// Called while building a page: if it is a different page from the one
-  /// on screen, scroll to its top once this frame has laid it out.
+  /// Called while building the list: if it was replaced from the top,
+  /// scroll to its top once this frame has laid it out.
   void _scrollToTopIfNewPage(InboxState state) {
     if (state.navigation == _renderedNavigation) return;
     final first = _renderedNavigation == null;
@@ -109,9 +143,6 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     final inbox = ref.watch(inboxControllerProvider);
     final filters = ref.watch(inboxFiltersProvider);
     final employee = ref.watch(currentEmployeeProvider);
-    // The bar only takes room when the keyboard is not already taking it.
-    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
-
     ref.listen(inboxControllerProvider, (_, _) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _syncHead());
     });
@@ -165,10 +196,10 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
             child: RefreshIndicator(
               onRefresh: () =>
                   ref.read(inboxControllerProvider.notifier).refresh(),
-              // New filters keep the old page on screen, dimmed, until the
-              // new page 1 arrives — like any other page change.
+              // New filters or a new search clear the list: the skeleton is
+              // shown until the first batch of the new query arrives. (Loading
+              // *more* never lands here — it is a flag on the loaded state.)
               child: inbox.when(
-                skipLoadingOnReload: true,
                 loading: () => AppShimmer(
                   child: ListView.separated(
                     itemCount: 8,
@@ -191,8 +222,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                   ],
                 ),
                 data: (state) {
-                  final loading = state.isNavigating || inbox.isLoading;
-                  if (state.isEmpty && !loading) {
+                  if (state.isEmpty) {
                     return ListView(
                       children: [
                         SizedBox(
@@ -222,17 +252,33 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
 
                   _scrollToTopIfNewPage(state);
                   final groups = state.groups;
+                  // One extra item after the last group while the next batch
+                  // loads or after it failed — not a state of its own, so the
+                  // loaded rows above it are never replaced or dimmed.
+                  final showFooter =
+                      state.isLoadingMore || state.loadMoreError != null;
 
-                  // The current page only — at most one page of rows is
-                  // ever built or held.
+                  // Built lazily: only the rows near the viewport exist,
+                  // however many groups have been loaded.
                   final list = ListView.separated(
                     key: const ValueKey('inboxList'),
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: groups.length,
+                    itemCount: groups.length + (showFooter ? 1 : 0),
                     separatorBuilder: (_, _) =>
                         const Divider(height: 1, indent: 68),
                     itemBuilder: (context, index) {
+                      if (index >= groups.length) {
+                        return _LoadMoreFooter(
+                          failed: state.loadMoreError != null,
+                          onRetry: _inbox.retryLoadMore,
+                        );
+                      }
+                      // Building a row close to the end of what is loaded
+                      // is the signal to fetch the next batch.
+                      if (index >= groups.length - _prefetchRows) {
+                        _requestMoreIfNeeded(state);
+                      }
                       final group = groups[index];
                       if (group.isMultiConversation) {
                         return ConversationGroupRow(
@@ -258,39 +304,25 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
 
                   return Stack(
                     children: [
-                      // While another page loads, the one on screen is
-                      // plainly not the active one: dimmed and not tappable.
-                      IgnorePointer(
-                        ignoring: loading,
-                        child: AnimatedOpacity(
-                          opacity: loading ? 0.45 : 1,
-                          duration: const Duration(milliseconds: 150),
-                          child: list,
-                        ),
-                      ),
-                      if (loading)
-                        PositionedDirectional(
-                          key: const ValueKey('inboxPageLoading'),
-                          top: 0,
-                          start: 0,
-                          end: 0,
-                          child: Semantics(
-                            label: state.loadingPage == null
-                                ? null
-                                : context.l10n.inboxPageOf(
-                                    state.loadingPage!,
-                                    state.totalPages,
-                                  ),
-                            child: const LinearProgressIndicator(minHeight: 2),
-                          ),
-                        ),
-                      if (state.hasPendingUpdates && !loading)
+                      list,
+                      if (state.hasPendingUpdates)
                         PositionedDirectional(
                           top: Space.sm,
                           start: 0,
                           end: 0,
                           child: Center(
-                            child: _NewActivityPill(onTap: _inbox.refresh),
+                            child: _NewActivityPill(
+                              onTap: () {
+                                // To the top first, so the reloaded list is
+                                // built there — at the old depth it would
+                                // build rows near *its* end and prefetch a
+                                // batch nobody scrolled towards.
+                                if (_scrollController.hasClients) {
+                                  _scrollController.jumpTo(0);
+                                }
+                                _inbox.refresh();
+                              },
+                            ),
                           ),
                         ),
                     ],
@@ -299,15 +331,15 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               ),
             ),
           ),
-          if (!keyboardOpen) const InboxPaginationBar(),
         ],
       ),
     );
   }
 }
 
-/// Shown while scrolled down when the page on screen changed — it is not
-/// reshuffled under the agent; tapping reloads the same page, from the top.
+/// Shown while scrolled down when the list changed in a way that could not be
+/// shown without moving the rows the agent is reading — it is not reshuffled
+/// under them; tapping reloads the list from the top.
 class _NewActivityPill extends StatelessWidget {
   const _NewActivityPill({required this.onTap});
 
@@ -772,3 +804,57 @@ class _SearchField extends StatelessWidget {
 final realtimeStatusProvider = StreamProvider<RealtimeStatus>(
   (ref) => ref.watch(realtimeClientProvider).statusChanges,
 );
+
+/// The end of the loaded list while the next batch is on its way, or after it
+/// failed: a small spinner, or the reason and a Retry. Everything above it is
+/// the rows already loaded, untouched.
+class _LoadMoreFooter extends StatelessWidget {
+  const _LoadMoreFooter({required this.failed, required this.onRetry});
+
+  final bool failed;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (!failed) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: Space.lg),
+        child: Center(
+          child: SizedBox(
+            key: ValueKey('inboxLoadingMore'),
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+    return Padding(
+      key: const ValueKey('inboxLoadMoreError'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.lg,
+        vertical: Space.md,
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, size: 18, color: theme.colorScheme.error),
+          const SizedBox(width: Space.sm),
+          Expanded(
+            child: Text(
+              context.l10n.inboxLoadMoreFailed,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          TextButton(
+            key: const ValueKey('inboxLoadMoreRetry'),
+            onPressed: onRetry,
+            child: Text(context.l10n.retryButton),
+          ),
+        ],
+      ),
+    );
+  }
+}

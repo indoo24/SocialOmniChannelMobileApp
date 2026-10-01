@@ -84,6 +84,24 @@ class CustomerConversationGroup {
     );
   }
 
+  /// What makes two rows "the same group" when pages are combined: the
+  /// server's [groupKey], or — for a row that arrived without one — its
+  /// primary conversation, so a keyless row still cannot appear twice.
+  String get identity => groupKey.isNotEmpty
+      ? groupKey
+      : '${provider}_convo_${primaryConversation.id}';
+
+  /// This group holding exactly [conversations], keeping the server's key and
+  /// customer. For removing a thread (access revoked) without refetching.
+  CustomerConversationGroup withConversations(
+    List<Conversation> conversations,
+  ) => CustomerConversationGroup(
+    groupKey: groupKey,
+    customer: customer,
+    provider: provider,
+    conversations: List.unmodifiable(conversations),
+  );
+
   /// This group with [update] applied to each of its conversations, keeping
   /// the server's key, customer and thread order. How a nested conversation is
   /// patched in place (read state, delivery tick) without refetching the page.

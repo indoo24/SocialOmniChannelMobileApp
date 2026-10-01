@@ -1,4 +1,4 @@
-/// The inbox pages `GET /conversations/grouped/` — groups, the rows it
+/// The inbox loads `GET /conversations/grouped/` — groups, the rows it
 /// displays — and shows them as the server sent them.
 ///
 /// Before, the inbox paged the flat `/conversations/` (threads), filtered each
@@ -73,14 +73,9 @@ Map<String, dynamic> _group(
 /// A grouped-endpoint server over [groups], paged like the real one:
 /// `count` / `total_pages` describe the groups, an unknown page is a 404.
 class _GroupedServer implements HttpClientAdapter {
-  _GroupedServer(this.groups, {this.reportedCount, this.reportedTotalPages});
+  _GroupedServer(this.groups);
 
   List<Map<String, dynamic>> groups;
-
-  /// Override what `count` / `total_pages` say, to prove they are used as
-  /// sent rather than recomputed from the rows.
-  final int? reportedCount;
-  final int? reportedTotalPages;
 
   /// Every request the inbox made, in order (page probes for badge counts
   /// included).
@@ -106,10 +101,8 @@ class _GroupedServer implements HttpClientAdapter {
     final q = uri.queryParameters;
     final size = int.tryParse(q['page_size'] ?? '') ?? 30;
     final page = int.tryParse(q['page'] ?? '') ?? 1;
-    final actualPages = groups.isEmpty ? 1 : (groups.length + size - 1) ~/ size;
-    // `total_pages` may be overridden; `next` follows what it reports.
-    final totalPages = reportedTotalPages ?? actualPages;
-    if (page > actualPages) {
+    final totalPages = groups.isEmpty ? 1 : (groups.length + size - 1) ~/ size;
+    if (page > totalPages) {
       return _json({
         'error': {'code': 'not_found', 'message': 'Invalid page.'},
       }, 404);
@@ -117,7 +110,7 @@ class _GroupedServer implements HttpClientAdapter {
     final start = (page - 1) * size;
     final rows = groups.sublist(start, (start + size).clamp(0, groups.length));
     return _json({
-      'count': reportedCount ?? groups.length,
+      'count': groups.length,
       'page': page,
       'page_size': size,
       'total_pages': totalPages,
@@ -276,93 +269,6 @@ void main() {
     });
   });
 
-  group('paging numbers come from the server, untouched', () {
-    test(
-      'count, total_pages, page, next and previous are used as sent',
-      () async {
-        // Deliberately not derivable from the 30 rows: the server said 17,750
-        // groups over 592 pages, and we are on page 3.
-        final server = _GroupedServer(
-          _singles(90),
-          reportedCount: 17750,
-          reportedTotalPages: 592,
-        );
-        final container = _container(server);
-        await _load(container);
-        await _inbox(container).goToPage(3);
-
-        final state = _state(container);
-        expect(state.total, 17750);
-        expect(state.totalPages, 592);
-        expect(state.page, 3);
-        expect(state.hasNext, isTrue);
-        expect(state.hasPrevious, isTrue);
-        expect(state.groups, hasLength(30));
-      },
-    );
-
-    test('the first page has no previous, the last page has no next', () async {
-      final server = _GroupedServer(_singles(65)); // 3 pages: 30 + 30 + 5
-      final container = _container(server);
-
-      final first = await _load(container);
-      expect(first.page, 1);
-      expect(first.hasPrevious, isFalse);
-      expect(first.hasNext, isTrue);
-
-      await _inbox(container).goToPage(3);
-      final last = _state(container);
-      expect(last.page, 3);
-      expect(last.totalPages, 3);
-      expect(last.hasNext, isFalse);
-      expect(last.hasPrevious, isTrue);
-      expect(last.groups, hasLength(5));
-    });
-
-    test('a page beyond the last is not requested', () async {
-      final server = _GroupedServer(_singles(65));
-      final container = _container(server);
-      await _load(container);
-      final before = server.requests.length;
-
-      await _inbox(container).goToPage(4); // only 3 pages exist
-      await _inbox(container).goToPage(0);
-
-      expect(server.requests.length, before, reason: 'no request was made');
-      expect(_state(container).page, 1);
-    });
-
-    test(
-      'a page that vanished server-side falls back to the new last page',
-      () async {
-        final server = _GroupedServer(_singles(90)); // 3 pages
-        final container = _container(server);
-        await _load(container);
-        await _inbox(container).goToPage(3);
-
-        server.groups = _singles(40); // now 2 pages: page 3 answers 404
-        await _inbox(container).refreshQuietly();
-
-        final state = _state(container);
-        expect(state.page, 2);
-        expect(state.totalPages, 2);
-      },
-    );
-
-    test('a realtime refresh stays on the current page', () async {
-      final server = _GroupedServer(_singles(120));
-      final container = _container(server);
-      await _load(container);
-      await _inbox(container).goToPage(4);
-      server.requests.clear();
-
-      await _inbox(container).refreshQuietly();
-
-      expect(server.listRequests.map((u) => u.queryParameters['page']), ['4']);
-      expect(_state(container).page, 4);
-    });
-  });
-
   group('filters reach /conversations/grouped/', () {
     test('every existing filter is forwarded, none dropped', () async {
       final server = _GroupedServer(_singles(100)); // 4 pages
@@ -412,7 +318,9 @@ void main() {
         final server = _GroupedServer(_singles(120));
         final container = _container(server);
         await _load(container);
-        await _inbox(container).goToPage(3);
+        await _inbox(container).loadMore();
+        await _inbox(container).loadMore();
+        expect(_state(container).page, 3);
         server.requests.clear();
 
         container
@@ -543,22 +451,6 @@ void main() {
 
       expect(find.text('Known 1'), findsOneWidget);
       expect(find.text('Unlisted 2'), findsOneWidget);
-    });
-
-    testWidgets('the pagination bar reads the grouped total_pages, and offers '
-        'no page beyond it', (tester) async {
-      // 592 pages of 30 groups, as the grouped endpoint would report.
-      await _openScreen(
-        tester,
-        _GroupedServer(
-          _singles(30),
-          reportedCount: 17750,
-          reportedTotalPages: 592,
-        ),
-      );
-
-      expect(find.text('Page 1 of 592'), findsOneWidget);
-      expect(find.byKey(const ValueKey('inboxPage_593')), findsNothing);
     });
   });
 }

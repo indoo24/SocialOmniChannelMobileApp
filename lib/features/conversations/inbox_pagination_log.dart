@@ -111,41 +111,71 @@ class InboxPaginationLog {
     ),
   });
 
-  // -- navigation and refreshes -------------------------------------------
+  // -- loading more and refreshes -----------------------------------------
 
-  void pageChange({
-    required int fromPage,
-    required int toPage,
+  /// The next batch is being requested because the agent scrolled near the end
+  /// (or tapped Retry).
+  void loadMore({
+    required int nextPage,
+    required int loadedGroups,
     required int knownTotalPages,
-  }) => _emit('PAGE_CHANGE', {
-    'fromPage': fromPage,
-    'toPage': toPage,
+  }) => _emit('LOAD_MORE', {
+    'nextPage': nextPage,
+    'loadedGroups': loadedGroups,
     'knownTotalPages': knownTotalPages,
   });
 
-  /// A page change that was not attempted — no request is made for it, which
-  /// is itself worth knowing when hunting a "page N does not exist" report.
-  void pageChangeRefused({
-    required int fromPage,
-    required int toPage,
-    required int knownTotalPages,
-    required String reason,
-  }) => _emit('PAGE_CHANGE_REFUSED', {
-    'fromPage': fromPage,
-    'toPage': toPage,
-    'knownTotalPages': knownTotalPages,
-    'reason': reason,
+  /// A load-more that was not made, and why: `no_more_results`, `busy`,
+  /// `reloading` or `previous_error` (the footer's Retry owns that one).
+  void loadMoreRefused({required String reason, required int loadedGroups}) =>
+      _emit('LOAD_MORE_REFUSED', {
+        'reason': reason,
+        'loadedGroups': loadedGroups,
+      });
+
+  /// What appending a batch did to the loaded list.
+  void appended({
+    required int requestedPage,
+    required int added,
+    required int duplicatesDropped,
+    required int totalLoaded,
+    required bool hasMore,
+  }) => _emit('APPENDED', {
+    'requestedPage': requestedPage,
+    'added': added,
+    'duplicatesDropped': duplicatesDropped,
+    'totalLoaded': totalLoaded,
+    'hasMore': hasMore,
+  });
+
+  /// A response that arrived for a list that is no longer the one on screen
+  /// (the filters changed, or the list was reloaded) and was dropped.
+  void staleDropped({required String what, required int requestedPage}) =>
+      _emit('STALE_RESPONSE_DROPPED', {
+        'what': what,
+        'requestedPage': requestedPage,
+      });
+
+  /// The refreshed top of the list was combined into the loaded one:
+  /// `apply` (agent at the top: rows may move) or `patch` (scrolled down:
+  /// rows are updated where they are, nothing moves).
+  void headMerge({
+    required String mode,
+    required int loadedGroups,
+    required int headGroups,
+    required bool pending,
+  }) => _emit('HEAD_MERGE', {
+    'mode': mode,
+    'loadedGroups': loadedGroups,
+    'headGroups': headGroups,
+    'pendingPill': pending,
   });
 
   /// One of `initial_load`, `filter_change`, `pull_to_refresh`, `realtime`
-  /// (the quiet refresh, also used after the agent's own actions) or
-  /// `manual_retry`.
+  /// (the quiet refresh, also used after the agent's own actions), `reset`
+  /// (a quiet reload after a channel changed) or `manual_retry`.
   void refresh({required int currentPage, required String reason}) =>
       _emit('REFRESH', {'currentPage': currentPage, 'reason': reason});
-
-  /// A quiet refresh that was held back because the agent is scrolled down.
-  void refreshDeferred({required int currentPage, required String reason}) =>
-      _emit('REFRESH_DEFERRED', {'currentPage': currentPage, 'reason': reason});
 
   // -- failures ------------------------------------------------------------
 

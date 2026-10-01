@@ -171,12 +171,12 @@ void main() {
   bool has(String event, List<String> parts) =>
       events(event).any((line) => parts.every((part) => line.contains(part)));
 
-  group('a full navigation leaves a readable trail', () {
-    test('request, response, parse and page change for each page', () async {
-      final container = _container(_Server(90)); // 3 pages of 30
+  group('loading through the list leaves a readable trail', () {
+    test('request, response, parse and append for each batch', () async {
+      final container = _container(_Server(90)); // 3 batches of 30
       await container.read(inboxControllerProvider.future);
-      await _inbox(container).goToPage(2);
-      await _inbox(container).goToPage(3);
+      await _inbox(container).loadMore();
+      await _inbox(container).loadMore();
 
       // The endpoint and the query actually sent.
       expect(
@@ -215,12 +215,27 @@ void main() {
         ]),
         isTrue,
       );
+      // That the next batch was asked for, and what appending did.
       expect(
-        has('PAGE_CHANGE', ['fromPage=1', 'toPage=2', 'knownTotalPages=3']),
+        has('LOAD_MORE', [
+          'nextPage=2',
+          'loadedGroups=30',
+          'knownTotalPages=3',
+        ]),
         isTrue,
       );
       expect(
-        has('PAGE_CHANGE', ['fromPage=2', 'toPage=3', 'knownTotalPages=3']),
+        has('APPENDED', [
+          'requestedPage=2',
+          'added=30',
+          'duplicatesDropped=0',
+          'totalLoaded=60',
+          'hasMore=true',
+        ]),
+        isTrue,
+      );
+      expect(
+        has('APPENDED', ['requestedPage=3', 'totalLoaded=90', 'hasMore=false']),
         isTrue,
       );
       // The flat endpoint is never the one called.
@@ -232,32 +247,73 @@ void main() {
       expect(pagination().any((l) => l.contains('WARNING')), isFalse);
     });
 
+    test('duplicates dropped by an append are counted, not hidden', () async {
+      final server = _Server(
+        90,
+        // A new message on a later group pushed the last row of page 1 onto
+        // page 2: the server sends it again.
+        tamper: (page, r) => page == 2
+            ? {
+                ...r,
+                'results': [_group(30), ...(r['results'] as List).skip(1)],
+              }
+            : r,
+      );
+      final container = _container(server);
+      await container.read(inboxControllerProvider.future);
+
+      await _inbox(container).loadMore();
+
+      expect(
+        has('APPENDED', ['requestedPage=2', 'added=29', 'duplicatesDropped=1']),
+        isTrue,
+      );
+    });
+
     test(
-      'a page past the known total is refused, and the log says so',
+      'a load-more with nothing left is refused, and the log says so',
       () async {
-        final container = _container(_Server(90));
+        final container = _container(_Server(60)); // two batches
         await container.read(inboxControllerProvider.future);
+        await _inbox(container).loadMore();
         final requestsBefore = events('FETCH_START').length;
 
-        await _inbox(container).goToPage(4);
+        await _inbox(container).loadMore();
 
         expect(
-          has('PAGE_CHANGE_REFUSED', [
-            'fromPage=1',
-            'toPage=4',
-            'knownTotalPages=3',
-            'reason=outside_known_total_pages',
+          has('LOAD_MORE_REFUSED', [
+            'reason=no_more_results',
+            'loadedGroups=60',
           ]),
           isTrue,
         );
         expect(events('FETCH_START').length, requestsBefore);
       },
     );
+
+    test(
+      'a response for a list that was replaced is logged as dropped',
+      () async {
+        final server = _Server(90);
+        final container = _container(server);
+        await container.read(inboxControllerProvider.future);
+
+        final inFlight = _inbox(container).loadMore();
+        // Replaced while page 2 is on its way.
+        await _inbox(container).refreshQuietly(reset: true);
+        await inFlight;
+
+        expect(
+          has('STALE_RESPONSE_DROPPED', ['what=load_more', 'requestedPage=2']),
+          isTrue,
+        );
+      },
+    );
   });
 
   group('refresh reasons', () {
     test('initial_load, realtime, pull_to_refresh, filter_change, '
-        'manual_retry', () async {
+        'manual_retry, reset', () async {
       final server = _Server(90, failPages: {2});
       final container = _container(server);
       await container.read(inboxControllerProvider.future);
@@ -269,11 +325,15 @@ void main() {
       await _inbox(container).refresh();
       expect(has('REFRESH', ['reason=pull_to_refresh']), isTrue);
 
-      // Page 2 fails once; the retry is logged as manual_retry.
-      await _inbox(container).goToPage(2);
+      // Page 2 fails once; the footer's Retry is logged as manual_retry.
+      await _inbox(container).loadMore();
       server.failPages.clear();
-      await _inbox(container).retryPage();
-      expect(has('REFRESH', ['currentPage=2', 'reason=manual_retry']), isTrue);
+      await _inbox(container).retryLoadMore();
+      expect(has('REFRESH', ['reason=manual_retry']), isTrue);
+
+      // A quiet reload from the top, as after a channel changed.
+      await _inbox(container).refreshQuietly(reset: true);
+      expect(has('REFRESH', ['reason=reset']), isTrue);
 
       container
           .read(inboxFiltersProvider.notifier)
@@ -288,7 +348,7 @@ void main() {
       final container = _container(_Server(90, failPages: {2}));
       await container.read(inboxControllerProvider.future);
 
-      await _inbox(container).goToPage(2);
+      await _inbox(container).loadMore();
 
       expect(
         has('ERROR', [
@@ -305,12 +365,14 @@ void main() {
 
     test('a genuinely out-of-range page is called out — the server said 404, '
         'nothing was dropped client-side', () async {
-      // The server reports 592 pages but only has 3: asking for page 4 gets
-      // a real 404. That is what "page 593 does not exist" looks like.
+      // The server reports 592 pages but only has 3: after page 3 it still
+      // offers a next link, and page 4 gets a real 404.
       final container = _container(_Server(90, reportedTotalPages: 592));
       await container.read(inboxControllerProvider.future);
+      await _inbox(container).loadMore();
+      await _inbox(container).loadMore();
 
-      await _inbox(container).goToPage(4);
+      await _inbox(container).loadMore();
 
       expect(
         has('OUT_OF_RANGE', [
@@ -327,7 +389,9 @@ void main() {
     Future<void> load(_Server server, {int goTo = 1}) async {
       final container = _container(server);
       await container.read(inboxControllerProvider.future);
-      if (goTo != 1) await _inbox(container).goToPage(goTo);
+      for (var page = 2; page <= goTo; page++) {
+        await _inbox(container).loadMore();
+      }
     }
 
     test('RESPONSE_PAGE_MISMATCH', () async {
@@ -469,7 +533,7 @@ void main() {
             .read(inboxFiltersProvider.notifier)
             .update(const ConversationFilters(search: _name));
         await container.read(inboxControllerProvider.future);
-        await _inbox(container).goToPage(2);
+        await _inbox(container).loadMore();
 
         final all = pagination().join('\n');
         expect(all, isNotEmpty);

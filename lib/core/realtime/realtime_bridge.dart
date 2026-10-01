@@ -653,7 +653,11 @@ void _handleAccessRevoked(Ref ref, int conversationId, {String? traceId}) {
   );
 
   ref.read(realtimeClientProvider).unsubscribe(conversationId);
-  ref.read(inboxControllerProvider.notifier).refreshQuietly();
+  // The row can be anywhere in the loaded list, which a refetch of the top
+  // would not touch: drop it locally, then refresh as before.
+  ref.read(inboxControllerProvider.notifier)
+    ..removeConversation(conversationId)
+    ..refreshQuietly();
 
   final active = ref.read(activeConversationProvider);
   if (active == conversationId) {

@@ -40,9 +40,7 @@ List<Map<String, dynamic>> groupedRows(List<dynamic> rows) {
         'group_key': key,
         'customer': byKey[key]!.first['customer'],
         'conversation_count': byKey[key]!.length,
-        'providers': {
-          for (final c in byKey[key]!) '${c['provider']}',
-        }.toList(),
+        'providers': {for (final c in byKey[key]!) '${c['provider']}'}.toList(),
         'conversations': byKey[key],
       },
   ];
