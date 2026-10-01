@@ -480,6 +480,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchConversationsHint => 'Search conversations';
 
   @override
+  String get inboxScrollToTop => 'Scroll to top';
+
+  @override
   String get inboxLoadMoreFailed => 'Couldn\'t load more conversations';
 
   @override

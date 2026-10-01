@@ -6,6 +6,7 @@
 /// rows, same badges, same terminology, same visibility.
 library;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -60,8 +61,26 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   /// Which rows are *built* is exact.
   static const _prefetchRows = 8;
 
-  /// The one controller for the inbox list. A reloaded list starts at the top
-  /// (see [_renderedNavigation]); `keepScrollOffset: false` also stops
+  /// The Scroll to top button appears once the agent is further than this
+  /// from the top — roughly a dozen rows — and goes away again only when they
+  /// are back within [_hideScrollTopBelow]. The gap between the two is
+  /// deliberate: a single threshold would make the button flicker in and out
+  /// for anyone scrolling around it.
+  static const _showScrollTopAfter = 1000.0;
+  static const _hideScrollTopBelow = 400.0;
+
+  /// Further than this many viewport heights from the top, the scroll to top
+  /// first jumps to within three of them and animates the rest: gliding past
+  /// hundreds of rows would only make the lazy list build and discard them.
+  static const _animateFromViewports = 3;
+
+  /// Whether the Scroll to top button is showing. A notifier rather than
+  /// state, so scrolling rebuilds only the button, never the list.
+  final _showScrollTop = ValueNotifier<bool>(false);
+
+  /// The one controller for the inbox list. A list replaced from the top gets
+  /// its own scrollable (see [InboxState.navigation] where the list is
+  /// built), so it starts at offset 0; `keepScrollOffset: false` also stops
   /// PageStorage from restoring an old list's depth into a new one.
   final _scrollController = ScrollController(keepScrollOffset: false);
   final _searchController = TextEditingController();
@@ -69,25 +88,20 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   late final InboxController _inbox;
   bool? _reportedAtHead;
 
-  /// The [InboxState.navigation] last put on screen. When the list was
-  /// replaced from the top (pull to refresh, a reload) it goes back to the
-  /// top — after the new list has been laid out, never before. Appending a
-  /// batch or merging fresh rows never changes it.
-  int? _renderedNavigation;
-
   @override
   void initState() {
     super.initState();
     _inbox = ref.read(inboxControllerProvider.notifier);
-    _scrollController.addListener(_syncHead);
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _inbox.screenDetached();
     _scrollController
-      ..removeListener(_syncHead)
+      ..removeListener(_onScroll)
       ..dispose();
+    _showScrollTop.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -115,6 +129,44 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
 
   bool _loadRequested = false;
 
+  /// The single scroll listener: where the agent is, for the controller
+  /// ([_syncHead]) and for the Scroll to top button ([_syncScrollTop]).
+  void _onScroll() {
+    _syncHead();
+    _syncScrollTop();
+  }
+
+  /// Shows the Scroll to top button past [_showScrollTopAfter] and hides it
+  /// below [_hideScrollTopBelow] (hysteresis). With no list attached — the
+  /// skeleton, a reload in progress — it is hidden.
+  void _syncScrollTop() {
+    if (!mounted) return;
+    final bool visible;
+    if (!_scrollController.hasClients) {
+      visible = false;
+    } else {
+      final pixels = _scrollController.position.pixels;
+      visible = _showScrollTop.value
+          ? pixels > _hideScrollTopBelow
+          : pixels > _showScrollTopAfter;
+    }
+    if (visible != _showScrollTop.value) _showScrollTop.value = visible;
+  }
+
+  /// Back to the first conversation. Only moves the existing scroll position:
+  /// nothing is reloaded, cleared or re-requested, and what is loaded stays.
+  Future<void> _scrollToTop() async {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    final nearest = position.viewportDimension * _animateFromViewports;
+    if (position.pixels > nearest) _scrollController.jumpTo(nearest);
+    await _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   void _syncHead() {
     if (!mounted || !_scrollController.hasClients) return;
     final atHead = _scrollController.position.pixels <= _headExtent;
@@ -124,27 +176,13 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     }
   }
 
-  /// Called while building the list: if it was replaced from the top,
-  /// scroll to its top once this frame has laid it out.
-  void _scrollToTopIfNewPage(InboxState state) {
-    if (state.navigation == _renderedNavigation) return;
-    final first = _renderedNavigation == null;
-    _renderedNavigation = state.navigation;
-    if (first) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _scrollController.hasClients) {
-        _scrollController.jumpTo(0);
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final inbox = ref.watch(inboxControllerProvider);
     final filters = ref.watch(inboxFiltersProvider);
     final employee = ref.watch(currentEmployeeProvider);
     ref.listen(inboxControllerProvider, (_, _) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _syncHead());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
     });
 
     // Keeps the socket alive and the cache invalidated while this screen lives.
@@ -250,7 +288,6 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                     );
                   }
 
-                  _scrollToTopIfNewPage(state);
                   final groups = state.groups;
                   // One extra item after the last group while the next batch
                   // loads or after it failed — not a state of its own, so the
@@ -304,7 +341,30 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
 
                   return Stack(
                     children: [
-                      list,
+                      // A list replaced from the top (new filters, pull to
+                      // refresh, a reload) is a new subtree and so a new
+                      // scrollable, built at offset 0. Reusing the old one
+                      // would lay the new, shorter list out at the old depth
+                      // — near *its* end — and prefetch a batch nobody
+                      // scrolled towards. Appending a batch or merging fresh
+                      // rows keeps `navigation`, and so the same scrollable.
+                      KeyedSubtree(
+                        key: ValueKey('inbox-list-${state.navigation}'),
+                        child: list,
+                      ),
+                      Positioned.fill(
+                        child: SafeArea(
+                          top: false,
+                          minimum: const EdgeInsets.all(Space.lg),
+                          child: Align(
+                            alignment: AlignmentDirectional.bottomEnd,
+                            child: _ScrollToTopButton(
+                              visible: _showScrollTop,
+                              onPressed: _scrollToTop,
+                            ),
+                          ),
+                        ),
+                      ),
                       if (state.hasPendingUpdates)
                         PositionedDirectional(
                           top: Space.sm,
@@ -805,6 +865,41 @@ final realtimeStatusProvider = StreamProvider<RealtimeStatus>(
   (ref) => ref.watch(realtimeClientProvider).statusChanges,
 );
 
+/// A small round floating button that takes the agent back to the first
+/// conversation. It fades and scales in and out, takes no pointer events while
+/// hidden, and is not part of the list — an overlay on it.
+class _ScrollToTopButton extends StatelessWidget {
+  const _ScrollToTopButton({required this.visible, required this.onPressed});
+
+  final ValueListenable<bool> visible;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: visible,
+      builder: (context, show, _) => AnimatedSwitcher(
+        duration: const Duration(milliseconds: 180),
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(scale: animation, child: child),
+        ),
+        child: show
+            ? FloatingActionButton.small(
+                key: const ValueKey('inboxScrollToTop'),
+                // No shared hero tag: other screens have their own floating
+                // buttons, and two would collide in a route transition.
+                heroTag: null,
+                tooltip: context.l10n.inboxScrollToTop,
+                onPressed: onPressed,
+                child: const Icon(Icons.keyboard_arrow_up_rounded),
+              )
+            : const SizedBox.shrink(key: ValueKey('inboxScrollToTopHidden')),
+      ),
+    );
+  }
+}
+
 /// The end of the loaded list while the next batch is on its way, or after it
 /// failed: a small spinner, or the reason and a Retry. Everything above it is
 /// the rows already loaded, untouched.
@@ -853,6 +948,9 @@ class _LoadMoreFooter extends StatelessWidget {
             onPressed: onRetry,
             child: Text(context.l10n.retryButton),
           ),
+          // Room for the floating Scroll to top button, which sits over the
+          // end of the list: Retry must never be underneath it.
+          const SizedBox(width: 56),
         ],
       ),
     );

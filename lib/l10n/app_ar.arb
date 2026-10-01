@@ -159,6 +159,7 @@
 
   "inboxTitle": "صندوق الوارد",
   "searchConversationsHint": "البحث في المحادثات",
+  "inboxScrollToTop": "العودة إلى الأعلى",
   "inboxLoadMoreFailed": "تعذّر تحميل المزيد من المحادثات",
   "inboxNewActivity": "نشاط جديد",
   "filtersTooltip": "التصفية",

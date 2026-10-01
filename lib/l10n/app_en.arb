@@ -232,6 +232,8 @@
 
   "inboxTitle": "Inbox",
   "searchConversationsHint": "Search conversations",
+  "inboxScrollToTop": "Scroll to top",
+  "@inboxScrollToTop": {"description": "Tooltip and screen-reader label of the floating button in the inbox that scrolls the list back to the first conversation"},
   "inboxLoadMoreFailed": "Couldn't load more conversations",
   "@inboxLoadMoreFailed": {"description": "Shown at the end of the inbox list when loading the next batch failed; the conversations already loaded stay, with a Try again button next to it"},
   "inboxNewActivity": "New activity",

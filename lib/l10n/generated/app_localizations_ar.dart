@@ -480,6 +480,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get searchConversationsHint => 'البحث في المحادثات';
 
   @override
+  String get inboxScrollToTop => 'العودة إلى الأعلى';
+
+  @override
   String get inboxLoadMoreFailed => 'تعذّر تحميل المزيد من المحادثات';
 
   @override

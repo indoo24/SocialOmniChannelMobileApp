@@ -944,6 +944,12 @@ abstract class AppLocalizations {
   /// **'Search conversations'**
   String get searchConversationsHint;
 
+  /// Tooltip and screen-reader label of the floating button in the inbox that scrolls the list back to the first conversation
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll to top'**
+  String get inboxScrollToTop;
+
   /// Shown at the end of the inbox list when loading the next batch failed; the conversations already loaded stay, with a Try again button next to it
   ///
   /// In en, this message translates to:

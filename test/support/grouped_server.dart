@@ -256,6 +256,7 @@ Future<void> pumpInbox(
   GroupedServer server, {
   Size size = const Size(430, 800),
   Locale locale = const Locale('en'),
+  ThemeData? theme,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
@@ -264,7 +265,7 @@ Future<void> pumpInbox(
     ProviderScope(
       overrides: _overrides(server),
       child: MaterialApp(
-        theme: AppTheme.light,
+        theme: theme ?? AppTheme.light,
         locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
