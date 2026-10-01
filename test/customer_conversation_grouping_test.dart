@@ -18,6 +18,8 @@ import 'package:scenario_mobile/features/conversations/inbox_controller.dart';
 import 'package:scenario_mobile/features/conversations/inbox_screen.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
+import 'support/grouped_inbox.dart';
+
 class _StubAdapter implements HttpClientAdapter {
   _StubAdapter(this.handler);
 
@@ -326,7 +328,9 @@ void main() {
             return _json('{}', 200);
           }
           if (options.path.contains('/conversations/')) {
-            return _json(inboxTwoConvosSameCustomerJson, 200);
+            // The inbox reads the grouped endpoint: the server has merged
+            // Ahmed's two WhatsApp threads into one group.
+            return _json(groupedBody(inboxTwoConvosSameCustomerJson), 200);
           }
           return _json('{}', 200);
         });
@@ -393,7 +397,7 @@ void main() {
             return _json('{"total": 1, "unread": 0, "unassigned": 0}', 200);
           }
           if (options.path.contains('/conversations/')) {
-            return _json('''{
+            return _json(groupedBody('''{
             "count": 1,
             "next": null,
             "previous": null,
@@ -413,7 +417,7 @@ void main() {
                 }
               }
             ]
-          }''', 200);
+          }'''), 200);
           }
           return _json('{}', 200);
         });
@@ -537,27 +541,31 @@ void main() {
           unreadCount: 2,
         );
 
-        final state = InboxState(conversations: [c1, c2]);
+        final state = InboxState(
+          groups: CustomerConversationGroup.groupConversations([c1, c2]),
+        );
         expect(state.groups.first.unreadCount, 5);
 
         // Simulate markAsRead for conversation 10
-        final updatedConvos = state.conversations.map((c) {
-          if (c.id == 10) return c.copyWith(unreadCount: 0);
-          return c;
-        }).toList();
-
-        final updatedState = state.copyWith(conversations: updatedConvos);
+        final updatedState = state.copyWith(
+          groups: [
+            for (final g in state.groups)
+              g.mapConversations(
+                (c) => c.id == 10 ? c.copyWith(unreadCount: 0) : c,
+              ),
+          ],
+        );
         expect(updatedState.groups.first.unreadCount, 2);
         expect(updatedState.groups.first.isUnread, isTrue);
 
         // Now mark conversation 20 as read
-        final allReadConvos = updatedState.conversations.map((c) {
-          if (c.id == 20) return c.copyWith(unreadCount: 0);
-          return c;
-        }).toList();
-
         final allReadState = updatedState.copyWith(
-          conversations: allReadConvos,
+          groups: [
+            for (final g in updatedState.groups)
+              g.mapConversations(
+                (c) => c.id == 20 ? c.copyWith(unreadCount: 0) : c,
+              ),
+          ],
         );
         expect(allReadState.groups.first.unreadCount, 0);
         expect(allReadState.groups.first.isUnread, isFalse);

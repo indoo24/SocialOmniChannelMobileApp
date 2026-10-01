@@ -34,6 +34,7 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cookie_jar/cookie_jar.dart';
@@ -53,6 +54,8 @@ import 'package:scenario_mobile/features/directory/directory_providers.dart';
 import 'package:scenario_mobile/features/messages/conversation_controller.dart';
 import 'package:scenario_mobile/features/settings/settings_screen.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
+
+import 'support/grouped_inbox.dart';
 
 class _StubAdapter implements HttpClientAdapter {
   _StubAdapter(this.handler);
@@ -159,6 +162,10 @@ const _conversationBPage2 = '''
 String _page(List<String> results, {bool hasNext = false, int? count}) =>
     '{"count": ${count ?? results.length}, "next": ${hasNext ? '"http://x/?page=2"' : 'null'}, "previous": null, "results": [${results.join(',')}]}';
 
+/// The grouped-endpoint page the inbox reads, for flat conversation fixtures.
+String _grouped(List<String> results, {bool hasNext = false, int? count}) =>
+    groupedBody(_page(results, hasNext: hasNext, count: count));
+
 void main() {
   group('InboxController reconciliation after a channel is disconnected', () {
     test(
@@ -167,11 +174,11 @@ void main() {
         // Before disconnect: backend returns A, B, C.
         var disconnected = false;
         final adapter = _StubAdapter((options) {
-          if (options.path == '/conversations/') {
+          if (options.path == '/conversations/grouped/') {
             final results = disconnected
                 ? [_conversationA, _conversationC]
                 : [_conversationA, _conversationB, _conversationC];
-            return _json(_page(results), 200);
+            return _json(_grouped(results), 200);
           }
           throw StateError('Unexpected request: ${options.path}');
         });
@@ -207,60 +214,72 @@ void main() {
       },
     );
 
-    test('a stale conversation on page 2 also drops on reconcile', () async {
-      // Page 1: Conversation A only, with a next page. Page 2: Conversation
-      // B2 — a second row on the soon-to-be-removed channel, reached only
-      // by going to page 2. After the disconnect, the realtime refetch of
-      // that page must not leave B2 behind — even though the list has
-      // shrunk to a single page meanwhile.
-      var disconnected = false;
-      final adapter = _StubAdapter((options) {
-        if (options.path != '/conversations/') {
-          throw StateError('Unexpected request: ${options.path}');
-        }
-        final page = options.queryParameters['page'];
-        if (page == 2 && !disconnected) {
-          return _json(_page([_conversationBPage2]), 200);
-        }
-        final results = disconnected ? [_conversationA] : [_conversationA];
-        return _json(
-          _page(results, hasNext: !disconnected, count: disconnected ? 1 : 2),
-          200,
+    test(
+      'a stale conversation in a later batch also drops on reconcile',
+      () async {
+        // Page 1: Conversation A only, with a next page. Page 2: Conversation
+        // B2 — a second row on the soon-to-be-removed channel, reached only
+        // by going to page 2. After the disconnect, the realtime refetch of
+        // that page must not leave B2 behind — even though the list has
+        // shrunk to a single page meanwhile.
+        var disconnected = false;
+        final adapter = _StubAdapter((options) {
+          if (options.path != '/conversations/grouped/') {
+            throw StateError('Unexpected request: ${options.path}');
+          }
+          final page = options.queryParameters['page'];
+          if (page == 2 && !disconnected) {
+            return _json(_grouped([_conversationBPage2]), 200);
+          }
+          final results = disconnected ? [_conversationA] : [_conversationA];
+          return _json(
+            _grouped(
+              results,
+              hasNext: !disconnected,
+              count: disconnected ? 1 : 2,
+            ),
+            200,
+          );
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        final container = ProviderContainer(
+          overrides: [
+            apiClientProvider.overrideWithValue(client),
+            currentEmployeeProvider.overrideWithValue(_adminEmployee),
+          ],
         );
-      });
-      final client = ApiClient.create(cookieJar: CookieJar());
-      client.raw.httpClientAdapter = adapter;
+        addTearDown(container.dispose);
 
-      final container = ProviderContainer(
-        overrides: [
-          apiClientProvider.overrideWithValue(client),
-          currentEmployeeProvider.overrideWithValue(_adminEmployee),
-        ],
-      );
-      addTearDown(container.dispose);
+        // Cold load page 1 (A, with a next page), then scroll on: page 2 (B2)
+        // is appended below it.
+        await container.read(inboxControllerProvider.future);
+        await container.read(inboxControllerProvider.notifier).loadMore();
 
-      // Cold load page 1 (A, with a next page), then go to page 2 (B2).
-      await container.read(inboxControllerProvider.future);
-      await container.read(inboxControllerProvider.notifier).goToPage(2);
+        final onPage2 = container.read(inboxControllerProvider).value!;
+        expect(onPage2.page, 2);
+        expect(onPage2.conversations.map((c) => c.id), [101, 104]);
 
-      final onPage2 = container.read(inboxControllerProvider).value!;
-      expect(onPage2.page, 2);
-      expect(onPage2.conversations.map((c) => c.id), [104]);
+        // The channel behind conversation 104 is now disconnected. The
+        // disconnect handler reloads the list from the top (`reset`), since a
+        // channel change can remove rows anywhere in it.
+        disconnected = true;
+        await container
+            .read(inboxControllerProvider.notifier)
+            .refreshQuietly(reset: true);
 
-      // The channel behind conversation 104 is now disconnected.
-      disconnected = true;
-      await container.read(inboxControllerProvider.notifier).refreshQuietly();
-
-      final after = container.read(inboxControllerProvider).value!;
-      expect(after.conversations.map((c) => c.id), [101]);
-      expect(
-        after.conversations.any((c) => c.id == 104),
-        isFalse,
-        reason:
-            'refreshQuietly() refetches the page on screen — a row only '
-            'ever seen on page 2 must not survive it',
-      );
-    });
+        final after = container.read(inboxControllerProvider).value!;
+        expect(after.conversations.map((c) => c.id), [101]);
+        expect(
+          after.conversations.any((c) => c.id == 104),
+          isFalse,
+          reason:
+              'a reset reloads from the first batch — a row only ever seen in '
+              'a later batch must not survive it',
+        );
+      },
+    );
 
     test('pull-to-refresh (refresh()) reconciles the same way', () async {
       var disconnected = false;
@@ -268,7 +287,7 @@ void main() {
         final results = disconnected
             ? [_conversationA, _conversationC]
             : [_conversationA, _conversationB, _conversationC];
-        return _json(_page(results), 200);
+        return _json(_grouped(results), 200);
       });
       final client = ApiClient.create(cookieJar: CookieJar());
       client.raw.httpClientAdapter = adapter;
@@ -299,7 +318,7 @@ void main() {
           final results = disconnected
               ? [_conversationA, _conversationC]
               : [_conversationA, _conversationB, _conversationC];
-          return _json(_page(results), 200);
+          return _json(_grouped(results), 200);
         });
 
         final container = ProviderContainer(
@@ -326,7 +345,7 @@ void main() {
     test('no duplicate conversations after repeated refreshes', () async {
       final client = ApiClient.create(cookieJar: CookieJar());
       client.raw.httpClientAdapter = _StubAdapter(
-        (_) => _json(_page([_conversationA, _conversationC]), 200),
+        (_) => _json(_grouped([_conversationA, _conversationC]), 200),
       );
 
       final container = ProviderContainer(
@@ -354,7 +373,7 @@ void main() {
         final client = ApiClient.create(cookieJar: CookieJar());
         client.raw.httpClientAdapter = _StubAdapter((_) {
           final results = disconnected ? const <String>[] : [_conversationB];
-          return _json(_page(results), 200);
+          return _json(_grouped(results), 200);
         });
 
         final container = ProviderContainer(
@@ -389,7 +408,7 @@ void main() {
               500,
             );
           }
-          return _json(_page([_conversationA, _conversationB]), 200);
+          return _json(_grouped([_conversationA, _conversationB]), 200);
         });
 
         final container = ProviderContainer(
@@ -442,11 +461,11 @@ void main() {
             if (options.path.contains('/conversations/102/')) {
               return _json(_conversationB, 200);
             }
-            if (options.path == '/conversations/') {
+            if (options.path == '/conversations/grouped/') {
               // No inbox screen is mounted in this test, but the shared
               // container still lets InboxController's own build() run if
               // anything reads it — harmless, not what this test asserts on.
-              return _json(_page(const [_conversationA]), 200);
+              return _json(_grouped(const [_conversationA]), 200);
             }
             throw StateError('Unexpected request: ${options.path}');
           });
@@ -481,17 +500,17 @@ void main() {
   );
 
   group('SettingsScreen disconnect action — triggers inbox reconciliation', () {
-    testWidgets('a successful disconnect refetches GET /api/conversations/', (
-      tester,
-    ) async {
-      tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(390, 1600);
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+    testWidgets(
+      'a successful disconnect refetches GET /api/conversations/grouped/',
+      (tester) async {
+        tester.view.devicePixelRatio = 1.0;
+        tester.view.physicalSize = const Size(390, 1600);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-      const whatsappChannel = '''
+        const whatsappChannel = '''
 {
   "id": 9,
   "provider": "WHATSAPP",
@@ -504,160 +523,192 @@ void main() {
 }
 ''';
 
-      final adapter = _StubAdapter((options) {
-        if (options.method == 'POST' && options.path.contains('/disconnect/')) {
-          return _json('{"status": "DISCONNECTED", "detail": "ok"}', 200);
-        }
-        if (options.path == '/channels/') {
-          return _json(_page([whatsappChannel]), 200);
-        }
-        if (options.path == '/conversations/') {
-          return _json(_page(const []), 200);
-        }
-        return _json('{}', 200);
-      });
-      final client = ApiClient.create(cookieJar: CookieJar());
-      client.raw.httpClientAdapter = adapter;
+        final adapter = _StubAdapter((options) {
+          if (options.method == 'POST' &&
+              options.path.contains('/disconnect/')) {
+            return _json('{"status": "DISCONNECTED", "detail": "ok"}', 200);
+          }
+          if (options.path == '/channels/') {
+            return _json(_page([whatsappChannel]), 200);
+          }
+          if (options.path == '/conversations/grouped/') {
+            return _json(_grouped(const []), 200);
+          }
+          return _json('{}', 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            apiClientProvider.overrideWithValue(client),
-            currentEmployeeProvider.overrideWithValue(_adminEmployee),
-            cookieJarProvider.overrideWithValue(CookieJar()),
-          ],
-          child: MaterialApp(
-            locale: const Locale('en'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            theme: AppTheme.light,
-            home: const SettingsScreen(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final requestsBefore = adapter.received.length;
-
-      // The card exposes Disconnect as a direct button (no overflow menu).
-      await tester.tap(find.text('Disconnect'));
-      await tester.pumpAndSettle();
-      // Confirmation dialog's own action button, also labelled "Disconnect".
-      await tester.tap(find.text('Disconnect').last);
-      await tester.pumpAndSettle();
-
-      expect(
-        adapter.received
-            .skip(requestsBefore)
-            .any(
-              (r) =>
-                  r.method == 'POST' &&
-                  r.path == '/integrations/whatsapp/9/disconnect/',
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              apiClientProvider.overrideWithValue(client),
+              currentEmployeeProvider.overrideWithValue(_adminEmployee),
+              cookieJarProvider.overrideWithValue(CookieJar()),
+            ],
+            child: MaterialApp(
+              locale: const Locale('en'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              theme: AppTheme.light,
+              home: const SettingsScreen(),
             ),
-        isTrue,
-      );
-      // The fix: the disconnect handler explicitly refetches the inbox.
-      expect(
-        adapter.received
-            .skip(requestsBefore)
-            .any((r) => r.method == 'GET' && r.path == '/conversations/'),
-        isTrue,
-        reason:
-            'Disconnect must trigger inboxControllerProvider.refreshQuietly()',
-      );
-    });
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final requestsBefore = adapter.received.length;
+
+        // The card exposes Disconnect as a direct button (no overflow menu).
+        await tester.tap(find.text('Disconnect'));
+        await tester.pumpAndSettle();
+        // Confirmation dialog's own action button, also labelled "Disconnect".
+        await tester.tap(find.text('Disconnect').last);
+        await tester.pumpAndSettle();
+
+        expect(
+          adapter.received
+              .skip(requestsBefore)
+              .any(
+                (r) =>
+                    r.method == 'POST' &&
+                    r.path == '/integrations/whatsapp/9/disconnect/',
+              ),
+          isTrue,
+        );
+        // The fix: the disconnect handler explicitly refetches the inbox.
+        expect(
+          adapter.received
+              .skip(requestsBefore)
+              .any(
+                (r) => r.method == 'GET' && r.path == '/conversations/grouped/',
+              ),
+          isTrue,
+          reason:
+              'Disconnect must trigger inboxControllerProvider.refreshQuietly()',
+        );
+      },
+    );
   });
 
-  group('Inbox active channel filtering for disconnected / removed channels', () {
+  group('Inbox shows the rows the server returned — no client-side channel '
+      'filtering', () {
+    // The server applies visibility, muted channels and every filter
+    // *before* it paginates (`GET /conversations/grouped/`). Filtering a
+    // page again on the client, by whatever the channel list says, would
+    // make the page disagree with its own `count` and `total_pages` — and
+    // could hide rows the server meant to show (a channel missing from the
+    // list, say). So the channel list must have no say in which rows appear.
     const channel5 = ChannelConnection(
       id: 5,
       provider: 'WHATSAPP',
       displayName: 'Support Line',
       status: 'CONNECTED',
       isActive: true,
-      isMuted: false,
     );
-
-    const channel9Connected = ChannelConnection(
-      id: 9,
-      provider: 'WHATSAPP',
-      displayName: 'Old Number',
-      status: 'CONNECTED',
-      isActive: true,
-      isMuted: false,
-    );
-
     const channel9Disconnected = ChannelConnection(
       id: 9,
       provider: 'WHATSAPP',
       displayName: 'Old Number',
       status: 'DISCONNECTED',
       isActive: false,
-      isMuted: false,
     );
 
-    test(
-      'conversations belonging to disconnected channel are filtered out',
-      () async {
-        final adapter = _StubAdapter((options) {
-          if (options.path == '/conversations/') {
-            return _json(_page([_conversationA, _conversationB]), 200);
-          }
-          throw StateError('Unexpected request: ${options.path}');
-        });
-        final client = ApiClient.create(cookieJar: CookieJar());
-        client.raw.httpClientAdapter = adapter;
+    ProviderContainer containerFor(
+      List<String> Function() rows, {
+      required List<ChannelConnection> channels,
+    }) {
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter((options) {
+        if (options.path == '/conversations/grouped/') {
+          return _json(_grouped(rows()), 200);
+        }
+        throw StateError('Unexpected request: ${options.path}');
+      });
+      final container = ProviderContainer(
+        overrides: [
+          apiClientProvider.overrideWithValue(client),
+          currentEmployeeProvider.overrideWithValue(_adminEmployee),
+          channelsProvider.overrideWith((ref) => channels),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
 
-        final container = ProviderContainer(
-          overrides: [
-            apiClientProvider.overrideWithValue(client),
-            currentEmployeeProvider.overrideWithValue(_adminEmployee),
-            channelsProvider.overrideWith(
-              (ref) => [channel5, channel9Disconnected],
-            ),
-          ],
+    test(
+      'a row on a channel the channel list marks disconnected is kept',
+      () async {
+        final container = containerFor(
+          () => [_conversationA, _conversationB],
+          channels: [channel5, channel9Disconnected],
         );
-        addTearDown(container.dispose);
 
         final state = await container.read(inboxControllerProvider.future);
-        expect(state.conversations.map((c) => c.id), [101]);
-        expect(state.conversations.any((c) => c.id == 102), isFalse);
+        expect(state.conversations.map((c) => c.id), [101, 102]);
+        expect(state.total, 2);
       },
     );
 
-    test(
-      'conversations belonging to removed channel are filtered out',
-      () async {
-        // Channel 9 was completely deleted/removed from backend:
-        final adapter = _StubAdapter((options) {
-          if (options.path == '/conversations/') {
-            return _json(_page([_conversationA, _conversationB]), 200);
-          }
-          throw StateError('Unexpected request: ${options.path}');
+    test('a row on a channel missing from the channel list is kept', () async {
+      final container = containerFor(
+        () => [_conversationA, _conversationB],
+        channels: [channel5],
+      );
+
+      final state = await container.read(inboxControllerProvider.future);
+      expect(state.conversations.map((c) => c.id), [101, 102]);
+    });
+
+    test('count and page numbers are exactly what the server sent', () async {
+      // 30 rows on the page while the channel list knows nothing about
+      // them: every row shows, and count / total_pages are taken as sent.
+      final rows = [
+        for (var i = 1; i <= 30; i++)
+          {
+            'id': i,
+            'customer': {'id': i, 'display_name': 'C$i'},
+            'provider': 'WHATSAPP',
+            'channel_id': 77,
+            'status': 'OPEN',
+            'priority': 'NORMAL',
+            'unread_count': 0,
+            'message_count': 1,
+          },
+      ];
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter((options) {
+        final envelope = groupedEnvelope({
+          'count': 17750,
+          'page': 3,
+          'page_size': 30,
+          'total_pages': 592,
+          'next': 'https://x/api/conversations/grouped/?page=4',
+          'previous': 'https://x/api/conversations/grouped/?page=2',
+          'results': rows,
         });
-        final client = ApiClient.create(cookieJar: CookieJar());
-        client.raw.httpClientAdapter = adapter;
+        return _json(jsonEncode(envelope), 200);
+      });
+      final container = ProviderContainer(
+        overrides: [
+          apiClientProvider.overrideWithValue(client),
+          currentEmployeeProvider.overrideWithValue(_adminEmployee),
+          channelsProvider.overrideWith((ref) => [channel5]),
+        ],
+      );
+      addTearDown(container.dispose);
 
-        final container = ProviderContainer(
-          overrides: [
-            apiClientProvider.overrideWithValue(client),
-            currentEmployeeProvider.overrideWithValue(_adminEmployee),
-            channelsProvider.overrideWith((ref) => [channel5]),
-          ],
-        );
-        addTearDown(container.dispose);
+      final state = await container.read(inboxControllerProvider.future);
+      expect(state.groups, hasLength(30));
+      expect(state.total, 17750);
+      expect(state.totalPages, 592);
+      expect(state.page, 3);
+      expect(state.hasMore, isTrue, reason: 'the server sent a next link');
+    });
 
-        final state = await container.read(inboxControllerProvider.future);
-        expect(state.conversations.map((c) => c.id), [101]);
-        expect(state.conversations.any((c) => c.id == 102), isFalse);
-      },
-    );
-
-    test(
-      'multi-conversation customer group shrinks when one number is disconnected',
-      () async {
-        // Customer 1 has conversations on both channel 5 and channel 9
-        const customer1ConvoChannel9 = '''
+    test('a multi-conversation group is shown whole, then shrinks only '
+        'when the server stops returning a thread', () async {
+      const customer1ConvoChannel9 = '''
 {
   "id": 105,
   "customer": {"id": 1, "display_name": "Customer A"},
@@ -670,89 +721,48 @@ void main() {
   "message_count": 2
 }
 ''';
-        var isDisconnected = false;
-        final adapter = _StubAdapter((options) {
-          if (options.path == '/conversations/') {
-            // Backend still returns both conversations:
-            return _json(_page([_conversationA, customer1ConvoChannel9]), 200);
-          }
-          throw StateError('Unexpected request: ${options.path}');
-        });
-        final client = ApiClient.create(cookieJar: CookieJar());
-        client.raw.httpClientAdapter = adapter;
+      var serverStillHasIt = true;
+      final container = containerFor(
+        () => serverStillHasIt
+            ? [_conversationA, customer1ConvoChannel9]
+            : [_conversationA],
+        channels: [channel5, channel9Disconnected],
+      );
 
-        final container = ProviderContainer(
-          overrides: [
-            apiClientProvider.overrideWithValue(client),
-            currentEmployeeProvider.overrideWithValue(_adminEmployee),
-            channelsProvider.overrideWith(
-              (ref) => [
-                channel5,
-                isDisconnected ? channel9Disconnected : channel9Connected,
-              ],
-            ),
-          ],
-        );
-        addTearDown(container.dispose);
+      final initial = await container.read(inboxControllerProvider.future);
+      expect(initial.groups, hasLength(1));
+      expect(initial.groups.first.conversationCount, 2);
+      expect(initial.groups.first.isMultiConversation, isTrue);
 
-        // Before disconnect: Customer A has 2 conversations in their group
-        final initial = await container.read(inboxControllerProvider.future);
-        expect(initial.conversations.map((c) => c.id), [101, 105]);
-        expect(initial.groups.length, 1);
-        expect(initial.groups.first.conversationCount, 2);
-        expect(initial.groups.first.isMultiConversation, isTrue);
+      // The server drops the thread (channel disconnected server-side) and
+      // the inbox is refetched.
+      serverStillHasIt = false;
+      await container.read(inboxControllerProvider.notifier).refreshQuietly();
 
-        // Now Channel 9 is disconnected and refreshQuietly() is triggered
-        isDisconnected = true;
-        await container.read(inboxControllerProvider.notifier).refreshQuietly();
-
-        final after = container.read(inboxControllerProvider).value!;
-        expect(after.conversations.map((c) => c.id), [101]);
-        expect(after.groups.length, 1);
-        expect(after.groups.first.conversationCount, 1);
-        expect(after.groups.first.isMultiConversation, isFalse);
-      },
-    );
+      final after = container.read(inboxControllerProvider).value!;
+      expect(after.conversations.map((c) => c.id), [101]);
+      expect(after.groups.first.isMultiConversation, isFalse);
+    });
 
     test(
-      'customer with only disconnected channel conversations disappears from inbox',
+      'a customer disappears only when the server stops returning them',
       () async {
-        var isDisconnected = false;
-        final adapter = _StubAdapter((options) {
-          if (options.path == '/conversations/') {
-            // Convo 101 on channel 5, Convo 102 on channel 9 (Customer B)
-            return _json(_page([_conversationA, _conversationB]), 200);
-          }
-          throw StateError('Unexpected request: ${options.path}');
-        });
-        final client = ApiClient.create(cookieJar: CookieJar());
-        client.raw.httpClientAdapter = adapter;
-
-        final container = ProviderContainer(
-          overrides: [
-            apiClientProvider.overrideWithValue(client),
-            currentEmployeeProvider.overrideWithValue(_adminEmployee),
-            channelsProvider.overrideWith(
-              (ref) => [
-                channel5,
-                isDisconnected ? channel9Disconnected : channel9Connected,
-              ],
-            ),
-          ],
+        var serverStillHasB = true;
+        final container = containerFor(
+          () => serverStillHasB
+              ? [_conversationA, _conversationB]
+              : [_conversationA],
+          channels: [channel5, channel9Disconnected],
         );
-        addTearDown(container.dispose);
 
-        // Before disconnect: Customer A and Customer B both present
         final initial = await container.read(inboxControllerProvider.future);
         expect(initial.groups.map((g) => g.customer.id).toSet(), {1, 2});
 
-        // Disconnect channel 9
-        isDisconnected = true;
+        serverStillHasB = false;
         await container.read(inboxControllerProvider.notifier).refreshQuietly();
 
         final after = container.read(inboxControllerProvider).value!;
         expect(after.groups.map((g) => g.customer.id), [1]);
-        expect(after.groups.any((g) => g.customer.id == 2), isFalse);
       },
     );
   });

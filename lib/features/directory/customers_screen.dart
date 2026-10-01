@@ -152,7 +152,16 @@ class _CustomerRow extends StatelessWidget {
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(customer.subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(
+            // A phone is prefixed with a left-to-right mark so its leading
+            // `+` stays at the front of the number in an RTL (Arabic) row
+            // while the line still aligns with the name.
+            customer.subtitleIsPhone
+                ? '‎${customer.subtitle}'
+                : customer.subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           const SizedBox(height: Space.xs),
           Wrap(
             spacing: Space.xs,

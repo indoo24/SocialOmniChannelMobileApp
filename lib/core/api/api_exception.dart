@@ -120,10 +120,22 @@ class ApiException implements Exception {
     for (final entry in map.entries) {
       final val = entry.value;
       if (val is List && val.isNotEmpty) {
-        final strings = val
-            .map((e) => e.toString().trim())
-            .where((s) => s.isNotEmpty && !_looksInternal(s))
-            .toList();
+        final strings = <String>[];
+        for (final element in val) {
+          if (element is Map) {
+            // A nested serializer reports its errors per item —
+            // `{"responsibilities": [{"provider": ["…"]}]}` — so an element
+            // can itself be a field map. Read the message out of it; calling
+            // toString() would show the user `{provider: [...]}`.
+            final nested = _extractFirstMessage(
+              Map<String, dynamic>.from(element),
+            );
+            if (nested != null) strings.add(nested);
+          } else {
+            final text = element.toString().trim();
+            if (text.isNotEmpty && !_looksInternal(text)) strings.add(text);
+          }
+        }
         if (strings.isNotEmpty) return strings.join('\n');
       } else if (val is String &&
           val.trim().isNotEmpty &&

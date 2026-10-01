@@ -10,6 +10,7 @@ library;
 
 import '../utils/json_safe.dart';
 import 'conversation.dart';
+import 'customer_detail.dart' show CustomerIdentity, whatsappPhoneOf;
 import 'employee.dart';
 
 class Team {
@@ -100,6 +101,7 @@ class Customer {
     this.country = '',
     this.preferredLanguage = '',
     this.providers = const [],
+    this.identities = const [],
     this.lastSeenAt,
   });
 
@@ -116,7 +118,16 @@ class Customer {
 
   /// Channels this customer has been seen on, for the row's provider icons.
   final List<String> providers;
+
+  /// The channel accounts behind [providers]; the WhatsApp number lives here
+  /// (`identities[].external_id`) when the backend has no stored [phone].
+  final List<CustomerIdentity> identities;
   final DateTime? lastSeenAt;
+
+  /// A stored [phone] if there is one, else the WhatsApp identity's number.
+  /// The same rule as `CustomerDetail.displayPhone`, over the same helper.
+  String get displayPhone =>
+      phone.trim().isNotEmpty ? phone : whatsappPhoneOf(identities);
 
   factory Customer.fromJson(Map<String, dynamic> json) => Customer(
     id: JsonSafe.asInt(json['id'], fallback: -1),
@@ -137,12 +148,19 @@ class Customer {
         .where((p) => p.isNotEmpty)
         .toSet()
         .toList(),
+    identities: JsonSafe.asObjectList(json['identities'])
+        .whereType<Map>()
+        .map((i) => CustomerIdentity.fromJson(Map<String, dynamic>.from(i)))
+        .toList(),
     lastSeenAt: DateTime.tryParse(JsonSafe.asString(json['last_seen_at'])),
   );
 
+  /// Whether [subtitle] is the phone number (no email to take precedence).
+  bool get subtitleIsPhone => email.isEmpty && displayPhone.isNotEmpty;
+
   String get subtitle {
     if (email.isNotEmpty) return email;
-    if (phone.isNotEmpty) return phone;
+    if (displayPhone.isNotEmpty) return displayPhone;
     if (city.isNotEmpty) return city;
     return '—';
   }
