@@ -505,6 +505,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noFilterMatchesMessage => 'حاول توسيع الفلاتر أو مسحها.';
 
   @override
+  String noSearchResultsTitle(String query) {
+    return 'لا توجد نتائج لـ «$query»';
+  }
+
+  @override
+  String get noSearchResultsMessage => 'جرّب اسمًا أو رقمًا أو كلمة أخرى.';
+
+  @override
+  String get clearSearchButton => 'مسح البحث';
+
+  @override
   String get clearFiltersButton => 'مسح الفلاتر';
 
   @override

@@ -504,19 +504,15 @@ class _ComposerAttachmentButtonState
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
+    // Borderless, like the saved-replies and microphone buttons beside it.
+    return SizedBox(
       width: 44,
       height: 44,
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(Radii.md),
-      ),
       child: IconButton(
         tooltip: context.l10n.attachmentTooltip,
         padding: EdgeInsets.zero,
         onPressed: widget.enabled ? _openSheet : null,
-        icon: const Icon(Icons.attach_file_rounded, size: 20),
+        icon: const Icon(Icons.attach_file_rounded, size: 22),
       ),
     );
   }

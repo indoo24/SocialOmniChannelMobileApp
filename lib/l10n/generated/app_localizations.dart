@@ -992,6 +992,24 @@ abstract class AppLocalizations {
   /// **'Try widening or clearing the filters.'**
   String get noFilterMatchesMessage;
 
+  /// Inbox empty state when a search matches no conversation.
+  ///
+  /// In en, this message translates to:
+  /// **'No results for “{query}”'**
+  String noSearchResultsTitle(String query);
+
+  /// Inbox empty state hint under the no-search-results title.
+  ///
+  /// In en, this message translates to:
+  /// **'Try a different name, number or keyword.'**
+  String get noSearchResultsMessage;
+
+  /// Button that clears the inbox search query.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearSearchButton;
+
   /// No description provided for @clearFiltersButton.
   ///
   /// In en, this message translates to:

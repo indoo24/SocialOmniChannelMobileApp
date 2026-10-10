@@ -77,13 +77,10 @@ class ScenarioApp extends ConsumerStatefulWidget {
 }
 
 class _ScenarioAppState extends ConsumerState<ScenarioApp> {
-  /// Floor on how long the splash stays up, regardless of how fast session
-  /// restoration resolves. Without this, a warm cache or a fast network
-  /// answers `/auth/me/` well before the entrance animation
-  /// (`SplashMotion.totalDuration`) finishes, and the brand moment gets cut
-  /// off mid-animation.
-  static const _minSplashDuration = Duration(seconds: 4);
-  bool _minSplashElapsed = false;
+  /// Set by the splash once its intro has played, session restore is done,
+  /// and it has faded out. Until then the splash stays up even if restore
+  /// answers early, so a warm cache never cuts the animation off mid-way.
+  bool _splashFinished = false;
 
   @override
   void initState() {
@@ -101,9 +98,6 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
       ref.read(themeModeProvider.notifier).restore();
       ref.read(localeProvider.notifier).restore();
     });
-    Future.delayed(_minSplashDuration, () {
-      if (mounted) setState(() => _minSplashElapsed = true);
-    });
   }
 
   @override
@@ -118,11 +112,12 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
 
-    // Hold a splash while the session is being checked, and for at least
-    // _minSplashDuration regardless — building the router during restore
-    // would let its redirect run against an unknown state, and cutting the
-    // splash short whenever restore is fast would cut off its animation.
-    if (auth.isRestoring || !_minSplashElapsed) {
+    // Hold the splash while the session is being checked, and until the
+    // splash itself says it is done — building the router during restore
+    // would let its redirect run against an unknown state. Swapping the root
+    // app out (rather than pushing a route) also leaves nothing to navigate
+    // back to.
+    if (auth.isRestoring || !_splashFinished) {
       return MaterialApp(
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
@@ -131,7 +126,17 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         debugShowCheckedModeBanner: false,
-        home: const Scaffold(body: SplashScreen()),
+        home: Scaffold(
+          body: SplashScreen(
+            initDone: !auth.isRestoring,
+            // A retry from the offline screen restores again; show the
+            // settled logo with the loader instead of replaying the intro.
+            playIntro: !_splashFinished,
+            onFinished: () {
+              if (mounted) setState(() => _splashFinished = true);
+            },
+          ),
+        ),
       );
     }
 

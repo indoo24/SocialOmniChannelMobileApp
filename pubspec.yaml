@@ -143,6 +143,7 @@ flutter:
   generate: true
   assets:
     - assets/images/
+    - assets/splash/
   fonts:
     - family: Cairo
       fonts:
@@ -158,7 +159,14 @@ flutter:
 # source image. Legacy icon set only (no adaptive_icon_* keys), matching
 # the icon setup already in android/ and ios/ before this was added.
 flutter_launcher_icons:
-  image_path: "assets/images/app logo.png"
+  # Full-bleed tile cropped from "assets/images/app logo.png" (white margin
+  # removed, rounded corners filled) — the OS applies its own mask.
+  image_path: "assets/launcher/app_icon.png"
   android: true
   ios: true
   remove_alpha_ios: true
+  # Android 8+ adaptive icon: the artwork already sits inside the 72/108 safe
+  # zone of this foreground, so no extra inset.
+  adaptive_icon_foreground: "assets/launcher/app_icon_foreground.png"
+  adaptive_icon_foreground_inset: 0
+  adaptive_icon_background: "#3A2CF0"

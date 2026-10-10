@@ -505,6 +505,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noFilterMatchesMessage => 'Try widening or clearing the filters.';
 
   @override
+  String noSearchResultsTitle(String query) {
+    return 'No results for “$query”';
+  }
+
+  @override
+  String get noSearchResultsMessage =>
+      'Try a different name, number or keyword.';
+
+  @override
+  String get clearSearchButton => 'Clear search';
+
+  @override
   String get clearFiltersButton => 'Clear filters';
 
   @override

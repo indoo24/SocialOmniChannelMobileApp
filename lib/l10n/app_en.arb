@@ -243,6 +243,23 @@
   "noConversationsMessage": "New customer messages will appear here as they arrive.",
   "noFilterMatchesTitle": "Nothing matches those filters",
   "noFilterMatchesMessage": "Try widening or clearing the filters.",
+  "noSearchResultsTitle": "No results for “{query}”",
+  "@noSearchResultsTitle": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    },
+    "description": "Inbox empty state when a search matches no conversation."
+  },
+  "noSearchResultsMessage": "Try a different name, number or keyword.",
+  "@noSearchResultsMessage": {
+    "description": "Inbox empty state hint under the no-search-results title."
+  },
+  "clearSearchButton": "Clear search",
+  "@clearSearchButton": {
+    "description": "Button that clears the inbox search query."
+  },
   "clearFiltersButton": "Clear filters",
   "noMessagesYetPreview": "No messages yet",
   "unassignedBadge": "Unassigned",

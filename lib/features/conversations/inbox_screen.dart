@@ -27,8 +27,10 @@ import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../core/widgets/user_account_menu.dart';
 import '../../core/utils/formatting.dart';
+import '../../core/utils/text_direction.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'conversation_preview_formatter.dart';
+import 'conversation_repository.dart' show ConversationFilters;
 import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
 import 'customer_conversation_group_sheet.dart';
@@ -167,6 +169,19 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     );
   }
 
+  /// Closes the search field and drops the query, showing the unsearched
+  /// inbox again.
+  void _clearSearch() {
+    setState(() => _searching = false);
+    _searchController.clear();
+    final filters = ref.read(inboxFiltersProvider);
+    if (filters.search.isNotEmpty) {
+      ref
+          .read(inboxFiltersProvider.notifier)
+          .update(filters.copyWith(search: ''));
+    }
+  }
+
   void _syncHead() {
     if (!mounted || !_scrollController.hasClients) return;
     final atHead = _scrollController.position.pixels <= _headExtent;
@@ -210,12 +225,10 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                 : context.l10n.commonSearch,
             icon: Icon(_searching ? Icons.close : Icons.search),
             onPressed: () {
-              setState(() => _searching = !_searching);
-              if (!_searching && filters.search.isNotEmpty) {
-                _searchController.clear();
-                ref
-                    .read(inboxFiltersProvider.notifier)
-                    .update(filters.copyWith(search: ''));
+              if (_searching) {
+                _clearSearch();
+              } else {
+                setState(() => _searching = true);
               }
             },
           ),
@@ -230,6 +243,8 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
         children: [
           const PlatformAccountFilterBar(),
           const InboxQuickFilterBar(),
+          // Separates the controls from the list they act on.
+          const Divider(height: 1),
           Expanded(
             child: RefreshIndicator(
               onRefresh: () =>
@@ -241,8 +256,10 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                 loading: () => AppShimmer(
                   child: ListView.separated(
                     itemCount: 8,
-                    separatorBuilder: (_, _) =>
-                        const Divider(height: 1, indent: 68),
+                    separatorBuilder: (_, _) => const Divider(
+                      height: 1,
+                      indent: Sizes.rowDividerIndent,
+                    ),
                     itemBuilder: (_, _) => const ConversationSkeleton(),
                   ),
                 ),
@@ -265,23 +282,11 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                       children: [
                         SizedBox(
                           height: MediaQuery.sizeOf(context).height * 0.6,
-                          child: EmptyState(
-                            title: filters.isEmpty
-                                ? context.l10n.noConversationsTitle
-                                : context.l10n.noFilterMatchesTitle,
-                            message: filters.isEmpty
-                                ? context.l10n.noConversationsMessage
-                                : context.l10n.noFilterMatchesMessage,
-                            action: filters.isEmpty
-                                ? null
-                                : OutlinedButton(
-                                    onPressed: () => ref
-                                        .read(inboxFiltersProvider.notifier)
-                                        .clear(),
-                                    child: Text(
-                                      context.l10n.clearFiltersButton,
-                                    ),
-                                  ),
+                          child: InboxEmptyState(
+                            filters: filters,
+                            onClearSearch: _clearSearch,
+                            onClearFilters: () =>
+                                ref.read(inboxFiltersProvider.notifier).clear(),
                           ),
                         ),
                       ],
@@ -302,8 +307,10 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
                     itemCount: groups.length + (showFooter ? 1 : 0),
-                    separatorBuilder: (_, _) =>
-                        const Divider(height: 1, indent: 68),
+                    separatorBuilder: (_, _) => const Divider(
+                      height: 1,
+                      indent: Sizes.rowDividerIndent,
+                    ),
                     itemBuilder: (context, index) {
                       if (index >= groups.length) {
                         return _LoadMoreFooter(
@@ -459,105 +466,43 @@ class ConversationGroupRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final unread = group.isUnread;
 
-    return InkWell(
+    return _InboxRowLayout(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: Space.lg,
-          vertical: Space.md,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            InitialsAvatar(
-              initials: group.customer.initials,
-              imageUrl: group.customer.avatarUrl,
-              provider: group.provider,
-            ),
-            const SizedBox(width: Space.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          group.customer.displayName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: unread
-                                ? FontWeight.w700
-                                : FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: Space.sm),
-                      Text(
-                        formatRelativeTime(context, group.lastMessageAt),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: unread ? theme.colorScheme.primary : null,
-                          fontWeight: unread ? FontWeight.w600 : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      if (group.lastMessageDirection == 'OUTBOUND') ...[
-                        _RowDeliveryIcon(
-                          status: group.lastMessageDeliveryStatus,
-                        ),
-                        const SizedBox(width: 4),
-                      ],
-                      Expanded(
-                        child: Text(
-                          formatConversationPreview(context, group: group),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: unread
-                                ? theme.colorScheme.onSurface
-                                : theme.textTheme.bodySmall?.color,
-                            fontWeight: unread ? FontWeight.w500 : null,
-                          ),
-                        ),
-                      ),
-                      if (unread) ...[
-                        const SizedBox(width: Space.sm),
-                        _UnreadPill(count: group.unreadCount),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: Space.sm),
-                  Row(
-                    children: [
-                      StatusBadge(
-                        label:
-                            '${context.l10n.providerWhatsapp} · ${context.l10n.groupedConversationsCount(group.conversationCount)}',
-                        tone: BadgeTone.info,
-                        dense: true,
-                        icon: Icons.forum_outlined,
-                      ),
-                      const Spacer(),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        size: 18,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+      avatar: InitialsAvatar(
+        initials: group.customer.initials,
+        imageUrl: group.customer.avatarUrl,
+        provider: group.provider,
+        size: Sizes.rowAvatar,
+      ),
+      name: group.customer.displayName,
+      time: group.lastMessageAt,
+      preview: formatConversationPreview(context, group: group),
+      unreadCount: group.isUnread ? group.unreadCount : 0,
+      outboundDeliveryStatus: group.lastMessageDirection == 'OUTBOUND'
+          ? group.lastMessageDeliveryStatus
+          : null,
+      footer: Row(
+        children: [
+          Expanded(
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: StatusBadge(
+                label:
+                    '${ConversationBadges.providerLabel(context, group.provider)} · ${context.l10n.groupedConversationsCount(group.conversationCount)}',
+                tone: BadgeTone.info,
+                dense: true,
+                icon: Icons.forum_outlined,
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: Space.sm),
+          Icon(
+            Icons.chevron_right_rounded,
+            size: Sizes.iconMd,
+            color: theme.textTheme.bodySmall?.color,
+          ),
+        ],
       ),
     );
   }
@@ -577,7 +522,6 @@ class ConversationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final (statusLabel, statusTone) = ConversationBadges.status(
       context,
       conversation.status,
@@ -594,7 +538,112 @@ class ConversationRow extends StatelessWidget {
     final (stageLabel, stageTone) = stageValue != null
         ? ConversationBadges.stage(context, stageValue)
         : ('', BadgeTone.neutral);
-    final unread = conversation.hasUnread;
+    final ownedByMe =
+        !conversation.isUnassigned &&
+        conversation.isOwnedBy(currentEmployeeId ?? -1);
+
+    return _InboxRowLayout(
+      onTap: onTap,
+      avatar: InitialsAvatar(
+        initials: conversation.customer.initials,
+        imageUrl: conversation.customer.avatarUrl,
+        provider: conversation.provider,
+        size: Sizes.rowAvatar,
+      ),
+      name: conversation.customer.displayName,
+      time: conversation.lastMessageAt,
+      preview: formatConversationPreview(context, conversation: conversation),
+      unreadCount: conversation.hasUnread ? conversation.unreadCount : 0,
+      outboundDeliveryStatus: conversation.lastMessageDirection == 'OUTBOUND'
+          ? conversation.lastMessageDeliveryStatus
+          : null,
+      // Most important first: where the conversation stands and what needs
+      // someone's attention (filled), then descriptive metadata (outlined),
+      // then who holds it (plain text) — unless that is nobody or the agent
+      // themself, which are worth a filled badge.
+      footer: Wrap(
+        spacing: Space.xs,
+        runSpacing: Space.xs,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          StatusBadge(label: statusLabel, tone: statusTone, dense: true),
+          if (ConversationBadges.showsPriority(conversation.priority))
+            StatusBadge(
+              label: priorityLabel,
+              tone: priorityTone,
+              dense: true,
+              icon: Icons.priority_high,
+            ),
+          if (conversation.isFollowUp)
+            _FollowUpBadge(followUpDate: conversation.followUpDate),
+          if (conversation.isUnassigned)
+            StatusBadge(
+              label: context.l10n.unassignedBadge,
+              tone: BadgeTone.warning,
+              dense: true,
+            )
+          else if (ownedByMe)
+            StatusBadge(
+              label: context.l10n.youBadge,
+              tone: BadgeTone.info,
+              dense: true,
+            ),
+          if (stageValue != null)
+            StatusBadge(
+              label: stageLabel,
+              tone: stageTone,
+              dense: true,
+              subtle: stageTone == BadgeTone.neutral,
+            ),
+          if (conversation.category != null)
+            StatusBadge(
+              label: conversation.category!.label,
+              dense: true,
+              subtle: true,
+            ),
+          if (!conversation.isUnassigned && !ownedByMe)
+            _AssigneeLabel(name: conversation.assignedTo!.fullName),
+        ],
+      ),
+    );
+  }
+}
+
+/// The shared shape of an inbox row: avatar, then name and time, the last
+/// message, and a footer of badges. Name and time lead; the preview is
+/// secondary; the footer is the quietest line.
+class _InboxRowLayout extends StatelessWidget {
+  const _InboxRowLayout({
+    required this.onTap,
+    required this.avatar,
+    required this.name,
+    required this.time,
+    required this.preview,
+    required this.unreadCount,
+    required this.outboundDeliveryStatus,
+    required this.footer,
+  });
+
+  final VoidCallback onTap;
+  final Widget avatar;
+  final String name;
+  final DateTime? time;
+  final String preview;
+
+  /// 0 when read.
+  final int unreadCount;
+
+  /// The last message's delivery status when the agent's side sent it; null
+  /// for a customer's message, which carries no tick.
+  final String? outboundDeliveryStatus;
+  final Widget footer;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final unread = unreadCount > 0;
+    final muted = theme.textTheme.bodySmall?.color;
+    final startAlign = ambientStartAlign(context);
 
     return InkWell(
       onTap: onTap,
@@ -606,11 +655,7 @@ class ConversationRow extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            InitialsAvatar(
-              initials: conversation.customer.initials,
-              imageUrl: conversation.customer.avatarUrl,
-              provider: conversation.provider,
-            ),
+            avatar,
             const SizedBox(width: Space.md),
             Expanded(
               child: Column(
@@ -620,111 +665,105 @@ class ConversationRow extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          conversation.customer.displayName,
+                          name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          // Own direction, so an English name in the Arabic
+                          // app (or the reverse) is cut off at its own end.
+                          textDirection: textDirectionOf(name),
+                          textAlign: startAlign,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: unread
                                 ? FontWeight.w700
                                 : FontWeight.w600,
+                            height: 1.3,
                           ),
                         ),
                       ),
                       const SizedBox(width: Space.sm),
                       Text(
-                        formatRelativeTime(context, conversation.lastMessageAt),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: unread ? theme.colorScheme.primary : null,
-                          fontWeight: unread ? FontWeight.w600 : null,
+                        formatRelativeTime(context, time),
+                        maxLines: 1,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: unread ? theme.colorScheme.primary : muted,
+                          fontWeight: unread
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: Space.xxs),
                   Row(
                     children: [
-                      if (conversation.lastMessageDirection == 'OUTBOUND') ...[
-                        _RowDeliveryIcon(
-                          status: conversation.lastMessageDeliveryStatus,
-                        ),
-                        const SizedBox(width: 4),
+                      if (outboundDeliveryStatus != null) ...[
+                        _RowDeliveryIcon(status: outboundDeliveryStatus!),
+                        const SizedBox(width: Space.xs),
                       ],
                       Expanded(
                         child: Text(
-                          formatConversationPreview(
-                            context,
-                            conversation: conversation,
-                          ),
+                          preview,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: unread
-                                ? theme.colorScheme.onSurface
-                                : theme.textTheme.bodySmall?.color,
-                            fontWeight: unread ? FontWeight.w500 : null,
+                          textDirection: textDirectionOf(preview),
+                          textAlign: startAlign,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: 13.5,
+                            height: 1.35,
+                            color: unread ? theme.colorScheme.onSurface : muted,
+                            fontWeight: unread
+                                ? FontWeight.w600
+                                : FontWeight.w400,
                           ),
                         ),
                       ),
                       if (unread) ...[
                         const SizedBox(width: Space.sm),
-                        _UnreadPill(count: conversation.unreadCount),
+                        _UnreadPill(count: unreadCount),
                       ],
                     ],
                   ),
                   const SizedBox(height: Space.sm),
-                  Wrap(
-                    spacing: Space.xs,
-                    runSpacing: Space.xs,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      StatusBadge(
-                        label: statusLabel,
-                        tone: statusTone,
-                        dense: true,
-                      ),
-                      if (ConversationBadges.showsPriority(
-                        conversation.priority,
-                      ))
-                        StatusBadge(
-                          label: priorityLabel,
-                          tone: priorityTone,
-                          dense: true,
-                          icon: Icons.priority_high,
-                        ),
-                      if (stageValue != null)
-                        StatusBadge(
-                          label: stageLabel,
-                          tone: stageTone,
-                          dense: true,
-                        ),
-                      if (conversation.category != null)
-                        StatusBadge(
-                          label: conversation.category!.label,
-                          dense: true,
-                        ),
-                      if (conversation.isFollowUp)
-                        _FollowUpBadge(followUpDate: conversation.followUpDate),
-                      if (conversation.isUnassigned)
-                        StatusBadge(
-                          label: context.l10n.unassignedBadge,
-                          tone: BadgeTone.warning,
-                          dense: true,
-                        )
-                      else if (conversation.isOwnedBy(currentEmployeeId ?? -1))
-                        StatusBadge(
-                          label: context.l10n.youBadge,
-                          tone: BadgeTone.info,
-                          dense: true,
-                        )
-                      else
-                        StatusBadge(
-                          label: conversation.assignedTo!.fullName,
-                          dense: true,
-                          icon: Icons.person_outline,
-                        ),
-                    ],
-                  ),
+                  footer,
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Who holds a conversation that is neither unassigned nor the agent's own —
+/// worth knowing, not worth a coloured badge on every row.
+class _AssigneeLabel extends StatelessWidget {
+  const _AssigneeLabel({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
+      fontSize: 11.5,
+      fontWeight: FontWeight.w500,
+      height: 1.2,
+    );
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 180),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Space.xxs),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_outline, size: 13, color: style?.color),
+            const SizedBox(width: 3),
+            Flexible(
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: style,
               ),
             ),
           ],
@@ -790,12 +829,63 @@ class _UnreadPill extends StatelessWidget {
       child: Text(
         count > 99 ? '99+' : '$count',
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onPrimary,
           fontSize: 11,
           fontWeight: FontWeight.w700,
+          height: 1.3,
         ),
       ),
+    );
+  }
+}
+
+/// Why the inbox is empty, told apart: nothing has arrived yet, the search
+/// found nothing, or the filters exclude everything — each with its own way
+/// out. (A failed load is never shown here; that is [ErrorStateView].)
+class InboxEmptyState extends StatelessWidget {
+  const InboxEmptyState({
+    required this.filters,
+    required this.onClearSearch,
+    required this.onClearFilters,
+    super.key,
+  });
+
+  final ConversationFilters filters;
+  final VoidCallback onClearSearch;
+  final VoidCallback onClearFilters;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    if (filters.search.trim().isNotEmpty) {
+      return EmptyState(
+        key: const ValueKey('inboxNoSearchResults'),
+        icon: Icons.search_off_rounded,
+        title: l10n.noSearchResultsTitle(filters.search.trim()),
+        message: l10n.noSearchResultsMessage,
+        action: OutlinedButton(
+          onPressed: onClearSearch,
+          child: Text(l10n.clearSearchButton),
+        ),
+      );
+    }
+    if (!filters.isEmpty) {
+      return EmptyState(
+        key: const ValueKey('inboxNoFilterMatches'),
+        icon: Icons.filter_alt_off_outlined,
+        title: l10n.noFilterMatchesTitle,
+        message: l10n.noFilterMatchesMessage,
+        action: OutlinedButton(
+          onPressed: onClearFilters,
+          child: Text(l10n.clearFiltersButton),
+        ),
+      );
+    }
+    return EmptyState(
+      key: const ValueKey('inboxEmpty'),
+      title: l10n.noConversationsTitle,
+      message: l10n.noConversationsMessage,
     );
   }
 }
@@ -815,8 +905,8 @@ class _FilterButton extends ConsumerWidget {
           onPressed: () => showInboxFiltersSheet(context, ref),
         ),
         if (active)
-          Positioned(
-            right: 10,
+          PositionedDirectional(
+            end: 10,
             top: 10,
             child: Container(
               width: 8,

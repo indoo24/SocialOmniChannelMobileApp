@@ -18,6 +18,7 @@ class StatusBadge extends StatelessWidget {
     this.tone = BadgeTone.neutral,
     this.icon,
     this.dense = false,
+    this.subtle = false,
     super.key,
   });
 
@@ -26,9 +27,18 @@ class StatusBadge extends StatelessWidget {
   final IconData? icon;
   final bool dense;
 
+  /// Secondary metadata (stage, category): outlined instead of filled, so it
+  /// stays readable without competing with the status and actionable badges
+  /// next to it.
+  final bool subtle;
+
   @override
   Widget build(BuildContext context) {
-    final (foreground, surface) = _palette(context, tone);
+    final theme = Theme.of(context);
+    final (toneForeground, surface) = _palette(context, tone);
+    final foreground = subtle && tone == BadgeTone.neutral
+        ? theme.textTheme.bodySmall?.color ?? toneForeground
+        : toneForeground;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -36,8 +46,11 @@ class StatusBadge extends StatelessWidget {
         vertical: dense ? 2 : 3,
       ),
       decoration: BoxDecoration(
-        color: surface,
+        color: subtle ? null : surface,
         borderRadius: BorderRadius.circular(Radii.sm),
+        border: subtle
+            ? Border.all(color: theme.colorScheme.outlineVariant)
+            : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -86,7 +99,8 @@ class StatusBadge extends StatelessWidget {
             : ScenarioColors.dangerSurface,
       ),
       BadgeTone.info => (
-        ScenarioColors.info,
+        // The light theme's indigo is too dark to read on dark surfaces.
+        isDark ? ScenarioColors.darkPrimary : ScenarioColors.info,
         isDark
             ? ScenarioColors.info.withValues(alpha: 0.18)
             : ScenarioColors.infoSurface,
@@ -186,6 +200,18 @@ class ConversationBadges {
     _ => const Color(0xFF0F766E),
   };
 
+  /// [providerColor] for a glyph or label drawn straight on the page rather
+  /// than on its own coloured disc. TikTok's brand black would vanish on the
+  /// dark theme's surfaces, so there it takes the text colour instead.
+  static Color providerGlyphColor(BuildContext context, String provider) {
+    final theme = Theme.of(context);
+    if (provider.toUpperCase() == 'TIKTOK' &&
+        theme.brightness == Brightness.dark) {
+      return theme.colorScheme.onSurface;
+    }
+    return providerColor(provider.toUpperCase());
+  }
+
   /// The plain server-reported delivery tick, for surfaces with no local
   /// send/failure state of their own (the inbox row's `last_message_*`
   /// fields) — `FAILED` shown the same error red the bubble uses, so a
@@ -198,7 +224,7 @@ class ConversationBadges {
     String status,
   ) => switch (status) {
     'FAILED' => (Icons.error_outline, Theme.of(context).colorScheme.error),
-    'READ' => (Icons.done_all, ScenarioColors.info),
+    'READ' => (Icons.done_all, Theme.of(context).colorScheme.primary),
     'DELIVERED' => (
       Icons.done_all,
       Theme.of(context).textTheme.labelSmall?.color,

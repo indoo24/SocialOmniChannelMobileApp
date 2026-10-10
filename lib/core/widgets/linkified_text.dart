@@ -13,6 +13,7 @@ class LinkifiedText extends StatefulWidget {
     this.text, {
     required this.linkColor,
     this.style,
+    this.textDirection,
     super.key,
   });
 
@@ -22,6 +23,10 @@ class LinkifiedText extends StatefulWidget {
 
   /// Links keep the text's font and size; only colour and underline change.
   final Color linkColor;
+
+  /// Overrides the ambient direction, for text whose language need not be
+  /// the app's.
+  final TextDirection? textDirection;
 
   @override
   State<LinkifiedText> createState() => _LinkifiedTextState();
@@ -75,7 +80,13 @@ class _LinkifiedTextState extends State<LinkifiedText> {
 
   @override
   Widget build(BuildContext context) {
-    if (_recognizers.isEmpty) return Text(widget.text, style: widget.style);
+    if (_recognizers.isEmpty) {
+      return Text(
+        widget.text,
+        style: widget.style,
+        textDirection: widget.textDirection,
+      );
+    }
 
     final linkStyle = TextStyle(
       color: widget.linkColor,
@@ -103,6 +114,7 @@ class _LinkifiedTextState extends State<LinkifiedText> {
         ],
       ),
       style: widget.style,
+      textDirection: widget.textDirection,
     );
   }
 }

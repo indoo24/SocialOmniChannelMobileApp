@@ -8,6 +8,7 @@ library;
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -23,6 +24,7 @@ import '../../core/realtime/realtime_logger.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/external_link.dart';
 import '../../core/utils/safe_url.dart';
+import '../../core/utils/text_direction.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/linkified_text.dart';
@@ -45,10 +47,16 @@ class MessageBubble extends ConsumerWidget {
     this.onReply,
     this.onQuoteTap,
     this.isHighlighted,
+    this.isContinuation = false,
     super.key,
   });
 
   final Message message;
+
+  /// Directly follows a message from the same side within a few minutes:
+  /// drawn closer to it, with the corner facing it less rounded, so a run of
+  /// messages reads as one block.
+  final bool isContinuation;
 
   /// The conversation's channel provider (`WHATSAPP`, `INSTAGRAM`, ...),
   /// used only to name the platform in [message.sentFromPlatform]'s label.
@@ -100,10 +108,13 @@ class MessageBubble extends ConsumerWidget {
     final isMine = message.isOutbound;
     final failed = message.hasFailed || message.isDeliveryFailure;
 
+    final isDark = theme.brightness == Brightness.dark;
     final background = failed
         ? theme.colorScheme.error.withValues(alpha: 0.10)
         : isMine
-        ? theme.colorScheme.primary
+        ? (isDark
+              ? ScenarioColors.darkOutgoingBubble
+              : theme.colorScheme.primary)
         : theme.colorScheme.surface;
 
     final foreground = failed
@@ -113,6 +124,31 @@ class MessageBubble extends ConsumerWidget {
         : theme.colorScheme.onSurface;
 
     final copyText = copyableMessageText(message.text);
+
+    // Only pictures: the bubble shrinks to a thin frame around them instead
+    // of a wide coloured margin.
+    final mediaOnly =
+        message.attachments.isNotEmpty &&
+        message.attachments.every((a) => a.isInlineImage) &&
+        message.text.isEmpty &&
+        message.replyTo == null &&
+        message.contentNotice == null;
+    const mediaFrame = 3.0;
+
+    // Every corner round except the tail (bottom, on the sender's side) and,
+    // inside a run, the corner facing the message above.
+    const round = Radius.circular(Radii.xl);
+    const tight = Radius.circular(6);
+    final bubbleRadius = BorderRadiusDirectional.only(
+      topStart: !isMine && isContinuation ? tight : round,
+      topEnd: isMine && isContinuation ? tight : round,
+      bottomStart: isMine ? round : tight,
+      bottomEnd: isMine ? tight : round,
+    );
+    final maxBubbleWidth = math.min(
+      MediaQuery.sizeOf(context).width * Sizes.bubbleWidthFactor,
+      Sizes.bubbleMaxWidth,
+    );
 
     final isTarget = ref.watch(
       highlightedMessageProvider.select((id) => id == message.id),
@@ -125,8 +161,11 @@ class MessageBubble extends ConsumerWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeOut,
-      margin: const EdgeInsets.symmetric(vertical: 1),
-      padding: const EdgeInsets.symmetric(horizontal: Space.md, vertical: 3),
+      margin: EdgeInsets.only(top: isContinuation ? 0 : Space.xs, bottom: 1),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.md,
+        vertical: Space.xxs,
+      ),
       decoration: BoxDecoration(
         color: activeHighlight ? highlightColor : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
@@ -141,9 +180,7 @@ class MessageBubble extends ConsumerWidget {
               onReply: onReply,
               isMine: isMine,
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.sizeOf(context).width * 0.78,
-                ),
+                constraints: BoxConstraints(maxWidth: maxBubbleWidth),
                 child: Column(
                   crossAxisAlignment: isMine
                       ? CrossAxisAlignment.end
@@ -163,18 +200,15 @@ class MessageBubble extends ConsumerWidget {
                             )
                           : null,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Space.md,
-                          vertical: 10,
-                        ),
+                        padding: mediaOnly
+                            ? const EdgeInsets.all(mediaFrame)
+                            : const EdgeInsets.symmetric(
+                                horizontal: Space.md,
+                                vertical: Space.sm + 1,
+                              ),
                         decoration: BoxDecoration(
                           color: background,
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(16),
-                            topRight: const Radius.circular(16),
-                            bottomLeft: Radius.circular(isMine ? 16 : 4),
-                            bottomRight: Radius.circular(isMine ? 4 : 16),
-                          ),
+                          borderRadius: bubbleRadius,
                           border: isMine && !failed
                               ? null
                               : Border.all(
@@ -205,42 +239,51 @@ class MessageBubble extends ConsumerWidget {
                               ),
                           ],
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (message.replyTo != null) ...[
-                              _QuoteBlock(
-                                quote: message.replyTo!,
-                                isMine: isMine,
-                                onTap: onQuoteTap != null
-                                    ? () => onQuoteTap!(message.replyTo!.id)
-                                    : null,
-                              ),
-                              const SizedBox(height: Space.xs),
-                            ],
-                            if (message.attachments.isNotEmpty)
-                              _Attachments(message: message),
-                            if (message.text.isNotEmpty)
-                              // Text only — attachments above never are.
-                              LinkifiedText(
-                                message.text,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: foreground,
-                                  height: 1.35,
+                        child: _clipMedia(
+                          mediaOnly,
+                          Radii.xl - mediaFrame,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (message.replyTo != null) ...[
+                                _QuoteBlock(
+                                  quote: message.replyTo!,
+                                  isMine: isMine,
+                                  onTap: onQuoteTap != null
+                                      ? () => onQuoteTap!(message.replyTo!.id)
+                                      : null,
                                 ),
-                                // The brand colour would vanish on the
-                                // agent's own indigo bubble: there a link is
-                                // the bubble's white, underlined.
-                                linkColor: isMine && !failed
-                                    ? foreground
-                                    : theme.colorScheme.primary,
-                              ),
-                            if (message.contentNotice != null)
-                              ContentNoticeView(
-                                notice: message.contentNotice!,
-                                color: foreground,
-                              ),
-                          ],
+                                const SizedBox(height: Space.xs),
+                              ],
+                              if (message.attachments.isNotEmpty)
+                                _Attachments(message: message),
+                              if (message.text.isNotEmpty)
+                                // Text only — attachments above never are.
+                                LinkifiedText(
+                                  message.text,
+                                  // Laid out in the message's own direction, so
+                                  // an Arabic message in the English app (or
+                                  // the reverse) wraps and aligns correctly.
+                                  textDirection: textDirectionOf(message.text),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: foreground,
+                                    fontSize: 15,
+                                    height: 1.4,
+                                  ),
+                                  // The brand colour would vanish on the
+                                  // agent's own indigo bubble: there a link is
+                                  // the bubble's white, underlined.
+                                  linkColor: isMine && !failed
+                                      ? foreground
+                                      : theme.colorScheme.primary,
+                                ),
+                              if (message.contentNotice != null)
+                                ContentNoticeView(
+                                  notice: message.contentNotice!,
+                                  color: foreground,
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -267,6 +310,12 @@ class MessageBubble extends ConsumerWidget {
     );
   }
 }
+
+/// [child] clipped to [radius] when [clip] is set, so a picture-only
+/// bubble's images follow its rounded corners instead of poking past them.
+Widget _clipMedia(bool clip, double radius, Widget child) => clip
+    ? ClipRRect(borderRadius: BorderRadius.circular(radius), child: child)
+    : child;
 
 /// The text the long-press Copy action puts on the clipboard, or null when
 /// there is none worth copying (an image/document/voice-only message).
@@ -442,11 +491,17 @@ class _MetaRow extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          labels.join(' · '),
-          style: theme.textTheme.labelSmall?.copyWith(
-            fontSize: 11,
-            color: theme.textTheme.labelSmall?.color?.withValues(alpha: 0.75),
+        // Shrinks before the tick does: a long sender name at a large text
+        // size must not push the row past the bubble's width.
+        Flexible(
+          child: Text(
+            labels.join(' · '),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontSize: 11,
+              color: theme.textTheme.labelSmall?.color?.withValues(alpha: 0.75),
+            ),
           ),
         ),
         if (message.isOutbound) ...[
@@ -763,7 +818,7 @@ class _Attachment extends ConsumerWidget {
           borderRadius: BorderRadius.circular(Radii.md),
           child: Image.file(
             File(localPath),
-            width: 220,
+            width: Sizes.inlineImageWidth,
             fit: BoxFit.cover,
             errorBuilder: (_, _, _) =>
                 _FileChip(attachment: attachment, messageId: messageId),
@@ -824,19 +879,7 @@ class _AttachmentImage extends ConsumerWidget {
       future: ref.read(apiClientProvider).mediaAuthHeaders(),
       builder: (context, snapshot) {
         final headers = snapshot.data;
-        if (!snapshot.hasData) {
-          return const SizedBox(
-            width: 220,
-            height: 160,
-            child: Center(
-              child: SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          );
-        }
+        if (!snapshot.hasData) return const _ImagePlaceholder();
 
         return GestureDetector(
           onTap: () => Navigator.of(context).push(
@@ -854,25 +897,43 @@ class _AttachmentImage extends ConsumerWidget {
             child: CachedNetworkImage(
               imageUrl: url,
               httpHeaders: headers,
-              width: 220,
+              width: Sizes.inlineImageWidth,
               fit: BoxFit.cover,
-              placeholder: (_, _) => const SizedBox(
-                width: 220,
-                height: 160,
-                child: Center(
-                  child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-              ),
+              placeholder: (_, _) => const _ImagePlaceholder(),
               errorWidget: (_, _, _) =>
                   _FileChip(attachment: attachment, messageId: messageId),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+/// Where an inline image will appear while it loads: a quiet tile the size of
+/// a typical photo, so the thread jumps less when the picture arrives.
+class _ImagePlaceholder extends StatelessWidget {
+  const _ImagePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: Sizes.inlineImageWidth,
+      height: 180,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(Radii.md),
+      ),
+      alignment: Alignment.center,
+      child: Semantics(
+        label: context.l10n.photoMessageLabel,
+        child: const SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
     );
   }
 }
@@ -1892,10 +1953,14 @@ class _FileChipState extends ConsumerState<_FileChip> {
               ] else if (hasAction) ...[
                 const SizedBox(width: Space.xs),
                 IconButton(
-                  icon: const Icon(Icons.download_rounded, size: 16),
+                  icon: const Icon(Icons.download_rounded, size: 18),
                   tooltip: context.l10n.downloadAttachmentAction,
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
                   onPressed: () => AttachmentHelper.saveAttachmentToDownloads(
                     context: context,
                     attachment: attachment,

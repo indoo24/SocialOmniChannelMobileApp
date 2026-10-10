@@ -228,8 +228,8 @@ class _ConversationResolveButtonState
                             ? _handleTap
                             : null,
                         child: SizedBox(
-                          width: 34,
-                          height: 34,
+                          width: 38,
+                          height: 38,
                           child: Center(
                             child: Icon(
                               isFullyResolved
