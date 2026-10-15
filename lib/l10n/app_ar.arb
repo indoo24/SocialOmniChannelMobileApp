@@ -1066,5 +1066,15 @@
   "exportCustomersCsvAction": "تصدير العملاء كـ CSV",
   "exportConversationsSubtitle": "تصدير جميع المحادثات كملف CSV.",
   "exportCustomersSubtitle": "تصدير جميع العملاء كملف CSV.",
-  "exportActionLabel": "تصدير"
+  "exportActionLabel": "تصدير",
+  "saveContactAction": "حفظ في جهات الاتصال",
+  "saveContactNoPhone": "لا يوجد رقم هاتف لهذا العميل لحفظه.",
+  "saveContactSaved": "تم حفظ جهة الاتصال.",
+  "saveContactUnavailable": "تعذّر فتح جهات الاتصال على هذا الجهاز.",
+  "savedRepliesAllCategories": "الكل",
+  "savedRepliesUncategorized": "بدون تصنيف",
+  "conversationResolvedSnackbar": "تم حل المحادثة",
+  "undoAction": "تراجع",
+  "conversationReopenedSnackbar": "أُعيد فتح المحادثة",
+  "resolveUndoFailedMessage": "تعذّر التراجع. المحادثة ما زالت محلولة."
 }

@@ -265,6 +265,10 @@ class MessageBubble extends ConsumerWidget {
                                   // an Arabic message in the English app (or
                                   // the reverse) wraps and aligns correctly.
                                   textDirection: textDirectionOf(message.text),
+                                  // WhatsApp's own `*bold*`, as the customer
+                                  // sees it; other channels show asterisks.
+                                  whatsappBold:
+                                      provider.toUpperCase() == 'WHATSAPP',
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: foreground,
                                     fontSize: 15,

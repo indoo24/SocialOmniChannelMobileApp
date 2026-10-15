@@ -11,6 +11,12 @@ TextDirection textDirectionOf(String text) =>
     ? TextDirection.rtl
     : TextDirection.ltr;
 
+/// The direction for a text field holding [text]: the text's own once
+/// something is typed, the app's (null) while it is empty, so the hint and
+/// caret start on the expected side.
+TextDirection? inputDirectionOf(String text) =>
+    text.trim().isEmpty ? null : textDirectionOf(text);
+
 /// Aligns text laid out in its own direction ([textDirectionOf]) to the start
 /// of the surrounding layout, so it lines up with its neighbours whichever
 /// language it is in.

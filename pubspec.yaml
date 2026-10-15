@@ -109,6 +109,7 @@ dependencies:
   # every other authenticated request this app makes).
   audioplayers: ^6.8.1
   open_filex: ^4.7.0
+  flutter_contacts: 2.6.0
 
 dev_dependencies:
   flutter_test:

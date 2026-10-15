@@ -16,6 +16,7 @@ import '../../core/models/message.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
+import '../../core/utils/text_direction.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
@@ -2514,34 +2515,40 @@ class _ComposerState extends ConsumerState<_Composer> {
                       const SizedBox(width: Space.xs),
                       // Text input in the middle
                       Expanded(
-                        child: TextField(
-                          key: const ValueKey('composer_reply_input'),
-                          controller: widget.controller,
-                          minLines: 1,
-                          maxLines: 5,
-                          textCapitalization: TextCapitalization.sentences,
-                          keyboardType: TextInputType.multiline,
-                          style: theme.textTheme.bodyLarge,
-                          decoration: InputDecoration(
-                            hintText: context.l10n.writeReplyHint,
-                            isDense: true,
-                            filled: true,
-                            fillColor: isDark
-                                ? theme.colorScheme.surfaceContainerHighest
-                                : theme.scaffoldBackgroundColor,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: Space.lg,
-                              vertical: 12,
-                            ),
-                            border: _composerFieldBorder(
-                              theme.colorScheme.outlineVariant,
-                            ),
-                            enabledBorder: _composerFieldBorder(
-                              theme.colorScheme.outlineVariant,
-                            ),
-                            focusedBorder: _composerFieldBorder(
-                              theme.colorScheme.primary,
-                              width: 1.5,
+                        // Runs in the direction of what is typed: Arabic
+                        // right-to-left in the English app, and the reverse.
+                        child: ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: widget.controller,
+                          builder: (context, value, _) => TextField(
+                            key: const ValueKey('composer_reply_input'),
+                            controller: widget.controller,
+                            textDirection: inputDirectionOf(value.text),
+                            minLines: 1,
+                            maxLines: 5,
+                            textCapitalization: TextCapitalization.sentences,
+                            keyboardType: TextInputType.multiline,
+                            style: theme.textTheme.bodyLarge,
+                            decoration: InputDecoration(
+                              hintText: context.l10n.writeReplyHint,
+                              isDense: true,
+                              filled: true,
+                              fillColor: isDark
+                                  ? theme.colorScheme.surfaceContainerHighest
+                                  : theme.scaffoldBackgroundColor,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: Space.lg,
+                                vertical: 12,
+                              ),
+                              border: _composerFieldBorder(
+                                theme.colorScheme.outlineVariant,
+                              ),
+                              enabledBorder: _composerFieldBorder(
+                                theme.colorScheme.outlineVariant,
+                              ),
+                              focusedBorder: _composerFieldBorder(
+                                theme.colorScheme.primary,
+                                width: 1.5,
+                              ),
                             ),
                           ),
                         ),
@@ -2603,38 +2610,42 @@ class _ComposerState extends ConsumerState<_Composer> {
             ] else if (currentMode == _ComposerMode.internalNote) ...[
               Column(
                 children: [
-                  TextField(
-                    key: const ValueKey('composer_internal_note_input'),
-                    controller: widget.controller,
-                    minLines: 2,
-                    maxLines: 5,
-                    textCapitalization: TextCapitalization.sentences,
-                    keyboardType: TextInputType.multiline,
-                    decoration: InputDecoration(
-                      filled: true,
-                      hintText: context.l10n.internalNoteInputHint,
-                      fillColor: isDark
-                          ? ScenarioColors.warning.withValues(alpha: 0.1)
-                          : const Color(0xFFFFFBEB),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Radii.md),
-                        borderSide: BorderSide(
-                          color: isDark
-                              ? const Color(0xFFFBBF24)
-                              : const Color(0xFFEAB308),
-                          width: 1.5,
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: widget.controller,
+                    builder: (context, value, _) => TextField(
+                      key: const ValueKey('composer_internal_note_input'),
+                      controller: widget.controller,
+                      textDirection: inputDirectionOf(value.text),
+                      minLines: 2,
+                      maxLines: 5,
+                      textCapitalization: TextCapitalization.sentences,
+                      keyboardType: TextInputType.multiline,
+                      decoration: InputDecoration(
+                        filled: true,
+                        hintText: context.l10n.internalNoteInputHint,
+                        fillColor: isDark
+                            ? ScenarioColors.warning.withValues(alpha: 0.1)
+                            : const Color(0xFFFFFBEB),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(Radii.md),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? const Color(0xFFFBBF24)
+                                : const Color(0xFFEAB308),
+                            width: 1.5,
+                          ),
                         ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Radii.md),
-                        borderSide: BorderSide(
-                          color: isDark
-                              ? ScenarioColors.warning.withValues(alpha: 0.3)
-                              : const Color(0xFFFDE68A),
-                          width: 1,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(Radii.md),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? ScenarioColors.warning.withValues(alpha: 0.3)
+                                : const Color(0xFFFDE68A),
+                            width: 1,
+                          ),
                         ),
+                        contentPadding: const EdgeInsets.all(Space.md),
                       ),
-                      contentPadding: const EdgeInsets.all(Space.md),
                     ),
                   ),
                   const SizedBox(height: Space.sm),

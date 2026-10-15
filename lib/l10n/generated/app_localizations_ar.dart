@@ -3403,4 +3403,35 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get exportActionLabel => 'تصدير';
+
+  @override
+  String get saveContactAction => 'حفظ في جهات الاتصال';
+
+  @override
+  String get saveContactNoPhone => 'لا يوجد رقم هاتف لهذا العميل لحفظه.';
+
+  @override
+  String get saveContactSaved => 'تم حفظ جهة الاتصال.';
+
+  @override
+  String get saveContactUnavailable => 'تعذّر فتح جهات الاتصال على هذا الجهاز.';
+
+  @override
+  String get savedRepliesAllCategories => 'الكل';
+
+  @override
+  String get savedRepliesUncategorized => 'بدون تصنيف';
+
+  @override
+  String get conversationResolvedSnackbar => 'تم حل المحادثة';
+
+  @override
+  String get undoAction => 'تراجع';
+
+  @override
+  String get conversationReopenedSnackbar => 'أُعيد فتح المحادثة';
+
+  @override
+  String get resolveUndoFailedMessage =>
+      'تعذّر التراجع. المحادثة ما زالت محلولة.';
 }

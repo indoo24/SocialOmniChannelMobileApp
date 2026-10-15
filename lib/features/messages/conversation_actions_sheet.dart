@@ -14,6 +14,7 @@ import '../../core/models/performance.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
+import '../../core/utils/text_direction.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
@@ -24,6 +25,7 @@ import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
 import 'assign_conversation_sheet.dart';
 import 'conversation_controller.dart';
+import 'conversation_resolve_button.dart' show showResolveUndoSnackBar;
 import 'conversation_history_sheet.dart';
 import 'conversion_sheet.dart';
 import 'customer_intelligence_section.dart';
@@ -31,6 +33,7 @@ import 'intelligence_providers.dart';
 import 'notes_sheet.dart';
 import '../customer_fields/custom_fields_section.dart';
 import '../directory/edit_customer_sheet.dart';
+import '../directory/save_to_contacts.dart';
 import '../orders/customer_data_sheet.dart';
 import '../orders/order_and_fact_dialogs.dart';
 import '../orders/order_details.dart';
@@ -119,7 +122,13 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
     }
   }
 
-  Future<void> _run(Future<void> Function() action, String success) async {
+  /// Runs [action], then closes the sheet and confirms with [success] — or,
+  /// when [onSuccess] is given, lets it confirm instead.
+  Future<void> _run(
+    Future<void> Function() action,
+    String success, {
+    void Function(BuildContext context)? onSuccess,
+  }) async {
     setState(() => _busy = true);
     try {
       await action();
@@ -127,9 +136,13 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
       ref.invalidate(conversationControllerProvider(widget.conversationId));
       ref.read(inboxControllerProvider.notifier).refreshQuietly();
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(success)));
+      if (onSuccess != null) {
+        onSuccess(context);
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(success)));
+      }
     } on ApiException catch (error) {
       if (!mounted) return;
       setState(() => _busy = false);
@@ -239,10 +252,19 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
           conversation: conversation,
           canChange: canChangeStatus && conversation != null,
           busy: _busy,
-          onResolve: () => _run(
-            () => repository.changeStatus(widget.conversationId, 'RESOLVED'),
-            context.l10n.statusUpdatedMessage,
-          ),
+          onResolve: () {
+            // What Undo goes back to; read before the request changes it.
+            final previousStatus = conversation!.status;
+            _run(
+              () => repository.changeStatus(widget.conversationId, 'RESOLVED'),
+              context.l10n.statusUpdatedMessage,
+              onSuccess: (context) => showResolveUndoSnackBar(
+                context,
+                conversationId: widget.conversationId,
+                previousStatus: previousStatus,
+              ),
+            );
+          },
         ),
         const SizedBox(height: Space.lg),
 
@@ -256,22 +278,35 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
         _SectionCard(
           title: context.l10n.contactSectionTitle,
           icon: Icons.person_outline,
-          trailing: (canEditCustomer && customerId != null)
-              ? TextButton(
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Space.sm,
-                      vertical: 2,
+          trailing: conversation == null
+              ? null
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Offered even without a number, so tapping it can say
+                    // why there is nothing to save.
+                    SaveToContactsButton(
+                      name: conversation.customer.displayName,
+                      phone: _customerPhone(ref, conversation.customer),
+                      compact: true,
                     ),
-                    visualDensity: VisualDensity.compact,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  onPressed: _editing
-                      ? null
-                      : () => _openEditCustomer(customerId),
-                  child: Text(context.l10n.contactEditButton),
-                )
-              : null,
+                    if (canEditCustomer && customerId != null)
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: Space.sm,
+                            vertical: 2,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: _editing
+                            ? null
+                            : () => _openEditCustomer(customerId),
+                        child: Text(context.l10n.contactEditButton),
+                      ),
+                  ],
+                ),
           child: conversation == null
               ? const LoadingState()
               : _CustomerDetailsView(conversation: conversation),
@@ -808,6 +843,16 @@ class _SectionCardState extends State<_SectionCard> {
   }
 }
 
+/// The customer's number as the backend has it. The conversation's `customer`
+/// carries no identities, so when it has no stored phone, fall back to the
+/// WhatsApp number on the customer detail. Empty when neither exists.
+String _customerPhone(WidgetRef ref, CustomerBrief customer) {
+  if (customer.phone.isNotEmpty) return customer.phone;
+  if (customer.id <= 0) return '';
+  return ref.watch(customerDetailProvider(customer.id)).value?.displayPhone ??
+      '';
+}
+
 // ---------------------------------------------------------------------------
 // 1. CUSTOMER DETAILS VIEW
 // ---------------------------------------------------------------------------
@@ -820,15 +865,7 @@ class _CustomerDetailsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final customer = conversation.customer;
-    // The conversation's `customer` carries no identities, so when it has no
-    // stored phone, fall back to the WhatsApp number on the customer detail.
-    final phone = customer.phone.isNotEmpty
-        ? customer.phone
-        : (customer.id > 0
-                  ? ref.watch(customerDetailProvider(customer.id)).value
-                  : null)
-              ?.displayPhone ??
-              '';
+    final phone = _customerPhone(ref, customer);
 
     final inboxState = ref.watch(inboxControllerProvider).value;
     final groups = inboxState?.groups ?? const [];
@@ -957,11 +994,16 @@ class _CustomerDetailsView extends ConsumerWidget {
             value: customer.preferredLanguage,
           ),
         if (phone.isNotEmpty)
-          _KeyValueRow(label: context.l10n.phoneFieldLabel, value: phone),
+          _KeyValueRow(
+            label: context.l10n.phoneFieldLabel,
+            value: phone,
+            ltr: true,
+          ),
         if (customer.email.isNotEmpty)
           _KeyValueRow(
             label: context.l10n.emailFieldLabel,
             value: customer.email,
+            ltr: true,
           ),
         if (customer.city.isNotEmpty || customer.country.isNotEmpty)
           _KeyValueRow(
@@ -1108,10 +1150,18 @@ class _CustomerDataPreview extends StatelessWidget {
 }
 
 class _KeyValueRow extends StatelessWidget {
-  const _KeyValueRow({required this.label, required this.value});
+  const _KeyValueRow({
+    required this.label,
+    required this.value,
+    this.ltr = false,
+  });
 
   final String label;
   final String value;
+
+  /// For phone numbers and e-mail addresses: always left-to-right, so in
+  /// Arabic a leading `+` stays in front of the number.
+  final bool ltr;
 
   @override
   Widget build(BuildContext context) {
@@ -1133,6 +1183,8 @@ class _KeyValueRow extends StatelessWidget {
           Expanded(
             child: Text(
               value.isEmpty ? '—' : value,
+              textDirection: ltr && value.isNotEmpty ? TextDirection.ltr : null,
+              textAlign: ltr ? ambientStartAlign(context) : null,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),

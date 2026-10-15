@@ -182,6 +182,32 @@ void main() {
     }
   }
 
+  for (final arabicUi in [false, true]) {
+    testWidgets('the reply field runs in the direction of what is typed — '
+        '${arabicUi ? 'Arabic' : 'English'} app', (tester) async {
+      await _pumpScreen(
+        tester,
+        theme: AppTheme.light,
+        locale: Locale(arabicUi ? 'ar' : 'en'),
+      );
+      final input = find.byKey(const ValueKey('composer_reply_input'));
+      TextDirection? direction() =>
+          tester.widget<TextField>(input).textDirection;
+
+      // Empty: the app's own direction, so the hint sits where expected.
+      expect(direction(), isNull);
+
+      await tester.enterText(input, 'مرحبا، كيف أساعدك؟');
+      await tester.pump();
+      expect(direction(), TextDirection.rtl);
+
+      await tester.enterText(input, 'Hello, how can I help?');
+      await tester.pump();
+      expect(direction(), TextDirection.ltr);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('composer modes switch and the active one is announced', (
     tester,
   ) async {

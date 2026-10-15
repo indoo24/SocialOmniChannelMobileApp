@@ -1803,5 +1803,45 @@
   "exportCustomersCsvAction": "Export customers CSV",
   "exportConversationsSubtitle": "Export all conversations as a CSV file.",
   "exportCustomersSubtitle": "Export all customers as a CSV file.",
-  "exportActionLabel": "Export"
+  "exportActionLabel": "Export",
+  "saveContactAction": "Save to contacts",
+  "@saveContactAction": {
+    "description": "Opens the phone's new-contact screen prefilled with the customer."
+  },
+  "saveContactNoPhone": "This customer has no phone number to save.",
+  "@saveContactNoPhone": {
+    "description": "Shown when Save to contacts is tapped for a customer without a phone number."
+  },
+  "saveContactSaved": "Contact saved.",
+  "@saveContactSaved": {
+    "description": "Confirmation after the agent saved the contact in the system screen."
+  },
+  "saveContactUnavailable": "Contacts can't be opened on this device.",
+  "@saveContactUnavailable": {
+    "description": "The device has no contacts screen the app can open."
+  },
+  "savedRepliesAllCategories": "All",
+  "@savedRepliesAllCategories": {
+    "description": "Saved-reply picker chip showing replies of every category."
+  },
+  "savedRepliesUncategorized": "Uncategorized",
+  "@savedRepliesUncategorized": {
+    "description": "Heading and chip for saved replies saved without a category."
+  },
+  "conversationResolvedSnackbar": "Conversation resolved",
+  "@conversationResolvedSnackbar": {
+    "description": "Confirmation after resolving, shown with an Undo action."
+  },
+  "undoAction": "Undo",
+  "@undoAction": {
+    "description": "Snack bar action that reverses the last action."
+  },
+  "conversationReopenedSnackbar": "Conversation reopened",
+  "@conversationReopenedSnackbar": {
+    "description": "Confirmation after Undo put a resolved conversation back."
+  },
+  "resolveUndoFailedMessage": "Couldn't undo. The conversation is still resolved.",
+  "@resolveUndoFailedMessage": {
+    "description": "Undo after resolving failed; the conversation stays resolved."
+  }
 }

@@ -3391,4 +3391,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportActionLabel => 'Export';
+
+  @override
+  String get saveContactAction => 'Save to contacts';
+
+  @override
+  String get saveContactNoPhone => 'This customer has no phone number to save.';
+
+  @override
+  String get saveContactSaved => 'Contact saved.';
+
+  @override
+  String get saveContactUnavailable =>
+      'Contacts can\'t be opened on this device.';
+
+  @override
+  String get savedRepliesAllCategories => 'All';
+
+  @override
+  String get savedRepliesUncategorized => 'Uncategorized';
+
+  @override
+  String get conversationResolvedSnackbar => 'Conversation resolved';
+
+  @override
+  String get undoAction => 'Undo';
+
+  @override
+  String get conversationReopenedSnackbar => 'Conversation reopened';
+
+  @override
+  String get resolveUndoFailedMessage =>
+      'Couldn\'t undo. The conversation is still resolved.';
 }

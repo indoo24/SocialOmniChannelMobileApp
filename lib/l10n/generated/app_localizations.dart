@@ -6054,6 +6054,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Export'**
   String get exportActionLabel;
+
+  /// Opens the phone's new-contact screen prefilled with the customer.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to contacts'**
+  String get saveContactAction;
+
+  /// Shown when Save to contacts is tapped for a customer without a phone number.
+  ///
+  /// In en, this message translates to:
+  /// **'This customer has no phone number to save.'**
+  String get saveContactNoPhone;
+
+  /// Confirmation after the agent saved the contact in the system screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact saved.'**
+  String get saveContactSaved;
+
+  /// The device has no contacts screen the app can open.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts can\'t be opened on this device.'**
+  String get saveContactUnavailable;
+
+  /// Saved-reply picker chip showing replies of every category.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get savedRepliesAllCategories;
+
+  /// Heading and chip for saved replies saved without a category.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncategorized'**
+  String get savedRepliesUncategorized;
+
+  /// Confirmation after resolving, shown with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation resolved'**
+  String get conversationResolvedSnackbar;
+
+  /// Snack bar action that reverses the last action.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undoAction;
+
+  /// Confirmation after Undo put a resolved conversation back.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation reopened'**
+  String get conversationReopenedSnackbar;
+
+  /// Undo after resolving failed; the conversation stays resolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t undo. The conversation is still resolved.'**
+  String get resolveUndoFailedMessage;
 }
 
 class _AppLocalizationsDelegate

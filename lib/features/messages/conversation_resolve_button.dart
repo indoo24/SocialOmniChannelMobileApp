@@ -2,9 +2,15 @@
 ///
 /// Unresolved: light mint background with a green checkmark (✓).
 /// Tapping: runs a smooth scale + ripple/glow animation and calls the resolve API.
-/// Resolved: dark green background with a white double-check (✓✓).
+/// Resolved: dark green background with a white double-check (✓✓); tapping
+/// it again reopens the conversation.
+///
+/// After a resolve the confirmation offers Undo for [undoWindow]: it puts the
+/// conversation back to the status it had, through the same status endpoint,
+/// and only once the server has accepted that is it shown as reopened.
 library;
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,11 +23,17 @@ class ConversationResolveButton extends ConsumerStatefulWidget {
   const ConversationResolveButton({
     required this.conversation,
     required this.canChange,
+    this.undoWindow = defaultUndoWindow,
     super.key,
   });
 
   final Conversation conversation;
   final bool canChange;
+
+  /// How long the Undo offered after resolving stays available.
+  final Duration undoWindow;
+
+  static const defaultUndoWindow = Duration(seconds: 5);
 
   @override
   ConsumerState<ConversationResolveButton> createState() =>
@@ -99,31 +111,28 @@ class _ConversationResolveButtonState
   Future<void> _handleTap() async {
     if (_busy) return;
 
-    if (_isResolved) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.l10n.statusUpdatedMessage),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
     if (!widget.canChange) return;
+
+    // The button toggles: tapped while resolved, it reopens.
+    if (_isResolved) return _reopen();
+
+    // What Undo goes back to. Read before the request, which changes it.
+    final previousStatus = widget.conversation.status;
+    final conversationId = widget.conversation.id;
 
     setState(() => _busy = true);
     _controller.forward(from: 0.0);
 
     try {
       await ref
-          .read(conversationControllerProvider(widget.conversation.id).notifier)
+          .read(conversationControllerProvider(conversationId).notifier)
           .updateStatus('RESOLVED');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.statusUpdatedMessage),
-            duration: const Duration(seconds: 2),
-          ),
+        showResolveUndoSnackBar(
+          context,
+          conversationId: conversationId,
+          previousStatus: previousStatus,
+          undoWindow: widget.undoWindow,
         );
       }
     } on ApiException catch (e) {
@@ -146,6 +155,43 @@ class _ConversationResolveButtonState
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Puts a resolved conversation back to Open through the status endpoint.
+  /// Shown as open only once the server accepted it; on a refusal the button
+  /// returns to resolved and says why.
+  Future<void> _reopen() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
+    final errorColor = Theme.of(context).colorScheme.error;
+
+    setState(() => _busy = true);
+    // A resolve's Undo would now fight this reopen; it is no longer needed.
+    messenger.hideCurrentSnackBar();
+    _controller.reverse(from: 1.0);
+
+    try {
+      await ref
+          .read(conversationControllerProvider(widget.conversation.id).notifier)
+          .updateStatus('OPEN');
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.conversationReopenedSnackbar)),
+      );
+    } catch (e) {
+      if (mounted) _controller.value = 1.0;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            e is ApiException && e.message.isNotEmpty
+                ? e.message
+                : l10n.statusUpdateFailedMessage,
+          ),
+          backgroundColor: errorColor,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -224,9 +270,8 @@ class _ConversationResolveButtonState
                       clipBehavior: Clip.antiAlias,
                       child: InkWell(
                         key: const Key('conversation_resolve_button'),
-                        onTap: (widget.canChange || _isResolved)
-                            ? _handleTap
-                            : null,
+                        // Resolves, or reopens when already resolved.
+                        onTap: widget.canChange ? _handleTap : null,
                         child: SizedBox(
                           width: 38,
                           height: 38,
@@ -251,4 +296,79 @@ class _ConversationResolveButtonState
       ),
     );
   }
+}
+
+/// Shows "Conversation resolved" with Undo, after a resolve the server has
+/// accepted. Undo puts the conversation back to [previousStatus] through the
+/// status endpoint, via the conversation's controller so the thread and the
+/// inbox both follow — and says "reopened" only once the server agreed.
+///
+/// Everything Undo needs is taken from [context] now: the agent may have left
+/// the conversation by the time they tap it.
+void showResolveUndoSnackBar(
+  BuildContext context, {
+  required int conversationId,
+  required String previousStatus,
+  Duration undoWindow = ConversationResolveButton.defaultUndoWindow,
+}) {
+  final messenger = ScaffoldMessenger.of(context);
+  final container = ProviderScope.containerOf(context, listen: false);
+  final l10n = context.l10n;
+  final errorColor = Theme.of(context).colorScheme.error;
+  var undone = false;
+
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        key: const Key('resolveUndoSnackBar'),
+        content: Text(l10n.conversationResolvedSnackbar),
+        duration: undoWindow,
+        // A snack bar with an action otherwise stays until dismissed; the
+        // Undo window is meant to close by itself.
+        persist: false,
+        action: SnackBarAction(
+          key: const Key('resolveUndoAction'),
+          label: l10n.undoAction,
+          onPressed: () async {
+            // One Undo per resolve, however the action is reached.
+            if (undone) return;
+            undone = true;
+            if (kDebugMode) {
+              debugPrint(
+                '[RESOLVE_UNDO] conversation=$conversationId '
+                'restoring=$previousStatus',
+              );
+            }
+            try {
+              await container
+                  .read(conversationControllerProvider(conversationId).notifier)
+                  .updateStatus(previousStatus);
+              messenger.showSnackBar(
+                SnackBar(content: Text(l10n.conversationReopenedSnackbar)),
+              );
+            } catch (e) {
+              if (kDebugMode) {
+                debugPrint(
+                  '[RESOLVE_UNDO] conversation=$conversationId failed '
+                  '(${e.runtimeType})',
+                );
+              }
+              // Nothing changed locally: the controller only applies a
+              // status the server accepted, so it still reads Resolved.
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    e is ApiException && e.message.isNotEmpty
+                        ? e.message
+                        : l10n.resolveUndoFailedMessage,
+                  ),
+                  backgroundColor: errorColor,
+                ),
+              );
+            }
+          },
+        ),
+      ),
+    );
 }
