@@ -9,6 +9,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/shimmer.dart';
 
@@ -168,8 +169,13 @@ class _MessageBubbleSkeleton extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final bubbleColor = isOutbound
-        ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFE0E7FF))
-        : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9));
+        // The theme's accent, faintly — as the agent's own bubbles will be.
+        ? (isDark
+              ? AppColors.of(context).muted
+              : theme.colorScheme.primary.withValues(alpha: 0.14))
+        : (isDark
+              ? AppColors.of(context).surface
+              : AppColors.of(context).muted);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),

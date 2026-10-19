@@ -44,6 +44,7 @@ import 'channel_connect_sheets.dart';
 import 'more_settings_tab.dart';
 import 'settings_skeleton.dart';
 import 'workload_window_card.dart';
+import 'appearance_settings.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -379,7 +380,6 @@ class _PreferencesSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
 
     return Column(
@@ -394,32 +394,8 @@ class _PreferencesSection extends ConsumerWidget {
         ),
         const SizedBox(height: Space.md),
 
-        Text(context.l10n.themeLabel, style: theme.textTheme.bodySmall),
-        const SizedBox(height: Space.sm),
-        Wrap(
-          spacing: Space.sm,
-          runSpacing: Space.sm,
-          children: [
-            ChoiceChip(
-              label: Text(context.l10n.themeSystem),
-              selected: themeMode == ThemeMode.system,
-              onSelected: (_) =>
-                  ref.read(themeModeProvider.notifier).update(ThemeMode.system),
-            ),
-            ChoiceChip(
-              label: Text(context.l10n.themeLight),
-              selected: themeMode == ThemeMode.light,
-              onSelected: (_) =>
-                  ref.read(themeModeProvider.notifier).update(ThemeMode.light),
-            ),
-            ChoiceChip(
-              label: Text(context.l10n.themeDark),
-              selected: themeMode == ThemeMode.dark,
-              onSelected: (_) =>
-                  ref.read(themeModeProvider.notifier).update(ThemeMode.dark),
-            ),
-          ],
-        ),
+        // Colour theme and light/dark mode, both applied immediately.
+        const AppearanceSettings(),
 
         const SizedBox(height: Space.lg),
         Text(context.l10n.languageLabel, style: theme.textTheme.bodySmall),

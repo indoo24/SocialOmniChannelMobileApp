@@ -1843,5 +1843,61 @@
   "resolveUndoFailedMessage": "Couldn't undo. The conversation is still resolved.",
   "@resolveUndoFailedMessage": {
     "description": "Undo after resolving failed; the conversation stays resolved."
+  },
+  "appProductName": "Scenario Omni Channel",
+  "@appProductName": {
+    "description": "Product name on the sign-in screen. A brand name: not translated."
+  },
+  "loginTagline": "Manage all your conversations in one place.",
+  "@loginTagline": {
+    "description": "Sign-in screen subtitle under the product name."
+  },
+  "showPasswordTooltip": "Show password",
+  "@showPasswordTooltip": {
+    "description": "Tooltip of the eye button that reveals the password."
+  },
+  "hidePasswordTooltip": "Hide password",
+  "@hidePasswordTooltip": {
+    "description": "Tooltip of the eye button that hides the password again."
+  },
+  "appearanceModeLabel": "Light or dark",
+  "@appearanceModeLabel": {
+    "description": "Settings label above the System / Light / Dark choice."
+  },
+  "colorThemeLabel": "Colour theme",
+  "@colorThemeLabel": {
+    "description": "Settings label above the list of colour themes."
+  },
+  "colorThemeOceanBlue": "Ocean Blue",
+  "@colorThemeOceanBlue": {
+    "description": "Colour theme name."
+  },
+  "colorThemeOceanBlueDescription": "The original Scenario look.",
+  "@colorThemeOceanBlueDescription": {
+    "description": "Ocean Blue colour theme description."
+  },
+  "colorThemeEmerald": "Emerald",
+  "@colorThemeEmerald": {
+    "description": "Colour theme name."
+  },
+  "colorThemeEmeraldDescription": "Calm green accents.",
+  "@colorThemeEmeraldDescription": {
+    "description": "Emerald colour theme description."
+  },
+  "colorThemeRoyalPurple": "Royal Purple",
+  "@colorThemeRoyalPurple": {
+    "description": "Colour theme name."
+  },
+  "colorThemeRoyalPurpleDescription": "Rich violet accents.",
+  "@colorThemeRoyalPurpleDescription": {
+    "description": "Royal Purple colour theme description."
+  },
+  "colorThemeGraphiteOrange": "Graphite Orange",
+  "@colorThemeGraphiteOrange": {
+    "description": "Colour theme name."
+  },
+  "colorThemeGraphiteOrangeDescription": "Neutral greys with orange highlights.",
+  "@colorThemeGraphiteOrangeDescription": {
+    "description": "Graphite Orange colour theme description."
   }
 }

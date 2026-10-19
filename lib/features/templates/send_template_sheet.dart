@@ -24,6 +24,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/template.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/states.dart';
@@ -189,7 +190,6 @@ class _SendTemplateSheetState extends ConsumerState<SendTemplateSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
@@ -198,7 +198,7 @@ class _SendTemplateSheetState extends ConsumerState<SendTemplateSheet> {
       ),
       padding: EdgeInsets.fromLTRB(Space.lg, Space.lg, Space.lg, bottomInset),
       decoration: BoxDecoration(
-        color: isDark ? ScenarioColors.darkCard : ScenarioColors.card,
+        color: AppColors.of(context).surface,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(Radii.lg),
         ),
@@ -230,9 +230,7 @@ class _SendTemplateSheetState extends ConsumerState<SendTemplateSheet> {
             Text(
               context.l10n.sendTemplateSheetSubtitle(widget.accountLabel),
               style: theme.textTheme.bodySmall?.copyWith(
-                color: isDark
-                    ? ScenarioColors.darkMutedForeground
-                    : ScenarioColors.mutedForeground,
+                color: AppColors.of(context).mutedForeground,
               ),
             ),
             const SizedBox(height: Space.lg),
@@ -323,7 +321,7 @@ class _SendTemplateSheetState extends ConsumerState<SendTemplateSheet> {
                   onPressed: (_sending || !_hasRecipient) ? null : _send,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(0, 44),
-                    backgroundColor: ScenarioColors.primary,
+                    backgroundColor: AppColors.of(context).solidPrimary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: Space.lg,
                       vertical: Space.md,
@@ -415,14 +413,14 @@ class _ModeButton extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final foreground = selected
-        ? ScenarioColors.primary
-        : (isDark
-              ? ScenarioColors.darkMutedForeground
-              : ScenarioColors.mutedForeground);
+        ? AppColors.of(context).solidPrimary
+        : (AppColors.of(context).mutedForeground);
 
     return Material(
       color: selected
-          ? ScenarioColors.primary.withValues(alpha: isDark ? 0.22 : 0.10)
+          ? AppColors.of(
+              context,
+            ).solidPrimary.withValues(alpha: isDark ? 0.22 : 0.10)
           : Colors.transparent,
       borderRadius: BorderRadius.circular(Radii.md),
       child: InkWell(
@@ -437,10 +435,8 @@ class _ModeButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(Radii.md),
             border: Border.all(
               color: selected
-                  ? ScenarioColors.primary
-                  : (isDark
-                        ? ScenarioColors.darkBorder
-                        : ScenarioColors.border),
+                  ? AppColors.of(context).solidPrimary
+                  : (AppColors.of(context).border),
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -490,7 +486,6 @@ class _CustomerPicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final async = ref.watch(templateRecipientSearchProvider(searchTerm));
 
     return Column(
@@ -516,9 +511,7 @@ class _CustomerPicker extends ConsumerWidget {
           constraints: const BoxConstraints(maxHeight: 220),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(Radii.md),
-            border: Border.all(
-              color: isDark ? ScenarioColors.darkBorder : ScenarioColors.border,
-            ),
+            border: Border.all(color: AppColors.of(context).border),
           ),
           child: async.when(
             loading: () => const Padding(
@@ -547,9 +540,7 @@ class _CustomerPicker extends ConsumerWidget {
                     context.l10n.sendTemplateNoCustomersFound,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: isDark
-                          ? ScenarioColors.darkMutedForeground
-                          : ScenarioColors.mutedForeground,
+                      color: AppColors.of(context).mutedForeground,
                     ),
                   ),
                 );
@@ -606,7 +597,9 @@ class _CustomerRow extends StatelessWidget {
 
     return Material(
       color: selected
-          ? ScenarioColors.primary.withValues(alpha: isDark ? 0.20 : 0.08)
+          ? AppColors.of(
+              context,
+            ).solidPrimary.withValues(alpha: isDark ? 0.20 : 0.08)
           : Colors.transparent,
       child: InkWell(
         onTap: enabled ? onTap : null,
@@ -644,9 +637,7 @@ class _CustomerRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: isDark
-                            ? ScenarioColors.darkMutedForeground
-                            : ScenarioColors.mutedForeground,
+                        color: AppColors.of(context).mutedForeground,
                       ),
                     ),
                   ],
@@ -656,7 +647,7 @@ class _CustomerRow extends StatelessWidget {
                 Icon(
                   Icons.check_circle_rounded,
                   size: 20,
-                  color: ScenarioColors.primary,
+                  color: AppColors.of(context).solidPrimary,
                 ),
             ],
           ),
@@ -675,7 +666,6 @@ class _PhoneField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -705,9 +695,7 @@ class _PhoneField extends StatelessWidget {
         Text(
           context.l10n.sendTemplatePhoneHelper,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: isDark
-                ? ScenarioColors.darkMutedForeground
-                : ScenarioColors.mutedForeground,
+            color: AppColors.of(context).mutedForeground,
             fontSize: 11,
           ),
         ),
@@ -724,19 +712,14 @@ class _TemplatePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(Space.md),
       decoration: BoxDecoration(
-        color: isDark
-            ? ScenarioColors.darkBackground
-            : ScenarioColors.background,
+        color: AppColors.of(context).background,
         borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(
-          color: isDark ? ScenarioColors.darkBorder : ScenarioColors.border,
-        ),
+        border: Border.all(color: AppColors.of(context).border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -744,9 +727,7 @@ class _TemplatePreview extends StatelessWidget {
           Text(
             context.l10n.sendTemplatePreviewLabel,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: isDark
-                  ? ScenarioColors.darkMutedForeground
-                  : ScenarioColors.mutedForeground,
+              color: AppColors.of(context).mutedForeground,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
             ),

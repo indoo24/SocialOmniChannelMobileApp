@@ -82,6 +82,11 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
   /// answers early, so a warm cache never cuts the animation off mid-way.
   bool _splashFinished = false;
 
+  /// Whether the saved theme and language have been read. The splash (which
+  /// is always white) waits for it too, so the app proper never shows a
+  /// frame in the default theme before switching to the saved one.
+  bool _preferencesRestored = false;
+
   @override
   void initState() {
     super.initState();
@@ -95,8 +100,13 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
     // unlike auth there is no redirect logic waiting on them.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(authControllerProvider.notifier).restore();
-      ref.read(themeModeProvider.notifier).restore();
-      ref.read(localeProvider.notifier).restore();
+      restoreDisplayPreferences(
+        ref.read(themeModeProvider.notifier),
+        ref.read(colorThemeProvider.notifier),
+        ref.read(localeProvider.notifier),
+      ).then((_) {
+        if (mounted) setState(() => _preferencesRestored = true);
+      });
     });
   }
 
@@ -110,6 +120,9 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
 
     final auth = ref.watch(authControllerProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final colorTheme = ref.watch(colorThemeProvider);
+    final lightTheme = AppTheme.of(colorTheme, Brightness.light);
+    final darkTheme = AppTheme.of(colorTheme, Brightness.dark);
     final locale = ref.watch(localeProvider);
 
     // Hold the splash while the session is being checked, and until the
@@ -117,10 +130,10 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
     // would let its redirect run against an unknown state. Swapping the root
     // app out (rather than pushing a route) also leaves nothing to navigate
     // back to.
-    if (auth.isRestoring || !_splashFinished) {
+    if (auth.isRestoring || !_preferencesRestored || !_splashFinished) {
       return MaterialApp(
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
+        theme: lightTheme,
+        darkTheme: darkTheme,
         themeMode: themeMode,
         locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -128,7 +141,7 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
         debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: SplashScreen(
-            initDone: !auth.isRestoring,
+            initDone: !auth.isRestoring && _preferencesRestored,
             // A retry from the offline screen restores again; show the
             // settled logo with the loader instead of replaying the intro.
             playIntro: !_splashFinished,
@@ -142,8 +155,8 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
 
     if (auth.restoreFailedOffline) {
       return MaterialApp(
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
+        theme: lightTheme,
+        darkTheme: darkTheme,
         themeMode: themeMode,
         locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -161,8 +174,8 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
     return MaterialApp.router(
       title: 'Scenario',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: lightTheme,
+      darkTheme: darkTheme,
       themeMode: themeMode,
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

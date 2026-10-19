@@ -6114,6 +6114,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t undo. The conversation is still resolved.'**
   String get resolveUndoFailedMessage;
+
+  /// Product name on the sign-in screen. A brand name: not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Scenario Omni Channel'**
+  String get appProductName;
+
+  /// Sign-in screen subtitle under the product name.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage all your conversations in one place.'**
+  String get loginTagline;
+
+  /// Tooltip of the eye button that reveals the password.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get showPasswordTooltip;
+
+  /// Tooltip of the eye button that hides the password again.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get hidePasswordTooltip;
+
+  /// Settings label above the System / Light / Dark choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Light or dark'**
+  String get appearanceModeLabel;
+
+  /// Settings label above the list of colour themes.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour theme'**
+  String get colorThemeLabel;
+
+  /// Colour theme name.
+  ///
+  /// In en, this message translates to:
+  /// **'Ocean Blue'**
+  String get colorThemeOceanBlue;
+
+  /// Ocean Blue colour theme description.
+  ///
+  /// In en, this message translates to:
+  /// **'The original Scenario look.'**
+  String get colorThemeOceanBlueDescription;
+
+  /// Colour theme name.
+  ///
+  /// In en, this message translates to:
+  /// **'Emerald'**
+  String get colorThemeEmerald;
+
+  /// Emerald colour theme description.
+  ///
+  /// In en, this message translates to:
+  /// **'Calm green accents.'**
+  String get colorThemeEmeraldDescription;
+
+  /// Colour theme name.
+  ///
+  /// In en, this message translates to:
+  /// **'Royal Purple'**
+  String get colorThemeRoyalPurple;
+
+  /// Royal Purple colour theme description.
+  ///
+  /// In en, this message translates to:
+  /// **'Rich violet accents.'**
+  String get colorThemeRoyalPurpleDescription;
+
+  /// Colour theme name.
+  ///
+  /// In en, this message translates to:
+  /// **'Graphite Orange'**
+  String get colorThemeGraphiteOrange;
+
+  /// Graphite Orange colour theme description.
+  ///
+  /// In en, this message translates to:
+  /// **'Neutral greys with orange highlights.'**
+  String get colorThemeGraphiteOrangeDescription;
 }
 
 class _AppLocalizationsDelegate

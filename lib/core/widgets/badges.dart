@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../l10n/l10n_extensions.dart';
+import '../theme/app_palette.dart';
 import '../theme/tokens.dart';
 import '../utils/formatting.dart';
 
@@ -77,34 +78,15 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
+  /// Status tones mean the same in every colour theme; their tints and the
+  /// info tone come from the active theme ([AppColors]).
   static (Color, Color) _palette(BuildContext context, BadgeTone tone) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = AppColors.of(context);
     return switch (tone) {
-      BadgeTone.success => (
-        ScenarioColors.success,
-        isDark
-            ? ScenarioColors.success.withValues(alpha: 0.18)
-            : ScenarioColors.successSurface,
-      ),
-      BadgeTone.warning => (
-        ScenarioColors.warning,
-        isDark
-            ? ScenarioColors.warning.withValues(alpha: 0.18)
-            : ScenarioColors.warningSurface,
-      ),
-      BadgeTone.danger => (
-        ScenarioColors.danger,
-        isDark
-            ? ScenarioColors.danger.withValues(alpha: 0.18)
-            : ScenarioColors.dangerSurface,
-      ),
-      BadgeTone.info => (
-        // The light theme's indigo is too dark to read on dark surfaces.
-        isDark ? ScenarioColors.darkPrimary : ScenarioColors.info,
-        isDark
-            ? ScenarioColors.info.withValues(alpha: 0.18)
-            : ScenarioColors.infoSurface,
-      ),
+      BadgeTone.success => (colors.success, colors.successSurface),
+      BadgeTone.warning => (colors.warning, colors.warningSurface),
+      BadgeTone.danger => (colors.danger, colors.dangerSurface),
+      BadgeTone.info => (colors.info, colors.infoSurface),
       BadgeTone.neutral => (
         Theme.of(context).colorScheme.onSurfaceVariant,
         Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -224,7 +206,8 @@ class ConversationBadges {
     String status,
   ) => switch (status) {
     'FAILED' => (Icons.error_outline, Theme.of(context).colorScheme.error),
-    'READ' => (Icons.done_all, Theme.of(context).colorScheme.primary),
+    // The theme's info colour: blue-ish in every theme, like a read tick.
+    'READ' => (Icons.done_all, AppColors.of(context).info),
     'DELIVERED' => (
       Icons.done_all,
       Theme.of(context).textTheme.labelSmall?.color,

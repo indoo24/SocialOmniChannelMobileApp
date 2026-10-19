@@ -27,6 +27,7 @@ class SecureStore {
   static const _keyDeviceId = 'scenario.device_id';
   static const _keyThemeMode = 'scenario.theme_mode';
   static const _keyLocale = 'scenario.locale';
+  static const _keyColorTheme = 'scenario.color_theme';
 
   /// Pre-fills the login field on next launch. Not a credential — but it is
   /// still an employee's email, so it lives here rather than in preferences.
@@ -62,6 +63,13 @@ class SecureStore {
       _storage.write(key: _keyLocale, value: languageCode);
 
   Future<String?> readLocale() => _storage.read(key: _keyLocale);
+
+  /// The chosen colour theme's id (`AppColorTheme.id`). Device-level, like
+  /// the theme mode.
+  Future<void> writeColorTheme(String id) =>
+      _storage.write(key: _keyColorTheme, value: id);
+
+  Future<String?> readColorTheme() => _storage.read(key: _keyColorTheme);
 
   /// Clear everything tied to the signed-in employee.
   ///

@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../theme/app_palette.dart';
 import '../theme/tokens.dart';
 
 /// Provides a single synchronized shimmer ticker down the widget tree.
@@ -67,13 +68,13 @@ class _AppShimmerState extends State<AppShimmer>
     final isRtl = Directionality.of(context) == TextDirection.rtl;
     final tickerEnabled = TickerMode.valuesOf(context).enabled;
 
-    final defaultBase = isDark
-        ? const Color(0xFF1E293B) // Dark muted slate
-        : const Color(0xFFE2E8F0); // Light subtle slate
-
+    // The theme's quiet fill (dark) or border (light), sweeping towards a
+    // slightly lighter tone of the same family.
+    final colors = AppColors.of(context);
+    final defaultBase = isDark ? colors.muted : colors.border;
     final defaultHighlight = isDark
-        ? const Color(0xFF334155) // Subtle highlight in dark mode
-        : const Color(0xFFF8FAFC); // Clean highlight in light mode
+        ? Color.lerp(colors.muted, colors.foreground, 0.12)!
+        : colors.background;
 
     final base = widget.baseColor ?? defaultBase;
     final highlight = widget.highlightColor ?? defaultHighlight;
@@ -175,8 +176,8 @@ class SkeletonBox extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final fallbackBase = isDark
-        ? const Color(0xFF1E293B)
-        : const Color(0xFFE2E8F0);
+        ? AppColors.of(context).muted
+        : AppColors.of(context).border;
 
     final decoration = BoxDecoration(
       shape: shape,

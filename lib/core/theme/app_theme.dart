@@ -1,56 +1,52 @@
-/// The Material theme assembled from the web design tokens.
+/// The Material theme assembled from the web design tokens, for each colour
+/// theme in each brightness ([AppColorTheme], [AppPalette]).
 ///
 /// Deliberately not Material 3's default palette generation: the web client
 /// has an exact indigo and an exact set of greys, and letting Flutter derive a
 /// scheme from a seed colour would produce something adjacent but visibly
-/// different. Every colour here is pinned.
+/// different. Every colour here is pinned, per palette.
 library;
 
 import 'package:flutter/material.dart';
 
+import 'app_palette.dart';
 import 'tokens.dart';
 
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData get light => _build(
-    brightness: Brightness.light,
-    background: ScenarioColors.background,
-    surface: ScenarioColors.card,
-    onSurface: ScenarioColors.foreground,
-    primary: ScenarioColors.primary,
-    onPrimary: ScenarioColors.primaryForeground,
-    muted: ScenarioColors.muted,
-    mutedForeground: ScenarioColors.mutedForeground,
-    border: ScenarioColors.border,
-    destructive: ScenarioColors.destructive,
-  );
+  /// The original (Ocean Blue) themes.
+  static ThemeData get light => of(AppColorTheme.fallback, Brightness.light);
+  static ThemeData get dark => of(AppColorTheme.fallback, Brightness.dark);
 
-  static ThemeData get dark => _build(
-    brightness: Brightness.dark,
-    background: ScenarioColors.darkBackground,
-    surface: ScenarioColors.darkCard,
-    onSurface: ScenarioColors.darkForeground,
-    primary: ScenarioColors.darkPrimary,
-    onPrimary: ScenarioColors.darkPrimaryForeground,
-    muted: ScenarioColors.darkMuted,
-    mutedForeground: ScenarioColors.darkMutedForeground,
-    border: ScenarioColors.darkBorder,
-    destructive: ScenarioColors.darkDestructive,
-  );
+  static final _cache = <(AppColorTheme, Brightness), ThemeData>{};
 
-  static ThemeData _build({
-    required Brightness brightness,
-    required Color background,
-    required Color surface,
-    required Color onSurface,
-    required Color primary,
-    required Color onPrimary,
-    required Color muted,
-    required Color mutedForeground,
-    required Color border,
-    required Color destructive,
-  }) {
+  /// The app's typeface. [ThemeData.fontFamily] reaches the text theme, but
+  /// not component styles written out in full below (app bar title, button
+  /// label, chip, hint, snack bar) — those name it themselves, or fall back
+  /// to the platform font.
+  static const _font = 'Cairo';
+
+  /// [colorTheme] in [brightness]. Built once per pair and reused, so
+  /// switching themes or rebuilding the app never re-creates them.
+  static ThemeData of(AppColorTheme colorTheme, Brightness brightness) =>
+      _cache.putIfAbsent((
+        colorTheme,
+        brightness,
+      ), () => _build(colorTheme.palette(brightness)));
+
+  static ThemeData _build(AppPalette palette) {
+    final brightness = palette.brightness;
+    final background = palette.background;
+    final surface = palette.surface;
+    final onSurface = palette.foreground;
+    final primary = palette.primary;
+    final onPrimary = palette.onPrimary;
+    final muted = palette.muted;
+    final mutedForeground = palette.mutedForeground;
+    final border = palette.border;
+    final destructive = palette.destructive;
+
     final scheme = ColorScheme(
       brightness: brightness,
       primary: primary,
@@ -74,9 +70,10 @@ class AppTheme {
       // Cairo, bundled under assets/fonts/ (Regular/Medium/SemiBold/Bold),
       // renders both Arabic and Latin script from one face — the app's
       // typography hierarchy lives in the sizes/weights below, not here.
-      fontFamily: 'Cairo',
+      fontFamily: _font,
       fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'system-ui'],
       textTheme: _textTheme(onSurface, mutedForeground),
+      extensions: [AppColors.fromPalette(palette)],
       appBarTheme: AppBarTheme(
         backgroundColor: surface,
         foregroundColor: onSurface,
@@ -85,6 +82,7 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         centerTitle: false,
         titleTextStyle: TextStyle(
+          fontFamily: _font,
           color: onSurface,
           fontSize: 17,
           fontWeight: FontWeight.w600,
@@ -125,7 +123,11 @@ class AppTheme {
           borderRadius: BorderRadius.circular(Radii.md),
           borderSide: BorderSide(color: destructive),
         ),
-        hintStyle: TextStyle(color: mutedForeground, fontSize: 14),
+        hintStyle: TextStyle(
+          fontFamily: _font,
+          color: mutedForeground,
+          fontSize: 14,
+        ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
@@ -135,7 +137,11 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(Radii.md),
           ),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontFamily: _font,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -157,7 +163,11 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: muted,
-        labelStyle: TextStyle(color: onSurface, fontSize: 12),
+        labelStyle: TextStyle(
+          fontFamily: _font,
+          color: onSurface,
+          fontSize: 12,
+        ),
         side: BorderSide(color: border),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Radii.pill),
@@ -165,8 +175,12 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: ScenarioColors.sidebar,
-        contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14),
+        backgroundColor: palette.sidebar,
+        contentTextStyle: const TextStyle(
+          fontFamily: _font,
+          color: Colors.white,
+          fontSize: 14,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Radii.md),
         ),

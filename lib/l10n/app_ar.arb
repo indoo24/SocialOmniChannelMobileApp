@@ -1076,5 +1076,19 @@
   "conversationResolvedSnackbar": "تم حل المحادثة",
   "undoAction": "تراجع",
   "conversationReopenedSnackbar": "أُعيد فتح المحادثة",
-  "resolveUndoFailedMessage": "تعذّر التراجع. المحادثة ما زالت محلولة."
+  "resolveUndoFailedMessage": "تعذّر التراجع. المحادثة ما زالت محلولة.",
+  "appProductName": "Scenario Omni Channel",
+  "loginTagline": "أدِر جميع محادثاتك من مكان واحد.",
+  "showPasswordTooltip": "إظهار كلمة المرور",
+  "hidePasswordTooltip": "إخفاء كلمة المرور",
+  "appearanceModeLabel": "فاتح أو داكن",
+  "colorThemeLabel": "ألوان التطبيق",
+  "colorThemeOceanBlue": "الأزرق المحيطي",
+  "colorThemeOceanBlueDescription": "مظهر Scenario الأصلي.",
+  "colorThemeEmerald": "الزمردي",
+  "colorThemeEmeraldDescription": "لمسات خضراء هادئة.",
+  "colorThemeRoyalPurple": "البنفسجي الملكي",
+  "colorThemeRoyalPurpleDescription": "لمسات بنفسجية غنية.",
+  "colorThemeGraphiteOrange": "الجرافيت والبرتقالي",
+  "colorThemeGraphiteOrangeDescription": "رمادي محايد مع لمسات برتقالية."
 }

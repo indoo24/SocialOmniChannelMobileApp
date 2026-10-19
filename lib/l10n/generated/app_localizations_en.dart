@@ -3423,4 +3423,47 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get resolveUndoFailedMessage =>
       'Couldn\'t undo. The conversation is still resolved.';
+
+  @override
+  String get appProductName => 'Scenario Omni Channel';
+
+  @override
+  String get loginTagline => 'Manage all your conversations in one place.';
+
+  @override
+  String get showPasswordTooltip => 'Show password';
+
+  @override
+  String get hidePasswordTooltip => 'Hide password';
+
+  @override
+  String get appearanceModeLabel => 'Light or dark';
+
+  @override
+  String get colorThemeLabel => 'Colour theme';
+
+  @override
+  String get colorThemeOceanBlue => 'Ocean Blue';
+
+  @override
+  String get colorThemeOceanBlueDescription => 'The original Scenario look.';
+
+  @override
+  String get colorThemeEmerald => 'Emerald';
+
+  @override
+  String get colorThemeEmeraldDescription => 'Calm green accents.';
+
+  @override
+  String get colorThemeRoyalPurple => 'Royal Purple';
+
+  @override
+  String get colorThemeRoyalPurpleDescription => 'Rich violet accents.';
+
+  @override
+  String get colorThemeGraphiteOrange => 'Graphite Orange';
+
+  @override
+  String get colorThemeGraphiteOrangeDescription =>
+      'Neutral greys with orange highlights.';
 }

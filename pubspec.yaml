@@ -145,6 +145,9 @@ flutter:
   assets:
     - assets/images/
     - assets/splash/
+    # The sign-in screen's logo. Only this file: the folder also holds
+    # the adaptive-icon foreground, which the app never draws.
+    - assets/launcher/app_icon.png
   fonts:
     - family: Cairo
       fonts:

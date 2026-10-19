@@ -21,6 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/message.dart';
 import '../../core/providers.dart';
 import '../../core/realtime/realtime_logger.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/external_link.dart';
 import '../../core/utils/safe_url.dart';
@@ -108,19 +109,17 @@ class MessageBubble extends ConsumerWidget {
     final isMine = message.isOutbound;
     final failed = message.hasFailed || message.isDeliveryFailure;
 
-    final isDark = theme.brightness == Brightness.dark;
+    final colors = AppColors.of(context);
     final background = failed
         ? theme.colorScheme.error.withValues(alpha: 0.10)
         : isMine
-        ? (isDark
-              ? ScenarioColors.darkOutgoingBubble
-              : theme.colorScheme.primary)
-        : theme.colorScheme.surface;
+        ? colors.outgoingBubble
+        : colors.incomingBubble;
 
     final foreground = failed
         ? theme.colorScheme.onSurface
         : isMine
-        ? Colors.white
+        ? colors.onOutgoingBubble
         : theme.colorScheme.onSurface;
 
     final copyText = copyableMessageText(message.text);

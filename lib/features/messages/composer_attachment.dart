@@ -29,6 +29,7 @@ import 'package:record/record.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/message.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/attachment_helper.dart';
 import '../conversations/conversation_repository.dart';
@@ -662,7 +663,7 @@ class _DocumentUploadCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark
             ? theme.colorScheme.surfaceContainerHighest
-            : const Color(0xFFF8FAFC),
+            : AppColors.of(context).background,
         borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(
           color: failed
@@ -1247,7 +1248,9 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
-                        color: isDark ? Colors.white : const Color(0xFF1E293B),
+                        color: isDark
+                            ? Colors.white
+                            : AppColors.of(context).foreground,
                       ),
                     ),
                   ),
@@ -1262,7 +1265,7 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
                         fontWeight: FontWeight.w500,
                         color: isDark
                             ? Colors.white60
-                            : const Color(0xFF64748B),
+                            : AppColors.of(context).mutedForeground,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -1277,7 +1280,9 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               icon: Icon(
                 Icons.delete_outline,
-                color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                color: isDark
+                    ? Colors.white70
+                    : AppColors.of(context).mutedForeground,
                 size: 20,
               ),
               onPressed: _cancel,

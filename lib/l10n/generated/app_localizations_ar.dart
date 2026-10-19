@@ -3434,4 +3434,47 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get resolveUndoFailedMessage =>
       'تعذّر التراجع. المحادثة ما زالت محلولة.';
+
+  @override
+  String get appProductName => 'Scenario Omni Channel';
+
+  @override
+  String get loginTagline => 'أدِر جميع محادثاتك من مكان واحد.';
+
+  @override
+  String get showPasswordTooltip => 'إظهار كلمة المرور';
+
+  @override
+  String get hidePasswordTooltip => 'إخفاء كلمة المرور';
+
+  @override
+  String get appearanceModeLabel => 'فاتح أو داكن';
+
+  @override
+  String get colorThemeLabel => 'ألوان التطبيق';
+
+  @override
+  String get colorThemeOceanBlue => 'الأزرق المحيطي';
+
+  @override
+  String get colorThemeOceanBlueDescription => 'مظهر Scenario الأصلي.';
+
+  @override
+  String get colorThemeEmerald => 'الزمردي';
+
+  @override
+  String get colorThemeEmeraldDescription => 'لمسات خضراء هادئة.';
+
+  @override
+  String get colorThemeRoyalPurple => 'البنفسجي الملكي';
+
+  @override
+  String get colorThemeRoyalPurpleDescription => 'لمسات بنفسجية غنية.';
+
+  @override
+  String get colorThemeGraphiteOrange => 'الجرافيت والبرتقالي';
+
+  @override
+  String get colorThemeGraphiteOrangeDescription =>
+      'رمادي محايد مع لمسات برتقالية.';
 }

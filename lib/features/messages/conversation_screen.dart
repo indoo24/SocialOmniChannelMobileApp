@@ -14,6 +14,7 @@ import '../../core/models/conversation.dart';
 import '../../core/models/employee.dart';
 import '../../core/models/message.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/utils/text_direction.dart';
@@ -1324,7 +1325,7 @@ class _ScrollToBottomButton extends StatelessWidget {
                   border: Border.all(
                     color: isDark
                         ? theme.colorScheme.outline
-                        : const Color(0xFFE2E8F0),
+                        : AppColors.of(context).border,
                     width: 1,
                   ),
                 ),
@@ -2419,9 +2420,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                       label: context.l10n.templateTab,
                       icon: Icons.description_outlined,
                       active: currentMode == _ComposerMode.template,
-                      activeColor: isDark
-                          ? const Color(0xFFA5B4FC)
-                          : const Color(0xFF4F46E5),
+                      activeColor: theme.colorScheme.primary,
                       onTap: () {
                         _userToggledMode = true;
                         setState(() => _mode = _ComposerMode.template);
@@ -3181,7 +3180,7 @@ class _ConversationClosedNotice extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark
             ? theme.colorScheme.surfaceContainerHighest
-            : const Color(0xFFF1F5F9),
+            : AppColors.of(context).muted,
         borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(
           color: theme.colorScheme.outline.withValues(alpha: 0.5),
