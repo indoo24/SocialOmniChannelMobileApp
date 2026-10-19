@@ -3477,4 +3477,32 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get colorThemeGraphiteOrangeDescription =>
       'رمادي محايد مع لمسات برتقالية.';
+
+  @override
+  String get pinConversationAction => 'تثبيت المحادثة';
+
+  @override
+  String get unpinConversationAction => 'إلغاء تثبيت المحادثة';
+
+  @override
+  String get pinnedIndicator => 'مثبّتة';
+
+  @override
+  String get conversationPinnedMessage => 'تم تثبيت المحادثة';
+
+  @override
+  String get conversationUnpinnedMessage => 'تم إلغاء تثبيت المحادثة';
+
+  @override
+  String get pinLimitReachedMessage =>
+      'وصلت إلى الحد الأقصى لعدد المحادثات المثبّتة.';
+
+  @override
+  String get conversationUnavailableMessage => 'هذه المحادثة لم تعد متاحة.';
+
+  @override
+  String get pinPermissionDeniedMessage => 'ليست لديك صلاحية لتثبيت المحادثات.';
+
+  @override
+  String get pinRequestFailedMessage => 'تعذّر تحديث التثبيت. حاول مرة أخرى.';
 }

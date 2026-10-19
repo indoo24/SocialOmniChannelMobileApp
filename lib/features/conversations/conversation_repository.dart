@@ -522,6 +522,21 @@ class ConversationRepository {
     return Conversation.fromJson(data);
   }
 
+  /// Pins (`POST`) or unpins (`DELETE`) `/conversations/{id}/pin/` for the
+  /// signed-in employee only. Both are idempotent and answer with the
+  /// conversation; its `is_pinned` is the state to show. Should a response
+  /// ever leave the field out, the request that succeeded is the answer.
+  Future<bool> setPinned(int conversationId, {required bool pinned}) async {
+    final path = '/conversations/$conversationId/pin/';
+    final data = pinned
+        ? await _api.post<dynamic>(path)
+        : await _api.delete<dynamic>(path);
+    if (data is Map && data.containsKey('is_pinned')) {
+      return JsonSafe.asBool(data['is_pinned'], fallback: pinned);
+    }
+    return pinned;
+  }
+
   Future<List<InternalNote>> notes(int conversationId) async {
     final data = await _api.get<dynamic>(
       '/conversations/$conversationId/notes/',

@@ -255,6 +255,18 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     ref.read(inboxControllerProvider.notifier).refreshQuietly();
   }
 
+  /// Shows the pin state the server confirmed. Only `isPinned` changes; the
+  /// rest of the loaded detail is kept as it is.
+  void applyPinned({required bool isPinned}) {
+    final current = state.value;
+    if (current == null || current.conversation.isPinned == isPinned) return;
+    state = AsyncData(
+      current.copyWith(
+        conversation: current.conversation.copyWith(isPinned: isPinned),
+      ),
+    );
+  }
+
   /// Updates the status of the conversation on the backend and updates
   /// current state and inbox list immediately.
   Future<void> updateStatus(String status) async {

@@ -12,6 +12,7 @@ import '../../core/models/conversation.dart';
 import '../../core/models/employee.dart';
 import '../../core/models/performance.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/utils/text_direction.dart';
@@ -37,6 +38,7 @@ import '../directory/save_to_contacts.dart';
 import '../orders/customer_data_sheet.dart';
 import '../orders/order_and_fact_dialogs.dart';
 import '../orders/order_details.dart';
+import '../conversations/conversation_pin.dart';
 
 const _statuses = [
   'OPEN',
@@ -248,23 +250,38 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
         // ------------------------------------------------------------
         // TOP RESOLVED ACTION BUTTON
         // ------------------------------------------------------------
-        _SheetResolveButton(
-          conversation: conversation,
-          canChange: canChangeStatus && conversation != null,
-          busy: _busy,
-          onResolve: () {
-            // What Undo goes back to; read before the request changes it.
-            final previousStatus = conversation!.status;
-            _run(
-              () => repository.changeStatus(widget.conversationId, 'RESOLVED'),
-              context.l10n.statusUpdatedMessage,
-              onSuccess: (context) => showResolveUndoSnackBar(
-                context,
-                conversationId: widget.conversationId,
-                previousStatus: previousStatus,
+        Row(
+          children: [
+            Expanded(
+              child: _SheetResolveButton(
+                conversation: conversation,
+                canChange: canChangeStatus && conversation != null,
+                busy: _busy,
+                onResolve: () {
+                  // What Undo goes back to; read before the request changes it.
+                  final previousStatus = conversation!.status;
+                  _run(
+                    () => repository.changeStatus(
+                      widget.conversationId,
+                      'RESOLVED',
+                    ),
+                    context.l10n.statusUpdatedMessage,
+                    onSuccess: (context) => showResolveUndoSnackBar(
+                      context,
+                      conversationId: widget.conversationId,
+                      previousStatus: previousStatus,
+                    ),
+                  );
+                },
               ),
-            );
-          },
+            ),
+            // Beside Resolve rather than under it: pinning is quick and
+            // personal, and the sheet keeps its height.
+            if (conversation != null) ...[
+              const SizedBox(width: Space.sm),
+              _SheetPinButton(conversation: conversation),
+            ],
+          ],
         ),
         const SizedBox(height: Space.lg),
 
@@ -1650,6 +1667,50 @@ class _Label extends StatelessWidget {
 
 /// Prominent "Resolved" action button displayed at the top of the actions bottom sheet,
 /// styled with the Web green resolve tokens.
+/// Pin / unpin for the signed-in employee. The label follows the state the
+/// server confirmed (this sheet shows the conversation's controller), and
+/// the button waits while a request is on its way.
+class _SheetPinButton extends ConsumerWidget {
+  const _SheetPinButton({required this.conversation});
+
+  final Conversation conversation;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final busy = ref.watch(pinningProvider).contains(conversation.id);
+    final (label, icon) = pinActionLabel(context.l10n, conversation.isPinned);
+    final colors = AppColors.of(context);
+    return IconButton.outlined(
+      key: const Key('conversation_actions_sheet_pin_button'),
+      // The label, as tooltip and for screen readers, says what a tap does.
+      tooltip: label,
+      isSelected: conversation.isPinned,
+      constraints: const BoxConstraints(minWidth: 46, minHeight: 46),
+      style: IconButton.styleFrom(
+        side: BorderSide(color: colors.border),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.md),
+        ),
+      ),
+      onPressed: busy
+          ? null
+          : () => toggleConversationPin(
+              context,
+              conversationId: conversation.id,
+              currentlyPinned: conversation.isPinned,
+            ),
+      icon: busy
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(icon, size: 20),
+      selectedIcon: busy ? null : Icon(icon, size: 20, color: colors.primary),
+    );
+  }
+}
+
 class _SheetResolveButton extends StatelessWidget {
   const _SheetResolveButton({
     required this.conversation,

@@ -294,6 +294,15 @@ final contract. Mobile will build against whatever is agreed.
 
 ### R1 — Pin conversation
 
+**Status (2026-10-20): delivered by the backend and implemented in mobile.**
+The contract as built: `POST` / `DELETE /api/conversations/{id}/pin/`, both
+idempotent and answering `200` with the conversation and `is_pinned`; a pin
+belongs to the calling employee only; pinned rows sort first within the
+current filter; `400` for the pin limit, `403` / `404` as usual. Mobile reads
+`is_pinned` from list, grouped and detail responses (absent means `false`).
+`docs/api/openapi.yaml` in this repository does not list these yet. The
+original proposal follows for reference.
+
 **Decision needed first:** who a pin belongs to. Mobile recommends
 **per employee** (my pins; other agents unaffected), since the request is for
 an agent to keep their own important threads at hand. Per team or per

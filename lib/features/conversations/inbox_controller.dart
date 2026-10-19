@@ -290,6 +290,14 @@ class InboxController extends AsyncNotifier<InboxState> {
   bool _quietRefreshRunning = false;
   bool _quietRefreshAgain = false;
 
+  /// Pin states the server has confirmed, each numbered by [_pinSeq] when it
+  /// arrived. A list request started *before* a confirmation can still
+  /// answer with the old `is_pinned`; its rows get the confirmed state put
+  /// back ([_withConfirmedPins]). A request started after it is the server's
+  /// own, current answer and is taken as sent.
+  final _confirmedPins = <int, ({bool pinned, int seq})>{};
+  int _pinSeq = 0;
+
   /// Development-only `[INBOX_PAGINATION]` diagnostics. Observes; never steers.
   final _pagelog = InboxPaginationLog();
   bool _hasBuilt = false;
@@ -417,10 +425,14 @@ class InboxController extends AsyncNotifier<InboxState> {
     ConversationFilters filters, {
     required int navigation,
   }) async {
+    final pinSeq = _pinSeq;
     final result = await _request(filters, 1);
     final page = _pageOf(result, 1);
     return InboxState(
-      groups: appendDeduped(const [], result.results).groups,
+      groups: _withConfirmedPins(
+        appendDeduped(const [], result.results).groups,
+        pinSeq,
+      ),
       page: page,
       totalPages: _totalPages(result, page),
       total: result.count,
@@ -500,6 +512,7 @@ class InboxController extends AsyncNotifier<InboxState> {
       knownTotalPages: current.totalPages,
     );
     state = AsyncData(current.copyWith(isLoadingMore: true));
+    final pinSeq = _pinSeq;
 
     try {
       final result = await _request(filters, page);
@@ -511,7 +524,10 @@ class InboxController extends AsyncNotifier<InboxState> {
       // Re-read: the list may have been patched or merged while this was in
       // flight (a realtime refresh), and the append must land on that.
       final latest = state.value ?? current;
-      final merged = appendDeduped(latest.groups, result.results);
+      final merged = appendDeduped(
+        latest.groups,
+        _withConfirmedPins(result.results, pinSeq),
+      );
       final answered = _pageOf(result, page);
       _pagelog.appended(
         requestedPage: page,
@@ -672,6 +688,7 @@ class InboxController extends AsyncNotifier<InboxState> {
     _pagelog.refresh(currentPage: 1, reason: 'realtime');
 
     final epoch = _epoch;
+    final pinSeq = _pinSeq;
     try {
       final result = await _request(_listFilters, 1);
       if (!ref.mounted) return;
@@ -682,7 +699,10 @@ class InboxController extends AsyncNotifier<InboxState> {
       final latest = state.value;
       if (latest == null) return;
 
-      final head = appendDeduped(const [], result.results).groups;
+      final head = _withConfirmedPins(
+        appendDeduped(const [], result.results).groups,
+        pinSeq,
+      );
       final apply = _atHead;
       // With only the first batch loaded, the fresh head *is* the whole list:
       // anything it lacks is gone from the server's list, not merely further
@@ -772,6 +792,52 @@ class InboxController extends AsyncNotifier<InboxState> {
 
     if (!changed) return;
     state = AsyncData(current.copyWith(groups: updated));
+  }
+
+  /// Records the pin state the server confirmed for [conversationId] and shows
+  /// it on that thread, wherever it is loaded. Only that thread changes: the
+  /// customer's other threads, and every other field of this one, are kept.
+  ///
+  /// Where the row belongs now is the server's call — pinned rows sort first
+  /// within the current filter — so the caller follows with a quiet head
+  /// refresh rather than this reordering anything itself.
+  void applyPinned(int conversationId, {required bool isPinned}) {
+    _confirmedPins[conversationId] = (pinned: isPinned, seq: ++_pinSeq);
+    final current = state.value;
+    if (current == null) return;
+    final updated = _withConfirmedPins(current.groups, _pinSeq - 1);
+    if (identical(updated, current.groups)) return;
+    state = AsyncData(current.copyWith(groups: updated));
+  }
+
+  /// [groups] with every pin confirmed after [sinceSeq] applied to its
+  /// thread. The same list when none applies.
+  List<CustomerConversationGroup> _withConfirmedPins(
+    List<CustomerConversationGroup> groups,
+    int sinceSeq,
+  ) {
+    final newer = <int, bool>{
+      for (final entry in _confirmedPins.entries)
+        if (entry.value.seq > sinceSeq) entry.key: entry.value.pinned,
+    };
+    if (newer.isEmpty) return groups;
+    var changed = false;
+    final out = [
+      for (final group in groups)
+        group.conversations.any(
+              (c) => newer.containsKey(c.id) && c.isPinned != newer[c.id],
+            )
+            ? () {
+                changed = true;
+                return group.mapConversations(
+                  (c) => newer.containsKey(c.id)
+                      ? c.copyWith(isPinned: newer[c.id])
+                      : c,
+                );
+              }()
+            : group,
+    ];
+    return changed ? out : groups;
   }
 
   /// Drops a conversation from the loaded list — it is no longer the agent's

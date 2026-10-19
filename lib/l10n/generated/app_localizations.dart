@@ -6198,6 +6198,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Neutral greys with orange highlights.'**
   String get colorThemeGraphiteOrangeDescription;
+
+  /// Action that pins a conversation for the signed-in employee only.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin conversation'**
+  String get pinConversationAction;
+
+  /// Action that removes the employee's pin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin conversation'**
+  String get unpinConversationAction;
+
+  /// Tooltip and screen-reader label of the pin shown on a pinned conversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get pinnedIndicator;
+
+  /// Shown after the server confirmed a pin.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation pinned'**
+  String get conversationPinnedMessage;
+
+  /// Shown after the server confirmed an unpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation unpinned'**
+  String get conversationUnpinnedMessage;
+
+  /// The server refused a pin because the employee has pinned as many as allowed.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached the maximum number of pinned conversations.'**
+  String get pinLimitReachedMessage;
+
+  /// The conversation was removed or is no longer visible to the employee.
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation is no longer available.'**
+  String get conversationUnavailableMessage;
+
+  /// The server refused a pin for lack of permission.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to pin conversations.'**
+  String get pinPermissionDeniedMessage;
+
+  /// A pin or unpin request failed for a network or server reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the pin. Please try again.'**
+  String get pinRequestFailedMessage;
 }
 
 class _AppLocalizationsDelegate

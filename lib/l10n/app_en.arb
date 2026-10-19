@@ -1899,5 +1899,41 @@
   "colorThemeGraphiteOrangeDescription": "Neutral greys with orange highlights.",
   "@colorThemeGraphiteOrangeDescription": {
     "description": "Graphite Orange colour theme description."
+  },
+  "pinConversationAction": "Pin conversation",
+  "@pinConversationAction": {
+    "description": "Action that pins a conversation for the signed-in employee only."
+  },
+  "unpinConversationAction": "Unpin conversation",
+  "@unpinConversationAction": {
+    "description": "Action that removes the employee's pin."
+  },
+  "pinnedIndicator": "Pinned",
+  "@pinnedIndicator": {
+    "description": "Tooltip and screen-reader label of the pin shown on a pinned conversation."
+  },
+  "conversationPinnedMessage": "Conversation pinned",
+  "@conversationPinnedMessage": {
+    "description": "Shown after the server confirmed a pin."
+  },
+  "conversationUnpinnedMessage": "Conversation unpinned",
+  "@conversationUnpinnedMessage": {
+    "description": "Shown after the server confirmed an unpin."
+  },
+  "pinLimitReachedMessage": "You've reached the maximum number of pinned conversations.",
+  "@pinLimitReachedMessage": {
+    "description": "The server refused a pin because the employee has pinned as many as allowed."
+  },
+  "conversationUnavailableMessage": "This conversation is no longer available.",
+  "@conversationUnavailableMessage": {
+    "description": "The conversation was removed or is no longer visible to the employee."
+  },
+  "pinPermissionDeniedMessage": "You don't have permission to pin conversations.",
+  "@pinPermissionDeniedMessage": {
+    "description": "The server refused a pin for lack of permission."
+  },
+  "pinRequestFailedMessage": "Couldn't update the pin. Please try again.",
+  "@pinRequestFailedMessage": {
+    "description": "A pin or unpin request failed for a network or server reason."
   }
 }

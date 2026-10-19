@@ -3466,4 +3466,35 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get colorThemeGraphiteOrangeDescription =>
       'Neutral greys with orange highlights.';
+
+  @override
+  String get pinConversationAction => 'Pin conversation';
+
+  @override
+  String get unpinConversationAction => 'Unpin conversation';
+
+  @override
+  String get pinnedIndicator => 'Pinned';
+
+  @override
+  String get conversationPinnedMessage => 'Conversation pinned';
+
+  @override
+  String get conversationUnpinnedMessage => 'Conversation unpinned';
+
+  @override
+  String get pinLimitReachedMessage =>
+      'You\'ve reached the maximum number of pinned conversations.';
+
+  @override
+  String get conversationUnavailableMessage =>
+      'This conversation is no longer available.';
+
+  @override
+  String get pinPermissionDeniedMessage =>
+      'You don\'t have permission to pin conversations.';
+
+  @override
+  String get pinRequestFailedMessage =>
+      'Couldn\'t update the pin. Please try again.';
 }

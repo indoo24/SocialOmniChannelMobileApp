@@ -184,6 +184,7 @@ class Conversation {
     this.resolvedAt,
     this.lastAgentMessageAt,
     this.attribution,
+    this.isPinned = false,
   });
 
   final int id;
@@ -247,6 +248,11 @@ class Conversation {
   /// [ConversationAttribution] for the (web-derived) field contract.
   final ConversationAttribution? attribution;
 
+  /// Pinned by the signed-in employee — a personal choice, not shared with
+  /// anyone else's inbox. False when the server sends no `is_pinned` (older
+  /// responses), never guessed.
+  final bool isPinned;
+
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
     id: JsonSafe.asInt(json['id'], fallback: -1),
     customer: CustomerBrief.fromJson(JsonSafe.asMap(json['customer'])),
@@ -307,6 +313,7 @@ class Conversation {
     resolvedAt: _parseDate(json['resolved_at']),
     lastAgentMessageAt: _parseDate(json['last_agent_message_at']),
     attribution: _parseAttribution(json['attribution']),
+    isPinned: JsonSafe.asBool(json['is_pinned']),
   );
 
   /// True when the platform's own limits refuse another message right now.
@@ -354,6 +361,7 @@ class Conversation {
     String? lastMessageDirection,
     String? lastMessageDeliveryStatus,
     List<MessageAttachment>? lastMessageAttachments,
+    bool? isPinned,
   }) => Conversation(
     id: id,
     customer: customer,
@@ -393,6 +401,7 @@ class Conversation {
     resolvedAt: resolvedAt,
     lastAgentMessageAt: lastAgentMessageAt,
     attribution: attribution,
+    isPinned: isPinned ?? this.isPinned,
   );
 }
 

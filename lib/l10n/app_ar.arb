@@ -1090,5 +1090,14 @@
   "colorThemeRoyalPurple": "البنفسجي الملكي",
   "colorThemeRoyalPurpleDescription": "لمسات بنفسجية غنية.",
   "colorThemeGraphiteOrange": "الجرافيت والبرتقالي",
-  "colorThemeGraphiteOrangeDescription": "رمادي محايد مع لمسات برتقالية."
+  "colorThemeGraphiteOrangeDescription": "رمادي محايد مع لمسات برتقالية.",
+  "pinConversationAction": "تثبيت المحادثة",
+  "unpinConversationAction": "إلغاء تثبيت المحادثة",
+  "pinnedIndicator": "مثبّتة",
+  "conversationPinnedMessage": "تم تثبيت المحادثة",
+  "conversationUnpinnedMessage": "تم إلغاء تثبيت المحادثة",
+  "pinLimitReachedMessage": "وصلت إلى الحد الأقصى لعدد المحادثات المثبّتة.",
+  "conversationUnavailableMessage": "هذه المحادثة لم تعد متاحة.",
+  "pinPermissionDeniedMessage": "ليست لديك صلاحية لتثبيت المحادثات.",
+  "pinRequestFailedMessage": "تعذّر تحديث التثبيت. حاول مرة أخرى."
 }

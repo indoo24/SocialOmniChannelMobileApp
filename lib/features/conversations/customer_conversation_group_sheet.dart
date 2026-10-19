@@ -11,6 +11,7 @@ import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'conversation_preview_formatter.dart';
+import 'conversation_pin.dart';
 
 /// Modal bottom sheet showing all WhatsApp conversations for a single customer.
 ///
@@ -245,6 +246,11 @@ class _ConversationOptionCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // Each thread shows its own pin.
+                  if (conversation.isPinned) ...[
+                    const SizedBox(width: Space.xs),
+                    const PinnedIndicator(size: 14),
+                  ],
                   if (isCurrent) ...[
                     const SizedBox(width: Space.xs),
                     StatusBadge(

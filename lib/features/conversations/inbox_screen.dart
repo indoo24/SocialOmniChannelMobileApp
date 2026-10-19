@@ -30,12 +30,14 @@ import '../../core/utils/formatting.dart';
 import '../../core/utils/text_direction.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'conversation_preview_formatter.dart';
+import 'conversation_pin.dart';
 import 'conversation_repository.dart' show ConversationFilters;
 import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
 import 'customer_conversation_group_sheet.dart';
 import 'inbox_controller.dart';
 import 'inbox_filters_sheet.dart';
+import 'inbox_list_merge.dart' show pinnedFirst;
 import 'inbox_quick_filter_bar.dart';
 import 'platform_account_filter_bar.dart';
 
@@ -293,7 +295,10 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                     );
                   }
 
-                  final groups = state.groups;
+                  // Pinned conversations at the top. Display order only:
+                  // the controller keeps the server's order for paging and
+                  // refreshing.
+                  final groups = pinnedFirst(state.groups);
                   // One extra item after the last group while the next batch
                   // loads or after it failed — not a state of its own, so the
                   // loaded rows above it are never replaced or dimmed.
@@ -342,6 +347,10 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                         currentEmployeeId: employee?.id,
                         onTap: () =>
                             context.push(Routes.conversation(conversation.id)),
+                        onLongPress: () => showConversationQuickActions(
+                          context,
+                          conversation: conversation,
+                        ),
                       );
                     },
                   );
@@ -479,6 +488,8 @@ class ConversationGroupRow extends StatelessWidget {
       time: group.lastMessageAt,
       preview: formatConversationPreview(context, group: group),
       unreadCount: group.isUnread ? group.unreadCount : 0,
+      // One of this customer's threads is pinned (each keeps its own pin).
+      pinned: group.hasPinned,
       outboundDeliveryStatus: group.lastMessageDirection == 'OUTBOUND'
           ? group.lastMessageDeliveryStatus
           : null,
@@ -512,12 +523,16 @@ class ConversationRow extends StatelessWidget {
   const ConversationRow({
     required this.conversation,
     required this.onTap,
+    this.onLongPress,
     this.currentEmployeeId,
     super.key,
   });
 
   final Conversation conversation;
   final VoidCallback onTap;
+
+  /// The row's quick actions (pinning); none when null.
+  final VoidCallback? onLongPress;
   final int? currentEmployeeId;
 
   @override
@@ -544,6 +559,7 @@ class ConversationRow extends StatelessWidget {
 
     return _InboxRowLayout(
       onTap: onTap,
+      onLongPress: onLongPress,
       avatar: InitialsAvatar(
         initials: conversation.customer.initials,
         imageUrl: conversation.customer.avatarUrl,
@@ -554,6 +570,7 @@ class ConversationRow extends StatelessWidget {
       time: conversation.lastMessageAt,
       preview: formatConversationPreview(context, conversation: conversation),
       unreadCount: conversation.hasUnread ? conversation.unreadCount : 0,
+      pinned: conversation.isPinned,
       outboundDeliveryStatus: conversation.lastMessageDirection == 'OUTBOUND'
           ? conversation.lastMessageDeliveryStatus
           : null,
@@ -615,6 +632,8 @@ class ConversationRow extends StatelessWidget {
 class _InboxRowLayout extends StatelessWidget {
   const _InboxRowLayout({
     required this.onTap,
+    this.onLongPress,
+    this.pinned = false,
     required this.avatar,
     required this.name,
     required this.time,
@@ -625,6 +644,10 @@ class _InboxRowLayout extends StatelessWidget {
   });
 
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+
+  /// Shows the pin beside the time.
+  final bool pinned;
   final Widget avatar;
   final String name;
   final DateTime? time;
@@ -647,6 +670,7 @@ class _InboxRowLayout extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: Space.lg,
@@ -680,6 +704,10 @@ class _InboxRowLayout extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (pinned) ...[
+                        const SizedBox(width: Space.sm),
+                        const PinnedIndicator(),
+                      ],
                       const SizedBox(width: Space.sm),
                       Text(
                         formatRelativeTime(context, time),
