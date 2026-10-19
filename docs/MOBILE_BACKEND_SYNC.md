@@ -319,6 +319,50 @@ organization would change who can unpin and who sees the marker.
 
 ### R2 — Consult a doctor about a conversation
 
+**Status (2026-10-20): the backend delivered conversation review, and mobile
+has implemented it.** The contract as given to mobile:
+- `POST /api/conversations/{id}/review/` with `{reviewer_id, note?}` asks for a
+  review. With a review already pending, it retargets that one; there is never
+  a second pending review.
+- `DELETE` on the same path withdraws the pending review; `409` when none is
+  pending.
+- `POST …/review/complete/` completes it. Only the named reviewer may, or an
+  `ADMIN` overriding; `409` when none is pending.
+- Each call answers with the conversation, carrying
+  `review {id, status, note, reviewer_id, reviewer_name, requested_by_id,
+  requested_by_name, requested_at}` or `null`.
+- The reviewer must be an active colleague with `conversation.review` who can
+  already open the conversation; otherwise `400`.
+- `docs/api/openapi.yaml` in this repository does not list these yet.
+
+Mobile applies only `review` from these answers. Assignment, claim, team,
+routing and unread state are never touched, the composer stays open while a
+review is pending, and a reply never completes or withdraws one.
+
+Still open for the backend:
+- **The status values.** Mobile shows `status` as sent (only `PENDING` has a
+  translated name). It treats any non-null `review` as the current one, so
+  Withdraw and Change reviewer are offered while one is present, and a `409`
+  re-reads the conversation. If a completed or withdrawn review is also
+  returned, mobile needs the values so it can stop offering those actions.
+- **A list of eligible reviewers.** `GET /employees/` cannot filter by
+  `conversation.review`, so the picker lists every active colleague and the
+  `400` decides. A filter (e.g. `?capability=conversation.review`) would let
+  the picker show only people who can review.
+- **Who may withdraw.** This is undocumented, so mobile offers Withdraw to
+  everyone and relies on `403`.
+- **Realtime and notifications.** There is no event for review changes, so
+  other devices see a change on the next open of the conversation.
+
+**Forwarding.** No forwarding endpoint exists in the API or in this app. The
+supported way to hand a conversation over is `POST /api/conversations/{id}/assign/`
+(`assignee_id` / `team_id`, or `null` to release; `conversation.assign_any`
+for anyone else's work), already in mobile as the Assign picker
+(`assign_conversation_sheet.dart`). Forwarding a message to another
+destination has no contract and is not built.
+
+The original proposal follows for reference.
+
 The agent keeps the conversation (assignment, status and unread state do not
 change); a doctor is asked a question, answers internally, and the agent
 replies to the customer. Nothing the doctor writes may reach the customer.

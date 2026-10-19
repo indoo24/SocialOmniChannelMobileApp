@@ -31,6 +31,7 @@ import '../saved_replies/saved_reply.dart';
 import '../saved_replies/saved_reply_picker.dart';
 import '../../core/models/template.dart';
 import 'assign_conversation_sheet.dart';
+import 'conversation_review.dart' show ConversationReviewBanner;
 import 'composer_attachment.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
@@ -881,6 +882,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         ),
         data: (state) => Column(
           children: [
+            // Above the thread, never in the composer's place: a pending
+            // review leaves replying exactly as it was.
+            if (state.conversation.review case final review?)
+              ConversationReviewBanner(
+                conversationId: widget.conversationId,
+                review: review,
+              ),
             Expanded(
               child: Stack(
                 children: [

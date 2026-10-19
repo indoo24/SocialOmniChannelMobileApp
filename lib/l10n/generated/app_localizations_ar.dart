@@ -3505,4 +3505,102 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pinRequestFailedMessage => 'تعذّر تحديث التثبيت. حاول مرة أخرى.';
+
+  @override
+  String get requestReviewAction => 'طلب مراجعة';
+
+  @override
+  String get changeReviewerAction => 'تغيير المراجِع';
+
+  @override
+  String get withdrawReviewAction => 'سحب طلب المراجعة';
+
+  @override
+  String get completeReviewAction => 'إنهاء المراجعة';
+
+  @override
+  String get reviewSectionTitle => 'المراجعة';
+
+  @override
+  String reviewWithReviewer(String name) {
+    return 'المراجِع: $name';
+  }
+
+  @override
+  String get reviewReviewerLabel => 'المراجِع';
+
+  @override
+  String get reviewRequestedByLabel => 'طلبها';
+
+  @override
+  String get reviewRequestedAtLabel => 'وقت الطلب';
+
+  @override
+  String get reviewStatusLabel => 'الحالة';
+
+  @override
+  String get reviewNoteLabel => 'الملاحظة';
+
+  @override
+  String get reviewStatusPending => 'قيد الانتظار';
+
+  @override
+  String get reviewExplanation =>
+      'يطّلع زميل على هذه المحادثة. تبقى المحادثة مُسندة كما هي، ويمكنك متابعة الرد.';
+
+  @override
+  String get reviewChooseReviewerHint => 'اختر زميلًا يمكنه مراجعة المحادثات.';
+
+  @override
+  String get reviewNoteHint => 'ما الذي ينبغي أن يطّلع عليه المراجِع؟';
+
+  @override
+  String get reviewSubmitButton => 'إرسال الطلب';
+
+  @override
+  String get reviewReviewerRequired => 'اختر مراجِعًا.';
+
+  @override
+  String get reviewNoColleaguesFound => 'لم يُعثر على زملاء.';
+
+  @override
+  String get reviewCurrentReviewerLabel => 'المراجِع الحالي';
+
+  @override
+  String reviewRequestedMessage(String name) {
+    return 'تم طلب المراجعة من $name';
+  }
+
+  @override
+  String reviewerChangedMessage(String name) {
+    return 'تم تغيير المراجِع إلى $name';
+  }
+
+  @override
+  String get reviewWithdrawnMessage => 'تم سحب طلب المراجعة';
+
+  @override
+  String get reviewCompletedMessage => 'اكتملت المراجعة';
+
+  @override
+  String get withdrawReviewConfirmTitle => 'سحب طلب المراجعة؟';
+
+  @override
+  String get withdrawReviewConfirmMessage =>
+      'لن يُطلب من المراجِع الاطلاع على هذه المحادثة بعد الآن.';
+
+  @override
+  String get reviewReviewerNotEligibleMessage =>
+      'لا يمكن طلب مراجعة هذه المحادثة من هذا الشخص.';
+
+  @override
+  String get reviewPermissionDeniedMessage => 'ليست لديك صلاحية للقيام بذلك.';
+
+  @override
+  String get reviewNotPendingMessage =>
+      'لا توجد مراجعة معلّقة على هذه المحادثة.';
+
+  @override
+  String get reviewRequestFailedMessage =>
+      'تعذّر تحديث المراجعة. حاول مرة أخرى.';
 }

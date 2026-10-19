@@ -537,6 +537,46 @@ class ConversationRepository {
     return pinned;
   }
 
+  /// Asks [reviewerId] to review the conversation — or, when a review is
+  /// already pending, retargets that request to them (the server keeps one
+  /// pending review, never two). Not an assignment: the conversation keeps
+  /// its assignee, claim and team. [note] is left out when blank.
+  ///
+  /// Returns the conversation as the server now holds it; its `review` is
+  /// the confirmed one.
+  Future<Conversation> requestReview(
+    int conversationId, {
+    required int reviewerId,
+    String note = '',
+  }) async {
+    final data = await _api.post<dynamic>(
+      '/conversations/$conversationId/review/',
+      body: {
+        'reviewer_id': reviewerId,
+        if (note.trim().isNotEmpty) 'note': note.trim(),
+      },
+    );
+    return Conversation.fromJson(JsonSafe.asMap(data));
+  }
+
+  /// Withdraws the pending review. `409` when none is pending.
+  Future<Conversation> withdrawReview(int conversationId) async {
+    final data = await _api.delete<dynamic>(
+      '/conversations/$conversationId/review/',
+    );
+    return Conversation.fromJson(JsonSafe.asMap(data));
+  }
+
+  /// Completes the pending review — the named reviewer's call, or an
+  /// ADMIN's. Separate from replying: no message is sent. `409` when none
+  /// is pending.
+  Future<Conversation> completeReview(int conversationId) async {
+    final data = await _api.post<dynamic>(
+      '/conversations/$conversationId/review/complete/',
+    );
+    return Conversation.fromJson(JsonSafe.asMap(data));
+  }
+
   Future<List<InternalNote>> notes(int conversationId) async {
     final data = await _api.get<dynamic>(
       '/conversations/$conversationId/notes/',

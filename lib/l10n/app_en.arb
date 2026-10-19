@@ -1935,5 +1935,136 @@
   "pinRequestFailedMessage": "Couldn't update the pin. Please try again.",
   "@pinRequestFailedMessage": {
     "description": "A pin or unpin request failed for a network or server reason."
+  },
+  "requestReviewAction": "Request review",
+  "@requestReviewAction": {
+    "description": "Action that asks a colleague to review the conversation."
+  },
+  "changeReviewerAction": "Change reviewer",
+  "@changeReviewerAction": {
+    "description": "Action that sends the pending review request to a different colleague."
+  },
+  "withdrawReviewAction": "Withdraw review",
+  "@withdrawReviewAction": {
+    "description": "Action that withdraws the pending review request."
+  },
+  "completeReviewAction": "Mark review complete",
+  "@completeReviewAction": {
+    "description": "Action, for the reviewer (or an admin), that completes the review. It sends nothing to the customer."
+  },
+  "reviewSectionTitle": "Review",
+  "@reviewSectionTitle": {
+    "description": "Title of the conversation review sheet and banner."
+  },
+  "reviewWithReviewer": "Reviewer: {name}",
+  "@reviewWithReviewer": {
+    "description": "Banner line naming the colleague asked to review.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewReviewerLabel": "Reviewer",
+  "@reviewReviewerLabel": {
+    "description": "Field label."
+  },
+  "reviewRequestedByLabel": "Requested by",
+  "@reviewRequestedByLabel": {
+    "description": "Field label: who asked for the review."
+  },
+  "reviewRequestedAtLabel": "Requested",
+  "@reviewRequestedAtLabel": {
+    "description": "Field label: when the review was asked for."
+  },
+  "reviewStatusLabel": "Status",
+  "@reviewStatusLabel": {
+    "description": "Field label: the review status."
+  },
+  "reviewNoteLabel": "Note",
+  "@reviewNoteLabel": {
+    "description": "Field label: the note sent with the review request."
+  },
+  "reviewStatusPending": "Pending",
+  "@reviewStatusPending": {
+    "description": "Display name of the PENDING review status."
+  },
+  "reviewExplanation": "A colleague looks over this conversation. It stays assigned as it is, and you can keep replying.",
+  "@reviewExplanation": {
+    "description": "Explains, in the request sheet, that a review is not a transfer."
+  },
+  "reviewChooseReviewerHint": "Choose a colleague who can review conversations.",
+  "@reviewChooseReviewerHint": {
+    "description": "Hint above the reviewer list."
+  },
+  "reviewNoteHint": "What should the reviewer look at?",
+  "@reviewNoteHint": {
+    "description": "Hint in the optional note field."
+  },
+  "reviewSubmitButton": "Send request",
+  "@reviewSubmitButton": {
+    "description": "Submits the review request."
+  },
+  "reviewReviewerRequired": "Choose a reviewer.",
+  "@reviewReviewerRequired": {
+    "description": "Validation: no reviewer picked."
+  },
+  "reviewNoColleaguesFound": "No colleagues found.",
+  "@reviewNoColleaguesFound": {
+    "description": "The reviewer list is empty."
+  },
+  "reviewCurrentReviewerLabel": "Current reviewer",
+  "@reviewCurrentReviewerLabel": {
+    "description": "Marks the colleague the pending review is with."
+  },
+  "reviewRequestedMessage": "Review requested from {name}",
+  "@reviewRequestedMessage": {
+    "description": "Shown after the server confirmed a review request.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewerChangedMessage": "Reviewer changed to {name}",
+  "@reviewerChangedMessage": {
+    "description": "Shown after the server confirmed a retargeted review.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewWithdrawnMessage": "Review withdrawn",
+  "@reviewWithdrawnMessage": {
+    "description": "Shown after the server confirmed a withdrawal."
+  },
+  "reviewCompletedMessage": "Review completed",
+  "@reviewCompletedMessage": {
+    "description": "Shown after the server confirmed the review is complete."
+  },
+  "withdrawReviewConfirmTitle": "Withdraw this review?",
+  "@withdrawReviewConfirmTitle": {
+    "description": "Confirmation dialog title."
+  },
+  "withdrawReviewConfirmMessage": "The reviewer will no longer be asked to look at this conversation.",
+  "@withdrawReviewConfirmMessage": {
+    "description": "Confirmation dialog body."
+  },
+  "reviewReviewerNotEligibleMessage": "This person can't be asked to review this conversation.",
+  "@reviewReviewerNotEligibleMessage": {
+    "description": "The server refused the chosen reviewer (400)."
+  },
+  "reviewPermissionDeniedMessage": "You don't have permission to do this.",
+  "@reviewPermissionDeniedMessage": {
+    "description": "The server refused a review action for lack of permission (403)."
+  },
+  "reviewNotPendingMessage": "There's no review pending on this conversation.",
+  "@reviewNotPendingMessage": {
+    "description": "Withdraw or complete found no pending review (409)."
+  },
+  "reviewRequestFailedMessage": "Couldn't update the review. Please try again.",
+  "@reviewRequestFailedMessage": {
+    "description": "A review action failed for a network or server reason."
   }
 }

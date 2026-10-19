@@ -26,7 +26,8 @@ import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
 import 'assign_conversation_sheet.dart';
 import 'conversation_controller.dart';
-import 'conversation_resolve_button.dart' show showResolveUndoSnackBar;
+import 'conversation_review.dart'
+    show showConversationReviewSheet, showRequestReviewSheet;
 import 'conversation_history_sheet.dart';
 import 'conversion_sheet.dart';
 import 'customer_intelligence_section.dart';
@@ -248,42 +249,19 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
           ),
 
         // ------------------------------------------------------------
-        // TOP RESOLVED ACTION BUTTON
+        // TOP QUICK ACTIONS: PIN AND REVIEW
         // ------------------------------------------------------------
-        Row(
-          children: [
-            Expanded(
-              child: _SheetResolveButton(
-                conversation: conversation,
-                canChange: canChangeStatus && conversation != null,
-                busy: _busy,
-                onResolve: () {
-                  // What Undo goes back to; read before the request changes it.
-                  final previousStatus = conversation!.status;
-                  _run(
-                    () => repository.changeStatus(
-                      widget.conversationId,
-                      'RESOLVED',
-                    ),
-                    context.l10n.statusUpdatedMessage,
-                    onSuccess: (context) => showResolveUndoSnackBar(
-                      context,
-                      conversationId: widget.conversationId,
-                      previousStatus: previousStatus,
-                    ),
-                  );
-                },
-              ),
-            ),
-            // Beside Resolve rather than under it: pinning is quick and
-            // personal, and the sheet keeps its height.
-            if (conversation != null) ...[
+        // Resolve lives in the conversation's top bar.
+        if (conversation != null) ...[
+          Row(
+            children: [
+              Expanded(child: _SheetPinButton(conversation: conversation)),
               const SizedBox(width: Space.sm),
-              _SheetPinButton(conversation: conversation),
+              Expanded(child: _SheetReviewButton(conversation: conversation)),
             ],
-          ],
-        ),
-        const SizedBox(height: Space.lg),
+          ),
+          const SizedBox(height: Space.lg),
+        ],
 
         // ------------------------------------------------------------
         // 1. CONTACT SECTION
@@ -1665,9 +1643,7 @@ class _Label extends StatelessWidget {
   );
 }
 
-/// Prominent "Resolved" action button displayed at the top of the actions bottom sheet,
-/// styled with the Web green resolve tokens.
-/// Pin / unpin for the signed-in employee. The label follows the state the
+/// Pin / unpin for the signed-in employee. The title follows the state the
 /// server confirmed (this sheet shows the conversation's controller), and
 /// the button waits while a request is on its way.
 class _SheetPinButton extends ConsumerWidget {
@@ -1679,26 +1655,90 @@ class _SheetPinButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final busy = ref.watch(pinningProvider).contains(conversation.id);
     final (label, icon) = pinActionLabel(context.l10n, conversation.isPinned);
-    final colors = AppColors.of(context);
-    return IconButton.outlined(
+    return _SheetQuickAction(
       key: const Key('conversation_actions_sheet_pin_button'),
-      // The label, as tooltip and for screen readers, says what a tap does.
-      tooltip: label,
-      isSelected: conversation.isPinned,
-      constraints: const BoxConstraints(minWidth: 46, minHeight: 46),
-      style: IconButton.styleFrom(
-        side: BorderSide(color: colors.border),
+      icon: icon,
+      label: label,
+      selected: conversation.isPinned,
+      busy: busy,
+      onPressed: () => toggleConversationPin(
+        context,
+        conversationId: conversation.id,
+        currentlyPinned: conversation.isPinned,
+      ),
+    );
+  }
+}
+
+/// Request a review when there is none; open the pending one otherwise,
+/// highlighted as a pinned pin is.
+class _SheetReviewButton extends StatelessWidget {
+  const _SheetReviewButton({required this.conversation});
+
+  final Conversation conversation;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final review = conversation.review;
+    return _SheetQuickAction(
+      key: const Key('conversation_actions_sheet_review_button'),
+      icon: review == null ? Icons.rate_review_outlined : Icons.rate_review,
+      label: review == null
+          ? l10n.requestReviewAction
+          : l10n.reviewSectionTitle,
+      selected: review != null,
+      onPressed: () => review == null
+          ? showRequestReviewSheet(context, conversationId: conversation.id)
+          : showConversationReviewSheet(
+              context,
+              conversationId: conversation.id,
+            ),
+    );
+  }
+}
+
+/// An icon with its title, outlined; tinted in the primary colour while
+/// [selected]. A spinner stands in for the icon while [busy].
+class _SheetQuickAction extends StatelessWidget {
+  const _SheetQuickAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.selected = false,
+    this.busy = false,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final bool selected;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return OutlinedButton.icon(
+      onPressed: busy ? null : onPressed,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 46),
+        padding: const EdgeInsets.symmetric(horizontal: Space.sm),
+        foregroundColor: selected
+            ? colors.primary
+            : Theme.of(context).colorScheme.onSurface,
+        backgroundColor: selected
+            ? colors.primary.withValues(alpha: 0.08)
+            : null,
+        side: BorderSide(
+          color: selected
+              ? colors.primary.withValues(alpha: 0.5)
+              : colors.border,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Radii.md),
         ),
       ),
-      onPressed: busy
-          ? null
-          : () => toggleConversationPin(
-              context,
-              conversationId: conversation.id,
-              currentlyPinned: conversation.isPinned,
-            ),
       icon: busy
           ? const SizedBox(
               width: 18,
@@ -1706,113 +1746,7 @@ class _SheetPinButton extends ConsumerWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : Icon(icon, size: 20),
-      selectedIcon: busy ? null : Icon(icon, size: 20, color: colors.primary),
-    );
-  }
-}
-
-class _SheetResolveButton extends StatelessWidget {
-  const _SheetResolveButton({
-    required this.conversation,
-    required this.canChange,
-    required this.busy,
-    required this.onResolve,
-  });
-
-  final Conversation? conversation;
-  final bool canChange;
-  final bool busy;
-  final VoidCallback onResolve;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isResolved = conversation?.status.toUpperCase() == 'RESOLVED';
-
-    final Color backgroundColor = isDark
-        ? const Color(0xFF065F46).withValues(alpha: isResolved ? 0.35 : 0.20)
-        : (isResolved ? const Color(0xFFD1FAE5) : const Color(0xFFECFDF5));
-
-    final Color borderColor = isDark
-        ? const Color(0xFF059669)
-        : const Color(0xFF6EE7B7);
-
-    final Color foregroundColor = isDark
-        ? const Color(0xFF6EE7B7)
-        : const Color(0xFF065F46);
-
-    final bool isEnabled = canChange && !busy && !isResolved;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        key: const Key('conversation_actions_sheet_resolve_button'),
-        borderRadius: BorderRadius.circular(Radii.md),
-        onTap: isEnabled
-            ? onResolve
-            : (isResolved
-                  ? () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(context.l10n.statusUpdatedMessage),
-                        ),
-                      );
-                    }
-                  : null),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(
-            horizontal: Space.md,
-            vertical: 12.0,
-          ),
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(Radii.md),
-            border: Border.all(color: borderColor, width: 1.0),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (busy)
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: foregroundColor,
-                  ),
-                )
-              else
-                Icon(
-                  isResolved ? Icons.check_circle_rounded : Icons.check_rounded,
-                  size: 18,
-                  color: foregroundColor,
-                ),
-              const SizedBox(width: Space.sm),
-              Text(
-                context.l10n.statusResolved,
-                style: TextStyle(
-                  color: foregroundColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
-                ),
-              ),
-              if (isResolved) ...[
-                const SizedBox(width: Space.xs),
-                Text(
-                  '✓',
-                  style: TextStyle(
-                    color: foregroundColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
     );
   }
 }

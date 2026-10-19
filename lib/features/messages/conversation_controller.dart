@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/models/conversation.dart';
+import '../../core/models/conversation_review.dart';
 import '../../core/models/message.dart';
 import '../../core/models/template.dart';
 import '../../core/providers.dart';
@@ -263,6 +264,22 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     state = AsyncData(
       current.copyWith(
         conversation: current.conversation.copyWith(isPinned: isPinned),
+      ),
+    );
+  }
+
+  /// Shows the review the server confirmed — [review] null when it reports
+  /// none. Only the review changes; assignment, claim, status and unread
+  /// state stay as loaded.
+  void applyReview(ConversationReview? review) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(
+      current.copyWith(
+        conversation: current.conversation.copyWith(
+          review: review,
+          clearReview: review == null,
+        ),
       ),
     );
   }

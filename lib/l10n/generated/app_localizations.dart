@@ -6252,6 +6252,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t update the pin. Please try again.'**
   String get pinRequestFailedMessage;
+
+  /// Action that asks a colleague to review the conversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Request review'**
+  String get requestReviewAction;
+
+  /// Action that sends the pending review request to a different colleague.
+  ///
+  /// In en, this message translates to:
+  /// **'Change reviewer'**
+  String get changeReviewerAction;
+
+  /// Action that withdraws the pending review request.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw review'**
+  String get withdrawReviewAction;
+
+  /// Action, for the reviewer (or an admin), that completes the review. It sends nothing to the customer.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark review complete'**
+  String get completeReviewAction;
+
+  /// Title of the conversation review sheet and banner.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get reviewSectionTitle;
+
+  /// Banner line naming the colleague asked to review.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewer: {name}'**
+  String reviewWithReviewer(String name);
+
+  /// Field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewer'**
+  String get reviewReviewerLabel;
+
+  /// Field label: who asked for the review.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested by'**
+  String get reviewRequestedByLabel;
+
+  /// Field label: when the review was asked for.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested'**
+  String get reviewRequestedAtLabel;
+
+  /// Field label: the review status.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get reviewStatusLabel;
+
+  /// Field label: the note sent with the review request.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get reviewNoteLabel;
+
+  /// Display name of the PENDING review status.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get reviewStatusPending;
+
+  /// Explains, in the request sheet, that a review is not a transfer.
+  ///
+  /// In en, this message translates to:
+  /// **'A colleague looks over this conversation. It stays assigned as it is, and you can keep replying.'**
+  String get reviewExplanation;
+
+  /// Hint above the reviewer list.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a colleague who can review conversations.'**
+  String get reviewChooseReviewerHint;
+
+  /// Hint in the optional note field.
+  ///
+  /// In en, this message translates to:
+  /// **'What should the reviewer look at?'**
+  String get reviewNoteHint;
+
+  /// Submits the review request.
+  ///
+  /// In en, this message translates to:
+  /// **'Send request'**
+  String get reviewSubmitButton;
+
+  /// Validation: no reviewer picked.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a reviewer.'**
+  String get reviewReviewerRequired;
+
+  /// The reviewer list is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No colleagues found.'**
+  String get reviewNoColleaguesFound;
+
+  /// Marks the colleague the pending review is with.
+  ///
+  /// In en, this message translates to:
+  /// **'Current reviewer'**
+  String get reviewCurrentReviewerLabel;
+
+  /// Shown after the server confirmed a review request.
+  ///
+  /// In en, this message translates to:
+  /// **'Review requested from {name}'**
+  String reviewRequestedMessage(String name);
+
+  /// Shown after the server confirmed a retargeted review.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewer changed to {name}'**
+  String reviewerChangedMessage(String name);
+
+  /// Shown after the server confirmed a withdrawal.
+  ///
+  /// In en, this message translates to:
+  /// **'Review withdrawn'**
+  String get reviewWithdrawnMessage;
+
+  /// Shown after the server confirmed the review is complete.
+  ///
+  /// In en, this message translates to:
+  /// **'Review completed'**
+  String get reviewCompletedMessage;
+
+  /// Confirmation dialog title.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw this review?'**
+  String get withdrawReviewConfirmTitle;
+
+  /// Confirmation dialog body.
+  ///
+  /// In en, this message translates to:
+  /// **'The reviewer will no longer be asked to look at this conversation.'**
+  String get withdrawReviewConfirmMessage;
+
+  /// The server refused the chosen reviewer (400).
+  ///
+  /// In en, this message translates to:
+  /// **'This person can\'t be asked to review this conversation.'**
+  String get reviewReviewerNotEligibleMessage;
+
+  /// The server refused a review action for lack of permission (403).
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to do this.'**
+  String get reviewPermissionDeniedMessage;
+
+  /// Withdraw or complete found no pending review (409).
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s no review pending on this conversation.'**
+  String get reviewNotPendingMessage;
+
+  /// A review action failed for a network or server reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the review. Please try again.'**
+  String get reviewRequestFailedMessage;
 }
 
 class _AppLocalizationsDelegate

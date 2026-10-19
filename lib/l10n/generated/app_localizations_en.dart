@@ -3497,4 +3497,104 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get pinRequestFailedMessage =>
       'Couldn\'t update the pin. Please try again.';
+
+  @override
+  String get requestReviewAction => 'Request review';
+
+  @override
+  String get changeReviewerAction => 'Change reviewer';
+
+  @override
+  String get withdrawReviewAction => 'Withdraw review';
+
+  @override
+  String get completeReviewAction => 'Mark review complete';
+
+  @override
+  String get reviewSectionTitle => 'Review';
+
+  @override
+  String reviewWithReviewer(String name) {
+    return 'Reviewer: $name';
+  }
+
+  @override
+  String get reviewReviewerLabel => 'Reviewer';
+
+  @override
+  String get reviewRequestedByLabel => 'Requested by';
+
+  @override
+  String get reviewRequestedAtLabel => 'Requested';
+
+  @override
+  String get reviewStatusLabel => 'Status';
+
+  @override
+  String get reviewNoteLabel => 'Note';
+
+  @override
+  String get reviewStatusPending => 'Pending';
+
+  @override
+  String get reviewExplanation =>
+      'A colleague looks over this conversation. It stays assigned as it is, and you can keep replying.';
+
+  @override
+  String get reviewChooseReviewerHint =>
+      'Choose a colleague who can review conversations.';
+
+  @override
+  String get reviewNoteHint => 'What should the reviewer look at?';
+
+  @override
+  String get reviewSubmitButton => 'Send request';
+
+  @override
+  String get reviewReviewerRequired => 'Choose a reviewer.';
+
+  @override
+  String get reviewNoColleaguesFound => 'No colleagues found.';
+
+  @override
+  String get reviewCurrentReviewerLabel => 'Current reviewer';
+
+  @override
+  String reviewRequestedMessage(String name) {
+    return 'Review requested from $name';
+  }
+
+  @override
+  String reviewerChangedMessage(String name) {
+    return 'Reviewer changed to $name';
+  }
+
+  @override
+  String get reviewWithdrawnMessage => 'Review withdrawn';
+
+  @override
+  String get reviewCompletedMessage => 'Review completed';
+
+  @override
+  String get withdrawReviewConfirmTitle => 'Withdraw this review?';
+
+  @override
+  String get withdrawReviewConfirmMessage =>
+      'The reviewer will no longer be asked to look at this conversation.';
+
+  @override
+  String get reviewReviewerNotEligibleMessage =>
+      'This person can\'t be asked to review this conversation.';
+
+  @override
+  String get reviewPermissionDeniedMessage =>
+      'You don\'t have permission to do this.';
+
+  @override
+  String get reviewNotPendingMessage =>
+      'There\'s no review pending on this conversation.';
+
+  @override
+  String get reviewRequestFailedMessage =>
+      'Couldn\'t update the review. Please try again.';
 }

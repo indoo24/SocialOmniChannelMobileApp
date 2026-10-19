@@ -696,17 +696,20 @@ void main() {
       final button = find.byKey(
         const Key('conversation_actions_sheet_pin_button'),
       );
-      expect(find.byTooltip('Pin conversation'), findsOneWidget);
+      // The button carries its title beside the icon.
+      Finder titled(String title) =>
+          find.descendant(of: button, matching: find.text(title));
+      expect(titled('Pin conversation'), findsOneWidget);
       await tester.tap(button);
       await tester.pumpAndSettle();
 
       expect(server.pinRequests, ['POST /conversations/3/pin/']);
-      expect(find.byTooltip('Unpin conversation'), findsOneWidget);
+      expect(titled('Unpin conversation'), findsOneWidget);
 
       await tester.tap(button);
       await tester.pumpAndSettle();
       expect(server.pinRequests.last, 'DELETE /conversations/3/pin/');
-      expect(find.byTooltip('Pin conversation'), findsOneWidget);
+      expect(titled('Pin conversation'), findsOneWidget);
     });
 
     Future<void> pinFromQuickActions(
