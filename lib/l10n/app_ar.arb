@@ -1132,5 +1132,18 @@
   "needsReviewFilter": "تحتاج مراجعة",
   "resolvedFilter": "محلولة",
   "noReviewsWaitingTitle": "لا توجد مراجعات",
-  "noReviewsWaitingMessage": "ستظهر هنا المحادثات التي يطلب منك زملاؤك مراجعتها."
+  "noReviewsWaitingMessage": "ستظهر هنا المحادثات التي يطلب منك زملاؤك مراجعتها.",
+  "startupOfflineTitle": "مفيش اتصال بالإنترنت",
+  "startupOfflineMessage": "اتأكد إن الواي فاي أو بيانات الهاتف شغالة، وبعدها حاول تاني.",
+  "startupUnreachableTitle": "مش قادرين نوصل للسيرفر",
+  "startupUnreachableMessage": "الجهاز متصل بشبكة، بس مش قادرين نوصل للسيرفر. ممكن الشبكة مفيهاش إنترنت، أو السيرفر مش متاح مؤقتًا.",
+  "startupServerErrorTitle": "السيرفر مش بيرد دلوقتي",
+  "startupServerErrorMessage": "المشكلة عندنا، مش في الاتصال عندك. حاول تاني بعد شوية.",
+  "startupRetryButton": "إعادة المحاولة",
+  "startupRetryingButton": "جاري المحاولة…",
+  "startupStillOffline": "لسه مفيش اتصال. اتأكد من الواي فاي أو بيانات الهاتف.",
+  "startupStillUnreachable": "لسه مش قادرين نوصل للسيرفر.",
+  "startupStillServerError": "السيرفر لسه مش بيرد.",
+  "startupAutoRetryHint": "هنحاول تاني تلقائيًا أول ما الاتصال يرجع.",
+  "startupSessionKeptHint": "لسه مسجّل دخولك."
 }

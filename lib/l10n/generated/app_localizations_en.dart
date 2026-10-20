@@ -3610,4 +3610,48 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noReviewsWaitingMessage =>
       'Conversations colleagues ask you to review will appear here.';
+
+  @override
+  String get startupOfflineTitle => 'No internet connection';
+
+  @override
+  String get startupOfflineMessage =>
+      'Make sure Wi-Fi or mobile data is on, then try again.';
+
+  @override
+  String get startupUnreachableTitle => 'Can\'t reach the server';
+
+  @override
+  String get startupUnreachableMessage =>
+      'You\'re connected to a network, but the server can\'t be reached. The network may not have internet access, or the server may be temporarily unavailable.';
+
+  @override
+  String get startupServerErrorTitle => 'The server isn\'t responding';
+
+  @override
+  String get startupServerErrorMessage =>
+      'The problem is on our side, not your connection. Please try again in a moment.';
+
+  @override
+  String get startupRetryButton => 'Try again';
+
+  @override
+  String get startupRetryingButton => 'Trying again…';
+
+  @override
+  String get startupStillOffline =>
+      'Still no connection. Check Wi-Fi or mobile data.';
+
+  @override
+  String get startupStillUnreachable => 'Still can\'t reach the server.';
+
+  @override
+  String get startupStillServerError => 'The server still isn\'t responding.';
+
+  @override
+  String get startupAutoRetryHint =>
+      'We\'ll try again automatically when you\'re back online.';
+
+  @override
+  String get startupSessionKeptHint => 'You\'re still signed in.';
 }

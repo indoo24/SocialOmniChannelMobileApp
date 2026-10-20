@@ -2082,5 +2082,57 @@
   "noReviewsWaitingMessage": "Conversations colleagues ask you to review will appear here.",
   "@noReviewsWaitingMessage": {
     "description": "Need review tab, empty: what will appear here."
+  },
+  "startupOfflineTitle": "No internet connection",
+  "@startupOfflineTitle": {
+    "description": "Launch: no network interface is up."
+  },
+  "startupOfflineMessage": "Make sure Wi-Fi or mobile data is on, then try again.",
+  "@startupOfflineMessage": {
+    "description": "Launch, offline: what to do."
+  },
+  "startupUnreachableTitle": "Can't reach the server",
+  "@startupUnreachableTitle": {
+    "description": "Launch: a network is up but the server could not be reached."
+  },
+  "startupUnreachableMessage": "You're connected to a network, but the server can't be reached. The network may not have internet access, or the server may be temporarily unavailable.",
+  "@startupUnreachableMessage": {
+    "description": "Launch, unreachable: what may be wrong."
+  },
+  "startupServerErrorTitle": "The server isn't responding",
+  "@startupServerErrorTitle": {
+    "description": "Launch: the server answered with an error (5xx)."
+  },
+  "startupServerErrorMessage": "The problem is on our side, not your connection. Please try again in a moment.",
+  "@startupServerErrorMessage": {
+    "description": "Launch, server error: what to do."
+  },
+  "startupRetryButton": "Try again",
+  "@startupRetryButton": {
+    "description": "Launch retry button."
+  },
+  "startupRetryingButton": "Trying again…",
+  "@startupRetryingButton": {
+    "description": "Launch retry button while the retry runs."
+  },
+  "startupStillOffline": "Still no connection. Check Wi-Fi or mobile data.",
+  "@startupStillOffline": {
+    "description": "A requested retry found no network again."
+  },
+  "startupStillUnreachable": "Still can't reach the server.",
+  "@startupStillUnreachable": {
+    "description": "A requested retry could not reach the server again."
+  },
+  "startupStillServerError": "The server still isn't responding.",
+  "@startupStillServerError": {
+    "description": "A requested retry got a server error again."
+  },
+  "startupAutoRetryHint": "We'll try again automatically when you're back online.",
+  "@startupAutoRetryHint": {
+    "description": "Launch, offline: an automatic retry follows the network coming back."
+  },
+  "startupSessionKeptHint": "You're still signed in.",
+  "@startupSessionKeptHint": {
+    "description": "Launch: the stored session was kept."
   }
 }

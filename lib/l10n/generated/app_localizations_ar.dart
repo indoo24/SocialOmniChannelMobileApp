@@ -3616,4 +3616,48 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get noReviewsWaitingMessage =>
       'ستظهر هنا المحادثات التي يطلب منك زملاؤك مراجعتها.';
+
+  @override
+  String get startupOfflineTitle => 'مفيش اتصال بالإنترنت';
+
+  @override
+  String get startupOfflineMessage =>
+      'اتأكد إن الواي فاي أو بيانات الهاتف شغالة، وبعدها حاول تاني.';
+
+  @override
+  String get startupUnreachableTitle => 'مش قادرين نوصل للسيرفر';
+
+  @override
+  String get startupUnreachableMessage =>
+      'الجهاز متصل بشبكة، بس مش قادرين نوصل للسيرفر. ممكن الشبكة مفيهاش إنترنت، أو السيرفر مش متاح مؤقتًا.';
+
+  @override
+  String get startupServerErrorTitle => 'السيرفر مش بيرد دلوقتي';
+
+  @override
+  String get startupServerErrorMessage =>
+      'المشكلة عندنا، مش في الاتصال عندك. حاول تاني بعد شوية.';
+
+  @override
+  String get startupRetryButton => 'إعادة المحاولة';
+
+  @override
+  String get startupRetryingButton => 'جاري المحاولة…';
+
+  @override
+  String get startupStillOffline =>
+      'لسه مفيش اتصال. اتأكد من الواي فاي أو بيانات الهاتف.';
+
+  @override
+  String get startupStillUnreachable => 'لسه مش قادرين نوصل للسيرفر.';
+
+  @override
+  String get startupStillServerError => 'السيرفر لسه مش بيرد.';
+
+  @override
+  String get startupAutoRetryHint =>
+      'هنحاول تاني تلقائيًا أول ما الاتصال يرجع.';
+
+  @override
+  String get startupSessionKeptHint => 'لسه مسجّل دخولك.';
 }

@@ -6450,6 +6450,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Conversations colleagues ask you to review will appear here.'**
   String get noReviewsWaitingMessage;
+
+  /// Launch: no network interface is up.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection'**
+  String get startupOfflineTitle;
+
+  /// Launch, offline: what to do.
+  ///
+  /// In en, this message translates to:
+  /// **'Make sure Wi-Fi or mobile data is on, then try again.'**
+  String get startupOfflineMessage;
+
+  /// Launch: a network is up but the server could not be reached.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t reach the server'**
+  String get startupUnreachableTitle;
+
+  /// Launch, unreachable: what may be wrong.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re connected to a network, but the server can\'t be reached. The network may not have internet access, or the server may be temporarily unavailable.'**
+  String get startupUnreachableMessage;
+
+  /// Launch: the server answered with an error (5xx).
+  ///
+  /// In en, this message translates to:
+  /// **'The server isn\'t responding'**
+  String get startupServerErrorTitle;
+
+  /// Launch, server error: what to do.
+  ///
+  /// In en, this message translates to:
+  /// **'The problem is on our side, not your connection. Please try again in a moment.'**
+  String get startupServerErrorMessage;
+
+  /// Launch retry button.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get startupRetryButton;
+
+  /// Launch retry button while the retry runs.
+  ///
+  /// In en, this message translates to:
+  /// **'Trying again…'**
+  String get startupRetryingButton;
+
+  /// A requested retry found no network again.
+  ///
+  /// In en, this message translates to:
+  /// **'Still no connection. Check Wi-Fi or mobile data.'**
+  String get startupStillOffline;
+
+  /// A requested retry could not reach the server again.
+  ///
+  /// In en, this message translates to:
+  /// **'Still can\'t reach the server.'**
+  String get startupStillUnreachable;
+
+  /// A requested retry got a server error again.
+  ///
+  /// In en, this message translates to:
+  /// **'The server still isn\'t responding.'**
+  String get startupStillServerError;
+
+  /// Launch, offline: an automatic retry follows the network coming back.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll try again automatically when you\'re back online.'**
+  String get startupAutoRetryHint;
+
+  /// Launch: the stored session was kept.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re still signed in.'**
+  String get startupSessionKeptHint;
 }
 
 class _AppLocalizationsDelegate

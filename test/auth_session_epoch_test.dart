@@ -38,6 +38,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scenario_mobile/core/api/api_client.dart';
 import 'package:scenario_mobile/core/api/api_exception.dart';
+import 'package:scenario_mobile/core/network/connectivity_monitor.dart';
 import 'package:scenario_mobile/core/config/environment.dart';
 import 'package:scenario_mobile/core/models/employee.dart';
 import 'package:scenario_mobile/core/notifications/push_bridge.dart';
@@ -274,16 +275,35 @@ class _HeldRealtime extends RealtimeClient {
   }
 }
 
+/// Whether a network interface is up, as the test says.
+class _FakeMonitor implements ConnectivityMonitor {
+  _FakeMonitor(this.network);
+
+  bool? network;
+
+  @override
+  Future<bool?> hasNetwork() async => network;
+
+  @override
+  Stream<bool> get changes => const Stream.empty();
+}
+
 class _Harness {
-  _Harness({CookieJar? jar, _MemoryStore? store, RealtimeClient? realtime})
-    : jar = jar ?? _SpyJar(),
-      store = store ?? _MemoryStore() {
+  _Harness({
+    CookieJar? jar,
+    _MemoryStore? store,
+    RealtimeClient? realtime,
+    ConnectivityMonitor? monitor,
+  }) : jar = jar ?? _SpyJar(),
+       store = store ?? _MemoryStore() {
     container = ProviderContainer(
       overrides: [
         cookieJarProvider.overrideWithValue(this.jar),
         secureStoreProvider.overrideWithValue(this.store),
         if (realtime != null)
           realtimeClientProvider.overrideWithValue(realtime),
+        if (monitor != null)
+          connectivityMonitorProvider.overrideWithValue(monitor),
       ],
     );
     container.read(apiClientProvider).raw.httpClientAdapter = server;
@@ -611,6 +631,74 @@ void main() {
       expect(_h.state.isAuthenticated, isFalse);
       expect(await _h.storedSessionKey(), 'persisted');
       expect(_h.deleteAlls, 0);
+    });
+
+    test('why it failed: no network, unreachable, or the server', () async {
+      final monitor = _FakeMonitor(false);
+      _h = _Harness(monitor: monitor);
+      await seedCookie(_h);
+
+      // Wi-Fi and data off.
+      _h.server.meTransportFailure = DioExceptionType.connectionError;
+      await _h.auth.restore();
+      expect(_h.state.restoreIssue, RestoreIssue.offline);
+
+      // A network is up, yet nothing gets through: Wi-Fi without internet,
+      // or the server unreachable from it.
+      monitor.network = true;
+      await _h.auth.restore();
+      expect(_h.state.restoreIssue, RestoreIssue.unreachable);
+
+      // Up, but too slow to answer.
+      _h.server.meTransportFailure = DioExceptionType.receiveTimeout;
+      await _h.auth.restore();
+      expect(_h.state.restoreIssue, RestoreIssue.unreachable);
+
+      // The platform cannot say: treated as offline, as before.
+      monitor.network = null;
+      _h.server.meTransportFailure = DioExceptionType.connectionError;
+      await _h.auth.restore();
+      expect(_h.state.restoreIssue, RestoreIssue.offline);
+
+      // The server answered, with an error: not the connection's fault.
+      _h.server.meTransportFailure = null;
+      _h.server.meStatusOverride = 503;
+      await _h.auth.restore();
+      expect(_h.state.restoreIssue, RestoreIssue.serverError);
+
+      expect(_h.state.isAuthenticated, isFalse);
+      expect(await _h.storedSessionKey(), 'persisted');
+      expect(_h.deleteAlls, 0);
+    });
+
+    test('a retry keeps the reason while it runs, and recovers', () async {
+      _h = _Harness(monitor: _FakeMonitor(true));
+      await seedCookie(_h);
+      _h.server.meTransportFailure = DioExceptionType.connectionError;
+      await _h.auth.restore();
+      expect(_h.state.restoreIssue, RestoreIssue.unreachable);
+
+      // Back online: the same stored session resumes, no sign-in.
+      _h.server.meTransportFailure = null;
+      final retry = _h.auth.restore();
+      // While it runs the reason stays, so the retry screen stays up.
+      expect(_h.state.isRestoring, isTrue);
+      expect(_h.state.restoreIssue, RestoreIssue.unreachable);
+      await retry;
+
+      expect(_h.state.isAuthenticated, isTrue);
+      expect(_h.state.restoreIssue, isNull);
+      expect(_h.state.restoreFailedOffline, isFalse);
+      expect(await _h.storedSessionKey(), 'persisted');
+    });
+
+    test('a 4xx is not a connection problem: no retry screen', () async {
+      _h = _Harness(monitor: _FakeMonitor(true));
+      await seedCookie(_h);
+      _h.server.meStatusOverride = 400;
+      await _h.auth.restore();
+      expect(_h.state.restoreIssue, isNull);
+      expect(_h.state.isRestoring, isFalse);
     });
 
     test(
