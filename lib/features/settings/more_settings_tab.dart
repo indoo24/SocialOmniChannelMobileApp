@@ -32,6 +32,7 @@ class MoreSettingsTab extends ConsumerWidget {
       onRefresh: () async {
         ref.invalidate(customerFieldDefinitionsProvider);
         ref.invalidate(manageableSavedRepliesProvider);
+        ref.invalidate(savedReplyCategoriesProvider);
         await Future.wait([
           if (canSeeCustomerFields)
             ref
@@ -41,6 +42,10 @@ class MoreSettingsTab extends ConsumerWidget {
             ref
                 .read(manageableSavedRepliesProvider.future)
                 .catchError((_) => <SavedReply>[]),
+          if (canSeeSavedReplies)
+            ref
+                .read(savedReplyCategoriesProvider.future)
+                .catchError((_) => <SavedReplyCategory>[]),
         ]);
       },
       child: ListView(

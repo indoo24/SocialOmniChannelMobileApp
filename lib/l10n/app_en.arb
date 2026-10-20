@@ -2134,5 +2134,128 @@
   "startupSessionKeptHint": "You're still signed in.",
   "@startupSessionKeptHint": {
     "description": "Launch: the stored session was kept."
+  },
+  "savedReplyCategoriesTitle": "Categories",
+  "@savedReplyCategoriesTitle": {
+    "description": "Saved replies settings: the categories panel title."
+  },
+  "savedReplyCategoriesHint": "Drag or use the arrows to set the order replies are grouped in.",
+  "@savedReplyCategoriesHint": {
+    "description": "Categories panel: how the order is set and what it does."
+  },
+  "savedReplyCategoriesEmpty": "No categories yet. Add one below.",
+  "@savedReplyCategoriesEmpty": {
+    "description": "Categories panel: there are none."
+  },
+  "savedReplyCategoriesLoadFailed": "Couldn't load the categories.",
+  "@savedReplyCategoriesLoadFailed": {
+    "description": "Categories panel: the list failed to load."
+  },
+  "savedReplyCategoryNameHint": "New category name",
+  "@savedReplyCategoryNameHint": {
+    "description": "Categories panel: the add field hint."
+  },
+  "savedReplyCategoryNameLabel": "Category name",
+  "@savedReplyCategoryNameLabel": {
+    "description": "Rename dialog: the field label."
+  },
+  "savedReplyCategoryAddAction": "Add",
+  "@savedReplyCategoryAddAction": {
+    "description": "Categories panel: add button."
+  },
+  "savedReplyCategoryNameRequired": "Enter a category name.",
+  "@savedReplyCategoryNameRequired": {
+    "description": "Validation: empty name."
+  },
+  "savedReplyCategoryDuplicate": "A category with this name already exists.",
+  "@savedReplyCategoryDuplicate": {
+    "description": "Validation: the name is taken."
+  },
+  "savedReplyCategoryAdded": "Category added",
+  "@savedReplyCategoryAdded": {
+    "description": "After the server created a category."
+  },
+  "savedReplyCategoryRenamed": "Category renamed",
+  "@savedReplyCategoryRenamed": {
+    "description": "After the server renamed a category."
+  },
+  "savedReplyCategoryDeleted": "Category deleted. Its replies are now uncategorized.",
+  "@savedReplyCategoryDeleted": {
+    "description": "After the server deleted a category."
+  },
+  "savedReplyCategoryOrderFailed": "Couldn't save the new order.",
+  "@savedReplyCategoryOrderFailed": {
+    "description": "A reorder failed; the order shown is the server's."
+  },
+  "savedReplyCategoryRequestFailed": "Couldn't save the change. Please try again.",
+  "@savedReplyCategoryRequestFailed": {
+    "description": "A category change failed for a network or server reason."
+  },
+  "savedReplyCategoryNoPermission": "You don't have permission to manage categories.",
+  "@savedReplyCategoryNoPermission": {
+    "description": "The server refused a category change (403)."
+  },
+  "savedReplyCategoryRenameTitle": "Rename category",
+  "@savedReplyCategoryRenameTitle": {
+    "description": "Rename dialog title."
+  },
+  "savedReplyCategoryRenameAction": "Rename",
+  "@savedReplyCategoryRenameAction": {
+    "description": "Category row: rename button tooltip."
+  },
+  "savedReplyCategoryDeleteAction": "Delete",
+  "@savedReplyCategoryDeleteAction": {
+    "description": "Category row: delete button tooltip and confirm."
+  },
+  "savedReplyCategoryDeleteTitle": "Delete “{name}”?",
+  "@savedReplyCategoryDeleteTitle": {
+    "description": "Delete confirmation title.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "savedReplyCategoryDeleteWithReplies": "{count, plural, =1{Its 1 saved reply will move to Uncategorized.} other{Its {count} saved replies will move to Uncategorized.}} The replies themselves are not deleted.",
+  "@savedReplyCategoryDeleteWithReplies": {
+    "description": "Delete confirmation: what happens to its replies.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "savedReplyCategoryDeleteEmpty": "This category has no saved replies.",
+  "@savedReplyCategoryDeleteEmpty": {
+    "description": "Delete confirmation for an empty category."
+  },
+  "savedReplyCategoryReplyCount": "{count, plural, =0{No replies} =1{1 reply} other{{count} replies}}",
+  "@savedReplyCategoryReplyCount": {
+    "description": "Category row: how many replies it holds.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "savedReplyCategoryMoveUp": "Move up",
+  "@savedReplyCategoryMoveUp": {
+    "description": "Category row: move up."
+  },
+  "savedReplyCategoryMoveDown": "Move down",
+  "@savedReplyCategoryMoveDown": {
+    "description": "Category row: move down."
+  },
+  "savedReplyCategoryDragHint": "Drag to reorder",
+  "@savedReplyCategoryDragHint": {
+    "description": "Category row: drag handle label."
+  },
+  "savedReplyNoCategoryOption": "No category",
+  "@savedReplyNoCategoryOption": {
+    "description": "Reply form: the category choice for none."
+  },
+  "savedReplySectionEmpty": "No saved replies in this category yet.",
+  "@savedReplySectionEmpty": {
+    "description": "Saved replies list: a category with none of your replies."
   }
 }

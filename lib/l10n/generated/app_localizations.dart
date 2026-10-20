@@ -6528,6 +6528,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You\'re still signed in.'**
   String get startupSessionKeptHint;
+
+  /// Saved replies settings: the categories panel title.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get savedReplyCategoriesTitle;
+
+  /// Categories panel: how the order is set and what it does.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag or use the arrows to set the order replies are grouped in.'**
+  String get savedReplyCategoriesHint;
+
+  /// Categories panel: there are none.
+  ///
+  /// In en, this message translates to:
+  /// **'No categories yet. Add one below.'**
+  String get savedReplyCategoriesEmpty;
+
+  /// Categories panel: the list failed to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the categories.'**
+  String get savedReplyCategoriesLoadFailed;
+
+  /// Categories panel: the add field hint.
+  ///
+  /// In en, this message translates to:
+  /// **'New category name'**
+  String get savedReplyCategoryNameHint;
+
+  /// Rename dialog: the field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Category name'**
+  String get savedReplyCategoryNameLabel;
+
+  /// Categories panel: add button.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get savedReplyCategoryAddAction;
+
+  /// Validation: empty name.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a category name.'**
+  String get savedReplyCategoryNameRequired;
+
+  /// Validation: the name is taken.
+  ///
+  /// In en, this message translates to:
+  /// **'A category with this name already exists.'**
+  String get savedReplyCategoryDuplicate;
+
+  /// After the server created a category.
+  ///
+  /// In en, this message translates to:
+  /// **'Category added'**
+  String get savedReplyCategoryAdded;
+
+  /// After the server renamed a category.
+  ///
+  /// In en, this message translates to:
+  /// **'Category renamed'**
+  String get savedReplyCategoryRenamed;
+
+  /// After the server deleted a category.
+  ///
+  /// In en, this message translates to:
+  /// **'Category deleted. Its replies are now uncategorized.'**
+  String get savedReplyCategoryDeleted;
+
+  /// A reorder failed; the order shown is the server's.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the new order.'**
+  String get savedReplyCategoryOrderFailed;
+
+  /// A category change failed for a network or server reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the change. Please try again.'**
+  String get savedReplyCategoryRequestFailed;
+
+  /// The server refused a category change (403).
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to manage categories.'**
+  String get savedReplyCategoryNoPermission;
+
+  /// Rename dialog title.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename category'**
+  String get savedReplyCategoryRenameTitle;
+
+  /// Category row: rename button tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get savedReplyCategoryRenameAction;
+
+  /// Category row: delete button tooltip and confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get savedReplyCategoryDeleteAction;
+
+  /// Delete confirmation title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete “{name}”?'**
+  String savedReplyCategoryDeleteTitle(String name);
+
+  /// Delete confirmation: what happens to its replies.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Its 1 saved reply will move to Uncategorized.} other{Its {count} saved replies will move to Uncategorized.}} The replies themselves are not deleted.'**
+  String savedReplyCategoryDeleteWithReplies(int count);
+
+  /// Delete confirmation for an empty category.
+  ///
+  /// In en, this message translates to:
+  /// **'This category has no saved replies.'**
+  String get savedReplyCategoryDeleteEmpty;
+
+  /// Category row: how many replies it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No replies} =1{1 reply} other{{count} replies}}'**
+  String savedReplyCategoryReplyCount(int count);
+
+  /// Category row: move up.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get savedReplyCategoryMoveUp;
+
+  /// Category row: move down.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get savedReplyCategoryMoveDown;
+
+  /// Category row: drag handle label.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder'**
+  String get savedReplyCategoryDragHint;
+
+  /// Reply form: the category choice for none.
+  ///
+  /// In en, this message translates to:
+  /// **'No category'**
+  String get savedReplyNoCategoryOption;
+
+  /// Saved replies list: a category with none of your replies.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved replies in this category yet.'**
+  String get savedReplySectionEmpty;
 }
 
 class _AppLocalizationsDelegate

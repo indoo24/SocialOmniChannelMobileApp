@@ -18,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'saved_replies_providers.dart';
 import 'saved_reply.dart';
@@ -99,18 +100,40 @@ class _SavedReplyFormSheet extends ConsumerStatefulWidget {
 class _SavedReplyFormSheetState extends ConsumerState<_SavedReplyFormSheet> {
   late final _title = TextEditingController(text: widget.existing?.title);
   late final _shortcut = TextEditingController(text: widget.existing?.shortcut);
-  late final _category = TextEditingController(text: widget.existing?.category);
   late final _body = TextEditingController(text: widget.existing?.body);
   late String _scope = widget.existing?.scope ?? 'personal';
 
   bool _submitting = false;
   String? _error;
 
+  /// The category chosen in the form, or [_noCategory]; null until the
+  /// person picks one, which keeps the reply's current category untouched.
+  int? _chosenCategory;
+
+  /// The "No category" choice. No category has this id.
+  static const _noCategory = -1;
+
+  /// What the field shows before a choice: the reply's category — by id, or
+  /// for a reply whose category is only a name, the category of that name.
+  int _initialCategory(List<SavedReplyCategory> categories) {
+    final existing = widget.existing;
+    if (existing == null) return _noCategory;
+    final id = existing.categoryId;
+    if (id != null) {
+      return categories.any((c) => c.id == id) ? id : _noCategory;
+    }
+    final name = existing.category.trim().toLowerCase();
+    if (name.isEmpty) return _noCategory;
+    for (final c in categories) {
+      if (c.name.trim().toLowerCase() == name) return c.id;
+    }
+    return _noCategory;
+  }
+
   @override
   void dispose() {
     _title.dispose();
     _shortcut.dispose();
-    _category.dispose();
     _body.dispose();
     super.dispose();
   }
@@ -131,7 +154,8 @@ class _SavedReplyFormSheetState extends ConsumerState<_SavedReplyFormSheet> {
 
     final repository = ref.read(savedRepliesRepositoryProvider);
     final shortcut = _shortcut.text.trim();
-    final category = _category.text.trim();
+    final chosen = _chosenCategory;
+    final categoryId = chosen == null || chosen == _noCategory ? null : chosen;
 
     setState(() {
       _submitting = true;
@@ -144,7 +168,9 @@ class _SavedReplyFormSheetState extends ConsumerState<_SavedReplyFormSheet> {
           title: title,
           body: body,
           shortcut: shortcut,
-          category: category,
+          // Only a category the person changed is sent.
+          changeCategory: chosen != null,
+          categoryId: categoryId,
         );
       } else {
         await repository.create(
@@ -152,12 +178,14 @@ class _SavedReplyFormSheetState extends ConsumerState<_SavedReplyFormSheet> {
           body: body,
           scope: _scope,
           shortcut: shortcut,
-          category: category,
+          categoryId: categoryId,
         );
       }
 
       if (!mounted) return;
       ref.invalidate(manageableSavedRepliesProvider);
+      // Each category's count of replies.
+      ref.invalidate(savedReplyCategoriesProvider);
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -174,6 +202,50 @@ class _SavedReplyFormSheetState extends ConsumerState<_SavedReplyFormSheet> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  /// The categories from `GET /saved-reply-categories/`, plus "No category".
+  /// Until they load (or if they cannot) the field is disabled, and the
+  /// reply's category stays as it is.
+  Widget _categoryField(BuildContext context) {
+    final categories = ref.watch(savedReplyCategoriesProvider).value;
+    final l10n = context.l10n;
+    // A form field reads its initial value once: built again when the
+    // categories arrive, so it shows the reply's own.
+    return KeyedSubtree(
+      key: ValueKey(categories != null),
+      child: _categoryDropdown(l10n, categories),
+    );
+  }
+
+  Widget _categoryDropdown(
+    AppLocalizations l10n,
+    List<SavedReplyCategory>? categories,
+  ) {
+    return DropdownButtonFormField<int>(
+      key: const Key('saved-reply-form-category'),
+      initialValue: categories == null
+          ? _noCategory
+          : (_chosenCategory ?? _initialCategory(categories)),
+      isExpanded: true,
+      decoration: InputDecoration(labelText: l10n.savedReplyCategoryFieldLabel),
+      items: [
+        DropdownMenuItem(
+          value: _noCategory,
+          child: Text(l10n.savedReplyNoCategoryOption),
+        ),
+        for (final c in categories ?? const <SavedReplyCategory>[])
+          DropdownMenuItem(
+            value: c.id,
+            child: Text(c.name, overflow: TextOverflow.ellipsis),
+          ),
+      ],
+      onChanged: categories == null || _submitting
+          ? null
+          : (value) {
+              if (value != null) setState(() => _chosenCategory = value);
+            },
+    );
   }
 
   @override
@@ -225,15 +297,7 @@ class _SavedReplyFormSheetState extends ConsumerState<_SavedReplyFormSheet> {
               ),
             ),
             const SizedBox(width: Space.md),
-            Expanded(
-              child: TextField(
-                key: const Key('saved-reply-form-category'),
-                controller: _category,
-                decoration: InputDecoration(
-                  labelText: context.l10n.savedReplyCategoryFieldLabel,
-                ),
-              ),
-            ),
+            Expanded(child: _categoryField(context)),
           ],
         ),
         const SizedBox(height: Space.xs),

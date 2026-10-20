@@ -19,6 +19,9 @@ class SavedReply {
     required this.body,
     this.shortcut = '',
     this.category = '',
+    this.categoryId,
+    this.position = 0,
+    this.categoryPosition,
     this.scope = 'organization',
     this.teamId,
     this.teamName,
@@ -32,7 +35,20 @@ class SavedReply {
   /// Stored without the leading slash, lower-cased. Empty when none is set.
   final String shortcut;
   final String body;
+
+  /// The category's name, as the server reports it. Kept for replies whose
+  /// category is only a name (no [categoryId]).
   final String category;
+
+  /// The `SavedReplyCategory` this reply belongs to; null when it has none.
+  final int? categoryId;
+
+  /// The reply's place among its category's replies, as the server keeps it.
+  /// Read-only: no endpoint changes it.
+  final int position;
+
+  /// Its category's place in the category order; null without a category.
+  final int? categoryPosition;
 
   /// `personal`, `team` or `organization`.
   final String scope;
@@ -56,6 +72,9 @@ class SavedReply {
     body: JsonSafe.asString(json['body']),
     shortcut: JsonSafe.asString(json['shortcut']),
     category: JsonSafe.asString(json['category']),
+    categoryId: JsonSafe.asIntOrNull(json['category_id']),
+    position: JsonSafe.asInt(json['position']),
+    categoryPosition: JsonSafe.asIntOrNull(json['category_position']),
     scope: JsonSafe.asString(json['scope'], fallback: 'organization'),
     teamId: json['team'] is Map
         ? JsonSafe.asIntOrNull(JsonSafe.asMap(json['team'])['id'])
@@ -66,6 +85,95 @@ class SavedReply {
     isActive: JsonSafe.asBool(json['is_active'], fallback: true),
     canEdit: JsonSafe.asBool(json['can_edit']),
   );
+}
+
+/// A saved-reply category: `GET /saved-reply-categories/`. Its [position] is
+/// the order the categories, and the replies grouped under them, are shown
+/// in; it is set with `POST /saved-reply-categories/reorder/`.
+class SavedReplyCategory {
+  const SavedReplyCategory({
+    required this.id,
+    required this.name,
+    this.position = 0,
+    this.replyCount = 0,
+  });
+
+  final int id;
+  final String name;
+  final int position;
+
+  /// How many replies the server counts in it — all of them, not only the
+  /// ones this employee can see or edit.
+  final int replyCount;
+
+  factory SavedReplyCategory.fromJson(Map<String, dynamic> json) =>
+      SavedReplyCategory(
+        id: JsonSafe.asInt(json['id'], fallback: -1),
+        name: JsonSafe.asString(json['name']),
+        position: JsonSafe.asInt(json['position']),
+        replyCount: JsonSafe.asInt(json['reply_count']),
+      );
+
+  SavedReplyCategory copyWith({String? name}) => SavedReplyCategory(
+    id: id,
+    name: name ?? this.name,
+    position: position,
+    replyCount: replyCount,
+  );
+}
+
+/// One category's replies on the Settings screen; [category] is null for the
+/// uncategorized ones.
+class SavedReplySection {
+  const SavedReplySection(this.category, this.replies);
+
+  final SavedReplyCategory? category;
+  final List<SavedReply> replies;
+}
+
+/// [replies] under [categories], in the categories' order, every category
+/// listed even when it has none here; then, if any, the uncategorized ones.
+///
+/// A reply goes under its `category_id`. One with only a category name is
+/// matched to a category of that name (ignoring case and spaces). One whose
+/// category is not among [categories] — deleted, or newer than the list —
+/// is listed with the uncategorized ones rather than dropped. Within a
+/// section the server's [SavedReply.position] orders them; its list order
+/// breaks ties.
+List<SavedReplySection> sectionSavedReplies(
+  List<SavedReplyCategory> categories,
+  List<SavedReply> replies,
+) {
+  final ids = {for (final c in categories) c.id};
+  final byName = <String, int>{};
+  for (final c in categories) {
+    byName.putIfAbsent(c.name.trim().toLowerCase(), () => c.id);
+  }
+  final buckets = <int?, List<SavedReply>>{};
+  for (final reply in replies) {
+    final id = reply.categoryId;
+    final key = id != null
+        ? (ids.contains(id) ? id : null)
+        : byName[reply.category.trim().toLowerCase()];
+    (buckets[key] ??= []).add(reply);
+  }
+  final uncategorized = buckets[null] ?? const <SavedReply>[];
+  return [
+    for (final c in categories)
+      SavedReplySection(c, savedRepliesInOrder(buckets[c.id] ?? const [])),
+    if (uncategorized.isNotEmpty)
+      SavedReplySection(null, savedRepliesInOrder(uncategorized)),
+  ];
+}
+
+/// [replies] by [SavedReply.position], keeping their order where it ties.
+List<SavedReply> savedRepliesInOrder(List<SavedReply> replies) {
+  final indexed = replies.indexed.toList()
+    ..sort((a, b) {
+      final byPosition = a.$2.position.compareTo(b.$2.position);
+      return byPosition != 0 ? byPosition : a.$1.compareTo(b.$1);
+    });
+  return [for (final (_, reply) in indexed) reply];
 }
 
 /// The backend's sentinel for a customer whose name the platform withheld.

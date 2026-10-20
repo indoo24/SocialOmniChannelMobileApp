@@ -202,25 +202,41 @@ class SavedReplyGroup {
   final List<SavedReply> replies;
 }
 
-/// [replies] grouped by their `category`: named categories alphabetically
-/// (ignoring case), uncategorized ones last. Within a group the server's
-/// order — most specific scope first — is kept. Categories that differ only
-/// in case or surrounding spaces are one category, shown as first written.
+/// [replies] grouped by their `category`, in the categories' saved order
+/// (`category_position`, set on the Settings screen); categories without a
+/// position after them alphabetically (ignoring case); uncategorized ones
+/// last. Within a group the server's `position` orders the replies, and its
+/// order — most specific scope first — breaks ties. Categories that differ
+/// only in case or surrounding spaces are one category, shown as first
+/// written.
 List<SavedReplyGroup> groupSavedRepliesByCategory(List<SavedReply> replies) {
   final byKey = <String, List<SavedReply>>{};
   final names = <String, String>{};
+  final positions = <String, int>{};
   for (final reply in replies) {
     final name = reply.category.trim();
     final key = name.toLowerCase();
     names.putIfAbsent(key, () => name);
     (byKey[key] ??= []).add(reply);
+    final position = reply.categoryPosition;
+    if (name.isNotEmpty && position != null) {
+      final known = positions[key];
+      if (known == null || position < known) positions[key] = position;
+    }
   }
   final keys = byKey.keys.toList()
     ..sort((a, b) {
       if (a.isEmpty != b.isEmpty) return a.isEmpty ? 1 : -1;
+      final pa = positions[a];
+      final pb = positions[b];
+      if (pa != null && pb != null && pa != pb) return pa.compareTo(pb);
+      if ((pa == null) != (pb == null)) return pa == null ? 1 : -1;
       return a.compareTo(b);
     });
-  return [for (final k in keys) SavedReplyGroup(names[k]!, byKey[k]!)];
+  return [
+    for (final k in keys)
+      SavedReplyGroup(names[k]!, savedRepliesInOrder(byKey[k]!)),
+  ];
 }
 
 class _CategoryChips extends StatelessWidget {

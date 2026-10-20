@@ -3660,4 +3660,114 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get startupSessionKeptHint => 'لسه مسجّل دخولك.';
+
+  @override
+  String get savedReplyCategoriesTitle => 'الفئات';
+
+  @override
+  String get savedReplyCategoriesHint =>
+      'اسحب أو استخدم الأسهم لترتيب الفئات، والردود بتظهر بنفس الترتيب.';
+
+  @override
+  String get savedReplyCategoriesEmpty =>
+      'لا توجد فئات بعد. أضف فئة من الأسفل.';
+
+  @override
+  String get savedReplyCategoriesLoadFailed => 'تعذّر تحميل الفئات.';
+
+  @override
+  String get savedReplyCategoryNameHint => 'اسم فئة جديدة';
+
+  @override
+  String get savedReplyCategoryNameLabel => 'اسم الفئة';
+
+  @override
+  String get savedReplyCategoryAddAction => 'إضافة';
+
+  @override
+  String get savedReplyCategoryNameRequired => 'اكتب اسم الفئة.';
+
+  @override
+  String get savedReplyCategoryDuplicate => 'توجد فئة بهذا الاسم بالفعل.';
+
+  @override
+  String get savedReplyCategoryAdded => 'تمت إضافة الفئة';
+
+  @override
+  String get savedReplyCategoryRenamed => 'تمت إعادة تسمية الفئة';
+
+  @override
+  String get savedReplyCategoryDeleted =>
+      'تم حذف الفئة، وأصبحت ردودها بدون تصنيف.';
+
+  @override
+  String get savedReplyCategoryOrderFailed => 'تعذّر حفظ الترتيب الجديد.';
+
+  @override
+  String get savedReplyCategoryRequestFailed =>
+      'تعذّر حفظ التغيير. حاول مرة أخرى.';
+
+  @override
+  String get savedReplyCategoryNoPermission =>
+      'ليست لديك صلاحية لإدارة الفئات.';
+
+  @override
+  String get savedReplyCategoryRenameTitle => 'إعادة تسمية الفئة';
+
+  @override
+  String get savedReplyCategoryRenameAction => 'إعادة تسمية';
+
+  @override
+  String get savedReplyCategoryDeleteAction => 'حذف';
+
+  @override
+  String savedReplyCategoryDeleteTitle(String name) {
+    return 'حذف «$name»؟';
+  }
+
+  @override
+  String savedReplyCategoryDeleteWithReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'الـ $count رد المحفوظين فيها هيتنقلوا لـ «بدون تصنيف».',
+      few: 'الـ $count ردود المحفوظة فيها هيتنقلوا لـ «بدون تصنيف».',
+      two: 'الردّين المحفوظين فيها هيتنقلوا لـ «بدون تصنيف».',
+      one: 'الرد المحفوظ الوحيد فيها هيتنقل لـ «بدون تصنيف».',
+    );
+    return '$_temp0 الردود نفسها مش هتتحذف.';
+  }
+
+  @override
+  String get savedReplyCategoryDeleteEmpty =>
+      'لا توجد ردود محفوظة في هذه الفئة.';
+
+  @override
+  String savedReplyCategoryReplyCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رد',
+      few: '$count ردود',
+      two: 'ردّان',
+      one: 'رد واحد',
+      zero: 'لا توجد ردود',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedReplyCategoryMoveUp => 'تحريك لأعلى';
+
+  @override
+  String get savedReplyCategoryMoveDown => 'تحريك لأسفل';
+
+  @override
+  String get savedReplyCategoryDragHint => 'اسحب لإعادة الترتيب';
+
+  @override
+  String get savedReplyNoCategoryOption => 'بدون فئة';
+
+  @override
+  String get savedReplySectionEmpty => 'لا توجد ردود محفوظة في هذه الفئة بعد.';
 }

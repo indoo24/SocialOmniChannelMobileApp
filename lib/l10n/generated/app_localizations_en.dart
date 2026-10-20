@@ -3654,4 +3654,110 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get startupSessionKeptHint => 'You\'re still signed in.';
+
+  @override
+  String get savedReplyCategoriesTitle => 'Categories';
+
+  @override
+  String get savedReplyCategoriesHint =>
+      'Drag or use the arrows to set the order replies are grouped in.';
+
+  @override
+  String get savedReplyCategoriesEmpty => 'No categories yet. Add one below.';
+
+  @override
+  String get savedReplyCategoriesLoadFailed => 'Couldn\'t load the categories.';
+
+  @override
+  String get savedReplyCategoryNameHint => 'New category name';
+
+  @override
+  String get savedReplyCategoryNameLabel => 'Category name';
+
+  @override
+  String get savedReplyCategoryAddAction => 'Add';
+
+  @override
+  String get savedReplyCategoryNameRequired => 'Enter a category name.';
+
+  @override
+  String get savedReplyCategoryDuplicate =>
+      'A category with this name already exists.';
+
+  @override
+  String get savedReplyCategoryAdded => 'Category added';
+
+  @override
+  String get savedReplyCategoryRenamed => 'Category renamed';
+
+  @override
+  String get savedReplyCategoryDeleted =>
+      'Category deleted. Its replies are now uncategorized.';
+
+  @override
+  String get savedReplyCategoryOrderFailed => 'Couldn\'t save the new order.';
+
+  @override
+  String get savedReplyCategoryRequestFailed =>
+      'Couldn\'t save the change. Please try again.';
+
+  @override
+  String get savedReplyCategoryNoPermission =>
+      'You don\'t have permission to manage categories.';
+
+  @override
+  String get savedReplyCategoryRenameTitle => 'Rename category';
+
+  @override
+  String get savedReplyCategoryRenameAction => 'Rename';
+
+  @override
+  String get savedReplyCategoryDeleteAction => 'Delete';
+
+  @override
+  String savedReplyCategoryDeleteTitle(String name) {
+    return 'Delete “$name”?';
+  }
+
+  @override
+  String savedReplyCategoryDeleteWithReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Its $count saved replies will move to Uncategorized.',
+      one: 'Its 1 saved reply will move to Uncategorized.',
+    );
+    return '$_temp0 The replies themselves are not deleted.';
+  }
+
+  @override
+  String get savedReplyCategoryDeleteEmpty =>
+      'This category has no saved replies.';
+
+  @override
+  String savedReplyCategoryReplyCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count replies',
+      one: '1 reply',
+      zero: 'No replies',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedReplyCategoryMoveUp => 'Move up';
+
+  @override
+  String get savedReplyCategoryMoveDown => 'Move down';
+
+  @override
+  String get savedReplyCategoryDragHint => 'Drag to reorder';
+
+  @override
+  String get savedReplyNoCategoryOption => 'No category';
+
+  @override
+  String get savedReplySectionEmpty => 'No saved replies in this category yet.';
 }
