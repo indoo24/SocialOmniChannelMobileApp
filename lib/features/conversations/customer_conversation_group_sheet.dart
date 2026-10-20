@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 import '../../app/router.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/conversation_group.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'conversation_preview_formatter.dart';
+import 'conversation_pin.dart';
 
 /// Modal bottom sheet showing all WhatsApp conversations for a single customer.
 ///
@@ -44,7 +46,6 @@ class CustomerConversationGroupSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
@@ -52,7 +53,7 @@ class CustomerConversationGroupSheet extends StatelessWidget {
         maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
       decoration: BoxDecoration(
-        color: isDark ? ScenarioColors.darkCard : ScenarioColors.card,
+        color: AppColors.of(context).surface,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(Radii.lg),
         ),
@@ -109,9 +110,7 @@ class CustomerConversationGroupSheet extends StatelessWidget {
                         Text(
                           '${context.l10n.whatsappConversationsGroupTitle} · ${context.l10n.groupedConversationsCount(group.conversationCount)}',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: isDark
-                                ? ScenarioColors.darkMutedForeground
-                                : ScenarioColors.mutedForeground,
+                            color: AppColors.of(context).mutedForeground,
                           ),
                         ),
                       ],
@@ -208,18 +207,20 @@ class _ConversationOptionCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark
                 ? (isCurrent
-                      ? ScenarioColors.primary.withValues(alpha: 0.12)
-                      : ScenarioColors.darkBackground)
+                      ? AppColors.of(
+                          context,
+                        ).solidPrimary.withValues(alpha: 0.12)
+                      : AppColors.of(context).background)
                 : (isCurrent
-                      ? ScenarioColors.primary.withValues(alpha: 0.06)
-                      : const Color(0xFFF9FAFB)),
+                      ? AppColors.of(
+                          context,
+                        ).solidPrimary.withValues(alpha: 0.06)
+                      : AppColors.of(context).background),
             borderRadius: BorderRadius.circular(Radii.md),
             border: Border.all(
               color: isCurrent
-                  ? ScenarioColors.primary
-                  : (isDark
-                        ? ScenarioColors.darkBorder
-                        : ScenarioColors.border),
+                  ? AppColors.of(context).solidPrimary
+                  : (AppColors.of(context).border),
               width: isCurrent ? 1.5 : 1.0,
             ),
           ),
@@ -245,6 +246,11 @@ class _ConversationOptionCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // Each thread shows its own pin.
+                  if (conversation.isPinned) ...[
+                    const SizedBox(width: Space.xs),
+                    const PinnedIndicator(size: 14),
+                  ],
                   if (isCurrent) ...[
                     const SizedBox(width: Space.xs),
                     StatusBadge(
@@ -257,9 +263,7 @@ class _ConversationOptionCard extends StatelessWidget {
                   Text(
                     formatRelativeTime(context, conversation.lastMessageAt),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: isDark
-                          ? ScenarioColors.darkMutedForeground
-                          : ScenarioColors.mutedForeground,
+                      color: AppColors.of(context).mutedForeground,
                     ),
                   ),
                 ],
@@ -273,12 +277,8 @@ class _ConversationOptionCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: unread
-                      ? (isDark
-                            ? ScenarioColors.darkForeground
-                            : ScenarioColors.foreground)
-                      : (isDark
-                            ? ScenarioColors.darkMutedForeground
-                            : ScenarioColors.mutedForeground),
+                      ? (AppColors.of(context).foreground)
+                      : (AppColors.of(context).mutedForeground),
                   fontWeight: unread ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
@@ -311,7 +311,7 @@ class _ConversationOptionCard extends StatelessWidget {
                         vertical: 1.5,
                       ),
                       decoration: BoxDecoration(
-                        color: ScenarioColors.primary,
+                        color: AppColors.of(context).solidPrimary,
                         borderRadius: BorderRadius.circular(Radii.pill),
                       ),
                       child: Text(

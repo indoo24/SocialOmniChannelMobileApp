@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../l10n/l10n_extensions.dart';
+import '../theme/app_palette.dart';
 import '../theme/tokens.dart';
 import '../utils/formatting.dart';
 
@@ -18,6 +19,7 @@ class StatusBadge extends StatelessWidget {
     this.tone = BadgeTone.neutral,
     this.icon,
     this.dense = false,
+    this.subtle = false,
     super.key,
   });
 
@@ -26,9 +28,18 @@ class StatusBadge extends StatelessWidget {
   final IconData? icon;
   final bool dense;
 
+  /// Secondary metadata (stage, category): outlined instead of filled, so it
+  /// stays readable without competing with the status and actionable badges
+  /// next to it.
+  final bool subtle;
+
   @override
   Widget build(BuildContext context) {
-    final (foreground, surface) = _palette(context, tone);
+    final theme = Theme.of(context);
+    final (toneForeground, surface) = _palette(context, tone);
+    final foreground = subtle && tone == BadgeTone.neutral
+        ? theme.textTheme.bodySmall?.color ?? toneForeground
+        : toneForeground;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -36,8 +47,11 @@ class StatusBadge extends StatelessWidget {
         vertical: dense ? 2 : 3,
       ),
       decoration: BoxDecoration(
-        color: surface,
+        color: subtle ? null : surface,
         borderRadius: BorderRadius.circular(Radii.sm),
+        border: subtle
+            ? Border.all(color: theme.colorScheme.outlineVariant)
+            : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -64,33 +78,15 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
+  /// Status tones mean the same in every colour theme; their tints and the
+  /// info tone come from the active theme ([AppColors]).
   static (Color, Color) _palette(BuildContext context, BadgeTone tone) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = AppColors.of(context);
     return switch (tone) {
-      BadgeTone.success => (
-        ScenarioColors.success,
-        isDark
-            ? ScenarioColors.success.withValues(alpha: 0.18)
-            : ScenarioColors.successSurface,
-      ),
-      BadgeTone.warning => (
-        ScenarioColors.warning,
-        isDark
-            ? ScenarioColors.warning.withValues(alpha: 0.18)
-            : ScenarioColors.warningSurface,
-      ),
-      BadgeTone.danger => (
-        ScenarioColors.danger,
-        isDark
-            ? ScenarioColors.danger.withValues(alpha: 0.18)
-            : ScenarioColors.dangerSurface,
-      ),
-      BadgeTone.info => (
-        ScenarioColors.info,
-        isDark
-            ? ScenarioColors.info.withValues(alpha: 0.18)
-            : ScenarioColors.infoSurface,
-      ),
+      BadgeTone.success => (colors.success, colors.successSurface),
+      BadgeTone.warning => (colors.warning, colors.warningSurface),
+      BadgeTone.danger => (colors.danger, colors.dangerSurface),
+      BadgeTone.info => (colors.info, colors.infoSurface),
       BadgeTone.neutral => (
         Theme.of(context).colorScheme.onSurfaceVariant,
         Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -186,6 +182,18 @@ class ConversationBadges {
     _ => const Color(0xFF0F766E),
   };
 
+  /// [providerColor] for a glyph or label drawn straight on the page rather
+  /// than on its own coloured disc. TikTok's brand black would vanish on the
+  /// dark theme's surfaces, so there it takes the text colour instead.
+  static Color providerGlyphColor(BuildContext context, String provider) {
+    final theme = Theme.of(context);
+    if (provider.toUpperCase() == 'TIKTOK' &&
+        theme.brightness == Brightness.dark) {
+      return theme.colorScheme.onSurface;
+    }
+    return providerColor(provider.toUpperCase());
+  }
+
   /// The plain server-reported delivery tick, for surfaces with no local
   /// send/failure state of their own (the inbox row's `last_message_*`
   /// fields) — `FAILED` shown the same error red the bubble uses, so a
@@ -198,7 +206,8 @@ class ConversationBadges {
     String status,
   ) => switch (status) {
     'FAILED' => (Icons.error_outline, Theme.of(context).colorScheme.error),
-    'READ' => (Icons.done_all, ScenarioColors.info),
+    // The theme's info colour: blue-ish in every theme, like a read tick.
+    'READ' => (Icons.done_all, AppColors.of(context).info),
     'DELIVERED' => (
       Icons.done_all,
       Theme.of(context).textTheme.labelSmall?.color,

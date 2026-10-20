@@ -29,10 +29,11 @@ reference.
 3. [API conventions](#api-conventions)
 4. [Realtime contract](#realtime-contract)
 5. [Known contract issues](#known-contract-issues)
-6. [Mobile Implementation Queue](#mobile-implementation-queue)
-7. [API inventory (mobile-relevant)](#api-inventory-mobile-relevant)
-8. [Changelog](#changelog)
-9. [Maintenance rule](#maintenance-rule)
+6. [Requested backend capabilities](#requested-backend-capabilities)
+7. [Mobile Implementation Queue](#mobile-implementation-queue)
+8. [API inventory (mobile-relevant)](#api-inventory-mobile-relevant)
+9. [Changelog](#changelog)
+10. [Maintenance rule](#maintenance-rule)
 
 ---
 
@@ -279,6 +280,131 @@ contract bugs.
 | K7 | Production HSTS `max-age` is 3600 (environment override; the code default is one year). | Low | Ops | Raise `DJANGO_HSTS_SECONDS` once HTTPS is confirmed stable. |
 | K8 | Login is CSRF-exempt, which is standard for DRF session login (login-CSRF). SameSite=Lax limits it. | Informational | — | None. |
 | K9 | Mobile does not handle close codes `4401` or `4403`; it backs off and retries. | Low | Mobile | Treat `4401` as session expired and `4403` as signed out. |
+
+---
+
+## Requested backend capabilities
+
+Asked for by mobile on 2026-10-15. Neither exists in the API today: OpenAPI
+1.0.0 has no pin field or endpoint, no doctor role, and no way to address an
+internal note to someone or track it as pending. Mobile has **not** built
+either feature, because anything client-side would disappear on reload or
+misstate who must act. The shapes below are proposals; the backend owns the
+final contract. Mobile will build against whatever is agreed.
+
+### R1 — Pin conversation
+
+**Status (2026-10-20): delivered by the backend and implemented in mobile.**
+The contract as built: `POST` / `DELETE /api/conversations/{id}/pin/`, both
+idempotent and answering `200` with the conversation and `is_pinned`; a pin
+belongs to the calling employee only; pinned rows sort first within the
+current filter; `400` for the pin limit, `403` / `404` as usual. Mobile reads
+`is_pinned` from list, grouped and detail responses (absent means `false`).
+`docs/api/openapi.yaml` in this repository does not list these yet. The
+original proposal follows for reference.
+
+**Decision needed first:** who a pin belongs to. Mobile recommends
+**per employee** (my pins; other agents unaffected), since the request is for
+an agent to keep their own important threads at hand. Per team or per
+organization would change who can unpin and who sees the marker.
+
+| Part | Proposal |
+|---|---|
+| Fields | `ConversationList`, `ConversationDetail`, grouped rows: `is_pinned: bool` (for the caller), `pinned_at: datetime \| null`. A group is pinned when any of its conversations is pinned for the caller. |
+| Endpoints | `POST /api/conversations/{id}/pin/` and `DELETE /api/conversations/{id}/pin/` → `200 ConversationDetail`. Idempotent. Allowed to anyone who can open the conversation; `404` across tenants as usual. |
+| Ordering | `GET /api/conversations/` and `/grouped/` return pinned rows first (`-is_pinned, -last_message_at`), **server-side**. Mobile cannot pin-sort across pages without moving or repeating rows during infinite scroll. |
+| Filter | `pinned=true` on both list endpoints. |
+| Realtime | `conversation.updated` with `reason: "pinned"` / `"unpinned"` and `is_pinned`, sent only to that employee's sockets, so their other devices follow. |
+| Optional | A per-employee cap (e.g. 20) answered with `400 pin_limit_reached`. |
+
+### R2 — Consult a doctor about a conversation
+
+**Status (2026-10-20): the backend delivered conversation review, and mobile
+has implemented it.** The contract as given to mobile:
+- `POST /api/conversations/{id}/review/` with `{reviewer_id, note?}` asks for a
+  review. With a review already pending, it retargets that one; there is never
+  a second pending review.
+- `DELETE` on the same path withdraws the pending review; `409` when none is
+  pending.
+- `POST …/review/complete/` completes it. Only the named reviewer may, or an
+  `ADMIN` overriding; `409` when none is pending.
+- Each call answers with the conversation, carrying
+  `review {id, status, note, reviewer_id, reviewer_name, requested_by_id,
+  requested_by_name, requested_at}` or `null`.
+- The reviewer must be an active colleague with `conversation.review` who can
+  already open the conversation; otherwise `400`.
+- `docs/api/openapi.yaml` in this repository does not list these yet.
+
+Mobile applies only `review` from these answers. Assignment, claim, team,
+routing and unread state are never touched, the composer stays open while a
+review is pending, and a reply never completes or withdraws one.
+
+Still open for the backend:
+- **The status values.** Mobile shows `status` as sent (only `PENDING` has a
+  translated name). It treats any non-null `review` as the current one, so
+  Withdraw and Change reviewer are offered while one is present, and a `409`
+  re-reads the conversation. If a completed or withdrawn review is also
+  returned, mobile needs the values so it can stop offering those actions.
+- **A list of eligible reviewers.** `GET /employees/` cannot filter by
+  `conversation.review`, so the picker lists every active colleague and the
+  `400` decides. A filter (e.g. `?capability=conversation.review`) would let
+  the picker show only people who can review.
+- **Who may withdraw.** This is undocumented, so mobile offers Withdraw to
+  everyone and relies on `403`.
+- **"Reviews waiting on me" is filtered on the device.** The inbox's Need
+  review tab (تحتاج مراجعة) requests the plain inbox and keeps the threads
+  whose `review.reviewer_id` is the caller. Pages are loaded one after another
+  until a screenful matches or the list ends. Two consequences:
+  - **List and grouped rows must carry `review`** (as the detail does). A row
+    without it counts as "no review", so the tab stays empty if rows leave it
+    out.
+  - A large inbox costs one request per page until enough matches are found.
+
+  A server filter (e.g. `review=pending_for_me` on `/conversations/` and
+  `/grouped/`, plus a `/conversations/counts/` bucket for a badge) would make
+  this one request and could replace the device filter later. (The Resolved
+  tab needs nothing new: it is `status=RESOLVED`.)
+- **Realtime and notifications.** There is no event for review changes, so
+  other devices see a change on the next open of the conversation.
+
+**Forwarding.** No forwarding endpoint exists in the API or in this app. The
+supported way to hand a conversation over is `POST /api/conversations/{id}/assign/`
+(`assignee_id` / `team_id`, or `null` to release; `conversation.assign_any`
+for anyone else's work), already in mobile as the Assign picker
+(`assign_conversation_sheet.dart`). Forwarding a message to another
+destination has no contract and is not built.
+
+The original proposal follows for reference.
+
+The agent keeps the conversation (assignment, status and unread state do not
+change); a doctor is asked a question, answers internally, and the agent
+replies to the customer. Nothing the doctor writes may reach the customer.
+
+**Missing today:** a way to tell who is a doctor; a recipient on internal
+notes; pending/answered state; a filter for "waiting for my answer"; a
+notification; and read access for a doctor to a conversation that is not
+theirs.
+
+| Part | Proposal |
+|---|---|
+| Who can be asked | A capability, e.g. `conversation.consultation.respond`, held by doctors (or a role/flag the backend prefers), and `GET /api/employees/?can_be_consulted=true` to list them. Asking needs e.g. `conversation.consultation.request`. |
+| Model | `Consultation { id, conversation_id, requested_by: EmployeeBrief, consultant: EmployeeBrief, question: string, status: PENDING \| ANSWERED \| CANCELLED, created_at, answered_at, response_note_id }`. |
+| Ask | `POST /api/conversations/{id}/consultations/` `{consultant_id, question}` → `201 Consultation`. `400 consultant_not_eligible`; `409 consultation_already_pending` for a second open request to the same doctor on the same conversation. |
+| Read | `GET /api/conversations/{id}/consultations/` → list, for the status chip in the thread. |
+| Answer | `POST /api/consultations/{id}/respond/` `{body}`, consultant only: creates an internal note linked by `InternalNote.consultation_id` and sets `ANSWERED`. Never creates a customer message. |
+| Withdraw | `POST /api/consultations/{id}/cancel/`, requester only. |
+| Doctor's work list | `GET /api/consultations/?consultant=me&status=PENDING`, and on the inbox lists `consultation=pending_for_me` plus a row field `awaiting_my_consultation: bool` for highlighting. |
+| Access | While a consultation is `PENDING` (and its history after), the consultant can open that conversation read-only and post notes, without `conversation.reply` on it and without being assigned. |
+| Notes | `InternalNote` gains `consultation_id: int \| null` so the answer shows in the thread as the doctor's response to that question. |
+| Notifications | `consultation_requested` (to the doctor) and `consultation_answered` (to the requester), each with `conversation_id` for the push tap. |
+| Realtime | `consultation.created`, `consultation.answered`, `consultation.cancelled` with `conversation_id` and `consultation_id`. |
+| Invariants | Assignment, status, unread state and SLA timers are untouched by asking, answering or withdrawing. |
+
+**Mobile once this exists:** "Consult a doctor" in the conversation menu
+(doctor picker plus question), a status chip in the thread header, the
+doctor's answer rendered as a linked internal note, an inbox filter "Waiting
+for my answer" for doctors, and both notifications routed to the
+conversation.
 
 ---
 

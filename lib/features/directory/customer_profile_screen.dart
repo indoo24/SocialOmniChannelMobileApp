@@ -22,6 +22,7 @@ import '../../core/models/employee.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
+import '../../core/utils/text_direction.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/export_csv_action.dart';
@@ -33,6 +34,7 @@ import '../customer_fields/custom_fields_section.dart';
 import '../orders/order_details.dart';
 import 'directory_providers.dart';
 import 'edit_customer_sheet.dart';
+import 'save_to_contacts.dart';
 
 class CustomerProfileScreen extends ConsumerWidget {
   const CustomerProfileScreen({required this.customerId, super.key});
@@ -54,6 +56,13 @@ class CustomerProfileScreen extends ConsumerWidget {
           detailAsync.value?.displayName ?? context.l10n.customerTitle,
         ),
         actions: [
+          // Offered even without a number, so tapping it can say why there
+          // is nothing to save.
+          if (detailAsync.value != null)
+            SaveToContactsButton(
+              name: detailAsync.value!.displayName,
+              phone: detailAsync.value!.displayPhone,
+            ),
           if (canEdit && detailAsync.value != null)
             IconButton(
               tooltip: context.l10n.editCustomerTitle,
@@ -187,8 +196,16 @@ class _CustomerHeader extends StatelessWidget {
           ],
         ),
         const SizedBox(height: Space.xl),
-        _Field(label: context.l10n.emailFieldLabel, value: customer.email),
-        _Field(label: context.l10n.phoneFieldLabel, value: customer.displayPhone),
+        _Field(
+          label: context.l10n.emailFieldLabel,
+          value: customer.email,
+          ltr: true,
+        ),
+        _Field(
+          label: context.l10n.phoneFieldLabel,
+          value: customer.displayPhone,
+          ltr: true,
+        ),
         _Field(
           label: context.l10n.locationFieldLabel,
           value: [
@@ -453,10 +470,14 @@ class _OrdersSection extends ConsumerWidget {
 }
 
 class _Field extends StatelessWidget {
-  const _Field({required this.label, required this.value});
+  const _Field({required this.label, required this.value, this.ltr = false});
 
   final String label;
   final String value;
+
+  /// For phone numbers and e-mail addresses: always left-to-right, so in
+  /// Arabic a leading `+` stays in front of the number.
+  final bool ltr;
 
   @override
   Widget build(BuildContext context) {
@@ -473,6 +494,8 @@ class _Field extends StatelessWidget {
           Expanded(
             child: Text(
               value.isEmpty ? '—' : value,
+              textDirection: ltr && value.isNotEmpty ? TextDirection.ltr : null,
+              textAlign: ltr ? ambientStartAlign(context) : null,
               style: theme.textTheme.bodyMedium,
             ),
           ),

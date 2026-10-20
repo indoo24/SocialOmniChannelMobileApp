@@ -243,6 +243,23 @@
   "noConversationsMessage": "New customer messages will appear here as they arrive.",
   "noFilterMatchesTitle": "Nothing matches those filters",
   "noFilterMatchesMessage": "Try widening or clearing the filters.",
+  "noSearchResultsTitle": "No results for “{query}”",
+  "@noSearchResultsTitle": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    },
+    "description": "Inbox empty state when a search matches no conversation."
+  },
+  "noSearchResultsMessage": "Try a different name, number or keyword.",
+  "@noSearchResultsMessage": {
+    "description": "Inbox empty state hint under the no-search-results title."
+  },
+  "clearSearchButton": "Clear search",
+  "@clearSearchButton": {
+    "description": "Button that clears the inbox search query."
+  },
   "clearFiltersButton": "Clear filters",
   "noMessagesYetPreview": "No messages yet",
   "unassignedBadge": "Unassigned",
@@ -1786,5 +1803,284 @@
   "exportCustomersCsvAction": "Export customers CSV",
   "exportConversationsSubtitle": "Export all conversations as a CSV file.",
   "exportCustomersSubtitle": "Export all customers as a CSV file.",
-  "exportActionLabel": "Export"
+  "exportActionLabel": "Export",
+  "saveContactAction": "Save to contacts",
+  "@saveContactAction": {
+    "description": "Opens the phone's new-contact screen prefilled with the customer."
+  },
+  "saveContactNoPhone": "This customer has no phone number to save.",
+  "@saveContactNoPhone": {
+    "description": "Shown when Save to contacts is tapped for a customer without a phone number."
+  },
+  "saveContactSaved": "Contact saved.",
+  "@saveContactSaved": {
+    "description": "Confirmation after the agent saved the contact in the system screen."
+  },
+  "saveContactUnavailable": "Contacts can't be opened on this device.",
+  "@saveContactUnavailable": {
+    "description": "The device has no contacts screen the app can open."
+  },
+  "savedRepliesAllCategories": "All",
+  "@savedRepliesAllCategories": {
+    "description": "Saved-reply picker chip showing replies of every category."
+  },
+  "savedRepliesUncategorized": "Uncategorized",
+  "@savedRepliesUncategorized": {
+    "description": "Heading and chip for saved replies saved without a category."
+  },
+  "conversationResolvedSnackbar": "Conversation resolved",
+  "@conversationResolvedSnackbar": {
+    "description": "Confirmation after resolving, shown with an Undo action."
+  },
+  "undoAction": "Undo",
+  "@undoAction": {
+    "description": "Snack bar action that reverses the last action."
+  },
+  "conversationReopenedSnackbar": "Conversation reopened",
+  "@conversationReopenedSnackbar": {
+    "description": "Confirmation after Undo put a resolved conversation back."
+  },
+  "resolveUndoFailedMessage": "Couldn't undo. The conversation is still resolved.",
+  "@resolveUndoFailedMessage": {
+    "description": "Undo after resolving failed; the conversation stays resolved."
+  },
+  "appProductName": "Scenario Omni Channel",
+  "@appProductName": {
+    "description": "Product name on the sign-in screen. A brand name: not translated."
+  },
+  "loginTagline": "Manage all your conversations in one place.",
+  "@loginTagline": {
+    "description": "Sign-in screen subtitle under the product name."
+  },
+  "showPasswordTooltip": "Show password",
+  "@showPasswordTooltip": {
+    "description": "Tooltip of the eye button that reveals the password."
+  },
+  "hidePasswordTooltip": "Hide password",
+  "@hidePasswordTooltip": {
+    "description": "Tooltip of the eye button that hides the password again."
+  },
+  "appearanceModeLabel": "Light or dark",
+  "@appearanceModeLabel": {
+    "description": "Settings label above the System / Light / Dark choice."
+  },
+  "colorThemeLabel": "Colour theme",
+  "@colorThemeLabel": {
+    "description": "Settings label above the list of colour themes."
+  },
+  "colorThemeOceanBlue": "Ocean Blue",
+  "@colorThemeOceanBlue": {
+    "description": "Colour theme name."
+  },
+  "colorThemeOceanBlueDescription": "The original Scenario look.",
+  "@colorThemeOceanBlueDescription": {
+    "description": "Ocean Blue colour theme description."
+  },
+  "colorThemeEmerald": "Emerald",
+  "@colorThemeEmerald": {
+    "description": "Colour theme name."
+  },
+  "colorThemeEmeraldDescription": "Calm green accents.",
+  "@colorThemeEmeraldDescription": {
+    "description": "Emerald colour theme description."
+  },
+  "colorThemeRoyalPurple": "Royal Purple",
+  "@colorThemeRoyalPurple": {
+    "description": "Colour theme name."
+  },
+  "colorThemeRoyalPurpleDescription": "Rich violet accents.",
+  "@colorThemeRoyalPurpleDescription": {
+    "description": "Royal Purple colour theme description."
+  },
+  "colorThemeGraphiteOrange": "Graphite Orange",
+  "@colorThemeGraphiteOrange": {
+    "description": "Colour theme name."
+  },
+  "colorThemeGraphiteOrangeDescription": "Neutral greys with orange highlights.",
+  "@colorThemeGraphiteOrangeDescription": {
+    "description": "Graphite Orange colour theme description."
+  },
+  "pinConversationAction": "Pin conversation",
+  "@pinConversationAction": {
+    "description": "Action that pins a conversation for the signed-in employee only."
+  },
+  "unpinConversationAction": "Unpin conversation",
+  "@unpinConversationAction": {
+    "description": "Action that removes the employee's pin."
+  },
+  "pinnedIndicator": "Pinned",
+  "@pinnedIndicator": {
+    "description": "Tooltip and screen-reader label of the pin shown on a pinned conversation."
+  },
+  "conversationPinnedMessage": "Conversation pinned",
+  "@conversationPinnedMessage": {
+    "description": "Shown after the server confirmed a pin."
+  },
+  "conversationUnpinnedMessage": "Conversation unpinned",
+  "@conversationUnpinnedMessage": {
+    "description": "Shown after the server confirmed an unpin."
+  },
+  "pinLimitReachedMessage": "You've reached the maximum number of pinned conversations.",
+  "@pinLimitReachedMessage": {
+    "description": "The server refused a pin because the employee has pinned as many as allowed."
+  },
+  "conversationUnavailableMessage": "This conversation is no longer available.",
+  "@conversationUnavailableMessage": {
+    "description": "The conversation was removed or is no longer visible to the employee."
+  },
+  "pinPermissionDeniedMessage": "You don't have permission to pin conversations.",
+  "@pinPermissionDeniedMessage": {
+    "description": "The server refused a pin for lack of permission."
+  },
+  "pinRequestFailedMessage": "Couldn't update the pin. Please try again.",
+  "@pinRequestFailedMessage": {
+    "description": "A pin or unpin request failed for a network or server reason."
+  },
+  "requestReviewAction": "Request review",
+  "@requestReviewAction": {
+    "description": "Action that asks a colleague to review the conversation."
+  },
+  "changeReviewerAction": "Change reviewer",
+  "@changeReviewerAction": {
+    "description": "Action that sends the pending review request to a different colleague."
+  },
+  "withdrawReviewAction": "Withdraw review",
+  "@withdrawReviewAction": {
+    "description": "Action that withdraws the pending review request."
+  },
+  "completeReviewAction": "Mark review complete",
+  "@completeReviewAction": {
+    "description": "Action, for the reviewer (or an admin), that completes the review. It sends nothing to the customer."
+  },
+  "reviewSectionTitle": "Review",
+  "@reviewSectionTitle": {
+    "description": "Title of the conversation review sheet and banner."
+  },
+  "reviewWithReviewer": "Reviewer: {name}",
+  "@reviewWithReviewer": {
+    "description": "Banner line naming the colleague asked to review.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewReviewerLabel": "Reviewer",
+  "@reviewReviewerLabel": {
+    "description": "Field label."
+  },
+  "reviewRequestedByLabel": "Requested by",
+  "@reviewRequestedByLabel": {
+    "description": "Field label: who asked for the review."
+  },
+  "reviewRequestedAtLabel": "Requested",
+  "@reviewRequestedAtLabel": {
+    "description": "Field label: when the review was asked for."
+  },
+  "reviewStatusLabel": "Status",
+  "@reviewStatusLabel": {
+    "description": "Field label: the review status."
+  },
+  "reviewNoteLabel": "Note",
+  "@reviewNoteLabel": {
+    "description": "Field label: the note sent with the review request."
+  },
+  "reviewStatusPending": "Pending",
+  "@reviewStatusPending": {
+    "description": "Display name of the PENDING review status."
+  },
+  "reviewExplanation": "A colleague looks over this conversation. It stays assigned as it is, and you can keep replying.",
+  "@reviewExplanation": {
+    "description": "Explains, in the request sheet, that a review is not a transfer."
+  },
+  "reviewChooseReviewerHint": "Choose a colleague who can review conversations.",
+  "@reviewChooseReviewerHint": {
+    "description": "Hint above the reviewer list."
+  },
+  "reviewNoteHint": "What should the reviewer look at?",
+  "@reviewNoteHint": {
+    "description": "Hint in the optional note field."
+  },
+  "reviewSubmitButton": "Send request",
+  "@reviewSubmitButton": {
+    "description": "Submits the review request."
+  },
+  "reviewReviewerRequired": "Choose a reviewer.",
+  "@reviewReviewerRequired": {
+    "description": "Validation: no reviewer picked."
+  },
+  "reviewNoColleaguesFound": "No colleagues found.",
+  "@reviewNoColleaguesFound": {
+    "description": "The reviewer list is empty."
+  },
+  "reviewCurrentReviewerLabel": "Current reviewer",
+  "@reviewCurrentReviewerLabel": {
+    "description": "Marks the colleague the pending review is with."
+  },
+  "reviewRequestedMessage": "Review requested from {name}",
+  "@reviewRequestedMessage": {
+    "description": "Shown after the server confirmed a review request.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewerChangedMessage": "Reviewer changed to {name}",
+  "@reviewerChangedMessage": {
+    "description": "Shown after the server confirmed a retargeted review.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewWithdrawnMessage": "Review withdrawn",
+  "@reviewWithdrawnMessage": {
+    "description": "Shown after the server confirmed a withdrawal."
+  },
+  "reviewCompletedMessage": "Review completed",
+  "@reviewCompletedMessage": {
+    "description": "Shown after the server confirmed the review is complete."
+  },
+  "withdrawReviewConfirmTitle": "Withdraw this review?",
+  "@withdrawReviewConfirmTitle": {
+    "description": "Confirmation dialog title."
+  },
+  "withdrawReviewConfirmMessage": "The reviewer will no longer be asked to look at this conversation.",
+  "@withdrawReviewConfirmMessage": {
+    "description": "Confirmation dialog body."
+  },
+  "reviewReviewerNotEligibleMessage": "This person can't be asked to review this conversation.",
+  "@reviewReviewerNotEligibleMessage": {
+    "description": "The server refused the chosen reviewer (400)."
+  },
+  "reviewPermissionDeniedMessage": "You don't have permission to do this.",
+  "@reviewPermissionDeniedMessage": {
+    "description": "The server refused a review action for lack of permission (403)."
+  },
+  "reviewNotPendingMessage": "There's no review pending on this conversation.",
+  "@reviewNotPendingMessage": {
+    "description": "Withdraw or complete found no pending review (409)."
+  },
+  "reviewRequestFailedMessage": "Couldn't update the review. Please try again.",
+  "@reviewRequestFailedMessage": {
+    "description": "A review action failed for a network or server reason."
+  },
+  "needsReviewFilter": "Need review",
+  "@needsReviewFilter": {
+    "description": "Inbox quick filter: conversations whose pending review names the signed-in employee as reviewer."
+  },
+  "resolvedFilter": "Resolved",
+  "@resolvedFilter": {
+    "description": "Inbox quick filter: resolved conversations."
+  },
+  "noReviewsWaitingTitle": "Nothing to review",
+  "@noReviewsWaitingTitle": {
+    "description": "Need review tab, empty: no conversation names the employee as reviewer."
+  },
+  "noReviewsWaitingMessage": "Conversations colleagues ask you to review will appear here.",
+  "@noReviewsWaitingMessage": {
+    "description": "Need review tab, empty: what will appear here."
+  }
 }

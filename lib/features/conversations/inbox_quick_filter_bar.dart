@@ -7,13 +7,14 @@ import 'inbox_controller.dart';
 
 /// Horizontally scrollable row of primary Inbox quick filters.
 ///
-/// Prominently displays the 5 primary views:
-///   [ All ]  [ Mine ]  [ Unassigned ]  [ Unread ]  [ Open ]
+/// Prominently displays the primary views:
+///   [ All ]  [ Mine ]  [ Need review ]  [ Resolved ]  [ Unassigned ]
+///   [ Unread ]  [ Open ]
 ///
-/// Mirrors Web behavior (`jn = ["all", "mine", "unassigned", "unread", "open"]`
-/// in `inbox.js`):
-///  - Active item renders with filled primary styling.
-///  - Inactive items render with secondary tonal styling.
+/// The web's five (`jn = ["all", "mine", "unassigned", "unread", "open"]`
+/// in `inbox.js`) plus Need review and Resolved, and the same behaviour:
+///  - Active item renders filled with the primary colour and a check.
+///  - Inactive items render outlined on the page.
 ///  - Label only — no count badge.
 class InboxQuickFilterBar extends ConsumerWidget {
   const InboxQuickFilterBar({super.key});
@@ -25,9 +26,11 @@ class InboxQuickFilterBar extends ConsumerWidget {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(
-        horizontal: Space.md,
-        vertical: Space.xs,
+      padding: const EdgeInsets.fromLTRB(
+        Space.lg,
+        Space.xs,
+        Space.lg,
+        Space.sm,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -40,7 +43,7 @@ class InboxQuickFilterBar extends ConsumerWidget {
                 .read(inboxFiltersProvider.notifier)
                 .selectQuickFilter(InboxQuickFilter.all),
           ),
-          const SizedBox(width: Space.xs),
+          const SizedBox(width: Space.sm),
           _QuickFilterPill(
             key: const Key('quick_filter_mine'),
             label: context.l10n.mineFilter,
@@ -49,7 +52,25 @@ class InboxQuickFilterBar extends ConsumerWidget {
                 .read(inboxFiltersProvider.notifier)
                 .selectQuickFilter(InboxQuickFilter.mine),
           ),
-          const SizedBox(width: Space.xs),
+          const SizedBox(width: Space.sm),
+          _QuickFilterPill(
+            key: const Key('quick_filter_needs_review'),
+            label: context.l10n.needsReviewFilter,
+            isActive: activeFilter == InboxQuickFilter.needsReview,
+            onTap: () => ref
+                .read(inboxFiltersProvider.notifier)
+                .selectQuickFilter(InboxQuickFilter.needsReview),
+          ),
+          const SizedBox(width: Space.sm),
+          _QuickFilterPill(
+            key: const Key('quick_filter_resolved'),
+            label: context.l10n.resolvedFilter,
+            isActive: activeFilter == InboxQuickFilter.resolved,
+            onTap: () => ref
+                .read(inboxFiltersProvider.notifier)
+                .selectQuickFilter(InboxQuickFilter.resolved),
+          ),
+          const SizedBox(width: Space.sm),
           _QuickFilterPill(
             key: const Key('quick_filter_unassigned'),
             label: context.l10n.unassignedFilter,
@@ -58,7 +79,7 @@ class InboxQuickFilterBar extends ConsumerWidget {
                 .read(inboxFiltersProvider.notifier)
                 .selectQuickFilter(InboxQuickFilter.unassigned),
           ),
-          const SizedBox(width: Space.xs),
+          const SizedBox(width: Space.sm),
           _QuickFilterPill(
             key: const Key('quick_filter_unread'),
             label: context.l10n.unreadFilter,
@@ -67,7 +88,7 @@ class InboxQuickFilterBar extends ConsumerWidget {
                 .read(inboxFiltersProvider.notifier)
                 .selectQuickFilter(InboxQuickFilter.unread),
           ),
-          const SizedBox(width: Space.xs),
+          const SizedBox(width: Space.sm),
           _QuickFilterPill(
             key: const Key('quick_filter_open'),
             label: context.l10n.openFilter,
@@ -97,39 +118,50 @@ class _QuickFilterPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final scheme = theme.colorScheme;
 
-    final backgroundColor = isActive
-        ? theme.colorScheme.primary
-        : (isDark
-              ? theme.colorScheme.surfaceContainerHigh
-              : theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.65,
-                ));
-
-    final textColor = isActive
-        ? theme.colorScheme.onPrimary
-        : theme.colorScheme.onSurfaceVariant;
-
-    return Material(
-      color: backgroundColor,
+    // Selected = filled brand colour with a check; unselected = outlined on
+    // the page. The check means the state never rests on colour alone.
+    final foreground = isActive ? scheme.onPrimary : scheme.onSurface;
+    final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(Radii.pill),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(Radii.pill),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 32),
-          padding: const EdgeInsets.symmetric(
-            horizontal: Space.md - 2,
-            vertical: 6,
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: textColor,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-              fontSize: 12.5,
+      side: isActive
+          ? BorderSide.none
+          : BorderSide(color: scheme.outlineVariant),
+    );
+
+    return Semantics(
+      button: true,
+      selected: isActive,
+      child: Material(
+        color: isActive ? scheme.primary : scheme.surface,
+        shape: shape,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: Sizes.pill),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Space.md + 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isActive) ...[
+                    Icon(Icons.check_rounded, size: 16, color: foreground),
+                    const SizedBox(width: Space.xs),
+                  ],
+                  Text(
+                    label,
+                    maxLines: 1,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: foreground,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 13,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

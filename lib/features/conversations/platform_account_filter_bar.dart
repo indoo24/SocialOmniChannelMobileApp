@@ -47,16 +47,13 @@ class PlatformAccountFilterBar extends ConsumerWidget {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(
-        horizontal: Space.md,
-        vertical: Space.xs,
-      ),
+      padding: const EdgeInsets.fromLTRB(Space.lg, Space.sm, Space.lg, 0),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           for (final entry in multiAccountProviders.entries) ...[
             Padding(
-              padding: const EdgeInsetsDirectional.only(end: Space.xs),
+              padding: const EdgeInsetsDirectional.only(end: Space.sm),
               child: PlatformAccountSelectorButton(
                 provider: entry.key,
                 accounts: entry.value,
@@ -226,8 +223,8 @@ class PlatformAccountSelectorButton extends ConsumerWidget {
         ];
       },
       child: Container(
-        constraints: const BoxConstraints(minHeight: 32),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        constraints: const BoxConstraints(minHeight: Sizes.pill),
+        padding: const EdgeInsets.symmetric(horizontal: Space.md),
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(Radii.pill),
@@ -238,8 +235,10 @@ class PlatformAccountSelectorButton extends ConsumerWidget {
           children: [
             Icon(
               ConversationBadges.providerIcon(provider),
-              size: 16,
-              color: ConversationBadges.providerColor(provider),
+              size: Sizes.iconSm,
+              color: ConversationBadges.providerGlyphColor(context, provider),
+              // "All accounts" alone does not say which platform this is.
+              semanticLabel: providerTitle,
             ),
             const SizedBox(width: 6),
             ConstrainedBox(

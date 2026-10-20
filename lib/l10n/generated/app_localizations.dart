@@ -992,6 +992,24 @@ abstract class AppLocalizations {
   /// **'Try widening or clearing the filters.'**
   String get noFilterMatchesMessage;
 
+  /// Inbox empty state when a search matches no conversation.
+  ///
+  /// In en, this message translates to:
+  /// **'No results for “{query}”'**
+  String noSearchResultsTitle(String query);
+
+  /// Inbox empty state hint under the no-search-results title.
+  ///
+  /// In en, this message translates to:
+  /// **'Try a different name, number or keyword.'**
+  String get noSearchResultsMessage;
+
+  /// Button that clears the inbox search query.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearSearchButton;
+
   /// No description provided for @clearFiltersButton.
   ///
   /// In en, this message translates to:
@@ -6036,6 +6054,402 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Export'**
   String get exportActionLabel;
+
+  /// Opens the phone's new-contact screen prefilled with the customer.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to contacts'**
+  String get saveContactAction;
+
+  /// Shown when Save to contacts is tapped for a customer without a phone number.
+  ///
+  /// In en, this message translates to:
+  /// **'This customer has no phone number to save.'**
+  String get saveContactNoPhone;
+
+  /// Confirmation after the agent saved the contact in the system screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact saved.'**
+  String get saveContactSaved;
+
+  /// The device has no contacts screen the app can open.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts can\'t be opened on this device.'**
+  String get saveContactUnavailable;
+
+  /// Saved-reply picker chip showing replies of every category.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get savedRepliesAllCategories;
+
+  /// Heading and chip for saved replies saved without a category.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncategorized'**
+  String get savedRepliesUncategorized;
+
+  /// Confirmation after resolving, shown with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation resolved'**
+  String get conversationResolvedSnackbar;
+
+  /// Snack bar action that reverses the last action.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undoAction;
+
+  /// Confirmation after Undo put a resolved conversation back.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation reopened'**
+  String get conversationReopenedSnackbar;
+
+  /// Undo after resolving failed; the conversation stays resolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t undo. The conversation is still resolved.'**
+  String get resolveUndoFailedMessage;
+
+  /// Product name on the sign-in screen. A brand name: not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Scenario Omni Channel'**
+  String get appProductName;
+
+  /// Sign-in screen subtitle under the product name.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage all your conversations in one place.'**
+  String get loginTagline;
+
+  /// Tooltip of the eye button that reveals the password.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get showPasswordTooltip;
+
+  /// Tooltip of the eye button that hides the password again.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get hidePasswordTooltip;
+
+  /// Settings label above the System / Light / Dark choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Light or dark'**
+  String get appearanceModeLabel;
+
+  /// Settings label above the list of colour themes.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour theme'**
+  String get colorThemeLabel;
+
+  /// Colour theme name.
+  ///
+  /// In en, this message translates to:
+  /// **'Ocean Blue'**
+  String get colorThemeOceanBlue;
+
+  /// Ocean Blue colour theme description.
+  ///
+  /// In en, this message translates to:
+  /// **'The original Scenario look.'**
+  String get colorThemeOceanBlueDescription;
+
+  /// Colour theme name.
+  ///
+  /// In en, this message translates to:
+  /// **'Emerald'**
+  String get colorThemeEmerald;
+
+  /// Emerald colour theme description.
+  ///
+  /// In en, this message translates to:
+  /// **'Calm green accents.'**
+  String get colorThemeEmeraldDescription;
+
+  /// Colour theme name.
+  ///
+  /// In en, this message translates to:
+  /// **'Royal Purple'**
+  String get colorThemeRoyalPurple;
+
+  /// Royal Purple colour theme description.
+  ///
+  /// In en, this message translates to:
+  /// **'Rich violet accents.'**
+  String get colorThemeRoyalPurpleDescription;
+
+  /// Colour theme name.
+  ///
+  /// In en, this message translates to:
+  /// **'Graphite Orange'**
+  String get colorThemeGraphiteOrange;
+
+  /// Graphite Orange colour theme description.
+  ///
+  /// In en, this message translates to:
+  /// **'Neutral greys with orange highlights.'**
+  String get colorThemeGraphiteOrangeDescription;
+
+  /// Action that pins a conversation for the signed-in employee only.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin conversation'**
+  String get pinConversationAction;
+
+  /// Action that removes the employee's pin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin conversation'**
+  String get unpinConversationAction;
+
+  /// Tooltip and screen-reader label of the pin shown on a pinned conversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get pinnedIndicator;
+
+  /// Shown after the server confirmed a pin.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation pinned'**
+  String get conversationPinnedMessage;
+
+  /// Shown after the server confirmed an unpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation unpinned'**
+  String get conversationUnpinnedMessage;
+
+  /// The server refused a pin because the employee has pinned as many as allowed.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached the maximum number of pinned conversations.'**
+  String get pinLimitReachedMessage;
+
+  /// The conversation was removed or is no longer visible to the employee.
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation is no longer available.'**
+  String get conversationUnavailableMessage;
+
+  /// The server refused a pin for lack of permission.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to pin conversations.'**
+  String get pinPermissionDeniedMessage;
+
+  /// A pin or unpin request failed for a network or server reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the pin. Please try again.'**
+  String get pinRequestFailedMessage;
+
+  /// Action that asks a colleague to review the conversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Request review'**
+  String get requestReviewAction;
+
+  /// Action that sends the pending review request to a different colleague.
+  ///
+  /// In en, this message translates to:
+  /// **'Change reviewer'**
+  String get changeReviewerAction;
+
+  /// Action that withdraws the pending review request.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw review'**
+  String get withdrawReviewAction;
+
+  /// Action, for the reviewer (or an admin), that completes the review. It sends nothing to the customer.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark review complete'**
+  String get completeReviewAction;
+
+  /// Title of the conversation review sheet and banner.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get reviewSectionTitle;
+
+  /// Banner line naming the colleague asked to review.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewer: {name}'**
+  String reviewWithReviewer(String name);
+
+  /// Field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewer'**
+  String get reviewReviewerLabel;
+
+  /// Field label: who asked for the review.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested by'**
+  String get reviewRequestedByLabel;
+
+  /// Field label: when the review was asked for.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested'**
+  String get reviewRequestedAtLabel;
+
+  /// Field label: the review status.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get reviewStatusLabel;
+
+  /// Field label: the note sent with the review request.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get reviewNoteLabel;
+
+  /// Display name of the PENDING review status.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get reviewStatusPending;
+
+  /// Explains, in the request sheet, that a review is not a transfer.
+  ///
+  /// In en, this message translates to:
+  /// **'A colleague looks over this conversation. It stays assigned as it is, and you can keep replying.'**
+  String get reviewExplanation;
+
+  /// Hint above the reviewer list.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a colleague who can review conversations.'**
+  String get reviewChooseReviewerHint;
+
+  /// Hint in the optional note field.
+  ///
+  /// In en, this message translates to:
+  /// **'What should the reviewer look at?'**
+  String get reviewNoteHint;
+
+  /// Submits the review request.
+  ///
+  /// In en, this message translates to:
+  /// **'Send request'**
+  String get reviewSubmitButton;
+
+  /// Validation: no reviewer picked.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a reviewer.'**
+  String get reviewReviewerRequired;
+
+  /// The reviewer list is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No colleagues found.'**
+  String get reviewNoColleaguesFound;
+
+  /// Marks the colleague the pending review is with.
+  ///
+  /// In en, this message translates to:
+  /// **'Current reviewer'**
+  String get reviewCurrentReviewerLabel;
+
+  /// Shown after the server confirmed a review request.
+  ///
+  /// In en, this message translates to:
+  /// **'Review requested from {name}'**
+  String reviewRequestedMessage(String name);
+
+  /// Shown after the server confirmed a retargeted review.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewer changed to {name}'**
+  String reviewerChangedMessage(String name);
+
+  /// Shown after the server confirmed a withdrawal.
+  ///
+  /// In en, this message translates to:
+  /// **'Review withdrawn'**
+  String get reviewWithdrawnMessage;
+
+  /// Shown after the server confirmed the review is complete.
+  ///
+  /// In en, this message translates to:
+  /// **'Review completed'**
+  String get reviewCompletedMessage;
+
+  /// Confirmation dialog title.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw this review?'**
+  String get withdrawReviewConfirmTitle;
+
+  /// Confirmation dialog body.
+  ///
+  /// In en, this message translates to:
+  /// **'The reviewer will no longer be asked to look at this conversation.'**
+  String get withdrawReviewConfirmMessage;
+
+  /// The server refused the chosen reviewer (400).
+  ///
+  /// In en, this message translates to:
+  /// **'This person can\'t be asked to review this conversation.'**
+  String get reviewReviewerNotEligibleMessage;
+
+  /// The server refused a review action for lack of permission (403).
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to do this.'**
+  String get reviewPermissionDeniedMessage;
+
+  /// Withdraw or complete found no pending review (409).
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s no review pending on this conversation.'**
+  String get reviewNotPendingMessage;
+
+  /// A review action failed for a network or server reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the review. Please try again.'**
+  String get reviewRequestFailedMessage;
+
+  /// Inbox quick filter: conversations whose pending review names the signed-in employee as reviewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Need review'**
+  String get needsReviewFilter;
+
+  /// Inbox quick filter: resolved conversations.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved'**
+  String get resolvedFilter;
+
+  /// Need review tab, empty: no conversation names the employee as reviewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to review'**
+  String get noReviewsWaitingTitle;
+
+  /// Need review tab, empty: what will appear here.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations colleagues ask you to review will appear here.'**
+  String get noReviewsWaitingMessage;
 }
 
 class _AppLocalizationsDelegate

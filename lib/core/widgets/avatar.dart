@@ -8,6 +8,7 @@ library;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import '../theme/tokens.dart';
 import '../utils/safe_url.dart';
 import 'badges.dart';
@@ -65,8 +66,10 @@ class InitialsAvatar extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           avatar,
-          Positioned(
-            right: -1,
+          // Bottom end: the corner the eye reaches last in either reading
+          // direction, clear of the initials.
+          PositionedDirectional(
+            end: -1,
             bottom: -1,
             child: Container(
               width: badgeSize,
@@ -83,6 +86,8 @@ class InitialsAvatar extends StatelessWidget {
                 ConversationBadges.providerIcon(provider!),
                 size: badgeSize * 0.55,
                 color: Colors.white,
+                // The channel is otherwise told by colour and glyph alone.
+                semanticLabel: _channelLabel(context),
               ),
             ),
           ),
@@ -90,6 +95,13 @@ class InitialsAvatar extends StatelessWidget {
       ),
     );
   }
+
+  /// The channel's name for screen readers — skipped where no localizations
+  /// are available (avatars are also drawn outside the localized app shell).
+  String? _channelLabel(BuildContext context) =>
+      Localizations.of<AppLocalizations>(context, AppLocalizations) == null
+      ? null
+      : ConversationBadges.providerLabel(context, provider!);
 
   /// [initials] unchanged when it is well-formed UTF-16 — this widget's
   /// callers disagree on length (some pass a server-computed two-letter
@@ -128,15 +140,25 @@ class InitialsAvatar extends StatelessWidget {
     return true;
   }
 
+  /// The initials are sized to the circle, not to the reader's text size: the
+  /// circle itself never grows, so scaled-up initials (or a wide emoji) would
+  /// spill out of it. [FittedBox] shrinks anything still too wide.
   Widget _initials(ThemeData theme) => Container(
     color: theme.colorScheme.surfaceContainerHighest,
     alignment: Alignment.center,
-    child: Text(
-      _safeGlyph(initials),
-      style: TextStyle(
-        fontSize: size * 0.36,
-        fontWeight: FontWeight.w600,
-        color: theme.colorScheme.onSurfaceVariant,
+    padding: EdgeInsets.all(size * 0.14),
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        _safeGlyph(initials),
+        maxLines: 1,
+        textScaler: TextScaler.noScaling,
+        style: TextStyle(
+          fontSize: size * 0.36,
+          fontWeight: FontWeight.w600,
+          height: 1.1,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     ),
   );

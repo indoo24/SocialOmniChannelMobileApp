@@ -505,6 +505,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noFilterMatchesMessage => 'Try widening or clearing the filters.';
 
   @override
+  String noSearchResultsTitle(String query) {
+    return 'No results for “$query”';
+  }
+
+  @override
+  String get noSearchResultsMessage =>
+      'Try a different name, number or keyword.';
+
+  @override
+  String get clearSearchButton => 'Clear search';
+
+  @override
   String get clearFiltersButton => 'Clear filters';
 
   @override
@@ -3379,4 +3391,223 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportActionLabel => 'Export';
+
+  @override
+  String get saveContactAction => 'Save to contacts';
+
+  @override
+  String get saveContactNoPhone => 'This customer has no phone number to save.';
+
+  @override
+  String get saveContactSaved => 'Contact saved.';
+
+  @override
+  String get saveContactUnavailable =>
+      'Contacts can\'t be opened on this device.';
+
+  @override
+  String get savedRepliesAllCategories => 'All';
+
+  @override
+  String get savedRepliesUncategorized => 'Uncategorized';
+
+  @override
+  String get conversationResolvedSnackbar => 'Conversation resolved';
+
+  @override
+  String get undoAction => 'Undo';
+
+  @override
+  String get conversationReopenedSnackbar => 'Conversation reopened';
+
+  @override
+  String get resolveUndoFailedMessage =>
+      'Couldn\'t undo. The conversation is still resolved.';
+
+  @override
+  String get appProductName => 'Scenario Omni Channel';
+
+  @override
+  String get loginTagline => 'Manage all your conversations in one place.';
+
+  @override
+  String get showPasswordTooltip => 'Show password';
+
+  @override
+  String get hidePasswordTooltip => 'Hide password';
+
+  @override
+  String get appearanceModeLabel => 'Light or dark';
+
+  @override
+  String get colorThemeLabel => 'Colour theme';
+
+  @override
+  String get colorThemeOceanBlue => 'Ocean Blue';
+
+  @override
+  String get colorThemeOceanBlueDescription => 'The original Scenario look.';
+
+  @override
+  String get colorThemeEmerald => 'Emerald';
+
+  @override
+  String get colorThemeEmeraldDescription => 'Calm green accents.';
+
+  @override
+  String get colorThemeRoyalPurple => 'Royal Purple';
+
+  @override
+  String get colorThemeRoyalPurpleDescription => 'Rich violet accents.';
+
+  @override
+  String get colorThemeGraphiteOrange => 'Graphite Orange';
+
+  @override
+  String get colorThemeGraphiteOrangeDescription =>
+      'Neutral greys with orange highlights.';
+
+  @override
+  String get pinConversationAction => 'Pin conversation';
+
+  @override
+  String get unpinConversationAction => 'Unpin conversation';
+
+  @override
+  String get pinnedIndicator => 'Pinned';
+
+  @override
+  String get conversationPinnedMessage => 'Conversation pinned';
+
+  @override
+  String get conversationUnpinnedMessage => 'Conversation unpinned';
+
+  @override
+  String get pinLimitReachedMessage =>
+      'You\'ve reached the maximum number of pinned conversations.';
+
+  @override
+  String get conversationUnavailableMessage =>
+      'This conversation is no longer available.';
+
+  @override
+  String get pinPermissionDeniedMessage =>
+      'You don\'t have permission to pin conversations.';
+
+  @override
+  String get pinRequestFailedMessage =>
+      'Couldn\'t update the pin. Please try again.';
+
+  @override
+  String get requestReviewAction => 'Request review';
+
+  @override
+  String get changeReviewerAction => 'Change reviewer';
+
+  @override
+  String get withdrawReviewAction => 'Withdraw review';
+
+  @override
+  String get completeReviewAction => 'Mark review complete';
+
+  @override
+  String get reviewSectionTitle => 'Review';
+
+  @override
+  String reviewWithReviewer(String name) {
+    return 'Reviewer: $name';
+  }
+
+  @override
+  String get reviewReviewerLabel => 'Reviewer';
+
+  @override
+  String get reviewRequestedByLabel => 'Requested by';
+
+  @override
+  String get reviewRequestedAtLabel => 'Requested';
+
+  @override
+  String get reviewStatusLabel => 'Status';
+
+  @override
+  String get reviewNoteLabel => 'Note';
+
+  @override
+  String get reviewStatusPending => 'Pending';
+
+  @override
+  String get reviewExplanation =>
+      'A colleague looks over this conversation. It stays assigned as it is, and you can keep replying.';
+
+  @override
+  String get reviewChooseReviewerHint =>
+      'Choose a colleague who can review conversations.';
+
+  @override
+  String get reviewNoteHint => 'What should the reviewer look at?';
+
+  @override
+  String get reviewSubmitButton => 'Send request';
+
+  @override
+  String get reviewReviewerRequired => 'Choose a reviewer.';
+
+  @override
+  String get reviewNoColleaguesFound => 'No colleagues found.';
+
+  @override
+  String get reviewCurrentReviewerLabel => 'Current reviewer';
+
+  @override
+  String reviewRequestedMessage(String name) {
+    return 'Review requested from $name';
+  }
+
+  @override
+  String reviewerChangedMessage(String name) {
+    return 'Reviewer changed to $name';
+  }
+
+  @override
+  String get reviewWithdrawnMessage => 'Review withdrawn';
+
+  @override
+  String get reviewCompletedMessage => 'Review completed';
+
+  @override
+  String get withdrawReviewConfirmTitle => 'Withdraw this review?';
+
+  @override
+  String get withdrawReviewConfirmMessage =>
+      'The reviewer will no longer be asked to look at this conversation.';
+
+  @override
+  String get reviewReviewerNotEligibleMessage =>
+      'This person can\'t be asked to review this conversation.';
+
+  @override
+  String get reviewPermissionDeniedMessage =>
+      'You don\'t have permission to do this.';
+
+  @override
+  String get reviewNotPendingMessage =>
+      'There\'s no review pending on this conversation.';
+
+  @override
+  String get reviewRequestFailedMessage =>
+      'Couldn\'t update the review. Please try again.';
+
+  @override
+  String get needsReviewFilter => 'Need review';
+
+  @override
+  String get resolvedFilter => 'Resolved';
+
+  @override
+  String get noReviewsWaitingTitle => 'Nothing to review';
+
+  @override
+  String get noReviewsWaitingMessage =>
+      'Conversations colleagues ask you to review will appear here.';
 }

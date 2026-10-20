@@ -4,6 +4,7 @@ import '../logging/app_log.dart';
 import '../utils/json_safe.dart';
 
 import 'conversation_attribution.dart';
+import 'conversation_review.dart';
 import 'employee.dart';
 import 'message.dart';
 
@@ -184,6 +185,8 @@ class Conversation {
     this.resolvedAt,
     this.lastAgentMessageAt,
     this.attribution,
+    this.isPinned = false,
+    this.review,
   });
 
   final int id;
@@ -247,6 +250,15 @@ class Conversation {
   /// [ConversationAttribution] for the (web-derived) field contract.
   final ConversationAttribution? attribution;
 
+  /// Pinned by the signed-in employee — a personal choice, not shared with
+  /// anyone else's inbox. False when the server sends no `is_pinned` (older
+  /// responses), never guessed.
+  final bool isPinned;
+
+  /// The colleague review on this conversation, or null when it has none
+  /// (and when the response does not carry `review` at all).
+  final ConversationReview? review;
+
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
     id: JsonSafe.asInt(json['id'], fallback: -1),
     customer: CustomerBrief.fromJson(JsonSafe.asMap(json['customer'])),
@@ -307,6 +319,8 @@ class Conversation {
     resolvedAt: _parseDate(json['resolved_at']),
     lastAgentMessageAt: _parseDate(json['last_agent_message_at']),
     attribution: _parseAttribution(json['attribution']),
+    isPinned: JsonSafe.asBool(json['is_pinned']),
+    review: ConversationReview.fromJson(json['review']),
   );
 
   /// True when the platform's own limits refuse another message right now.
@@ -354,6 +368,9 @@ class Conversation {
     String? lastMessageDirection,
     String? lastMessageDeliveryStatus,
     List<MessageAttachment>? lastMessageAttachments,
+    bool? isPinned,
+    ConversationReview? review,
+    bool clearReview = false,
   }) => Conversation(
     id: id,
     customer: customer,
@@ -393,6 +410,8 @@ class Conversation {
     resolvedAt: resolvedAt,
     lastAgentMessageAt: lastAgentMessageAt,
     attribution: attribution,
+    isPinned: isPinned ?? this.isPinned,
+    review: clearReview ? null : (review ?? this.review),
   );
 }
 

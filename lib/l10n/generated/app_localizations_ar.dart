@@ -505,6 +505,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noFilterMatchesMessage => 'حاول توسيع الفلاتر أو مسحها.';
 
   @override
+  String noSearchResultsTitle(String query) {
+    return 'لا توجد نتائج لـ «$query»';
+  }
+
+  @override
+  String get noSearchResultsMessage => 'جرّب اسمًا أو رقمًا أو كلمة أخرى.';
+
+  @override
+  String get clearSearchButton => 'مسح البحث';
+
+  @override
   String get clearFiltersButton => 'مسح الفلاتر';
 
   @override
@@ -3392,4 +3403,217 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get exportActionLabel => 'تصدير';
+
+  @override
+  String get saveContactAction => 'حفظ في جهات الاتصال';
+
+  @override
+  String get saveContactNoPhone => 'لا يوجد رقم هاتف لهذا العميل لحفظه.';
+
+  @override
+  String get saveContactSaved => 'تم حفظ جهة الاتصال.';
+
+  @override
+  String get saveContactUnavailable => 'تعذّر فتح جهات الاتصال على هذا الجهاز.';
+
+  @override
+  String get savedRepliesAllCategories => 'الكل';
+
+  @override
+  String get savedRepliesUncategorized => 'بدون تصنيف';
+
+  @override
+  String get conversationResolvedSnackbar => 'تم حل المحادثة';
+
+  @override
+  String get undoAction => 'تراجع';
+
+  @override
+  String get conversationReopenedSnackbar => 'أُعيد فتح المحادثة';
+
+  @override
+  String get resolveUndoFailedMessage =>
+      'تعذّر التراجع. المحادثة ما زالت محلولة.';
+
+  @override
+  String get appProductName => 'Scenario Omni Channel';
+
+  @override
+  String get loginTagline => 'أدِر جميع محادثاتك من مكان واحد.';
+
+  @override
+  String get showPasswordTooltip => 'إظهار كلمة المرور';
+
+  @override
+  String get hidePasswordTooltip => 'إخفاء كلمة المرور';
+
+  @override
+  String get appearanceModeLabel => 'فاتح أو داكن';
+
+  @override
+  String get colorThemeLabel => 'ألوان التطبيق';
+
+  @override
+  String get colorThemeOceanBlue => 'الأزرق المحيطي';
+
+  @override
+  String get colorThemeOceanBlueDescription => 'مظهر Scenario الأصلي.';
+
+  @override
+  String get colorThemeEmerald => 'الزمردي';
+
+  @override
+  String get colorThemeEmeraldDescription => 'لمسات خضراء هادئة.';
+
+  @override
+  String get colorThemeRoyalPurple => 'البنفسجي الملكي';
+
+  @override
+  String get colorThemeRoyalPurpleDescription => 'لمسات بنفسجية غنية.';
+
+  @override
+  String get colorThemeGraphiteOrange => 'الجرافيت والبرتقالي';
+
+  @override
+  String get colorThemeGraphiteOrangeDescription =>
+      'رمادي محايد مع لمسات برتقالية.';
+
+  @override
+  String get pinConversationAction => 'تثبيت المحادثة';
+
+  @override
+  String get unpinConversationAction => 'إلغاء تثبيت المحادثة';
+
+  @override
+  String get pinnedIndicator => 'مثبّتة';
+
+  @override
+  String get conversationPinnedMessage => 'تم تثبيت المحادثة';
+
+  @override
+  String get conversationUnpinnedMessage => 'تم إلغاء تثبيت المحادثة';
+
+  @override
+  String get pinLimitReachedMessage =>
+      'وصلت إلى الحد الأقصى لعدد المحادثات المثبّتة.';
+
+  @override
+  String get conversationUnavailableMessage => 'هذه المحادثة لم تعد متاحة.';
+
+  @override
+  String get pinPermissionDeniedMessage => 'ليست لديك صلاحية لتثبيت المحادثات.';
+
+  @override
+  String get pinRequestFailedMessage => 'تعذّر تحديث التثبيت. حاول مرة أخرى.';
+
+  @override
+  String get requestReviewAction => 'طلب مراجعة';
+
+  @override
+  String get changeReviewerAction => 'تغيير المراجِع';
+
+  @override
+  String get withdrawReviewAction => 'سحب طلب المراجعة';
+
+  @override
+  String get completeReviewAction => 'إنهاء المراجعة';
+
+  @override
+  String get reviewSectionTitle => 'المراجعة';
+
+  @override
+  String reviewWithReviewer(String name) {
+    return 'المراجِع: $name';
+  }
+
+  @override
+  String get reviewReviewerLabel => 'المراجِع';
+
+  @override
+  String get reviewRequestedByLabel => 'طلبها';
+
+  @override
+  String get reviewRequestedAtLabel => 'وقت الطلب';
+
+  @override
+  String get reviewStatusLabel => 'الحالة';
+
+  @override
+  String get reviewNoteLabel => 'الملاحظة';
+
+  @override
+  String get reviewStatusPending => 'قيد الانتظار';
+
+  @override
+  String get reviewExplanation =>
+      'يطّلع زميل على هذه المحادثة. تبقى المحادثة مُسندة كما هي، ويمكنك متابعة الرد.';
+
+  @override
+  String get reviewChooseReviewerHint => 'اختر زميلًا يمكنه مراجعة المحادثات.';
+
+  @override
+  String get reviewNoteHint => 'ما الذي ينبغي أن يطّلع عليه المراجِع؟';
+
+  @override
+  String get reviewSubmitButton => 'إرسال الطلب';
+
+  @override
+  String get reviewReviewerRequired => 'اختر مراجِعًا.';
+
+  @override
+  String get reviewNoColleaguesFound => 'لم يُعثر على زملاء.';
+
+  @override
+  String get reviewCurrentReviewerLabel => 'المراجِع الحالي';
+
+  @override
+  String reviewRequestedMessage(String name) {
+    return 'تم طلب المراجعة من $name';
+  }
+
+  @override
+  String reviewerChangedMessage(String name) {
+    return 'تم تغيير المراجِع إلى $name';
+  }
+
+  @override
+  String get reviewWithdrawnMessage => 'تم سحب طلب المراجعة';
+
+  @override
+  String get reviewCompletedMessage => 'اكتملت المراجعة';
+
+  @override
+  String get withdrawReviewConfirmTitle => 'سحب طلب المراجعة؟';
+
+  @override
+  String get withdrawReviewConfirmMessage =>
+      'لن يُطلب من المراجِع الاطلاع على هذه المحادثة بعد الآن.';
+
+  @override
+  String get reviewReviewerNotEligibleMessage =>
+      'لا يمكن طلب مراجعة هذه المحادثة من هذا الشخص.';
+
+  @override
+  String get reviewPermissionDeniedMessage => 'ليست لديك صلاحية للقيام بذلك.';
+
+  @override
+  String get reviewNotPendingMessage =>
+      'لا توجد مراجعة معلّقة على هذه المحادثة.';
+
+  @override
+  String get reviewRequestFailedMessage =>
+      'تعذّر تحديث المراجعة. حاول مرة أخرى.';
+
+  @override
+  String get needsReviewFilter => 'تحتاج مراجعة';
+
+  @override
+  String get resolvedFilter => 'محلولة';
+
+  @override
+  String get noReviewsWaitingTitle => 'لا توجد مراجعات';
+
+  @override
+  String get noReviewsWaitingMessage =>
+      'ستظهر هنا المحادثات التي يطلب منك زملاؤك مراجعتها.';
 }

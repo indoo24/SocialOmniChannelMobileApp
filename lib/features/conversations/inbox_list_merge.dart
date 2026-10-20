@@ -1,8 +1,10 @@
 /// How pages and refreshed heads are combined into the Inbox's loaded list.
 ///
-/// Pure functions over the groups the server returned — nothing here fetches,
-/// regroups or filters. Each one keeps the instance of every group it does not
-/// change, so a row that did not change is not rebuilt.
+/// Pure functions over the groups the server returned — nothing here fetches
+/// or regroups, and only the display helpers at the end ([pinnedFirst],
+/// [awaitingReviewBy]) reorder or filter what is shown. Each one keeps the
+/// instance of every group it does not change, so a row that did not change
+/// is not rebuilt.
 ///
 /// Why duplicates can happen at all: the list is ordered by activity, so a new
 /// message moves a conversation to the top and pushes everything below it one
@@ -11,6 +13,7 @@
 /// conversations a group holds) makes that harmless.
 library;
 
+import '../../core/models/conversation.dart';
 import '../../core/models/conversation_group.dart';
 
 typedef Groups = List<CustomerConversationGroup>;
@@ -119,4 +122,52 @@ bool headDiffers(Groups loaded, Groups head) {
   }
   // Fewer loaded rows than the head: the rest are new to this list.
   return head.length > loaded.length;
+}
+
+/// [groups] as the inbox shows them: every row holding a pinned conversation
+/// first, then the rest. Both parts keep the order they had, so this only
+/// lifts pinned rows above the others — and changes nothing when the server
+/// already sorts them first. It reorders rows the server returned for the
+/// current filter and search; it never adds or removes one. The same list
+/// when no row moves.
+Groups pinnedFirst(Groups groups) {
+  final pinned = <CustomerConversationGroup>[];
+  final rest = <CustomerConversationGroup>[];
+  var seenUnpinned = false;
+  var moves = false;
+  for (final group in groups) {
+    if (group.hasPinned) {
+      pinned.add(group);
+      if (seenUnpinned) moves = true;
+    } else {
+      rest.add(group);
+      seenUnpinned = true;
+    }
+  }
+  return moves ? [...pinned, ...rest] : groups;
+}
+
+/// Only the threads whose review names [employeeId] as reviewer, in the
+/// order given: the inbox's Need review tab, filtered on the device. A
+/// customer's group keeps just those threads, and a group with none goes.
+/// Nothing when [employeeId] is unknown. The same list when every thread
+/// qualifies.
+Groups awaitingReviewBy(Groups groups, int? employeeId) {
+  if (employeeId == null) return const [];
+  bool mine(Conversation c) => c.review?.isReviewer(employeeId) ?? false;
+  var changed = false;
+  final out = <CustomerConversationGroup>[];
+  for (final group in groups) {
+    final kept = [
+      for (final c in group.conversations)
+        if (mine(c)) c,
+    ];
+    if (kept.length == group.conversations.length) {
+      out.add(group);
+    } else {
+      changed = true;
+      if (kept.isNotEmpty) out.add(group.withConversations(kept));
+    }
+  }
+  return changed ? out : groups;
 }

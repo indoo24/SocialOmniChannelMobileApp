@@ -45,6 +45,10 @@ class _NoopStore implements SecureStore {
   @override
   Future<String?> readLocale() async => null;
   @override
+  Future<void> writeColorTheme(String id) async {}
+  @override
+  Future<String?> readColorTheme() async => null;
+  @override
   Future<void> clearSession() async {}
   @override
   Future<void> wipe() async {}

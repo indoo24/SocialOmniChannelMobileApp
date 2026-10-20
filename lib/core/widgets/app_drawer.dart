@@ -18,6 +18,7 @@ import '../../features/authentication/auth_controller.dart';
 import '../../features/conversations/inbox_controller.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../models/employee.dart';
+import '../theme/app_palette.dart';
 import '../theme/tokens.dart';
 import 'avatar.dart';
 
@@ -34,7 +35,7 @@ class AppDrawer extends ConsumerWidget {
     final unread = ref.watch(conversationCountsProvider).value?['unread'];
 
     return Drawer(
-      backgroundColor: ScenarioColors.sidebar,
+      backgroundColor: AppColors.of(context).sidebar,
       child: SafeArea(
         bottom: false,
         child: Column(
@@ -102,7 +103,7 @@ class _BrandHeader extends StatelessWidget {
             height: 34,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: ScenarioColors.primary,
+              color: AppColors.of(context).solidPrimary,
               borderRadius: BorderRadius.circular(Radii.md),
             ),
             child: const Text(
@@ -132,9 +133,9 @@ class _BrandHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: ScenarioColors.sidebarForeground.withValues(
-                      alpha: 0.65,
-                    ),
+                    color: AppColors.of(
+                      context,
+                    ).sidebarForeground.withValues(alpha: 0.65),
                     fontSize: 12,
                   ),
                 ),
@@ -164,12 +165,14 @@ class _SectionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final foreground = selected
         ? Colors.white
-        : ScenarioColors.sidebarForeground.withValues(alpha: 0.82);
+        : AppColors.of(context).sidebarForeground.withValues(alpha: 0.82);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Material(
-        color: selected ? ScenarioColors.sidebarAccent : Colors.transparent,
+        color: selected
+            ? AppColors.of(context).sidebarAccent
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(Radii.lg),
         child: InkWell(
           onTap: onTap,
@@ -295,9 +298,9 @@ class _AccountFooter extends ConsumerWidget {
                         Text(
                           _roleLabel(context, employee.role),
                           style: TextStyle(
-                            color: ScenarioColors.sidebarForeground.withValues(
-                              alpha: 0.65,
-                            ),
+                            color: AppColors.of(
+                              context,
+                            ).sidebarForeground.withValues(alpha: 0.65),
                             fontSize: 11,
                           ),
                         ),
@@ -352,7 +355,7 @@ class _UserProfileSheet extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: ScenarioColors.sidebar,
+        color: AppColors.of(context).sidebar,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(Radii.lg),
         ),
@@ -397,9 +400,9 @@ class _UserProfileSheet extends StatelessWidget {
                   Text(
                     context.l10n.tabProfile,
                     style: TextStyle(
-                      color: ScenarioColors.sidebarForeground.withValues(
-                        alpha: 0.65,
-                      ),
+                      color: AppColors.of(
+                        context,
+                      ).sidebarForeground.withValues(alpha: 0.65),
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5,
@@ -407,9 +410,9 @@ class _UserProfileSheet extends StatelessWidget {
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, size: 18),
-                    color: ScenarioColors.sidebarForeground.withValues(
-                      alpha: 0.7,
-                    ),
+                    color: AppColors.of(
+                      context,
+                    ).sidebarForeground.withValues(alpha: 0.7),
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -437,7 +440,7 @@ class _UserProfileSheet extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.all(1.5),
                           decoration: BoxDecoration(
-                            color: ScenarioColors.sidebar,
+                            color: AppColors.of(context).sidebar,
                             shape: BoxShape.circle,
                           ),
                           child: PresenceDot(
@@ -468,13 +471,13 @@ class _UserProfileSheet extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: ScenarioColors.sidebarAccent,
+                            color: AppColors.of(context).sidebarAccent,
                             borderRadius: BorderRadius.circular(Radii.sm),
                           ),
                           child: Text(
                             _AccountFooter._roleLabel(context, employee.role),
                             style: TextStyle(
-                              color: ScenarioColors.sidebarForeground,
+                              color: AppColors.of(context).sidebarForeground,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -500,7 +503,7 @@ class _UserProfileSheet extends StatelessWidget {
               _ProfileDetailRow(
                 icon: Icons.circle,
                 iconSize: 10,
-                iconColor: _availabilityColor(employee.availability),
+                iconColor: _availabilityColor(context, employee.availability),
                 label: context.l10n.statusSection,
                 value: _AccountFooter._availabilityLabel(
                   context,
@@ -531,12 +534,12 @@ class _UserProfileSheet extends StatelessWidget {
     );
   }
 
-  static Color _availabilityColor(String availability) =>
+  static Color _availabilityColor(BuildContext context, String availability) =>
       switch (availability) {
         'ONLINE' => ScenarioColors.success,
         'AWAY' => ScenarioColors.warning,
         'BREAK' => const Color(0xFF8B5CF6),
-        _ => ScenarioColors.sidebarForeground.withValues(alpha: 0.4),
+        _ => AppColors.of(context).sidebarForeground.withValues(alpha: 0.4),
       };
 }
 
@@ -563,7 +566,7 @@ class _ProfileDetailRow extends StatelessWidget {
         vertical: Space.sm + 2,
       ),
       decoration: BoxDecoration(
-        color: ScenarioColors.sidebarAccent.withValues(alpha: 0.6),
+        color: AppColors.of(context).sidebarAccent.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Row(
@@ -573,7 +576,7 @@ class _ProfileDetailRow extends StatelessWidget {
             size: iconSize,
             color:
                 iconColor ??
-                ScenarioColors.sidebarForeground.withValues(alpha: 0.7),
+                AppColors.of(context).sidebarForeground.withValues(alpha: 0.7),
           ),
           const SizedBox(width: Space.md),
           Expanded(
@@ -583,9 +586,9 @@ class _ProfileDetailRow extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: ScenarioColors.sidebarForeground.withValues(
-                      alpha: 0.55,
-                    ),
+                    color: AppColors.of(
+                      context,
+                    ).sidebarForeground.withValues(alpha: 0.55),
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
