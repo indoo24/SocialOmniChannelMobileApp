@@ -7,11 +7,12 @@ import 'inbox_controller.dart';
 
 /// Horizontally scrollable row of primary Inbox quick filters.
 ///
-/// Prominently displays the 5 primary views:
-///   [ All ]  [ Mine ]  [ Unassigned ]  [ Unread ]  [ Open ]
+/// Prominently displays the primary views:
+///   [ All ]  [ Mine ]  [ Need review ]  [ Resolved ]  [ Unassigned ]
+///   [ Unread ]  [ Open ]
 ///
-/// Mirrors Web behavior (`jn = ["all", "mine", "unassigned", "unread", "open"]`
-/// in `inbox.js`):
+/// The web's five (`jn = ["all", "mine", "unassigned", "unread", "open"]`
+/// in `inbox.js`) plus Need review and Resolved, and the same behaviour:
 ///  - Active item renders filled with the primary colour and a check.
 ///  - Inactive items render outlined on the page.
 ///  - Label only — no count badge.
@@ -50,6 +51,24 @@ class InboxQuickFilterBar extends ConsumerWidget {
             onTap: () => ref
                 .read(inboxFiltersProvider.notifier)
                 .selectQuickFilter(InboxQuickFilter.mine),
+          ),
+          const SizedBox(width: Space.sm),
+          _QuickFilterPill(
+            key: const Key('quick_filter_needs_review'),
+            label: context.l10n.needsReviewFilter,
+            isActive: activeFilter == InboxQuickFilter.needsReview,
+            onTap: () => ref
+                .read(inboxFiltersProvider.notifier)
+                .selectQuickFilter(InboxQuickFilter.needsReview),
+          ),
+          const SizedBox(width: Space.sm),
+          _QuickFilterPill(
+            key: const Key('quick_filter_resolved'),
+            label: context.l10n.resolvedFilter,
+            isActive: activeFilter == InboxQuickFilter.resolved,
+            onTap: () => ref
+                .read(inboxFiltersProvider.notifier)
+                .selectQuickFilter(InboxQuickFilter.resolved),
           ),
           const SizedBox(width: Space.sm),
           _QuickFilterPill(

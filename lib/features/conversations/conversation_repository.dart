@@ -27,6 +27,7 @@ class ConversationFilters {
     this.assignedToMe = false,
     this.unassigned = false,
     this.unread = false,
+    this.needsMyReview = false,
     this.search = '',
     this.selectedAccounts = const {},
     this.channelConnections,
@@ -38,6 +39,12 @@ class ConversationFilters {
   final bool assignedToMe;
   final bool unassigned;
   final bool unread;
+
+  /// Only conversations whose review names the signed-in employee as
+  /// reviewer — their review to-do list. Applied on the device to the rows
+  /// already loaded (`awaitingReviewBy`), never sent: the list endpoints
+  /// have no review filter. See `docs/MOBILE_BACKEND_SYNC.md` (R2).
+  final bool needsMyReview;
   final String search;
 
   /// Map of uppercase provider (e.g. 'FACEBOOK', 'INSTAGRAM') to selected channel ID.
@@ -89,6 +96,7 @@ class ConversationFilters {
     bool? assignedToMe,
     bool? unassigned,
     bool? unread,
+    bool? needsMyReview,
     String? search,
     Map<String, int?>? selectedAccounts,
     List<int>? channelConnections,
@@ -103,6 +111,7 @@ class ConversationFilters {
     assignedToMe: assignedToMe ?? this.assignedToMe,
     unassigned: unassigned ?? this.unassigned,
     unread: unread ?? this.unread,
+    needsMyReview: needsMyReview ?? this.needsMyReview,
     search: search ?? this.search,
     selectedAccounts: selectedAccounts ?? this.selectedAccounts,
     channelConnections: clearChannelConnections
@@ -119,15 +128,17 @@ class ConversationFilters {
       provider != null ||
       assignedToMe ||
       unassigned ||
-      unread;
+      unread ||
+      needsMyReview;
 
   /// Whether any advanced/secondary filter from the filter sheet is active.
-  /// Primary quick filters (All/Mine/Unassigned/Unread/Open) are represented
-  /// in the persistent quick filter row on the inbox screen.
+  /// Primary quick filters (All/Mine/Need review/Resolved/Unassigned/Unread/
+  /// Open) are represented in the persistent quick filter row on the inbox
+  /// screen.
   bool get hasAdvancedFilters =>
       priority != null ||
       provider != null ||
-      (status != null && status != 'OPEN');
+      (status != null && status != 'OPEN' && status != 'RESOLVED');
 
   bool get isEmpty =>
       status == null &&
@@ -136,6 +147,7 @@ class ConversationFilters {
       !assignedToMe &&
       !unassigned &&
       !unread &&
+      !needsMyReview &&
       search.trim().isEmpty &&
       !hasActiveAccountFilter;
 
@@ -150,6 +162,7 @@ class ConversationFilters {
           assignedToMe == other.assignedToMe &&
           unassigned == other.unassigned &&
           unread == other.unread &&
+          needsMyReview == other.needsMyReview &&
           search == other.search &&
           _mapEquals(selectedAccounts, other.selectedAccounts) &&
           _listEquals(channelConnections, other.channelConnections);
@@ -162,6 +175,7 @@ class ConversationFilters {
     assignedToMe,
     unassigned,
     unread,
+    needsMyReview,
     search,
     Object.hashAll(
       selectedAccounts.entries.map((e) => Object.hash(e.key, e.value)),

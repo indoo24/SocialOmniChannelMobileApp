@@ -2066,5 +2066,21 @@
   "reviewRequestFailedMessage": "Couldn't update the review. Please try again.",
   "@reviewRequestFailedMessage": {
     "description": "A review action failed for a network or server reason."
+  },
+  "needsReviewFilter": "Need review",
+  "@needsReviewFilter": {
+    "description": "Inbox quick filter: conversations whose pending review names the signed-in employee as reviewer."
+  },
+  "resolvedFilter": "Resolved",
+  "@resolvedFilter": {
+    "description": "Inbox quick filter: resolved conversations."
+  },
+  "noReviewsWaitingTitle": "Nothing to review",
+  "@noReviewsWaitingTitle": {
+    "description": "Need review tab, empty: no conversation names the employee as reviewer."
+  },
+  "noReviewsWaitingMessage": "Conversations colleagues ask you to review will appear here.",
+  "@noReviewsWaitingMessage": {
+    "description": "Need review tab, empty: what will appear here."
   }
 }

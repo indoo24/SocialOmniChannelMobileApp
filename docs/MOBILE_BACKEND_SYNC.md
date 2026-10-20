@@ -351,6 +351,19 @@ Still open for the backend:
   the picker show only people who can review.
 - **Who may withdraw.** This is undocumented, so mobile offers Withdraw to
   everyone and relies on `403`.
+- **"Reviews waiting on me" is filtered on the device.** The inbox's Need
+  review tab (تحتاج مراجعة) requests the plain inbox and keeps the threads
+  whose `review.reviewer_id` is the caller. Pages are loaded one after another
+  until a screenful matches or the list ends. Two consequences:
+  - **List and grouped rows must carry `review`** (as the detail does). A row
+    without it counts as "no review", so the tab stays empty if rows leave it
+    out.
+  - A large inbox costs one request per page until enough matches are found.
+
+  A server filter (e.g. `review=pending_for_me` on `/conversations/` and
+  `/grouped/`, plus a `/conversations/counts/` bucket for a badge) would make
+  this one request and could replace the device filter later. (The Resolved
+  tab needs nothing new: it is `status=RESOLVED`.)
 - **Realtime and notifications.** There is no event for review changes, so
   other devices see a change on the next open of the conversation.
 

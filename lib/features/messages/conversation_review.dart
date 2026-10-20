@@ -32,6 +32,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../conversations/conversation_repository.dart';
+import '../conversations/inbox_controller.dart';
 import 'conversation_controller.dart';
 
 /// The conversations with a review request on its way.
@@ -96,6 +97,12 @@ class ConversationReviewController extends Notifier<Set<int>> {
   void _show(int conversationId, ConversationReview? review) {
     final detail = conversationControllerProvider(conversationId);
     if (ref.exists(detail)) ref.read(detail.notifier).applyReview(review);
+    // The inbox row too, so the Need review tab follows at once.
+    if (ref.exists(inboxControllerProvider)) {
+      ref
+          .read(inboxControllerProvider.notifier)
+          .applyReview(conversationId, review);
+    }
   }
 
   Future<void> _reload(int conversationId) async {

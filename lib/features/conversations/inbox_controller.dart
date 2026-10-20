@@ -38,6 +38,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/conversation_group.dart';
+import '../../core/models/conversation_review.dart';
 import '../../core/models/directory.dart';
 import '../../core/providers.dart';
 import '../authentication/auth_controller.dart';
@@ -84,16 +85,30 @@ List<int>? computeAllowedChannelConnections(
   return allowedIds..sort();
 }
 
-/// The 5 primary quick filters permanently visible in the Inbox header,
-/// mirroring Web behavior (`jn = ["all", "mine", "unassigned", "unread", "open"]`).
-enum InboxQuickFilter { all, mine, unassigned, unread, open }
+/// The primary quick filters permanently visible in the Inbox header: the
+/// web's five (`jn = ["all", "mine", "unassigned", "unread", "open"]`) plus
+/// mobile's Need review and Resolved, in the order shown.
+enum InboxQuickFilter {
+  all,
+  mine,
+  needsReview,
+  resolved,
+  unassigned,
+  unread,
+  open,
+}
+
+/// The statuses a quick filter sets, and so clears when another is chosen.
+const _quickFilterStatuses = {'OPEN', 'RESOLVED'};
 
 extension ConversationFiltersQuickFilterX on ConversationFilters {
   InboxQuickFilter get activeQuickFilter {
     if (unread) return InboxQuickFilter.unread;
     if (unassigned) return InboxQuickFilter.unassigned;
     if (assignedToMe) return InboxQuickFilter.mine;
+    if (needsMyReview) return InboxQuickFilter.needsReview;
     if (status == 'OPEN') return InboxQuickFilter.open;
+    if (status == 'RESOLVED') return InboxQuickFilter.resolved;
     return InboxQuickFilter.all;
   }
 }
@@ -109,44 +124,24 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
 
   void update(ConversationFilters filters) => state = filters;
 
+  /// Exactly one quick filter at a time: choosing one turns the others off,
+  /// including a status another quick filter set. A status chosen in the
+  /// filter sheet (say WAITING_CUSTOMER) is left alone.
   void selectQuickFilter(InboxQuickFilter filter) {
-    switch (filter) {
-      case InboxQuickFilter.all:
-        state = state.copyWith(
-          assignedToMe: false,
-          unassigned: false,
-          unread: false,
-          clearStatus: state.status == 'OPEN',
-        );
-      case InboxQuickFilter.mine:
-        state = state.copyWith(
-          assignedToMe: true,
-          unassigned: false,
-          unread: false,
-          clearStatus: state.status == 'OPEN',
-        );
-      case InboxQuickFilter.unassigned:
-        state = state.copyWith(
-          assignedToMe: false,
-          unassigned: true,
-          unread: false,
-          clearStatus: state.status == 'OPEN',
-        );
-      case InboxQuickFilter.unread:
-        state = state.copyWith(
-          assignedToMe: false,
-          unassigned: false,
-          unread: true,
-          clearStatus: state.status == 'OPEN',
-        );
-      case InboxQuickFilter.open:
-        state = state.copyWith(
-          assignedToMe: false,
-          unassigned: false,
-          unread: false,
-          status: 'OPEN',
-        );
-    }
+    final quickStatus = _quickFilterStatuses.contains(state.status);
+    final status = switch (filter) {
+      InboxQuickFilter.open => 'OPEN',
+      InboxQuickFilter.resolved => 'RESOLVED',
+      _ => null,
+    };
+    state = state.copyWith(
+      assignedToMe: filter == InboxQuickFilter.mine,
+      unassigned: filter == InboxQuickFilter.unassigned,
+      unread: filter == InboxQuickFilter.unread,
+      needsMyReview: filter == InboxQuickFilter.needsReview,
+      status: status,
+      clearStatus: status == null && quickStatus,
+    );
   }
 
   void selectAccount(
@@ -420,11 +415,18 @@ class InboxController extends AsyncNotifier<InboxState> {
     return result;
   }
 
+  /// Load-more batches in a row that added no group (see [loadMore]).
+  int _barrenBatches = 0;
+
+  /// After this many such batches the list is taken to have ended.
+  static const _maxBarrenBatches = 3;
+
   /// The first batch of [filters] as a whole list.
   Future<InboxState> _firstBatch(
     ConversationFilters filters, {
     required int navigation,
   }) async {
+    _barrenBatches = 0;
     final pinSeq = _pinSeq;
     final result = await _request(filters, 1);
     final page = _pageOf(result, 1);
@@ -528,13 +530,25 @@ class InboxController extends AsyncNotifier<InboxState> {
         latest.groups,
         _withConfirmedPins(result.results, pinSeq),
       );
-      final answered = _pageOf(result, page);
+      // Never behind the page asked for: a response that reports an earlier
+      // page would otherwise have the same page asked for again, forever.
+      final reported = _pageOf(result, page);
+      final answered = reported > page ? reported : page;
+      // The end of the list is reached when the server says so (`next`), but
+      // also when its pages stop bringing anything new: an empty page, or
+      // [_maxBarrenBatches] batches in a row holding only rows already shown.
+      // Otherwise a `next` that never ends would keep the spinner forever.
+      _barrenBatches = merged.added > 0 ? 0 : _barrenBatches + 1;
+      final hasMore =
+          result.hasMore &&
+          result.results.isNotEmpty &&
+          _barrenBatches < _maxBarrenBatches;
       _pagelog.appended(
         requestedPage: page,
         added: merged.added,
         duplicatesDropped: merged.duplicates,
         totalLoaded: merged.groups.length,
-        hasMore: result.hasMore,
+        hasMore: hasMore,
       );
       state = AsyncData(
         latest.copyWith(
@@ -542,7 +556,7 @@ class InboxController extends AsyncNotifier<InboxState> {
           page: answered,
           totalPages: _totalPages(result, answered),
           total: result.count,
-          hasMore: result.hasMore,
+          hasMore: hasMore,
           isLoadingMore: false,
           clearLoadMoreError: true,
         ),
@@ -641,7 +655,15 @@ class InboxController extends AsyncNotifier<InboxState> {
       _listFilters = filters;
       state = AsyncData(fresh);
     } on ApiException {
-      // Leave the list on screen as it is.
+      // Leave the list on screen as it is. A batch that was loading for it
+      // was dropped when this reset began, so it is no longer loading.
+      final current = state.value;
+      if (ref.mounted &&
+          epoch == _epoch &&
+          current != null &&
+          current.isLoadingMore) {
+        state = AsyncData(current.copyWith(isLoadingMore: false));
+      }
     }
   }
 
@@ -807,6 +829,31 @@ class InboxController extends AsyncNotifier<InboxState> {
     if (current == null) return;
     final updated = _withConfirmedPins(current.groups, _pinSeq - 1);
     if (identical(updated, current.groups)) return;
+    state = AsyncData(current.copyWith(groups: updated));
+  }
+
+  /// Shows the review the server confirmed for [conversationId] (null: none)
+  /// on that thread, wherever it is loaded — so a completed, withdrawn or
+  /// retargeted review leaves the Need review tab at once. Only that thread's
+  /// review changes.
+  void applyReview(int conversationId, ConversationReview? review) {
+    final current = state.value;
+    if (current == null) return;
+    var changed = false;
+    final updated = [
+      for (final group in current.groups)
+        group.conversations.any((c) => c.id == conversationId)
+            ? () {
+                changed = true;
+                return group.mapConversations(
+                  (c) => c.id == conversationId
+                      ? c.copyWith(review: review, clearReview: review == null)
+                      : c,
+                );
+              }()
+            : group,
+    ];
+    if (!changed) return;
     state = AsyncData(current.copyWith(groups: updated));
   }
 

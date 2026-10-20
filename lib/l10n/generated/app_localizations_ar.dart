@@ -3603,4 +3603,17 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get reviewRequestFailedMessage =>
       'تعذّر تحديث المراجعة. حاول مرة أخرى.';
+
+  @override
+  String get needsReviewFilter => 'تحتاج مراجعة';
+
+  @override
+  String get resolvedFilter => 'محلولة';
+
+  @override
+  String get noReviewsWaitingTitle => 'لا توجد مراجعات';
+
+  @override
+  String get noReviewsWaitingMessage =>
+      'ستظهر هنا المحادثات التي يطلب منك زملاؤك مراجعتها.';
 }

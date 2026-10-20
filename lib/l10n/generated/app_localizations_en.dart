@@ -3597,4 +3597,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reviewRequestFailedMessage =>
       'Couldn\'t update the review. Please try again.';
+
+  @override
+  String get needsReviewFilter => 'Need review';
+
+  @override
+  String get resolvedFilter => 'Resolved';
+
+  @override
+  String get noReviewsWaitingTitle => 'Nothing to review';
+
+  @override
+  String get noReviewsWaitingMessage =>
+      'Conversations colleagues ask you to review will appear here.';
 }

@@ -6426,6 +6426,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t update the review. Please try again.'**
   String get reviewRequestFailedMessage;
+
+  /// Inbox quick filter: conversations whose pending review names the signed-in employee as reviewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Need review'**
+  String get needsReviewFilter;
+
+  /// Inbox quick filter: resolved conversations.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved'**
+  String get resolvedFilter;
+
+  /// Need review tab, empty: no conversation names the employee as reviewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to review'**
+  String get noReviewsWaitingTitle;
+
+  /// Need review tab, empty: what will appear here.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations colleagues ask you to review will appear here.'**
+  String get noReviewsWaitingMessage;
 }
 
 class _AppLocalizationsDelegate

@@ -37,7 +37,7 @@ import '../notifications/notification_bell_button.dart';
 import 'customer_conversation_group_sheet.dart';
 import 'inbox_controller.dart';
 import 'inbox_filters_sheet.dart';
-import 'inbox_list_merge.dart' show pinnedFirst;
+import 'inbox_list_merge.dart' show awaitingReviewBy, pinnedFirst;
 import 'inbox_quick_filter_bar.dart';
 import 'platform_account_filter_bar.dart';
 
@@ -64,6 +64,11 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   /// read "at the very end" and ask for a batch nobody scrolled towards.
   /// Which rows are *built* is exact.
   static const _prefetchRows = 8;
+
+  /// With a filter applied on the device (Need review), fewer rows than this
+  /// on screen means "look in the next batch too": too few to scroll, so
+  /// scrolling would never ask for it.
+  static const _localFilterMinRows = 12;
 
   /// The Scroll to top button appears once the agent is further than this
   /// from the top — roughly a dozen rows — and goes away again only when they
@@ -298,12 +303,41 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                   // Pinned conversations at the top. Display order only:
                   // the controller keeps the server's order for paging and
                   // refreshing.
-                  final groups = pinnedFirst(state.groups);
+                  var groups = pinnedFirst(state.groups);
+
+                  // Need review is filtered here, on the rows loaded so far:
+                  // the server has no such filter. While that leaves too few
+                  // rows to scroll, the next batch is fetched to look further.
+                  if (filters.needsMyReview) {
+                    groups = awaitingReviewBy(groups, employee?.id);
+                    if (groups.length < _localFilterMinRows) {
+                      _requestMoreIfNeeded(state);
+                    }
+                    final searching =
+                        state.hasMore && state.loadMoreError == null;
+                    if (groups.isEmpty && !searching) {
+                      return ListView(
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.sizeOf(context).height * 0.6,
+                            child: const _NoReviewsWaiting(),
+                          ),
+                        ],
+                      );
+                    }
+                  }
+
                   // One extra item after the last group while the next batch
                   // loads or after it failed — not a state of its own, so the
-                  // loaded rows above it are never replaced or dimmed.
+                  // loaded rows above it are never replaced or dimmed. With a
+                  // local filter it also stands in while the next batch is
+                  // about to be asked for.
                   final showFooter =
-                      state.isLoadingMore || state.loadMoreError != null;
+                      state.isLoadingMore ||
+                      state.loadMoreError != null ||
+                      (filters.needsMyReview &&
+                          groups.length < _localFilterMinRows &&
+                          state.hasMore);
 
                   // Built lazily: only the rows near the viewport exist,
                   // however many groups have been loaded.
@@ -864,6 +898,23 @@ class _UnreadPill extends StatelessWidget {
           height: 1.3,
         ),
       ),
+    );
+  }
+}
+
+/// The Need review tab once the whole inbox has been looked through and no
+/// conversation's review names this employee.
+class _NoReviewsWaiting extends StatelessWidget {
+  const _NoReviewsWaiting();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return EmptyState(
+      key: const ValueKey('inboxNoReviewsWaiting'),
+      icon: Icons.rate_review_outlined,
+      title: l10n.noReviewsWaitingTitle,
+      message: l10n.noReviewsWaitingMessage,
     );
   }
 }

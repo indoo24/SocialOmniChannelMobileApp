@@ -1128,5 +1128,9 @@
   "reviewReviewerNotEligibleMessage": "لا يمكن طلب مراجعة هذه المحادثة من هذا الشخص.",
   "reviewPermissionDeniedMessage": "ليست لديك صلاحية للقيام بذلك.",
   "reviewNotPendingMessage": "لا توجد مراجعة معلّقة على هذه المحادثة.",
-  "reviewRequestFailedMessage": "تعذّر تحديث المراجعة. حاول مرة أخرى."
+  "reviewRequestFailedMessage": "تعذّر تحديث المراجعة. حاول مرة أخرى.",
+  "needsReviewFilter": "تحتاج مراجعة",
+  "resolvedFilter": "محلولة",
+  "noReviewsWaitingTitle": "لا توجد مراجعات",
+  "noReviewsWaitingMessage": "ستظهر هنا المحادثات التي يطلب منك زملاؤك مراجعتها."
 }
