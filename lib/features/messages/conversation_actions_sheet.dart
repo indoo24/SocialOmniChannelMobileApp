@@ -256,8 +256,14 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
           Row(
             children: [
               Expanded(child: _SheetPinButton(conversation: conversation)),
-              const SizedBox(width: Space.sm),
-              Expanded(child: _SheetReviewButton(conversation: conversation)),
+              // Asking for a review needs `conversation.reply` (the server
+              // refuses anyone without it), so it is not offered to them. An
+              // existing review can still be opened.
+              if (conversation.review != null ||
+                  ref.watch(canProvider(Perm.conversationReply))) ...[
+                const SizedBox(width: Space.sm),
+                Expanded(child: _SheetReviewButton(conversation: conversation)),
+              ],
             ],
           ),
           const SizedBox(height: Space.lg),

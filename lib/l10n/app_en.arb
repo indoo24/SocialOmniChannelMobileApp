@@ -2010,6 +2010,7 @@
     "description": "Validation: no reviewer picked."
   },
   "reviewNoColleaguesFound": "No colleagues found.",
+  "reviewNoEligibleReviewers": "No one can be asked to review this conversation right now.",
   "@reviewNoColleaguesFound": {
     "description": "The reviewer list is empty."
   },
@@ -2070,6 +2071,13 @@
   "needsReviewFilter": "Need review",
   "@needsReviewFilter": {
     "description": "Inbox quick filter: conversations whose pending review names the signed-in employee as reviewer."
+  },
+  "reviewsWaitingForYou": "{count, plural, one{A conversation is waiting for your review} other{{count} conversations are waiting for your review}}",
+  "@reviewsWaitingForYou": {
+    "description": "Spoken label of the number on the Need review tab: how many conversations a colleague asked this employee to review.",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
   },
   "resolvedFilter": "Resolved",
   "@resolvedFilter": {

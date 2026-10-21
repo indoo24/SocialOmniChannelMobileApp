@@ -6361,6 +6361,12 @@ abstract class AppLocalizations {
   /// **'No colleagues found.'**
   String get reviewNoColleaguesFound;
 
+  /// No description provided for @reviewNoEligibleReviewers.
+  ///
+  /// In en, this message translates to:
+  /// **'No one can be asked to review this conversation right now.'**
+  String get reviewNoEligibleReviewers;
+
   /// Marks the colleague the pending review is with.
   ///
   /// In en, this message translates to:
@@ -6432,6 +6438,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Need review'**
   String get needsReviewFilter;
+
+  /// Spoken label of the number on the Need review tab: how many conversations a colleague asked this employee to review.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{A conversation is waiting for your review} other{{count} conversations are waiting for your review}}'**
+  String reviewsWaitingForYou(int count);
 
   /// Inbox quick filter: resolved conversations.
   ///

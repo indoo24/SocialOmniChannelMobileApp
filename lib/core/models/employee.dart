@@ -237,6 +237,12 @@ class Perm {
   static const conversationChangePriority = 'conversation.change_priority';
   static const conversationChangeCategory = 'conversation.change_category';
   static const conversationDeleteMessage = 'conversation.delete_message';
+
+  /// Be asked to review a conversation, and see one's own review queue (the
+  /// Need review tab). The backend grants it to ADMIN and SUPERVISOR only;
+  /// asking for a review needs [conversationReply], and the reviewer list is
+  /// exactly the people who hold this.
+  static const conversationReview = 'conversation.review';
   static const conversationConfirmPurchase = 'conversation.confirm_purchase';
   static const conversationRefreshIntelligence =
       'conversation.refresh_intelligence';

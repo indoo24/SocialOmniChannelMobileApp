@@ -3557,6 +3557,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reviewNoColleaguesFound => 'No colleagues found.';
 
   @override
+  String get reviewNoEligibleReviewers =>
+      'No one can be asked to review this conversation right now.';
+
+  @override
   String get reviewCurrentReviewerLabel => 'Current reviewer';
 
   @override
@@ -3600,6 +3604,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get needsReviewFilter => 'Need review';
+
+  @override
+  String reviewsWaitingForYou(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conversations are waiting for your review',
+      one: 'A conversation is waiting for your review',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get resolvedFilter => 'Resolved';

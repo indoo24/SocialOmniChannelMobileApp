@@ -31,6 +31,7 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/conversations/inbox_controller.dart';
+import '../../features/conversations/review_count.dart';
 import '../../features/dashboard/dashboard_cache.dart';
 import '../../features/dashboard/dashboard_date_filter_state.dart';
 import '../../features/directory/directory_providers.dart';
@@ -56,6 +57,7 @@ void clearSessionScopedState(Ref ref) {
   ref.invalidate(inboxControllerProvider);
   ref.invalidate(inboxFiltersProvider);
   ref.invalidate(conversationCountsProvider);
+  ref.invalidate(reviewCountProvider);
   ref.invalidate(conversationControllerProvider);
 
   // Realtime working set: cached message bodies and the open-conversation

@@ -345,10 +345,8 @@ Still open for the backend:
   Withdraw and Change reviewer are offered while one is present, and a `409`
   re-reads the conversation. If a completed or withdrawn review is also
   returned, mobile needs the values so it can stop offering those actions.
-- **A list of eligible reviewers.** `GET /employees/` cannot filter by
-  `conversation.review`, so the picker lists every active colleague and the
-  `400` decides. A filter (e.g. `?capability=conversation.review`) would let
-  the picker show only people who can review.
+- **A list of eligible reviewers.** Now `GET /conversations/reviewers/` (see
+  R5): the picker lists exactly that, no longer every active colleague.
 - **Who may withdraw.** This is undocumented, so mobile offers Withdraw to
   everyone and relies on `403`.
 - **The `review` filter's values are undocumented.** Since 2026-10-21 the
@@ -364,8 +362,10 @@ Still open for the backend:
   document the accepted values (an enum in the schema) and reject unknown
   ones, so a typo cannot silently show the whole inbox. (The Resolved tab
   needs nothing new: it is `status=RESOLVED`.)
-- **Realtime and notifications.** There is no event for review changes, so
-  other devices see a change on the next open of the conversation.
+- **Realtime and notifications.** There is no event, notification or push for
+  a review being asked, retargeted, withdrawn or completed, so a reviewer's
+  phone learns of one only by asking again. See R4 for what mobile does
+  meanwhile and the contract it needs.
 
 **Forwarding.** No forwarding endpoint exists in the API or in this app. The
 supported way to hand a conversation over is `POST /api/conversations/{id}/assign/`
@@ -463,6 +463,153 @@ archived accounts, and of disconnected ones, stay in.
   its own narrowing.
 - Either make `/conversations/channels/` return the documented page, or
   document the array.
+
+### R4 — Tell the reviewer when a review is asked of them
+
+**Seen 2026-10-21.** Reviewing works, but nothing tells the chosen reviewer.
+Checked against the live OpenAPI (`/api/schema/`), `API.md` and the mobile
+code. Backend source is not in this repository.
+
+| Piece | Exists? | Evidence |
+|---|---|---|
+| Ask, retarget, withdraw, complete | Yes | `POST` / `DELETE /conversations/{id}/review/`, `POST …/review/complete/` |
+| A count for the reviewer | **Yes** | `ConversationCounts.review_mine`, from `GET /conversations/counts/`: "Conversations with a pending review asked **of the caller**. Targeted, not organization-wide … 0 for anyone who is not a chosen reviewer." |
+| A list for the reviewer | Yes | `GET /conversations/grouped/?review=mine` (see the `review` filter above) |
+| A notification record for the reviewer | **No** | `NotificationKind` is `FALLBACK_ASSIGNMENT`, `EMPLOYEE_DEACTIVATED_REASSIGNMENT`, `NO_USABLE_EMPLOYEE`, `CHANNEL_ACTION_REQUIRED`. The feed (`/notifications/`) is the organization's, readable only with `notification.view` (ADMIN), with `is_read` per reader. A SUPERVISOR, one of the people who can be asked to review, cannot read it. |
+| A realtime event | **No** | None of the socket events above mentions a review. `notification.created` carries only `notification_id`, `kind` and `severity` for that admin feed. `REVIEW_REQUESTED`, `REVIEW_RETARGETED`, `REVIEW_COMPLETED` and `REVIEW_CANCELLED` exist only as conversation *history* event types (`ConversationEventTypeEnum`). |
+| A push | **Not documented** | The documented push types are `new_message` and `conversation_assigned`. The review endpoints' descriptions say nothing about notifying anyone. Whether the server sends one anyway was **not tested**: asking for a review notifies a real colleague, so it was not done on production. |
+
+**Mobile now (client-side only):**
+- The Need review tab shows the reviewer's own `review_mine` while it is above
+  zero. It is the server's number, read again and never adjusted: on return to
+  the foreground, on every socket (re)connect (events are not replayed), on a
+  `conversation.created`, `.updated`, `.assigned` or `.status_changed` event,
+  after the employee's own request, retarget, withdrawal or completion, and
+  after a foreground push of a type the app does not know. A duplicate or
+  missed event therefore cannot make it drift, and it is rebuilt when someone
+  else signs in.
+- Tapping any push that carries a valid `conversation_id` opens that
+  conversation, whatever its `type`, with the current `review` from the
+  server. A review since withdrawn or completed shows as it now is.
+- A review change made by someone else (a new request, a retarget away,
+  a withdrawal) reaches the reviewer's phone only at the next of those
+  moments. Nothing here is "realtime" for a review.
+- Not built, because no contract exists: a notification-centre row, a review
+  push type in the foreground allow-list (so no foreground banner for it), and
+  a review event subscription.
+
+**Proposed contract.** The names below are **proposals**, not existing APIs;
+the backend owns the final shape.
+
+1. **Push** to the reviewer.
+   - Recipient: the reviewer of the pending review, and no one else: not the
+     requester, the assignee, the claimer or ADMINs. Only that employee's
+     registered devices, in their own organization.
+   - When: a review is created, and a review is retargeted (the *new*
+     reviewer only; the previous reviewer is not pushed). Not on withdrawal or
+     completion, and not when the same reviewer is asked again.
+   - Idempotency: one push per (review, reviewer). A retried request, or the
+     same reviewer asked twice, sends nothing more.
+   - Data: `type: "review_requested"` (proposed), `conversation_id`,
+     `review_id`. Nothing else.
+   - Notification text, in the recipient's language and with no customer name,
+     message text or note: English "A conversation is waiting for your review",
+     Arabic "محادثة جديدة بانتظار مراجعتك".
+   - Invalid or expired tokens are handled as for the other push types.
+2. **Realtime** (proposed event `conversation.review_changed`, following the
+   `conversation.*` names), to the sockets of the new reviewer, the previous
+   reviewer on a retarget, and the requester. Payload: `conversation_id`,
+   `review_id`, `status`, `reviewer_id`, `previous_reviewer_id` (or null). No
+   note text. Mobile then re-reads `review_mine`; it never counts events.
+3. **Count.** Confirm `review_mine` leaves out conversations of archived or
+   disconnected accounts, as the Need review list does (see R3); otherwise the
+   badge can be higher than the list. Document that it needs no `channel.view`.
+4. **Notification centre** (optional). A per-recipient kind such as
+   `REVIEW_REQUESTED`, readable by its recipient and not only by
+   `notification.view`, with `conversation` set, a minimal `context`, and
+   `resolved_at` set when the review is withdrawn or completed (the existing
+   field), keeping the row for history. Mobile would map its `title_code`.
+5. **Permissions and tenancy.** The reviewer must still hold
+   `conversation.review` and see the conversation (already enforced on
+   request). Tapping goes through `GET /conversations/{id}/`, which re-checks
+   visibility; a conversation the recipient can no longer see answers 403/404.
+
+Once the push type is named, mobile adds it to the foreground allow-list (one
+line, `PushDataKeys`) so it shows a banner, and on the event it re-reads the
+count.
+
+### R5 — Who may review, and who may see the review queue
+
+**Seen 2026-10-21.** Read from the live OpenAPI (`/api/schema/`), `API.md`, and
+the web client. **Not exercised:** no request was made as a team leader, agent or
+QA, so every server rule below is *documented*, not *tested*.
+
+**How roles and capabilities are represented.** `/auth/me/` returns `role`
+(`RoleEnum`: `ADMIN`, `SUPERVISOR`, `TEAM_LEADER`, `AGENT`, `QA`), `role_display`
+and `permissions`, a mirror "so the UI can hide controls that would be rejected
+anyway. The backend re-checks every one of them." The capability for reviews is
+`conversation.review`, held by **ADMIN and SUPERVISOR** only (`API.md`,
+"Roles & capabilities"; the OpenAPI text for `/conversations/reviewers/`: "ADMIN
+and SUPERVISOR … The permission *is* the list, so granting it to another role
+later adds them here and nowhere else"). The web inbox shows its Needs review
+button only when `conversation.review` is held.
+
+| Action | Rule, as documented |
+|---|---|
+| Ask for, or retarget, a review | `conversation.reply` and visibility of the conversation. `reviewer_id` must be an active colleague holding `conversation.review` who can see it, else `400`. |
+| Withdraw | `conversation.reply` and visibility. (Who may withdraw someone else's request is not stated.) |
+| Complete | The named reviewer, or an ADMIN as an override. |
+| Who can be asked | `GET /conversations/reviewers/`: active holders of `conversation.review`, the caller excluded. A plain array of `EmployeeBrief` (no role). |
+| The reviewer's count | `ConversationCounts.review_mine`: "0 for anyone who is not a chosen reviewer". It is not refused to other roles; it is just 0. |
+| The reviewer's list | `GET /conversations/grouped/?review=mine`. Its values are undocumented (see R3). |
+| Another organization | `404`, never `403`, "so the response never confirms that a row exists". |
+
+**Mobile now (all client-side, presentation only).**
+- **Need review tab**: shown only when the signed-in employee holds
+  `conversation.review`, so to ADMIN and SUPERVISOR. For a team leader, agent or
+  QA it is not in the bar at all (not disabled) and the other tabs keep their
+  order. The test is the capability, not the role name or label. If the
+  capability is lost while the tab is selected (a role change, someone else
+  signing in), the selection returns to All, keeping search and account filters.
+  `selectQuickFilter(needsReview)` does nothing without the capability.
+- **Count**: not requested at all without the capability, so no badge and no
+  `/conversations/counts/` call on their behalf.
+- **Reviewer picker**: lists exactly `GET /conversations/reviewers/` (every page
+  if it is ever paginated), narrowed by typed text on the device. It shows no
+  role: the brief carries none. With nobody listed it says so (localized),
+  and Send is disabled. The server's `400` still decides on submit.
+- **Request review** is offered only with `conversation.reply`; **Change
+  reviewer** and **Withdraw** likewise. Completing is unchanged (named reviewer,
+  or ADMIN).
+- Eligibility does not mean notification: nothing in the app sends or fabricates
+  one. A review push goes to the named reviewer only (R4).
+
+**Open: Team Leader.** The product brief for this change says both that team
+leaders must not see Need review (and so cannot be asked) and, elsewhere, that
+they may be selected as reviewers. The backend gives `conversation.review` to
+ADMIN and SUPERVISOR, not TEAM_LEADER, and mobile follows the backend: a team
+leader sees no Need review tab and is not in the picker. If the product wants
+team leaders to review, the backend grants them `conversation.review`; the tab,
+the count and the picker then follow with no app change.
+
+**What the backend needs to confirm or provide.** Mobile's rules are only for
+the UI; none of this is a substitute.
+1. `POST /conversations/{id}/review/` rejects (`400`, no review created) a
+   `reviewer_id` that is inactive, lacks `conversation.review` (a team leader,
+   agent or QA), is in another organization, or cannot see the conversation, and
+   a requester without `conversation.reply` (`403`). Please confirm with a test
+   for each.
+2. `review=mine` and `review_mine` only ever describe the caller's own pending
+   reviews, in the caller's organization. Unknown `review` values should be a
+   `400` (they are ignored today; see R3).
+3. A way to list only the reviewers who can see a given conversation, so the
+   picker can leave out those who would be refused: proposed, not existing,
+   e.g. an optional `conversation=<id>` on `/conversations/reviewers/`. Until
+   then mobile offers them and the `400` explains.
+4. Who may withdraw or retarget a review that someone else asked for: please
+   state it (today any holder of `conversation.reply` is offered it).
+5. Review push and realtime go only to the designated reviewer, never to every
+   holder of `conversation.review` (R4).
 
 ---
 

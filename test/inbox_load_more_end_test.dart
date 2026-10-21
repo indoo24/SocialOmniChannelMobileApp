@@ -55,7 +55,7 @@ final _me = Employee(
   role: 'AGENT',
   roleDisplay: 'Agent',
   availability: 'ONLINE',
-  permissions: const {Perm.conversationReply},
+  permissions: const {Perm.conversationReply, Perm.conversationReview},
   visibilityScope: 'ALL',
 );
 

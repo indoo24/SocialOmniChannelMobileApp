@@ -3564,6 +3564,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reviewNoColleaguesFound => 'لم يُعثر على زملاء.';
 
   @override
+  String get reviewNoEligibleReviewers =>
+      'لا يوجد أحد يمكن طلب مراجعة هذه المحادثة منه حاليًا.';
+
+  @override
   String get reviewCurrentReviewerLabel => 'المراجِع الحالي';
 
   @override
@@ -3606,6 +3610,21 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get needsReviewFilter => 'تحتاج مراجعة';
+
+  @override
+  String reviewsWaitingForYou(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة بانتظار مراجعتك',
+      many: '$count محادثة بانتظار مراجعتك',
+      few: '$count محادثات بانتظار مراجعتك',
+      two: 'محادثتان بانتظار مراجعتك',
+      one: 'محادثة جديدة بانتظار مراجعتك',
+      zero: 'لا توجد محادثات بانتظار مراجعتك',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get resolvedFilter => 'محلولة';

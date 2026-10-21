@@ -19,7 +19,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/conversation_review.dart';
-import '../../core/models/directory.dart';
 import '../../core/models/employee.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_palette.dart';
@@ -33,6 +32,7 @@ import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../conversations/conversation_repository.dart';
 import '../conversations/inbox_controller.dart';
+import '../conversations/review_count.dart';
 import 'conversation_controller.dart';
 
 /// The conversations with a review request on its way.
@@ -103,6 +103,9 @@ class ConversationReviewController extends Notifier<Set<int>> {
           .read(inboxControllerProvider.notifier)
           .applyReview(conversationId, review);
     }
+    // Asked, retargeted, withdrawn or completed: the tab's number is the
+    // server's, read again, not adjusted here.
+    ref.invalidate(reviewCountProvider);
   }
 
   Future<void> _reload(int conversationId) async {
@@ -122,15 +125,19 @@ final conversationReviewProvider =
       ConversationReviewController.new,
     );
 
-/// Active colleagues matching [search], from `GET /employees/`. Every role
-/// can read it. It cannot say who holds `conversation.review`, so the
-/// server's answer to the request is what decides who may review.
-final reviewerCandidatesProvider = FutureProvider.autoDispose
-    .family<List<DirectoryEmployee>, String>((ref, search) async {
-      final page = await ref
-          .watch(directoryRepositoryProvider)
-          .employees(search: search, isActive: true);
-      return page.results;
+/// Who may be asked to review: the server's own list of active colleagues
+/// holding `conversation.review` (`GET /conversations/reviewers/`) — ADMIN and
+/// SUPERVISOR today, a regular agent never. The permission *is* the list, so
+/// granting it to another role adds them here and nowhere else; nothing in the
+/// app decides who qualifies. The request is still checked by the server
+/// (active, holds the permission, can see this conversation) and answers 400
+/// for anyone who does not.
+final reviewerCandidatesProvider =
+    FutureProvider.autoDispose<List<ReviewerCandidate>>((ref) async {
+      // Keyed on the employee: another person signing in never sees this
+      // person's list (it leaves out the caller).
+      ref.watch(currentEmployeeProvider.select((e) => e?.id));
+      return ref.watch(conversationRepositoryProvider).reviewers();
     });
 
 /// What to tell the agent after a failed review action. [requesting] is
@@ -371,6 +378,9 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
       ref.watch(currentEmployeeProvider),
       review,
     );
+    // Retargeting and withdrawing are `conversation.reply` actions on the
+    // server; anyone without it is not offered them.
+    final canReply = ref.watch(canProvider(Perm.conversationReply));
     final status = reviewStatusText(l10n, review.status);
 
     return SingleChildScrollView(
@@ -437,32 +447,34 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
             ),
             const SizedBox(height: Space.sm),
           ],
-          OutlinedButton.icon(
-            key: const Key('changeReviewerButton'),
-            onPressed: busy
-                ? null
-                : () {
-                    Navigator.of(context).pop();
-                    showRequestReviewSheet(
-                      context,
-                      conversationId: widget.conversationId,
-                      current: review,
-                      messenger: widget.messenger,
-                    );
-                  },
-            icon: const Icon(Icons.swap_horiz),
-            label: Text(l10n.changeReviewerAction),
-          ),
-          const SizedBox(height: Space.xs),
-          TextButton.icon(
-            key: const Key('withdrawReviewButton'),
-            style: TextButton.styleFrom(
-              foregroundColor: theme.colorScheme.error,
+          if (canReply) ...[
+            OutlinedButton.icon(
+              key: const Key('changeReviewerButton'),
+              onPressed: busy
+                  ? null
+                  : () {
+                      Navigator.of(context).pop();
+                      showRequestReviewSheet(
+                        context,
+                        conversationId: widget.conversationId,
+                        current: review,
+                        messenger: widget.messenger,
+                      );
+                    },
+              icon: const Icon(Icons.swap_horiz),
+              label: Text(l10n.changeReviewerAction),
             ),
-            onPressed: busy ? null : _withdraw,
-            icon: const Icon(Icons.undo),
-            label: Text(l10n.withdrawReviewAction),
-          ),
+            const SizedBox(height: Space.xs),
+            TextButton.icon(
+              key: const Key('withdrawReviewButton'),
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.error,
+              ),
+              onPressed: busy ? null : _withdraw,
+              icon: const Icon(Icons.undo),
+              label: Text(l10n.withdrawReviewAction),
+            ),
+          ],
         ],
       ),
     );
@@ -556,26 +568,21 @@ class _RequestReviewSheetState extends ConsumerState<_RequestReviewSheet> {
   late final _noteController = TextEditingController(
     text: widget.current?.note ?? '',
   );
-  Timer? _debounce;
   String _search = '';
-  DirectoryEmployee? _selected;
+  ReviewerCandidate? _selected;
   bool _showRequired = false;
   String? _error;
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _searchController.dispose();
     _noteController.dispose();
     super.dispose();
   }
 
-  void _onSearchChanged(String value) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) setState(() => _search = value.trim());
-    });
-  }
+  /// The list is the server's, short and already in hand, so it is narrowed
+  /// here as the agent types.
+  void _onSearchChanged(String value) => setState(() => _search = value.trim());
 
   Future<void> _submit() async {
     final selected = _selected;
@@ -631,7 +638,11 @@ class _RequestReviewSheetState extends ConsumerState<_RequestReviewSheet> {
     final busy = ref
         .watch(conversationReviewProvider)
         .contains(widget.conversationId);
-    final candidates = ref.watch(reviewerCandidatesProvider(_search));
+    final candidates = ref.watch(reviewerCandidatesProvider);
+    // Nobody can be asked: say so, and there is nothing to submit.
+    final nobodyEligible =
+        candidates.hasValue &&
+        !candidates.value!.any((candidate) => candidate.id != me?.id);
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
@@ -692,14 +703,31 @@ class _RequestReviewSheetState extends ConsumerState<_RequestReviewSheet> {
                   ),
                   error: (error, _) => ErrorStateView(
                     error: error,
-                    onRetry: () =>
-                        ref.invalidate(reviewerCandidatesProvider(_search)),
+                    onRetry: () => ref.invalidate(reviewerCandidatesProvider),
                   ),
                   data: (list) {
-                    // A colleague: someone else, still active.
-                    final colleagues = [
+                    // Someone else: the server leaves the caller out, and
+                    // this keeps it so.
+                    final eligible = [
                       for (final e in list)
-                        if (e.isActive && e.id != me?.id) e,
+                        if (e.id != me?.id) e,
+                    ];
+                    if (eligible.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: Space.lg),
+                        child: Text(
+                          l10n.reviewNoEligibleReviewers,
+                          key: const Key('noEligibleReviewers'),
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      );
+                    }
+                    final query = _search.toLowerCase();
+                    final colleagues = [
+                      for (final e in eligible)
+                        if (query.isEmpty ||
+                            e.fullName.toLowerCase().contains(query))
+                          e,
                     ];
                     if (colleagues.isEmpty) {
                       return Padding(
@@ -759,7 +787,7 @@ class _RequestReviewSheetState extends ConsumerState<_RequestReviewSheet> {
               const SizedBox(height: Space.md),
               FilledButton(
                 key: const Key('requestReviewSubmit'),
-                onPressed: busy ? null : _submit,
+                onPressed: busy || nobodyEligible ? null : _submit,
                 child: busy
                     ? const SizedBox(
                         width: 18,
@@ -785,7 +813,7 @@ class _CandidateRow extends StatelessWidget {
     required this.onTap,
   });
 
-  final DirectoryEmployee employee;
+  final ReviewerCandidate employee;
   final bool selected;
   final bool isCurrent;
   final bool enabled;
@@ -816,7 +844,7 @@ class _CandidateRow extends StatelessWidget {
               context.l10n.reviewCurrentReviewerLabel,
               style: theme.textTheme.labelSmall,
             )
-          : (employee.roleDisplay.isEmpty ? null : Text(employee.roleDisplay)),
+          : null,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -89,11 +89,52 @@ class _Server {
       'id': 22,
       'full_name': 'Omar Quality',
       'initials': 'OQ',
-      'role': 'QA',
-      'role_display': 'Quality assurance',
+      'role': 'ADMIN',
+      'role_display': 'Administrator',
       'is_active': true,
     },
-    {'id': 23, 'full_name': 'Gone Person', 'is_active': false},
+    // Deactivated: a supervisor who may not be asked.
+    {
+      'id': 23,
+      'full_name': 'Gone Person',
+      'role': 'SUPERVISOR',
+      'is_active': false,
+    },
+    // Active, but a regular agent, a team leader and QA: none holds
+    // `conversation.review`, so none may be asked.
+    {
+      'id': 24,
+      'full_name': 'Quinn Agent',
+      'initials': 'QA',
+      'role': 'AGENT',
+      'is_active': true,
+    },
+    {
+      'id': 25,
+      'full_name': 'Tala Leader',
+      'initials': 'TL',
+      'role': 'TEAM_LEADER',
+      'is_active': true,
+    },
+  ];
+
+  /// `GET /conversations/reviewers/`, as the server answers it: a plain array
+  /// of the active colleagues holding `conversation.review` (ADMIN and
+  /// SUPERVISOR), the caller (employee 1) left out. Counted, to show the
+  /// picker asks it and not the whole directory.
+  int reviewerListRequests = 0;
+  List<Map<String, dynamic>> get reviewers => [
+    for (final e in employees)
+      if (e['is_active'] == true &&
+          e['id'] != 1 &&
+          (e['role'] == 'ADMIN' || e['role'] == 'SUPERVISOR'))
+        {
+          'id': e['id'],
+          'full_name': e['full_name'],
+          'initials': e['initials'] ?? '',
+          'avatar_url': '',
+          'availability': e['availability'] ?? 'OFFLINE',
+        },
   ];
 
   /// The pending review, as the server would serialize it; null for none.
@@ -193,6 +234,10 @@ class _Server {
         'sent_at': '2026-10-20T09:00:00Z',
       });
     }
+    if (path == '/conversations/reviewers/') {
+      reviewerListRequests++;
+      return _json(reviewers);
+    }
     if (path == '/employees/') {
       final search = (options.queryParameters['search'] as String? ?? '')
           .toLowerCase();
@@ -208,18 +253,23 @@ class _Server {
   }
 }
 
-Employee _employee({int id = 1, String role = 'AGENT'}) => Employee(
-  id: id,
-  email: 'me@acme.test',
-  fullName: id == 21 ? 'Mona Reviewer' : 'Sam Agent',
-  initials: 'SA',
-  role: role,
-  roleDisplay: role,
-  availability: 'ONLINE',
-  permissions: {Perm.conversationReply, Perm.conversationChangeStatus},
-  visibilityScope: 'ALL',
-  organization: const Organization(id: 1, name: 'Acme Retail'),
-);
+Employee _employee({int id = 1, String role = 'AGENT', bool canReply = true}) =>
+    Employee(
+      id: id,
+      email: 'me@acme.test',
+      fullName: id == 21 ? 'Mona Reviewer' : 'Sam Agent',
+      initials: 'SA',
+      role: role,
+      roleDisplay: role,
+      availability: 'ONLINE',
+      permissions: {
+        if (canReply) Perm.conversationReply,
+        Perm.conversationChangeStatus,
+        if (role == 'ADMIN' || role == 'SUPERVISOR') Perm.conversationReview,
+      },
+      visibilityScope: 'ALL',
+      organization: const Organization(id: 1, name: 'Acme Retail'),
+    );
 
 ProviderContainer _container(_Server server, {Employee? me}) {
   final container = ProviderContainer(
@@ -691,11 +741,16 @@ void main() {
           await tester.pumpAndSettle();
           expect(find.text(l10n.reviewExplanation), findsOneWidget);
 
-          // Colleagues only: not the signed-in employee, not a deactivated one.
+          // Only who the server lists (active holders of
+          // `conversation.review`): not the signed-in employee, not a
+          // deactivated supervisor, not a regular agent or a team leader.
+          expect(server.reviewerListRequests, 1);
           expect(find.text('Mona Reviewer'), findsOneWidget);
           expect(find.text('Omar Quality'), findsOneWidget);
           expect(find.text('Sam Agent'), findsNothing);
           expect(find.text('Gone Person'), findsNothing);
+          expect(find.text('Quinn Agent'), findsNothing);
+          expect(find.text('Tala Leader'), findsNothing);
 
           // Nobody chosen yet: said so, and nothing is sent.
           await tester.tap(find.byKey(const Key('requestReviewSubmit')));
@@ -881,6 +936,117 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Review requested from Mona Reviewer'), findsOneWidget);
       expect(banner, findsOneWidget);
+    });
+
+    testWidgets('only who the server lists is offered, and typing narrows '
+        'them on the device', (tester) async {
+      final server = _Server();
+      await tester.pumpWidget(app(server));
+      await tester.pumpAndSettle();
+      await openReviewButton(tester);
+
+      expect(
+        find.byKey(const ValueKey('reviewerCandidate_21')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('reviewerCandidate_22')),
+        findsOneWidget,
+      );
+      // A regular agent, a team leader and a deactivated supervisor are not.
+      for (final id in [24, 25, 23]) {
+        expect(find.byKey(ValueKey('reviewerCandidate_$id')), findsNothing);
+      }
+
+      await tester.enterText(
+        find.byKey(const Key('reviewerSearchField')),
+        'mona',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Mona Reviewer'), findsOneWidget);
+      expect(find.text('Omar Quality'), findsNothing);
+
+      await tester.enterText(
+        find.byKey(const Key('reviewerSearchField')),
+        'zzz',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('No colleagues found.'), findsOneWidget);
+      // Typing never asked the server again, and nothing was requested.
+      expect(server.reviewerListRequests, 1);
+      expect(server.reviewBodies, isEmpty);
+    });
+
+    for (final arabic in [false, true]) {
+      testWidgets('nobody eligible: said so, and nothing can be sent — '
+          '${arabic ? 'Arabic' : 'English'}', (tester) async {
+        final server = _Server();
+        // Only people who may not review remain.
+        server.employees.removeWhere(
+          (e) => e['role'] == 'ADMIN' || e['role'] == 'SUPERVISOR',
+        );
+        await tester.pumpWidget(
+          app(server, locale: Locale(arabic ? 'ar' : 'en')),
+        );
+        await tester.pumpAndSettle();
+        await openReviewButton(tester);
+
+        final l10n = arabic ? AppLocalizationsAr() : AppLocalizationsEn();
+        expect(find.byKey(const Key('noEligibleReviewers')), findsOneWidget);
+        expect(find.text(l10n.reviewNoEligibleReviewers), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('reviewerCandidate_24')),
+          findsNothing,
+        );
+
+        final submit = tester.widget<FilledButton>(
+          find.byKey(const Key('requestReviewSubmit')),
+        );
+        expect(submit.onPressed, isNull);
+        await tester.tap(find.byKey(const Key('requestReviewSubmit')));
+        await tester.pumpAndSettle();
+        expect(server.reviewBodies, isEmpty);
+        expect(server.writes.where(_reviewWrite), isEmpty);
+      });
+    }
+
+    testWidgets('someone who cannot reply is not offered Request review', (
+      tester,
+    ) async {
+      final server = _Server();
+      await tester.pumpWidget(app(server, me: _employee(canReply: false)));
+      await tester.pumpAndSettle();
+      await openActionsSheet(tester);
+
+      expect(pinButton, findsOneWidget);
+      expect(reviewButton, findsNothing);
+    });
+
+    testWidgets('someone who cannot reply is not offered Change reviewer or '
+        'Withdraw, but the named reviewer can still complete', (tester) async {
+      final server = _Server()..startReview();
+      await tester.pumpWidget(
+        app(server, me: _employee(id: 21, role: 'SUPERVISOR', canReply: false)),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(banner);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('completeReviewButton')), findsOneWidget);
+      expect(find.byKey(const Key('changeReviewerButton')), findsNothing);
+      expect(find.byKey(const Key('withdrawReviewButton')), findsNothing);
+    });
+
+    testWidgets('someone who can reply still gets Change and Withdraw', (
+      tester,
+    ) async {
+      final server = _Server()..startReview();
+      await tester.pumpWidget(app(server));
+      await tester.pumpAndSettle();
+      await tester.tap(banner);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('changeReviewerButton')), findsOneWidget);
+      expect(find.byKey(const Key('withdrawReviewButton')), findsOneWidget);
     });
 
     testWidgets('409 on complete: says so and shows what the server holds', (

@@ -54,6 +54,7 @@ ResponseBody _json(String body, int status) => ResponseBody.fromString(
 /// to the very same path to derive each quick-filter badge.
 bool _isListRequest(RequestOptions r) =>
     r.uri.path.contains('/conversations/') &&
+    !r.uri.path.endsWith('/counts/') &&
     r.uri.queryParameters['page_size'] == null;
 
 final _testEmployee = Employee(
@@ -64,7 +65,7 @@ final _testEmployee = Employee(
   role: 'AGENT',
   roleDisplay: 'Agent',
   availability: 'ONLINE',
-  permissions: const {Perm.channelView},
+  permissions: const {Perm.channelView, Perm.conversationReview},
   visibilityScope: 'ALL',
 );
 
