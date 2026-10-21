@@ -1,6 +1,7 @@
-/// The inbox's Need review and Resolved quick filters: the query each sends,
-/// how they take turns with the other quick filters, and where they sit in
-/// the bar in English, Arabic, light and dark.
+/// The inbox's quick filters: the query each sends (Need review is the
+/// server's `review=mine`), how they take turns, and their order in the bar —
+/// All, Mine, Need review, Unread, Resolved, then Unassigned and Open — in
+/// English, Arabic, light and dark.
 library;
 
 import 'dart:async';
@@ -13,14 +14,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scenario_mobile/core/api/api_client.dart';
-import 'package:scenario_mobile/core/models/conversation_group.dart';
 import 'package:scenario_mobile/core/models/employee.dart';
 import 'package:scenario_mobile/core/providers.dart';
 import 'package:scenario_mobile/core/theme/app_theme.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
 import 'package:scenario_mobile/features/conversations/conversation_repository.dart';
 import 'package:scenario_mobile/features/conversations/inbox_controller.dart';
-import 'package:scenario_mobile/features/conversations/inbox_list_merge.dart';
 import 'package:scenario_mobile/features/conversations/inbox_quick_filter_bar.dart';
 import 'package:scenario_mobile/features/conversations/inbox_screen.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations_ar.dart';
@@ -77,14 +76,62 @@ final _me = Employee(
 void main() {
   // -------------------------------------------------------------------------
   group('query', () {
-    test('Need review is filtered on the device: nothing is sent', () {
+    test('Need review is review=mine, on every page and the export', () {
       const filters = ConversationFilters(needsMyReview: true);
-      expect(filters.toQuery(1, 42), {'page': 1});
-      expect(filters.toExportQuery(42), isEmpty);
+      expect(filters.toQuery(1, 42), {'page': 1, 'review': 'mine'});
+      expect(filters.toQuery(3, 42), {'page': 3, 'review': 'mine'});
+      expect(filters.toExportQuery(42), {'review': 'mine'});
       expect(filters.isEmpty, isFalse);
       expect(filters.hasSheetFilters, isTrue);
       expect(filters.hasAdvancedFilters, isFalse);
+      // Alongside the account scope and a search.
+      expect(
+        filters
+            .copyWith(search: 'refund', channelConnections: [3, 5])
+            .toQuery(1, 42),
+        {
+          'page': 1,
+          'search': 'refund',
+          'review': 'mine',
+          'channel_connections': '3,5',
+        },
+      );
       expect(const ConversationFilters().toQuery(1, 42), {'page': 1});
+    });
+
+    test('each tab sends what it always sent', () {
+      ConversationFilters tab(InboxQuickFilter f) {
+        final c = ProviderContainer();
+        addTearDown(c.dispose);
+        c.read(inboxFiltersProvider.notifier).selectQuickFilter(f);
+        return c.read(inboxFiltersProvider);
+      }
+
+      expect(tab(InboxQuickFilter.all).toQuery(1, 42), {'page': 1});
+      expect(tab(InboxQuickFilter.mine).toQuery(1, 42), {
+        'page': 1,
+        'assigned_to': 42,
+      });
+      expect(tab(InboxQuickFilter.needsReview).toQuery(1, 42), {
+        'page': 1,
+        'review': 'mine',
+      });
+      expect(tab(InboxQuickFilter.unread).toQuery(1, 42), {
+        'page': 1,
+        'unread': true,
+      });
+      expect(tab(InboxQuickFilter.resolved).toQuery(1, 42), {
+        'page': 1,
+        'status': 'RESOLVED',
+      });
+      expect(tab(InboxQuickFilter.unassigned).toQuery(1, 42), {
+        'page': 1,
+        'view': 'unassigned',
+      });
+      expect(tab(InboxQuickFilter.open).toQuery(1, 42), {
+        'page': 1,
+        'status': 'OPEN',
+      });
     });
 
     test('Resolved is status=RESOLVED and is not an advanced filter', () {
@@ -188,7 +235,8 @@ void main() {
       adapter = _StubAdapter((options) {
         final path = options.uri.path;
         if (path.contains('/conversations/')) {
-          if (options.uri.queryParameters['page_size'] == '1') {
+          if (options.uri.queryParameters['page_size'] == '1' ||
+              options.uri.queryParameters['review'] == 'mine') {
             return _json({'count': 0, 'next': null, 'results': []});
           }
           return _json(
@@ -233,9 +281,9 @@ void main() {
       'quick_filter_all',
       'quick_filter_mine',
       'quick_filter_needs_review',
+      'quick_filter_unread',
       'quick_filter_resolved',
       'quick_filter_unassigned',
-      'quick_filter_unread',
       'quick_filter_open',
     ];
 
@@ -245,7 +293,7 @@ void main() {
             '${dark ? 'dark' : 'light'} ${arabic ? 'Arabic' : 'English'}';
         final l10n = arabic ? AppLocalizationsAr() : AppLocalizationsEn();
 
-        testWidgets('Need review and Resolved come right after Mine — $label', (
+        testWidgets('All, Mine, Need review, Unread, Resolved — $label', (
           tester,
         ) async {
           await tester.pumpWidget(
@@ -277,10 +325,14 @@ void main() {
             pill('quick_filter_needs_review', l10n.needsReviewFilter),
             findsOneWidget,
           );
-          expect(
-            pill('quick_filter_resolved', l10n.resolvedFilter),
-            findsOneWidget,
-          );
+          for (final (key, text) in [
+            ('quick_filter_all', l10n.allFilter),
+            ('quick_filter_mine', l10n.mineFilter),
+            ('quick_filter_unread', l10n.unreadFilter),
+            ('quick_filter_resolved', l10n.resolvedFilter),
+          ]) {
+            expect(pill(key, text), findsOneWidget);
+          }
         });
       }
     }
@@ -306,15 +358,15 @@ void main() {
         tester.element(find.byType(InboxScreen)),
       );
 
-      // Need review asks for the plain inbox and filters it here. The one
-      // conversation has no review, and there is nothing more to load.
+      // Need review asks the server for review=mine; nothing is pending for
+      // this employee there.
       await tester.tap(find.byKey(const Key('quick_filter_needs_review')));
       await tester.pumpAndSettle();
       var query = adapter.received
           .lastWhere(_isListRequest)
           .uri
           .queryParameters;
-      expect(query.containsKey('review'), isFalse);
+      expect(query['review'], 'mine');
       expect(query['page'], '1');
       expect(query.containsKey('status'), isFalse);
       expect(query.containsKey('assigned_to'), isFalse);
@@ -342,11 +394,59 @@ void main() {
       // unhighlighted.
       expect(container.read(inboxFiltersProvider).hasAdvancedFilters, isFalse);
 
+      await tester.tap(find.byKey(const Key('quick_filter_unread')));
+      await tester.pumpAndSettle();
+      query = adapter.received.lastWhere(_isListRequest).uri.queryParameters;
+      expect(query['unread'], 'true');
+      expect(query.containsKey('review'), isFalse);
+      expect(query.containsKey('status'), isFalse);
+
+      await tester.tap(find.byKey(const Key('quick_filter_mine')));
+      await tester.pumpAndSettle();
+      query = adapter.received.lastWhere(_isListRequest).uri.queryParameters;
+      expect(query['assigned_to'], '42');
+      expect(query.containsKey('unread'), isFalse);
+
       await tester.tap(find.byKey(const Key('quick_filter_all')));
       await tester.pumpAndSettle();
       query = adapter.received.lastWhere(_isListRequest).uri.queryParameters;
       expect(query.containsKey('status'), isFalse);
       expect(query.containsKey('review'), isFalse);
+      expect(find.text('Sarah Connor'), findsOneWidget);
+    });
+
+    testWidgets('the selected tab is the same filter after the reorder', (
+      tester,
+    ) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(InboxScreen)),
+      );
+      for (final (key, filter) in [
+        ('quick_filter_unread', InboxQuickFilter.unread),
+        ('quick_filter_resolved', InboxQuickFilter.resolved),
+        ('quick_filter_needs_review', InboxQuickFilter.needsReview),
+        ('quick_filter_mine', InboxQuickFilter.mine),
+      ]) {
+        final pill = find.byKey(Key(key));
+        await tester.ensureVisible(pill);
+        await tester.tap(pill);
+        await tester.pumpAndSettle();
+        expect(container.read(inboxFiltersProvider).activeQuickFilter, filter);
+        // Exactly the tapped pill is marked selected.
+        for (final other in order) {
+          final pillSemantics = find.descendant(
+            of: find.byKey(Key(other)),
+            matching: find.byType(Semantics),
+          );
+          final selected = tester
+              .widget<Semantics>(pillSemantics.first)
+              .properties
+              .selected;
+          expect(selected, other == key, reason: '$other after tapping $key');
+        }
+      }
     });
 
     testWidgets('a narrow screen scrolls the tabs without overflow', (
@@ -375,13 +475,12 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Need review on the device', () {
-    Map<String, dynamic> row(
-      int id,
-      String name, {
-      int? customerId,
-      int? reviewerId,
-    }) => {
+  // Need review is the server's list. The stub answers `review=mine` the way
+  // the backend does: only threads with a review pending for the caller,
+  // inside each customer's group, a group left empty dropped, `count` and
+  // pages over what remains — two groups a page here, so paging shows.
+  group('Need review from the server', () {
+    Map<String, dynamic> row(int id, String name, {int? customerId}) => {
       'id': id,
       'customer': {'id': customerId ?? id, 'display_name': name},
       'provider': 'WHATSAPP',
@@ -392,49 +491,73 @@ void main() {
       'last_message_at':
           '2026-10-${(30 - id).toString().padLeft(2, '0')}'
           'T10:00:00Z',
-      if (reviewerId != null)
-        'review': {
-          'id': 100 + id,
-          'status': 'PENDING',
-          'reviewer_id': reviewerId,
-          'reviewer_name': 'Reviewer $reviewerId',
-        },
     };
 
-    /// Page 1: mine (Sarah), someone else's (Ali), none (Omar), and Mona's
-    /// two threads of which one is mine. Page 2: mine (Laila).
-    final pages = {
-      '1': [
-        row(1, 'Sarah Connor', reviewerId: 42),
-        row(2, 'Ali Elnewehy', reviewerId: 99),
-        row(3, 'Omar Said'),
-        row(4, 'Mona Adel', customerId: 10, reviewerId: 42),
-        row(5, 'Mona Adel', customerId: 10),
-      ],
-      '2': [row(6, 'Laila Hassan', reviewerId: 42)],
-    };
+    /// Mine (Sarah), someone else's (Ali), none (Omar), Mona's two threads
+    /// of which one is mine, and mine again (Laila).
+    final rows = [
+      row(1, 'Sarah Connor'),
+      row(2, 'Ali Elnewehy'),
+      row(3, 'Omar Said'),
+      row(4, 'Mona Adel', customerId: 10),
+      row(5, 'Mona Adel', customerId: 10),
+      row(6, 'Laila Hassan'),
+    ];
+
+    /// Conversation id → reviewer of its pending review: the server's state.
+    late Map<int, int> reviewers;
+
+    /// The server also returns thread 5 in Mona's group: what is sent is
+    /// what is shown.
+    var extraThread = false;
 
     late _StubAdapter adapter;
 
+    Map<String, dynamic> withReview(Map<String, dynamic> r) {
+      final reviewer = reviewers[r['id']];
+      return {
+        ...r,
+        if (reviewer != null)
+          'review': {
+            'id': 100 + (r['id'] as int),
+            'status': 'PENDING',
+            'reviewer_id': reviewer,
+            'reviewer_name': 'Reviewer $reviewer',
+          },
+      };
+    }
+
     Widget app() {
+      reviewers = {1: 42, 2: 99, 4: 42, 6: 42};
+      extraThread = false;
       adapter = _StubAdapter((options) {
         final q = options.uri.queryParameters;
-        if (options.uri.path.contains('/conversations/')) {
-          if (q['page_size'] == '1') {
-            return _json({'count': 0, 'next': null, 'results': []});
-          }
-          final page = q['page'] ?? '1';
-          final rows = pages[page] ?? const [];
-          return _json(
-            groupedEnvelope({
-              'count': 6,
-              'next': page == '1' ? 'https://x.test/?page=2' : null,
-              'previous': null,
-              'results': rows,
-            }),
-          );
+        if (!options.uri.path.contains('/conversations/')) {
+          return _json({'count': 0, 'results': []});
         }
-        return _json({'count': 0, 'results': []});
+        if (q['page_size'] == '1') {
+          return _json({'count': 0, 'next': null, 'results': []});
+        }
+        final mine = q['review'] == 'mine';
+        final kept = [
+          for (final r in rows)
+            if (!mine ||
+                reviewers[r['id']] == 42 ||
+                (extraThread && r['id'] == 5))
+              withReview(r),
+        ];
+        final groups = groupedRows(kept);
+        final size = mine ? 2 : 30;
+        final page = int.parse(q['page'] ?? '1');
+        return _json({
+          'count': groups.length,
+          'page': page,
+          'next': page * size < groups.length
+              ? 'https://x.test/?page=${page + 1}'
+              : null,
+          'previous': null,
+          'results': groups.skip((page - 1) * size).take(size).toList(),
+        });
       });
       final client = ApiClient.create(cookieJar: CookieJar())
         ..raw.httpClientAdapter = adapter;
@@ -452,46 +575,31 @@ void main() {
       );
     }
 
-    test('awaitingReviewBy keeps only my threads, in order', () {
-      final groups = [
-        for (final r in pages['1']!)
-          CustomerConversationGroup.fromJson({
-            'group_key': 'k${r['id']}',
-            'customer': r['customer'],
-            'conversations': [r],
-          }),
-      ];
-      expect(
-        [
-          for (final g in awaitingReviewBy(groups, 42))
-            for (final c in g.conversations) c.id,
-        ],
-        [1, 4],
-      );
-      expect(awaitingReviewBy(groups, null), isEmpty);
-      final mine = awaitingReviewBy(groups, 42);
-      expect(identical(awaitingReviewBy(mine, 42), mine), isTrue);
-    });
+    ProviderContainer containerOf(WidgetTester tester) =>
+        ProviderScope.containerOf(tester.element(find.byType(InboxScreen)));
 
-    testWidgets('shows only reviews waiting on me, looking further pages', (
-      tester,
-    ) async {
+    Iterable<Map<String, String>> listQueries() => adapter.received
+        .where(_isListRequest)
+        .map((r) => r.uri.queryParameters);
+
+    Future<void> openNeedReview(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('quick_filter_needs_review')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('asks for review=mine, page after page, and shows the '
+        'server\'s groups', (tester) async {
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
       expect(find.text('Ali Elnewehy'), findsOneWidget);
+      final before = listQueries().length;
 
-      await tester.tap(find.byKey(const Key('quick_filter_needs_review')));
-      await tester.pumpAndSettle();
+      await openNeedReview(tester);
 
-      // Page 2 was fetched on its own: too few matches on page 1 to scroll.
-      expect(
-        adapter.received
-            .where(_isListRequest)
-            .map((r) => r.uri.queryParameters['page']),
-        contains('2'),
-      );
-      for (final r in adapter.received.where(_isListRequest)) {
-        expect(r.uri.queryParameters.containsKey('review'), isFalse);
+      final asked = listQueries().skip(before).toList();
+      expect(asked.map((q) => q['page']), ['1', '2']);
+      for (final q in asked) {
+        expect(q['review'], 'mine');
       }
 
       expect(find.text('Sarah Connor'), findsOneWidget);
@@ -499,11 +607,14 @@ void main() {
       expect(find.text('Laila Hassan'), findsOneWidget);
       expect(find.text('Ali Elnewehy'), findsNothing);
       expect(find.text('Omar Said'), findsNothing);
-      // Mona's group keeps just the thread under review: a single row.
+      // Mona's group as the server sent it: the one thread under review.
       expect(
         find.byKey(const ValueKey('inbox-conversation-4')),
         findsOneWidget,
       );
+      final state = containerOf(tester).read(inboxControllerProvider).value!;
+      expect(state.total, 3);
+      expect(state.hasMore, isFalse);
 
       final ys = [
         for (final name in ['Sarah Connor', 'Mona Adel', 'Laila Hassan'])
@@ -511,32 +622,98 @@ void main() {
       ];
       expect(ys[0] < ys[1] && ys[1] < ys[2], isTrue);
 
-      // Back to All: everything again.
+      // Back to All: everything again, without the review filter.
       await tester.tap(find.byKey(const Key('quick_filter_all')));
       await tester.pumpAndSettle();
+      expect(listQueries().last.containsKey('review'), isFalse);
       expect(find.text('Ali Elnewehy'), findsOneWidget);
       expect(find.text('Omar Said'), findsOneWidget);
     });
 
-    testWidgets('a review completed or withdrawn leaves the tab at once', (
+    testWidgets('what the server sends is what is shown: nothing is '
+        'filtered again on the device', (tester) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      extraThread = true;
+      await openNeedReview(tester);
+
+      final groups = containerOf(
+        tester,
+      ).read(inboxControllerProvider).value!.groups;
+      expect(
+        [
+          for (final g in groups) [for (final c in g.conversations) c.id],
+        ],
+        [
+          [1],
+          [4, 5],
+          [6],
+        ],
+      );
+    });
+
+    testWidgets('leaving and coming back asks again: no stale rows', (
       tester,
     ) async {
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('quick_filter_needs_review')));
-      await tester.pumpAndSettle();
+      await openNeedReview(tester);
       expect(find.text('Sarah Connor'), findsOneWidget);
 
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(InboxScreen)),
-      );
-      // What the review controller does with the server's answer.
+      await tester.tap(find.byKey(const Key('quick_filter_unread')));
+      await tester.pumpAndSettle();
+      // Sarah's review is withdrawn while another tab is open.
+      reviewers.remove(1);
+      final before = listQueries().length;
+
+      await openNeedReview(tester);
+      final again = listQueries().skip(before).toList();
+      expect(again.first['page'], '1');
+      expect(again.first['review'], 'mine');
+      expect(find.text('Sarah Connor'), findsNothing);
+      expect(find.text('Mona Adel'), findsOneWidget);
+      expect(find.text('Laila Hassan'), findsOneWidget);
+      expect(containerOf(tester).read(inboxControllerProvider).value!.total, 2);
+    });
+
+    testWidgets('a review completed or withdrawn leaves the tab', (
+      tester,
+    ) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      await openNeedReview(tester);
+      expect(find.text('Sarah Connor'), findsOneWidget);
+      final container = containerOf(tester);
+      final before = listQueries().length;
+
+      // The server has completed it; the review controller passes on its
+      // answer.
+      reviewers.remove(1);
       container.read(inboxControllerProvider.notifier).applyReview(1, null);
       await tester.pumpAndSettle();
 
+      // The list was asked for again, from the top, still review=mine.
+      final reload = listQueries().skip(before).toList();
+      expect(reload, isNotEmpty);
+      expect(reload.first['page'], '1');
+      expect(reload.first['review'], 'mine');
       expect(find.text('Sarah Connor'), findsNothing);
       expect(find.text('Laila Hassan'), findsOneWidget);
-      // Only Sarah's review changed; her row is still in the inbox.
+      expect(container.read(inboxControllerProvider).value!.total, 2);
+    });
+
+    testWidgets('a review change on another tab only updates the row', (
+      tester,
+    ) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      final before = listQueries().length;
+
+      container.read(inboxControllerProvider.notifier).applyReview(1, null);
+      await tester.pumpAndSettle();
+
+      expect(listQueries().length, before);
       final sarah = container
           .read(inboxControllerProvider)
           .value!
@@ -544,6 +721,7 @@ void main() {
           .firstWhere((c) => c.id == 1);
       expect(sarah.review, isNull);
       expect(sarah.status, 'OPEN');
+      expect(find.text('Sarah Connor'), findsOneWidget);
     });
   });
 }

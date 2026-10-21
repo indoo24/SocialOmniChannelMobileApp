@@ -1,8 +1,8 @@
 /// How pages and refreshed heads are combined into the Inbox's loaded list.
 ///
 /// Pure functions over the groups the server returned — nothing here fetches
-/// or regroups, and only the display helpers at the end ([pinnedFirst],
-/// [awaitingReviewBy]) reorder or filter what is shown. Each one keeps the
+/// or regroups, and only the display helper at the end ([pinnedFirst])
+/// reorders what is shown. Each one keeps the
 /// instance of every group it does not change, so a row that did not change
 /// is not rebuilt.
 ///
@@ -13,7 +13,6 @@
 /// conversations a group holds) makes that harmless.
 library;
 
-import '../../core/models/conversation.dart';
 import '../../core/models/conversation_group.dart';
 
 typedef Groups = List<CustomerConversationGroup>;
@@ -145,29 +144,4 @@ Groups pinnedFirst(Groups groups) {
     }
   }
   return moves ? [...pinned, ...rest] : groups;
-}
-
-/// Only the threads whose review names [employeeId] as reviewer, in the
-/// order given: the inbox's Need review tab, filtered on the device. A
-/// customer's group keeps just those threads, and a group with none goes.
-/// Nothing when [employeeId] is unknown. The same list when every thread
-/// qualifies.
-Groups awaitingReviewBy(Groups groups, int? employeeId) {
-  if (employeeId == null) return const [];
-  bool mine(Conversation c) => c.review?.isReviewer(employeeId) ?? false;
-  var changed = false;
-  final out = <CustomerConversationGroup>[];
-  for (final group in groups) {
-    final kept = [
-      for (final c in group.conversations)
-        if (mine(c)) c,
-    ];
-    if (kept.length == group.conversations.length) {
-      out.add(group);
-    } else {
-      changed = true;
-      if (kept.isNotEmpty) out.add(group.withConversations(kept));
-    }
-  }
-  return changed ? out : groups;
 }

@@ -769,6 +769,12 @@ void main() {
         find.text('You do not have permission to do that.'),
         findsOneWidget,
       );
+      // Not disconnected: not said to be, and the inbox is not reloaded.
+      expect(find.text('Support line disconnected.'), findsNothing);
+      expect(
+        adapter.received.any((r) => r.path.contains('/conversations/grouped/')),
+        isFalse,
+      );
     });
     testWidgets('connected channels show Disconnect and do NOT show Delete', (
       tester,
@@ -959,6 +965,12 @@ void main() {
       expect(find.text('Could not delete channel.'), findsOneWidget);
       expect(find.text('Support line'), findsOneWidget);
       expect(find.text('Delete'), findsOneWidget);
+      // Nothing that follows a success: no "removed", no inbox reload.
+      expect(find.text('Support line removed.'), findsNothing);
+      expect(
+        adapter.received.any((r) => r.path.contains('/conversations/grouped/')),
+        isFalse,
+      );
     });
 
     testWidgets('deletes Instagram channel via DELETE /api/channels/{id}/', (

@@ -40,10 +40,10 @@ class ConversationFilters {
   final bool unassigned;
   final bool unread;
 
-  /// Only conversations whose review names the signed-in employee as
-  /// reviewer — their review to-do list. Applied on the device to the rows
-  /// already loaded (`awaitingReviewBy`), never sent: the list endpoints
-  /// have no review filter. See `docs/MOBILE_BACKEND_SYNC.md` (R2).
+  /// Only conversations with a pending review asked of the signed-in
+  /// employee — their review to-do list: `review=mine`, which the list and
+  /// grouped endpoints apply before paginating (the web inbox's Needs review
+  /// filter, counted by `ConversationCounts.review_mine`).
   final bool needsMyReview;
   final String search;
 
@@ -81,6 +81,7 @@ class ConversationFilters {
     // only accepts a specific employee id.
     if (unassigned) query['view'] = 'unassigned';
     if (unread) query['unread'] = true;
+    if (needsMyReview) query['review'] = 'mine';
     if (channelConnections != null) {
       query['channel_connections'] = channelConnections!.isEmpty
           ? '0'

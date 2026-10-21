@@ -7,17 +7,43 @@ import 'inbox_controller.dart';
 
 /// Horizontally scrollable row of primary Inbox quick filters.
 ///
-/// Prominently displays the primary views:
-///   [ All ]  [ Mine ]  [ Need review ]  [ Resolved ]  [ Unassigned ]
-///   [ Unread ]  [ Open ]
+/// Prominently displays the primary views, in [InboxQuickFilter]'s order:
+///   [ All ]  [ Mine ]  [ Need review ]  [ Unread ]  [ Resolved ]
+///   [ Unassigned ]  [ Open ]
 ///
 /// The web's five (`jn = ["all", "mine", "unassigned", "unread", "open"]`
 /// in `inbox.js`) plus Need review and Resolved, and the same behaviour:
 ///  - Active item renders filled with the primary colour and a check.
 ///  - Inactive items render outlined on the page.
 ///  - Label only — no count badge.
+///
+/// Each pill is keyed by its filter (`quick_filter_<name>`), never its
+/// position, so selection follows the filter wherever it sits.
 class InboxQuickFilterBar extends ConsumerWidget {
   const InboxQuickFilterBar({super.key});
+
+  static String _keyOf(InboxQuickFilter filter) => switch (filter) {
+    InboxQuickFilter.all => 'quick_filter_all',
+    InboxQuickFilter.mine => 'quick_filter_mine',
+    InboxQuickFilter.needsReview => 'quick_filter_needs_review',
+    InboxQuickFilter.unread => 'quick_filter_unread',
+    InboxQuickFilter.resolved => 'quick_filter_resolved',
+    InboxQuickFilter.unassigned => 'quick_filter_unassigned',
+    InboxQuickFilter.open => 'quick_filter_open',
+  };
+
+  static String _labelOf(BuildContext context, InboxQuickFilter filter) {
+    final l10n = context.l10n;
+    return switch (filter) {
+      InboxQuickFilter.all => l10n.allFilter,
+      InboxQuickFilter.mine => l10n.mineFilter,
+      InboxQuickFilter.needsReview => l10n.needsReviewFilter,
+      InboxQuickFilter.unread => l10n.unreadFilter,
+      InboxQuickFilter.resolved => l10n.resolvedFilter,
+      InboxQuickFilter.unassigned => l10n.unassignedFilter,
+      InboxQuickFilter.open => l10n.openFilter,
+    };
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,68 +61,18 @@ class InboxQuickFilterBar extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _QuickFilterPill(
-            key: const Key('quick_filter_all'),
-            label: context.l10n.allFilter,
-            isActive: activeFilter == InboxQuickFilter.all,
-            onTap: () => ref
-                .read(inboxFiltersProvider.notifier)
-                .selectQuickFilter(InboxQuickFilter.all),
-          ),
-          const SizedBox(width: Space.sm),
-          _QuickFilterPill(
-            key: const Key('quick_filter_mine'),
-            label: context.l10n.mineFilter,
-            isActive: activeFilter == InboxQuickFilter.mine,
-            onTap: () => ref
-                .read(inboxFiltersProvider.notifier)
-                .selectQuickFilter(InboxQuickFilter.mine),
-          ),
-          const SizedBox(width: Space.sm),
-          _QuickFilterPill(
-            key: const Key('quick_filter_needs_review'),
-            label: context.l10n.needsReviewFilter,
-            isActive: activeFilter == InboxQuickFilter.needsReview,
-            onTap: () => ref
-                .read(inboxFiltersProvider.notifier)
-                .selectQuickFilter(InboxQuickFilter.needsReview),
-          ),
-          const SizedBox(width: Space.sm),
-          _QuickFilterPill(
-            key: const Key('quick_filter_resolved'),
-            label: context.l10n.resolvedFilter,
-            isActive: activeFilter == InboxQuickFilter.resolved,
-            onTap: () => ref
-                .read(inboxFiltersProvider.notifier)
-                .selectQuickFilter(InboxQuickFilter.resolved),
-          ),
-          const SizedBox(width: Space.sm),
-          _QuickFilterPill(
-            key: const Key('quick_filter_unassigned'),
-            label: context.l10n.unassignedFilter,
-            isActive: activeFilter == InboxQuickFilter.unassigned,
-            onTap: () => ref
-                .read(inboxFiltersProvider.notifier)
-                .selectQuickFilter(InboxQuickFilter.unassigned),
-          ),
-          const SizedBox(width: Space.sm),
-          _QuickFilterPill(
-            key: const Key('quick_filter_unread'),
-            label: context.l10n.unreadFilter,
-            isActive: activeFilter == InboxQuickFilter.unread,
-            onTap: () => ref
-                .read(inboxFiltersProvider.notifier)
-                .selectQuickFilter(InboxQuickFilter.unread),
-          ),
-          const SizedBox(width: Space.sm),
-          _QuickFilterPill(
-            key: const Key('quick_filter_open'),
-            label: context.l10n.openFilter,
-            isActive: activeFilter == InboxQuickFilter.open,
-            onTap: () => ref
-                .read(inboxFiltersProvider.notifier)
-                .selectQuickFilter(InboxQuickFilter.open),
-          ),
+          for (final filter in InboxQuickFilter.values) ...[
+            if (filter != InboxQuickFilter.values.first)
+              const SizedBox(width: Space.sm),
+            _QuickFilterPill(
+              key: Key(_keyOf(filter)),
+              label: _labelOf(context, filter),
+              isActive: activeFilter == filter,
+              onTap: () => ref
+                  .read(inboxFiltersProvider.notifier)
+                  .selectQuickFilter(filter),
+            ),
+          ],
         ],
       ),
     );

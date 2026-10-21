@@ -74,14 +74,22 @@ Map<String, dynamic> _row(int id, {int? reviewerId}) => {
 /// A server whose list pages are described by [page]; [listPages] records
 /// which pages were asked for (the badge-count probes aside).
 class _Server {
-  _Server(this.page);
+  _Server(this.page, {this.reviewPage});
 
   /// Rows, `next` and the `page` reported for an asked page.
   final ({List<Map<String, dynamic>> rows, bool next, int? reportedPage})
   Function(int asked)
   page;
 
+  /// The same for a `review=mine` request (Need review), when given.
+  final ({List<Map<String, dynamic>> rows, bool next, int? reportedPage})
+  Function(int asked)?
+  reviewPage;
+
   final listPages = <int>[];
+
+  /// The `review` parameter of each list request, in order.
+  final reviews = <String?>[];
   bool failPageOne = false;
   Completer<void>? holdPage2;
 
@@ -97,13 +105,17 @@ class _Server {
       }
       final asked = int.parse(q['page'] ?? '1');
       listPages.add(asked);
+      reviews.add(q['review']);
       if (asked == 1 && failPageOne) {
         return _json({
           'error': {'code': 'unavailable', 'message': 'Try later.'},
         }, 503);
       }
       if (asked == 2 && holdPage2 != null) await holdPage2!.future;
-      final answer = page(asked);
+      final review = reviewPage;
+      final answer = q['review'] == 'mine' && review != null
+          ? review(asked)
+          : page(asked);
       return _json(
         groupedEnvelope({
           'count': 999,
@@ -221,27 +233,34 @@ void main() {
     expect(find.text('Customer 329'), findsOneWidget);
   });
 
-  testWidgets('Need review: the search through pages ends, with or '
-      'without a match', (tester) async {
+  testWidgets('Need review: the server\'s list ends, with or without a '
+      'match', (tester) async {
+    // review=mine answers one match, then a `next` that never ends.
     final server = _Server(
-      (asked) => switch (asked) {
-        1 => (rows: _fullPage(1), next: true, reportedPage: 1),
-        2 => (rows: _fullPage(2, reviewerId: 42), next: true, reportedPage: 2),
-        _ => (rows: const [], next: true, reportedPage: asked),
-      },
+      (asked) => (rows: _fullPage(asked), next: true, reportedPage: asked),
+      reviewPage: (asked) => (
+        rows: asked == 1
+            ? [_row(200, reviewerId: 42)]
+            : const <Map<String, dynamic>>[],
+        next: true,
+        reportedPage: asked,
+      ),
     );
     await tester.pumpWidget(app(server));
     await tester.pumpAndSettle();
+    final before = server.reviews.length;
     await choose(tester, 'quick_filter_needs_review');
     await tester.pumpAndSettle();
 
     expect(find.text('Customer 200'), findsOneWidget);
     expect(_spinner, findsNothing);
+    expect(server.reviews.skip(before), everyElement('mine'));
 
     // And with nothing to find, it ends on "Nothing to review".
     final none = _Server(
-      (asked) => (
-        rows: asked == 1 ? _fullPage(1) : const <Map<String, dynamic>>[],
+      (asked) => (rows: _fullPage(asked), next: true, reportedPage: asked),
+      reviewPage: (asked) => (
+        rows: const <Map<String, dynamic>>[],
         next: true,
         reportedPage: asked,
       ),
