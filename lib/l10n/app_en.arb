@@ -2257,5 +2257,66 @@
   "savedReplySectionEmpty": "No saved replies in this category yet.",
   "@savedReplySectionEmpty": {
     "description": "Saved replies list: a category with none of your replies."
+  },
+  "savedReplyMediaNotSupportedOnChannel": "The text was added, but this channel doesn't accept files, so the saved reply's file wasn't attached.",
+  "@savedReplyMediaNotSupportedOnChannel": {
+    "description": "Composer: a saved reply with a file, on a channel that takes no files from agents."
+  },
+  "savedReplyFilePickFailed": "Couldn't open that file. Try another one.",
+  "@savedReplyFilePickFailed": {
+    "description": "Saved reply form: a picked file could not be read."
+  },
+  "savedReplyAttachmentLabel": "Attachment (optional)",
+  "@savedReplyAttachmentLabel": {
+    "description": "Saved reply form: attachment section label."
+  },
+  "savedReplyAttachImage": "Image",
+  "@savedReplyAttachImage": {
+    "description": "Saved reply form: pick an image."
+  },
+  "savedReplyAttachVideo": "Video",
+  "@savedReplyAttachVideo": {
+    "description": "Saved reply form: pick a video."
+  },
+  "savedReplyAttachAudio": "Audio",
+  "@savedReplyAttachAudio": {
+    "description": "Saved reply form: pick an audio file."
+  },
+  "savedReplyAttachFile": "File",
+  "@savedReplyAttachFile": {
+    "description": "Saved reply form: pick any file."
+  },
+  "savedReplyRecordVoice": "Record",
+  "@savedReplyRecordVoice": {
+    "description": "Saved reply form: record a voice message."
+  },
+  "savedReplyAttachmentHint": "One file per reply: an image, video, audio, document or voice message.",
+  "@savedReplyAttachmentHint": {
+    "description": "Saved reply form: what can be attached."
+  },
+  "savedReplyAttachmentReplaceHint": "Choosing another file replaces this one.",
+  "@savedReplyAttachmentReplaceHint": {
+    "description": "Saved reply form: one file per reply."
+  },
+  "savedReplyVoiceMessageLabel": "Voice message",
+  "@savedReplyVoiceMessageLabel": {
+    "description": "A recorded voice message attached to a saved reply."
+  },
+  "savedReplyFileUploadFailedReason": "Check your connection and try again.",
+  "@savedReplyFileUploadFailedReason": {
+    "description": "Why the file upload failed: network or server."
+  },
+  "savedReplyFileNotSaved": "The reply's text was saved, but its file wasn't. {reason} Tap Save to try the file again.",
+  "@savedReplyFileNotSaved": {
+    "description": "Saved reply form: the text saved, the file did not.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "savedReplyUploadCancelled": "Upload cancelled. The reply's text was saved; tap Save to upload the file again.",
+  "@savedReplyUploadCancelled": {
+    "description": "Saved reply form: the file upload was cancelled."
   }
 }

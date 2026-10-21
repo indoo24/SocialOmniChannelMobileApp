@@ -446,6 +446,22 @@ class ConversationRepository {
     return AttachmentDraft.fromJson(data);
   }
 
+  /// `POST /conversations/{id}/attachments/from-saved-reply/`: the server
+  /// copies saved reply [savedReplyId]'s file into a draft for this
+  /// conversation, as [stageAttachment] would have — nothing is uploaded
+  /// from the phone. Sent like any draft, through `reply()`'s
+  /// `attachment_ids`.
+  Future<AttachmentDraft> attachmentFromSavedReply(
+    int conversationId,
+    int savedReplyId,
+  ) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/attachments/from-saved-reply/',
+      body: {'saved_reply_id': savedReplyId},
+    );
+    return AttachmentDraft.fromJson(data);
+  }
+
   /// Removes a staged draft and its bytes. Safe to call on something
   /// already gone — a double-tap on "remove" is not an error.
   Future<void> discardAttachment(int conversationId, String draftId) => _api

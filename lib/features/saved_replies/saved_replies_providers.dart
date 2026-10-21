@@ -8,11 +8,14 @@
 /// derived client-side from the same list.
 library;
 
+import 'package:dio/dio.dart'
+    show CancelToken, DioMediaType, FormData, MultipartFile, ProgressCallback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/models/conversation.dart';
 import '../../core/providers.dart';
+import '../../core/utils/json_safe.dart';
 import 'saved_reply.dart';
 
 class SavedRepliesRepository {
@@ -95,20 +98,61 @@ class SavedRepliesRepository {
     return SavedReply.fromJson(data);
   }
 
+  // -- the reply's file -----------------------------------------------------
+
+  /// `POST /saved-reply-assets/` (multipart): [filePath] becomes the file of
+  /// reply [savedReplyId], replacing any it had. Streamed from disk through
+  /// [ApiClient.upload] — progress, cancel, a stall timeout. [isVoice] and
+  /// [durationMs] mark a recorded voice message. Answers with the reply.
+  Future<SavedReply> uploadAsset(
+    int savedReplyId, {
+    required String filePath,
+    required String fileName,
+    String? mimeType,
+    bool isVoice = false,
+    int? durationMs,
+    ProgressCallback? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final form = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        filePath,
+        filename: fileName,
+        contentType: mimeType == null || mimeType.isEmpty
+            ? null
+            : DioMediaType.parse(mimeType),
+      ),
+      'saved_reply_id': savedReplyId.toString(),
+      if (isVoice) 'is_voice': 'true',
+      if (durationMs != null) 'duration_ms': durationMs.toString(),
+    });
+    final data = await _api.upload<Map<String, dynamic>>(
+      '/saved-reply-assets/',
+      body: form,
+      onSendProgress: onSendProgress,
+      cancelToken: cancelToken,
+    );
+    return SavedReply.fromJson(data);
+  }
+
+  /// `DELETE /saved-reply-assets/{id}/` — the reply keeps its text and loses
+  /// its file (messages already sent keep theirs). Answers with the reply.
+  Future<SavedReply> removeAsset(int assetId) async {
+    final data = await _api.delete<Map<String, dynamic>>(
+      '/saved-reply-assets/$assetId/',
+    );
+    return SavedReply.fromJson(data);
+  }
+
   // -- categories -------------------------------------------------------------
 
   /// `GET /saved-reply-categories/`, in their saved order ([position]).
   Future<List<SavedReplyCategory>> categories() async {
-    final data = await _api.get<Map<String, dynamic>>(
+    final data = await _api.get<dynamic>(
       '/saved-reply-categories/',
       query: {'page_size': 100},
     );
-    return _inOrder(
-      Paginated<SavedReplyCategory>.fromJson(
-        data,
-        SavedReplyCategory.fromJson,
-      ).results,
-    );
+    return _categoriesFrom(data);
   }
 
   /// `POST /saved-reply-categories/` `{name}`. Needs `saved_reply.manage`.
@@ -137,17 +181,24 @@ class SavedRepliesRepository {
   /// `POST /saved-reply-categories/reorder/` `{ids}` — every category, in
   /// the new order. Answers with the categories as saved.
   Future<List<SavedReplyCategory>> reorderCategories(List<int> ids) async {
-    final data = await _api.post<Map<String, dynamic>>(
+    final data = await _api.post<dynamic>(
       '/saved-reply-categories/reorder/',
       body: {'ids': ids},
     );
-    return _inOrder(
-      Paginated<SavedReplyCategory>.fromJson(
-        data,
-        SavedReplyCategory.fromJson,
-      ).results,
-    );
+    return _categoriesFrom(data);
   }
+
+  /// Categories from either shape the server answers with: a plain array
+  /// (what `reorder/` sends, though the schema documents a page) or the
+  /// paginated envelope's `results`. In their saved order.
+  static List<SavedReplyCategory> _categoriesFrom(Object? data) => _inOrder(
+    data is Map
+        ? Paginated<SavedReplyCategory>.fromJson(
+            JsonSafe.asMap(data),
+            SavedReplyCategory.fromJson,
+          ).results
+        : JsonSafe.parseList(data, SavedReplyCategory.fromJson),
+  );
 
   /// By [SavedReplyCategory.position]; the server's order breaks ties.
   static List<SavedReplyCategory> _inOrder(List<SavedReplyCategory> list) {

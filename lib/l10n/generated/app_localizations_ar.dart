@@ -3770,4 +3770,53 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get savedReplySectionEmpty => 'لا توجد ردود محفوظة في هذه الفئة بعد.';
+
+  @override
+  String get savedReplyMediaNotSupportedOnChannel =>
+      'تمت إضافة النص، لكن هذه القناة لا تقبل الملفات، لذلك لم يُرفق ملف الرد المحفوظ.';
+
+  @override
+  String get savedReplyFilePickFailed => 'تعذّر فتح هذا الملف. جرّب ملفًا آخر.';
+
+  @override
+  String get savedReplyAttachmentLabel => 'مرفق (اختياري)';
+
+  @override
+  String get savedReplyAttachImage => 'صورة';
+
+  @override
+  String get savedReplyAttachVideo => 'فيديو';
+
+  @override
+  String get savedReplyAttachAudio => 'صوت';
+
+  @override
+  String get savedReplyAttachFile => 'ملف';
+
+  @override
+  String get savedReplyRecordVoice => 'تسجيل';
+
+  @override
+  String get savedReplyAttachmentHint =>
+      'ملف واحد لكل رد: صورة أو فيديو أو صوت أو مستند أو رسالة صوتية.';
+
+  @override
+  String get savedReplyAttachmentReplaceHint =>
+      'اختيار ملف آخر سيستبدل هذا الملف.';
+
+  @override
+  String get savedReplyVoiceMessageLabel => 'رسالة صوتية';
+
+  @override
+  String get savedReplyFileUploadFailedReason =>
+      'تحقّق من الاتصال وحاول مرة أخرى.';
+
+  @override
+  String savedReplyFileNotSaved(String reason) {
+    return 'تم حفظ نص الرد، لكن لم يتم حفظ الملف. $reason اضغط حفظ لإعادة محاولة رفع الملف.';
+  }
+
+  @override
+  String get savedReplyUploadCancelled =>
+      'تم إلغاء الرفع. تم حفظ نص الرد؛ اضغط حفظ لرفع الملف مرة أخرى.';
 }

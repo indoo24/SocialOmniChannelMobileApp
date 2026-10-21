@@ -1172,5 +1172,19 @@
   "savedReplyCategoryMoveDown": "تحريك لأسفل",
   "savedReplyCategoryDragHint": "اسحب لإعادة الترتيب",
   "savedReplyNoCategoryOption": "بدون فئة",
-  "savedReplySectionEmpty": "لا توجد ردود محفوظة في هذه الفئة بعد."
+  "savedReplySectionEmpty": "لا توجد ردود محفوظة في هذه الفئة بعد.",
+  "savedReplyMediaNotSupportedOnChannel": "تمت إضافة النص، لكن هذه القناة لا تقبل الملفات، لذلك لم يُرفق ملف الرد المحفوظ.",
+  "savedReplyFilePickFailed": "تعذّر فتح هذا الملف. جرّب ملفًا آخر.",
+  "savedReplyAttachmentLabel": "مرفق (اختياري)",
+  "savedReplyAttachImage": "صورة",
+  "savedReplyAttachVideo": "فيديو",
+  "savedReplyAttachAudio": "صوت",
+  "savedReplyAttachFile": "ملف",
+  "savedReplyRecordVoice": "تسجيل",
+  "savedReplyAttachmentHint": "ملف واحد لكل رد: صورة أو فيديو أو صوت أو مستند أو رسالة صوتية.",
+  "savedReplyAttachmentReplaceHint": "اختيار ملف آخر سيستبدل هذا الملف.",
+  "savedReplyVoiceMessageLabel": "رسالة صوتية",
+  "savedReplyFileUploadFailedReason": "تحقّق من الاتصال وحاول مرة أخرى.",
+  "savedReplyFileNotSaved": "تم حفظ نص الرد، لكن لم يتم حفظ الملف. {reason} اضغط حفظ لإعادة محاولة رفع الملف.",
+  "savedReplyUploadCancelled": "تم إلغاء الرفع. تم حفظ نص الرد؛ اضغط حفظ لرفع الملف مرة أخرى."
 }

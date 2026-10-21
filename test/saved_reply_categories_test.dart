@@ -18,6 +18,7 @@ import 'package:scenario_mobile/core/models/employee.dart';
 import 'package:scenario_mobile/core/providers.dart';
 import 'package:scenario_mobile/core/theme/app_theme.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
+import 'package:scenario_mobile/features/saved_replies/saved_replies_providers.dart';
 import 'package:scenario_mobile/features/saved_replies/saved_replies_settings_screen.dart';
 import 'package:scenario_mobile/features/saved_replies/saved_reply.dart';
 import 'package:scenario_mobile/features/saved_replies/saved_reply_picker.dart';
@@ -135,7 +136,9 @@ class _Server {
         for (var i = 0; i < ids.length; i++)
           {...categories.firstWhere((c) => c['id'] == ids[i]), 'position': i},
       ];
-      return _json(_page(_categoriesJson));
+      // A plain array, as the live server answers — not the page the
+      // schema documents.
+      return _json(_categoriesJson);
     }
     if (path == '/saved-reply-categories/') {
       if (o.method == 'GET') {
@@ -363,6 +366,35 @@ void main() {
         ['Billing', 'Returns', 'Legacy', ''],
       );
       expect([for (final x in groups.first.replies) x.id], [4, 3]);
+    });
+
+    test('categories are read as a plain array or a page', () async {
+      Object? answer;
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = _StubAdapter((_) => _json(answer));
+      final repo = SavedRepliesRepository(client);
+      final rows = [
+        {'id': 2, 'name': 'B', 'position': 1},
+        {'id': 1, 'name': 'A', 'position': 0},
+      ];
+
+      answer = rows;
+      expect(
+        [
+          for (final c in await repo.reorderCategories([1, 2])) c.id,
+        ],
+        [1, 2],
+      );
+      expect([for (final c in await repo.categories()) c.id], [1, 2]);
+
+      answer = _page(rows);
+      expect(
+        [
+          for (final c in await repo.reorderCategories([1, 2])) c.id,
+        ],
+        [1, 2],
+      );
+      expect([for (final c in await repo.categories()) c.id], [1, 2]);
     });
 
     test('new fields parse; missing ones default', () {

@@ -17,6 +17,7 @@ import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'saved_replies_providers.dart';
 import 'saved_reply.dart';
+import 'saved_reply_attachment_field.dart' show SavedReplyFileBadge;
 
 /// Opens the picker. Resolves to the chosen reply, or `null` if dismissed.
 Future<SavedReply?> showSavedReplyPicker(BuildContext context) {
@@ -355,12 +356,23 @@ class _ReplyTile extends StatelessWidget {
               ],
             ],
           ),
-          subtitle: Text(
-            reply.body,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textDirection: textDirectionOf(reply.body),
-            textAlign: startAlign,
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (reply.body.isNotEmpty)
+                Text(
+                  reply.body,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textDirection: textDirectionOf(reply.body),
+                  textAlign: startAlign,
+                ),
+              // Its file goes into the composer with the text.
+              if (reply.asset case final asset?) ...[
+                const SizedBox(height: 2),
+                SavedReplyFileBadge(asset: asset),
+              ],
+            ],
           ),
           trailing: Text(scopeLabel, style: theme.textTheme.labelSmall),
           onTap: () => Navigator.of(context).pop(reply),

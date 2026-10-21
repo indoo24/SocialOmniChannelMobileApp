@@ -6690,6 +6690,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No saved replies in this category yet.'**
   String get savedReplySectionEmpty;
+
+  /// Composer: a saved reply with a file, on a channel that takes no files from agents.
+  ///
+  /// In en, this message translates to:
+  /// **'The text was added, but this channel doesn\'t accept files, so the saved reply\'s file wasn\'t attached.'**
+  String get savedReplyMediaNotSupportedOnChannel;
+
+  /// Saved reply form: a picked file could not be read.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open that file. Try another one.'**
+  String get savedReplyFilePickFailed;
+
+  /// Saved reply form: attachment section label.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment (optional)'**
+  String get savedReplyAttachmentLabel;
+
+  /// Saved reply form: pick an image.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get savedReplyAttachImage;
+
+  /// Saved reply form: pick a video.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get savedReplyAttachVideo;
+
+  /// Saved reply form: pick an audio file.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get savedReplyAttachAudio;
+
+  /// Saved reply form: pick any file.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get savedReplyAttachFile;
+
+  /// Saved reply form: record a voice message.
+  ///
+  /// In en, this message translates to:
+  /// **'Record'**
+  String get savedReplyRecordVoice;
+
+  /// Saved reply form: what can be attached.
+  ///
+  /// In en, this message translates to:
+  /// **'One file per reply: an image, video, audio, document or voice message.'**
+  String get savedReplyAttachmentHint;
+
+  /// Saved reply form: one file per reply.
+  ///
+  /// In en, this message translates to:
+  /// **'Choosing another file replaces this one.'**
+  String get savedReplyAttachmentReplaceHint;
+
+  /// A recorded voice message attached to a saved reply.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice message'**
+  String get savedReplyVoiceMessageLabel;
+
+  /// Why the file upload failed: network or server.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your connection and try again.'**
+  String get savedReplyFileUploadFailedReason;
+
+  /// Saved reply form: the text saved, the file did not.
+  ///
+  /// In en, this message translates to:
+  /// **'The reply\'s text was saved, but its file wasn\'t. {reason} Tap Save to try the file again.'**
+  String savedReplyFileNotSaved(String reason);
+
+  /// Saved reply form: the file upload was cancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload cancelled. The reply\'s text was saved; tap Save to upload the file again.'**
+  String get savedReplyUploadCancelled;
 }
 
 class _AppLocalizationsDelegate

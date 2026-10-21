@@ -36,6 +36,7 @@ import '../settings/settings_skeleton.dart';
 import 'delete_saved_reply_dialog.dart';
 import 'saved_replies_providers.dart';
 import 'saved_reply.dart';
+import 'saved_reply_attachment_field.dart' show SavedReplyFileBadge;
 import 'saved_reply_categories_panel.dart';
 import 'saved_reply_form_sheet.dart';
 
@@ -340,12 +341,17 @@ class _SavedReplyCard extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: Space.sm),
-              Text(
-                reply.body,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyMedium,
-              ),
+              if (reply.body.isNotEmpty)
+                Text(
+                  reply.body,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              if (reply.asset case final asset?) ...[
+                const SizedBox(height: Space.sm),
+                SavedReplyFileBadge(asset: asset),
+              ],
               if (reply.canEdit) ...[
                 const SizedBox(height: Space.sm),
                 Row(

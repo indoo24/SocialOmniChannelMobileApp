@@ -10,6 +10,7 @@
 /// app only reads the replies it is allowed to use.
 library;
 
+import '../../core/models/message.dart';
 import '../../core/utils/json_safe.dart';
 
 class SavedReply {
@@ -27,6 +28,7 @@ class SavedReply {
     this.teamName,
     this.isActive = true,
     this.canEdit = false,
+    this.assets = const [],
   });
 
   final int id;
@@ -66,6 +68,13 @@ class SavedReply {
   /// Authoritative — never re-derive this client-side.
   final bool canEdit;
 
+  /// The reply's file, as `assets[]` (`POST /saved-reply-assets/` replaces
+  /// it, so there is at most one). Empty for a text-only reply.
+  final List<SavedReplyAsset> assets;
+
+  /// Its file, if it has one.
+  SavedReplyAsset? get asset => assets.isEmpty ? null : assets.first;
+
   factory SavedReply.fromJson(Map<String, dynamic> json) => SavedReply(
     id: JsonSafe.asInt(json['id'], fallback: -1),
     title: JsonSafe.asString(json['title']),
@@ -84,6 +93,71 @@ class SavedReply {
         : null,
     isActive: JsonSafe.asBool(json['is_active'], fallback: true),
     canEdit: JsonSafe.asBool(json['can_edit']),
+    assets: JsonSafe.parseList(json['assets'], SavedReplyAsset.fromJson),
+  );
+}
+
+/// A saved reply's file: `SavedReplyAsset`. Its bytes are at [contentUrl]
+/// (`/saved-reply-assets/{public_id}/content/`, session-authenticated); in a
+/// conversation it is copied into a draft by
+/// `POST /conversations/{id}/attachments/from-saved-reply/`, never re-sent
+/// from the phone.
+class SavedReplyAsset {
+  const SavedReplyAsset({
+    required this.id,
+    this.publicId = '',
+    this.attachmentType = 'FILE',
+    this.mimeType = '',
+    this.originalFilename = '',
+    this.sizeBytes,
+    this.isVoice = false,
+    this.durationMs,
+    this.contentUrl = '',
+  });
+
+  final int id;
+  final String publicId;
+
+  /// `IMAGE`, `VIDEO`, `AUDIO` or `FILE` — the server's reading of the
+  /// bytes, not of the name.
+  final String attachmentType;
+  final String mimeType;
+  final String originalFilename;
+  final int? sizeBytes;
+
+  /// A recorded voice message, sent as a voice note.
+  final bool isVoice;
+
+  /// From `metadata.duration_ms`, when the server records one.
+  final int? durationMs;
+  final String contentUrl;
+
+  factory SavedReplyAsset.fromJson(Map<String, dynamic> json) {
+    final metadata = JsonSafe.asMap(json['metadata']);
+    return SavedReplyAsset(
+      id: JsonSafe.asInt(json['id'], fallback: -1),
+      publicId: JsonSafe.asString(json['public_id']),
+      attachmentType: JsonSafe.asString(
+        json['attachment_type'],
+        fallback: 'FILE',
+      ).toUpperCase(),
+      mimeType: JsonSafe.asString(json['mime_type']),
+      originalFilename: JsonSafe.asString(json['original_filename']),
+      sizeBytes: JsonSafe.asIntOrNull(json['size_bytes']),
+      isVoice: JsonSafe.asBool(json['is_voice']),
+      durationMs: JsonSafe.asIntOrNull(metadata['duration_ms']),
+      contentUrl: JsonSafe.asString(json['content_url']),
+    );
+  }
+
+  /// As the app's attachment widgets show one.
+  MessageAttachment toAttachment() => MessageAttachment(
+    type: isVoice ? 'AUDIO' : attachmentType,
+    url: contentUrl,
+    fileName: originalFilename,
+    mimeType: mimeType,
+    sizeBytes: sizeBytes,
+    durationMs: durationMs,
   );
 }
 

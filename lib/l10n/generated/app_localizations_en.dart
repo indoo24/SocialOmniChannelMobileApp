@@ -3760,4 +3760,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedReplySectionEmpty => 'No saved replies in this category yet.';
+
+  @override
+  String get savedReplyMediaNotSupportedOnChannel =>
+      'The text was added, but this channel doesn\'t accept files, so the saved reply\'s file wasn\'t attached.';
+
+  @override
+  String get savedReplyFilePickFailed =>
+      'Couldn\'t open that file. Try another one.';
+
+  @override
+  String get savedReplyAttachmentLabel => 'Attachment (optional)';
+
+  @override
+  String get savedReplyAttachImage => 'Image';
+
+  @override
+  String get savedReplyAttachVideo => 'Video';
+
+  @override
+  String get savedReplyAttachAudio => 'Audio';
+
+  @override
+  String get savedReplyAttachFile => 'File';
+
+  @override
+  String get savedReplyRecordVoice => 'Record';
+
+  @override
+  String get savedReplyAttachmentHint =>
+      'One file per reply: an image, video, audio, document or voice message.';
+
+  @override
+  String get savedReplyAttachmentReplaceHint =>
+      'Choosing another file replaces this one.';
+
+  @override
+  String get savedReplyVoiceMessageLabel => 'Voice message';
+
+  @override
+  String get savedReplyFileUploadFailedReason =>
+      'Check your connection and try again.';
+
+  @override
+  String savedReplyFileNotSaved(String reason) {
+    return 'The reply\'s text was saved, but its file wasn\'t. $reason Tap Save to try the file again.';
+  }
+
+  @override
+  String get savedReplyUploadCancelled =>
+      'Upload cancelled. The reply\'s text was saved; tap Save to upload the file again.';
 }

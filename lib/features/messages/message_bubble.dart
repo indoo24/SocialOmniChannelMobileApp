@@ -835,7 +835,7 @@ class _Attachment extends ConsumerWidget {
     if (attachment.isAudio &&
         ((localPath != null && localPath.isNotEmpty) ||
             resolvedUrl.isNotEmpty)) {
-      return _VoicePlayer(
+      return VoiceNotePlayer(
         attachment: attachment,
         url: resolvedUrl,
         localPath: localPath,
@@ -1104,12 +1104,13 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
 /// the full length comes from the backend's `duration_ms` or, when a note
 /// carries none, from the recording's own container header (fetched once and
 /// reused for playback — see `audio_duration.dart`).
-class _VoicePlayer extends ConsumerStatefulWidget {
-  const _VoicePlayer({
+class VoiceNotePlayer extends ConsumerStatefulWidget {
+  const VoiceNotePlayer({
     required this.attachment,
     required this.url,
     this.localPath,
     this.isOutbound = true,
+    super.key,
   });
 
   final MessageAttachment attachment;
@@ -1118,12 +1119,12 @@ class _VoicePlayer extends ConsumerStatefulWidget {
   final bool isOutbound;
 
   @override
-  ConsumerState<_VoicePlayer> createState() => _VoicePlayerState();
+  ConsumerState<VoiceNotePlayer> createState() => _VoiceNotePlayerState();
 }
 
 enum _PlaybackLoad { idle, loading, ready, error }
 
-class _VoicePlayerState extends ConsumerState<_VoicePlayer>
+class _VoiceNotePlayerState extends ConsumerState<VoiceNotePlayer>
     with AutomaticKeepAliveClientMixin {
   late final String _playbackId =
       '${identityHashCode(this)}_${widget.attachment.attachmentId}';
@@ -1174,7 +1175,7 @@ class _VoicePlayerState extends ConsumerState<_VoicePlayer>
   }
 
   @override
-  void didUpdateWidget(_VoicePlayer oldWidget) {
+  void didUpdateWidget(VoiceNotePlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.url != oldWidget.url ||
         widget.localPath != oldWidget.localPath) {
