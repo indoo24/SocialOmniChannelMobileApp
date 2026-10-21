@@ -20,9 +20,9 @@ import 'core/providers.dart';
 import 'core/realtime/realtime_bridge.dart';
 import 'core/theme/app_theme.dart';
 import 'core/update/app_update_bridge.dart';
-import 'core/widgets/states.dart';
 import 'features/authentication/auth_controller.dart';
 import 'features/splash/splash_screen.dart';
+import 'features/startup/startup_connection_screen.dart';
 import 'l10n/generated/app_localizations.dart';
 
 Future<void> main() async {
@@ -129,8 +129,10 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
     // splash itself says it is done — building the router during restore
     // would let its redirect run against an unknown state. Swapping the root
     // app out (rather than pushing a route) also leaves nothing to navigate
-    // back to.
-    if (auth.isRestoring || !_preferencesRestored || !_splashFinished) {
+    // back to. A retry from the offline screen restores with the reason
+    // still set: that screen stays up, its button showing the progress.
+    final restoringAtLaunch = auth.isRestoring && !auth.restoreFailedOffline;
+    if (restoringAtLaunch || !_preferencesRestored || !_splashFinished) {
       return MaterialApp(
         theme: lightTheme,
         darkTheme: darkTheme,
@@ -141,9 +143,7 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
         debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: SplashScreen(
-            initDone: !auth.isRestoring && _preferencesRestored,
-            // A retry from the offline screen restores again; show the
-            // settled logo with the loader instead of replaying the intro.
+            initDone: !restoringAtLaunch && _preferencesRestored,
             playIntro: !_splashFinished,
             onFinished: () {
               if (mounted) setState(() => _splashFinished = true);
@@ -153,7 +153,10 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
       );
     }
 
-    if (auth.restoreFailedOffline) {
+    // The stored session could not be resumed for a reason a retry may fix
+    // (no network, server unreachable, a 5xx). The session is kept; this
+    // screen retries the restore, by hand or once the network is back.
+    if (auth.restoreIssue case final issue?) {
       return MaterialApp(
         theme: lightTheme,
         darkTheme: darkTheme,
@@ -162,12 +165,7 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         debugShowCheckedModeBanner: false,
-        home: Scaffold(
-          body: ErrorStateView(
-            error: _offlineError,
-            onRetry: () => ref.read(authControllerProvider.notifier).restore(),
-          ),
-        ),
+        home: StartupConnectionScreen(issue: issue, retrying: auth.isRestoring),
       );
     }
 
@@ -202,13 +200,6 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
       ),
     );
   }
-}
-
-final _offlineError = _OfflineError();
-
-class _OfflineError implements Exception {
-  @override
-  String toString() => 'Could not reach the server.';
 }
 
 /// Shown when a build has no API host configured.

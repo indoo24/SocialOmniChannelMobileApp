@@ -106,9 +106,17 @@ final teamsProvider = FutureProvider<List<Team>>((ref) async {
   return page.results;
 });
 
+/// Every account, across all pages: the inbox shows only the accounts listed
+/// here (`eligibleInboxAccounts`), so a list cut short would hide real ones.
 final channelsProvider = FutureProvider<List<ChannelConnection>>((ref) async {
-  final page = await ref.watch(directoryRepositoryProvider).channels();
-  return page.results;
+  final repository = ref.watch(directoryRepositoryProvider);
+  final channels = <ChannelConnection>[];
+  for (var page = 1; ; page++) {
+    final batch = await repository.channels(page: page);
+    channels.addAll(batch.results);
+    if (!batch.hasMore || batch.results.isEmpty || page >= 20) break;
+  }
+  return channels;
 });
 
 final categoriesProvider = FutureProvider<List<ConversationCategory>>((ref) {

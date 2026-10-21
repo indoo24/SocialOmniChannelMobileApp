@@ -351,19 +351,19 @@ Still open for the backend:
   the picker show only people who can review.
 - **Who may withdraw.** This is undocumented, so mobile offers Withdraw to
   everyone and relies on `403`.
-- **"Reviews waiting on me" is filtered on the device.** The inbox's Need
-  review tab (تحتاج مراجعة) requests the plain inbox and keeps the threads
-  whose `review.reviewer_id` is the caller. Pages are loaded one after another
-  until a screenful matches or the list ends. Two consequences:
-  - **List and grouped rows must carry `review`** (as the detail does). A row
-    without it counts as "no review", so the tab stays empty if rows leave it
-    out.
-  - A large inbox costs one request per page until enough matches are found.
-
-  A server filter (e.g. `review=pending_for_me` on `/conversations/` and
-  `/grouped/`, plus a `/conversations/counts/` bucket for a badge) would make
-  this one request and could replace the device filter later. (The Resolved
-  tab needs nothing new: it is `status=RESOLVED`.)
+- **The `review` filter's values are undocumented.** Since 2026-10-21 the
+  inbox's Need review tab (تحتاج مراجعة) asks the server:
+  `GET /api/conversations/grouped/?review=mine`. That replaces the device
+  filter, and every page, refresh and reload carries it. The live OpenAPI lists
+  `review` on `/conversations/` and `/grouped/` only as a string. The value
+  `mine` comes from the web inbox, which sends `review: "mine"` for its Needs
+  review filter and badges it with `ConversationCounts.review_mine`
+  ("pending review asked of the caller"). Checked against the live server:
+  `review=mine` gave `count` 0, the same as `review_mine`, against 1821
+  unfiltered; `review=zzz` was ignored without an error (1821). Please
+  document the accepted values (an enum in the schema) and reject unknown
+  ones, so a typo cannot silently show the whole inbox. (The Resolved tab
+  needs nothing new: it is `status=RESOLVED`.)
 - **Realtime and notifications.** There is no event for review changes, so
   other devices see a change on the next open of the conversation.
 
@@ -405,6 +405,64 @@ theirs.
 doctor's answer rendered as a linked internal note, an inbox filter "Waiting
 for my answer" for doctors, and both notifications routed to the
 conversation.
+
+### R3 — Leave removed and disconnected accounts out of the inbox by default
+
+**Seen 2026-10-21, confirmed against the live server.** Conversations of
+removed WhatsApp accounts kept appearing in the inbox. For example, one
+customer's group showed the Scenario DM and Test Number threads next to
+Gad's.
+
+What the live server returned:
+- `GET /api/channels/`: 8 accounts, every one `CONNECTED` and
+  `is_active: true`. Scenario DM and Test Number were not in it.
+  `?status=DISCONNECTED` and `?is_active=false` both returned 0 rows.
+- `GET /api/channels/{id}/` for those accounts, and for 4 more that still
+  had inbox conversations: 404 `not_found`. They are archived: a channel
+  removed after disconnecting is archived, archived channels are left out of
+  `/channels/`, and they are a 404 on every route.
+- `GET /api/conversations/grouped/?page=1`, with no `channel_connections`:
+  `count` 35. The 30 groups held 25 conversations on those 6 archived
+  accounts, including 11 on Scenario DM and 3 on Test Number.
+- The same request with `channel_connections` naming the listed, unmuted
+  accounts: `count` 11, and no conversation on an archived account, inside a
+  group or out. The server applies the filter correctly, including to the
+  conversations nested in each group.
+- `GET /api/conversations/channels/` returns a **bare JSON array** of
+  `{id, provider, display_name, is_active, is_muted}`, not the
+  `Paginated<InboxChannel>` that `API.md` describes. It lists the
+  same 8 accounts.
+
+So the default inbox lists leave out only *muted* accounts. Conversations of
+archived accounts, and of disconnected ones, stay in.
+
+**Mobile now (client-side):**
+- Whenever the account list is known, every inbox request, and the badge
+  counts, send `channel_connections` naming only the accounts the list
+  contains that are active, not `DISCONNECTED` and not muted. An account the
+  list no longer contains (archived) is therefore never named.
+- Every page of the account list is read. The agent fallback is read whether
+  it comes back as an array or a page.
+- Paging and refreshes use the same scope. A disconnect or removal from this
+  phone, or a change seen when the account list is next re-read, reloads the
+  list. Responses fetched for the previous scope are dropped.
+- Export, customer history and conversation detail are not narrowed.
+
+**Limits of doing it on the client:**
+- The agent list has no `status`. An account that is disconnected but not
+  removed still shows for an agent without `channel.view`, unless its
+  `is_active` turns false.
+- If the account list cannot be read, the inbox falls back to the server's
+  default and shows them.
+- Other clients (web) still show them.
+
+**Proposal:**
+- Exclude conversations of archived, `DISCONNECTED` or inactive accounts from
+  the default inbox lists and counts, as muted ones are, with an opt-in
+  (e.g. `include_disconnected=true`) for history views. Mobile can then drop
+  its own narrowing.
+- Either make `/conversations/channels/` return the documented page, or
+  document the array.
 
 ---
 

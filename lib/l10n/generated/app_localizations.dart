@@ -6450,6 +6450,330 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Conversations colleagues ask you to review will appear here.'**
   String get noReviewsWaitingMessage;
+
+  /// Launch: no network interface is up.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection'**
+  String get startupOfflineTitle;
+
+  /// Launch, offline: what to do.
+  ///
+  /// In en, this message translates to:
+  /// **'Make sure Wi-Fi or mobile data is on, then try again.'**
+  String get startupOfflineMessage;
+
+  /// Launch: a network is up but the server could not be reached.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t reach the server'**
+  String get startupUnreachableTitle;
+
+  /// Launch, unreachable: what may be wrong.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re connected to a network, but the server can\'t be reached. The network may not have internet access, or the server may be temporarily unavailable.'**
+  String get startupUnreachableMessage;
+
+  /// Launch: the server answered with an error (5xx).
+  ///
+  /// In en, this message translates to:
+  /// **'The server isn\'t responding'**
+  String get startupServerErrorTitle;
+
+  /// Launch, server error: what to do.
+  ///
+  /// In en, this message translates to:
+  /// **'The problem is on our side, not your connection. Please try again in a moment.'**
+  String get startupServerErrorMessage;
+
+  /// Launch retry button.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get startupRetryButton;
+
+  /// Launch retry button while the retry runs.
+  ///
+  /// In en, this message translates to:
+  /// **'Trying again…'**
+  String get startupRetryingButton;
+
+  /// A requested retry found no network again.
+  ///
+  /// In en, this message translates to:
+  /// **'Still no connection. Check Wi-Fi or mobile data.'**
+  String get startupStillOffline;
+
+  /// A requested retry could not reach the server again.
+  ///
+  /// In en, this message translates to:
+  /// **'Still can\'t reach the server.'**
+  String get startupStillUnreachable;
+
+  /// A requested retry got a server error again.
+  ///
+  /// In en, this message translates to:
+  /// **'The server still isn\'t responding.'**
+  String get startupStillServerError;
+
+  /// Launch, offline: an automatic retry follows the network coming back.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll try again automatically when you\'re back online.'**
+  String get startupAutoRetryHint;
+
+  /// Launch: the stored session was kept.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re still signed in.'**
+  String get startupSessionKeptHint;
+
+  /// Saved replies settings: the categories panel title.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get savedReplyCategoriesTitle;
+
+  /// Categories panel: how the order is set and what it does.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag or use the arrows to set the order replies are grouped in.'**
+  String get savedReplyCategoriesHint;
+
+  /// Categories panel: there are none.
+  ///
+  /// In en, this message translates to:
+  /// **'No categories yet. Add one below.'**
+  String get savedReplyCategoriesEmpty;
+
+  /// Categories panel: the list failed to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the categories.'**
+  String get savedReplyCategoriesLoadFailed;
+
+  /// Categories panel: the add field hint.
+  ///
+  /// In en, this message translates to:
+  /// **'New category name'**
+  String get savedReplyCategoryNameHint;
+
+  /// Rename dialog: the field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Category name'**
+  String get savedReplyCategoryNameLabel;
+
+  /// Categories panel: add button.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get savedReplyCategoryAddAction;
+
+  /// Validation: empty name.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a category name.'**
+  String get savedReplyCategoryNameRequired;
+
+  /// Validation: the name is taken.
+  ///
+  /// In en, this message translates to:
+  /// **'A category with this name already exists.'**
+  String get savedReplyCategoryDuplicate;
+
+  /// After the server created a category.
+  ///
+  /// In en, this message translates to:
+  /// **'Category added'**
+  String get savedReplyCategoryAdded;
+
+  /// After the server renamed a category.
+  ///
+  /// In en, this message translates to:
+  /// **'Category renamed'**
+  String get savedReplyCategoryRenamed;
+
+  /// After the server deleted a category.
+  ///
+  /// In en, this message translates to:
+  /// **'Category deleted. Its replies are now uncategorized.'**
+  String get savedReplyCategoryDeleted;
+
+  /// A reorder failed; the order shown is the server's.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the new order.'**
+  String get savedReplyCategoryOrderFailed;
+
+  /// A category change failed for a network or server reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the change. Please try again.'**
+  String get savedReplyCategoryRequestFailed;
+
+  /// The server refused a category change (403).
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to manage categories.'**
+  String get savedReplyCategoryNoPermission;
+
+  /// Rename dialog title.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename category'**
+  String get savedReplyCategoryRenameTitle;
+
+  /// Category row: rename button tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get savedReplyCategoryRenameAction;
+
+  /// Category row: delete button tooltip and confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get savedReplyCategoryDeleteAction;
+
+  /// Delete confirmation title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete “{name}”?'**
+  String savedReplyCategoryDeleteTitle(String name);
+
+  /// Delete confirmation: what happens to its replies.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Its 1 saved reply will move to Uncategorized.} other{Its {count} saved replies will move to Uncategorized.}} The replies themselves are not deleted.'**
+  String savedReplyCategoryDeleteWithReplies(int count);
+
+  /// Delete confirmation for an empty category.
+  ///
+  /// In en, this message translates to:
+  /// **'This category has no saved replies.'**
+  String get savedReplyCategoryDeleteEmpty;
+
+  /// Category row: how many replies it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No replies} =1{1 reply} other{{count} replies}}'**
+  String savedReplyCategoryReplyCount(int count);
+
+  /// Category row: move up.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get savedReplyCategoryMoveUp;
+
+  /// Category row: move down.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get savedReplyCategoryMoveDown;
+
+  /// Category row: drag handle label.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder'**
+  String get savedReplyCategoryDragHint;
+
+  /// Reply form: the category choice for none.
+  ///
+  /// In en, this message translates to:
+  /// **'No category'**
+  String get savedReplyNoCategoryOption;
+
+  /// Saved replies list: a category with none of your replies.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved replies in this category yet.'**
+  String get savedReplySectionEmpty;
+
+  /// Composer: a saved reply with a file, on a channel that takes no files from agents.
+  ///
+  /// In en, this message translates to:
+  /// **'The text was added, but this channel doesn\'t accept files, so the saved reply\'s file wasn\'t attached.'**
+  String get savedReplyMediaNotSupportedOnChannel;
+
+  /// Saved reply form: a picked file could not be read.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open that file. Try another one.'**
+  String get savedReplyFilePickFailed;
+
+  /// Saved reply form: attachment section label.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment (optional)'**
+  String get savedReplyAttachmentLabel;
+
+  /// Saved reply form: pick an image.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get savedReplyAttachImage;
+
+  /// Saved reply form: pick a video.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get savedReplyAttachVideo;
+
+  /// Saved reply form: pick an audio file.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get savedReplyAttachAudio;
+
+  /// Saved reply form: pick any file.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get savedReplyAttachFile;
+
+  /// Saved reply form: record a voice message.
+  ///
+  /// In en, this message translates to:
+  /// **'Record'**
+  String get savedReplyRecordVoice;
+
+  /// Saved reply form: what can be attached.
+  ///
+  /// In en, this message translates to:
+  /// **'One file per reply: an image, video, audio, document or voice message.'**
+  String get savedReplyAttachmentHint;
+
+  /// Saved reply form: one file per reply.
+  ///
+  /// In en, this message translates to:
+  /// **'Choosing another file replaces this one.'**
+  String get savedReplyAttachmentReplaceHint;
+
+  /// A recorded voice message attached to a saved reply.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice message'**
+  String get savedReplyVoiceMessageLabel;
+
+  /// Why the file upload failed: network or server.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your connection and try again.'**
+  String get savedReplyFileUploadFailedReason;
+
+  /// Saved reply form: the text saved, the file did not.
+  ///
+  /// In en, this message translates to:
+  /// **'The reply\'s text was saved, but its file wasn\'t. {reason} Tap Save to try the file again.'**
+  String savedReplyFileNotSaved(String reason);
+
+  /// Saved reply form: the file upload was cancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload cancelled. The reply\'s text was saved; tap Save to upload the file again.'**
+  String get savedReplyUploadCancelled;
 }
 
 class _AppLocalizationsDelegate

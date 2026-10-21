@@ -3610,4 +3610,204 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noReviewsWaitingMessage =>
       'Conversations colleagues ask you to review will appear here.';
+
+  @override
+  String get startupOfflineTitle => 'No internet connection';
+
+  @override
+  String get startupOfflineMessage =>
+      'Make sure Wi-Fi or mobile data is on, then try again.';
+
+  @override
+  String get startupUnreachableTitle => 'Can\'t reach the server';
+
+  @override
+  String get startupUnreachableMessage =>
+      'You\'re connected to a network, but the server can\'t be reached. The network may not have internet access, or the server may be temporarily unavailable.';
+
+  @override
+  String get startupServerErrorTitle => 'The server isn\'t responding';
+
+  @override
+  String get startupServerErrorMessage =>
+      'The problem is on our side, not your connection. Please try again in a moment.';
+
+  @override
+  String get startupRetryButton => 'Try again';
+
+  @override
+  String get startupRetryingButton => 'Trying again…';
+
+  @override
+  String get startupStillOffline =>
+      'Still no connection. Check Wi-Fi or mobile data.';
+
+  @override
+  String get startupStillUnreachable => 'Still can\'t reach the server.';
+
+  @override
+  String get startupStillServerError => 'The server still isn\'t responding.';
+
+  @override
+  String get startupAutoRetryHint =>
+      'We\'ll try again automatically when you\'re back online.';
+
+  @override
+  String get startupSessionKeptHint => 'You\'re still signed in.';
+
+  @override
+  String get savedReplyCategoriesTitle => 'Categories';
+
+  @override
+  String get savedReplyCategoriesHint =>
+      'Drag or use the arrows to set the order replies are grouped in.';
+
+  @override
+  String get savedReplyCategoriesEmpty => 'No categories yet. Add one below.';
+
+  @override
+  String get savedReplyCategoriesLoadFailed => 'Couldn\'t load the categories.';
+
+  @override
+  String get savedReplyCategoryNameHint => 'New category name';
+
+  @override
+  String get savedReplyCategoryNameLabel => 'Category name';
+
+  @override
+  String get savedReplyCategoryAddAction => 'Add';
+
+  @override
+  String get savedReplyCategoryNameRequired => 'Enter a category name.';
+
+  @override
+  String get savedReplyCategoryDuplicate =>
+      'A category with this name already exists.';
+
+  @override
+  String get savedReplyCategoryAdded => 'Category added';
+
+  @override
+  String get savedReplyCategoryRenamed => 'Category renamed';
+
+  @override
+  String get savedReplyCategoryDeleted =>
+      'Category deleted. Its replies are now uncategorized.';
+
+  @override
+  String get savedReplyCategoryOrderFailed => 'Couldn\'t save the new order.';
+
+  @override
+  String get savedReplyCategoryRequestFailed =>
+      'Couldn\'t save the change. Please try again.';
+
+  @override
+  String get savedReplyCategoryNoPermission =>
+      'You don\'t have permission to manage categories.';
+
+  @override
+  String get savedReplyCategoryRenameTitle => 'Rename category';
+
+  @override
+  String get savedReplyCategoryRenameAction => 'Rename';
+
+  @override
+  String get savedReplyCategoryDeleteAction => 'Delete';
+
+  @override
+  String savedReplyCategoryDeleteTitle(String name) {
+    return 'Delete “$name”?';
+  }
+
+  @override
+  String savedReplyCategoryDeleteWithReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Its $count saved replies will move to Uncategorized.',
+      one: 'Its 1 saved reply will move to Uncategorized.',
+    );
+    return '$_temp0 The replies themselves are not deleted.';
+  }
+
+  @override
+  String get savedReplyCategoryDeleteEmpty =>
+      'This category has no saved replies.';
+
+  @override
+  String savedReplyCategoryReplyCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count replies',
+      one: '1 reply',
+      zero: 'No replies',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedReplyCategoryMoveUp => 'Move up';
+
+  @override
+  String get savedReplyCategoryMoveDown => 'Move down';
+
+  @override
+  String get savedReplyCategoryDragHint => 'Drag to reorder';
+
+  @override
+  String get savedReplyNoCategoryOption => 'No category';
+
+  @override
+  String get savedReplySectionEmpty => 'No saved replies in this category yet.';
+
+  @override
+  String get savedReplyMediaNotSupportedOnChannel =>
+      'The text was added, but this channel doesn\'t accept files, so the saved reply\'s file wasn\'t attached.';
+
+  @override
+  String get savedReplyFilePickFailed =>
+      'Couldn\'t open that file. Try another one.';
+
+  @override
+  String get savedReplyAttachmentLabel => 'Attachment (optional)';
+
+  @override
+  String get savedReplyAttachImage => 'Image';
+
+  @override
+  String get savedReplyAttachVideo => 'Video';
+
+  @override
+  String get savedReplyAttachAudio => 'Audio';
+
+  @override
+  String get savedReplyAttachFile => 'File';
+
+  @override
+  String get savedReplyRecordVoice => 'Record';
+
+  @override
+  String get savedReplyAttachmentHint =>
+      'One file per reply: an image, video, audio, document or voice message.';
+
+  @override
+  String get savedReplyAttachmentReplaceHint =>
+      'Choosing another file replaces this one.';
+
+  @override
+  String get savedReplyVoiceMessageLabel => 'Voice message';
+
+  @override
+  String get savedReplyFileUploadFailedReason =>
+      'Check your connection and try again.';
+
+  @override
+  String savedReplyFileNotSaved(String reason) {
+    return 'The reply\'s text was saved, but its file wasn\'t. $reason Tap Save to try the file again.';
+  }
+
+  @override
+  String get savedReplyUploadCancelled =>
+      'Upload cancelled. The reply\'s text was saved; tap Save to upload the file again.';
 }

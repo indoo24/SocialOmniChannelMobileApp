@@ -139,7 +139,17 @@ ProviderContainer _container(_Server server) {
     overrides: [
       apiClientProvider.overrideWithValue(client),
       currentEmployeeProvider.overrideWith((ref) => _employee),
-      channelsProvider.overrideWith((ref) async => const <ChannelConnection>[]),
+      // The one account the fixtures' conversations are on.
+      channelsProvider.overrideWith(
+        (ref) async => [
+          ChannelConnection.fromJson(const {
+            'id': 5,
+            'provider': 'WHATSAPP',
+            'status': 'CONNECTED',
+            'is_active': true,
+          }),
+        ],
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -183,7 +193,7 @@ void main() {
         has('FETCH_START', [
           'endpoint=/conversations/grouped/',
           'requestedPage=2',
-          'query={page: 2}',
+          'query={page: 2, channel_connections: 5}',
         ]),
         isTrue,
       );

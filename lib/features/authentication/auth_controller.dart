@@ -13,16 +13,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/logging/app_log.dart';
 import '../../core/models/employee.dart';
+import '../../core/network/connectivity_monitor.dart';
 import '../../core/providers.dart';
 import '../../core/session/session_epoch.dart';
 import '../../core/session/session_reset.dart';
 
+/// Why a stored session could not be resumed at launch, when the reason says
+/// nothing about the session itself: it is kept, and a retry may succeed.
+enum RestoreIssue {
+  /// No network interface is up: Wi-Fi and mobile data are both off.
+  offline,
+
+  /// A network is up but the server could not be reached in time: no
+  /// internet behind the Wi-Fi, a captive portal, DNS, or the server down.
+  unreachable,
+
+  /// The server answered with a 5xx.
+  serverError,
+}
+
 class AuthState {
-  const AuthState({
-    this.employee,
-    this.isRestoring = false,
-    this.restoreFailedOffline = false,
-  });
+  const AuthState({this.employee, this.isRestoring = false, this.restoreIssue});
 
   final Employee? employee;
 
@@ -30,21 +41,30 @@ class AuthState {
   /// rather than flashing the login screen at an already-signed-in agent.
   final bool isRestoring;
 
-  /// Launch failed because the network was down, not because the session was
-  /// invalid. The UI offers retry instead of forcing a sign-in.
-  final bool restoreFailedOffline;
+  /// Set when launch could not resume the session for a reason a retry may
+  /// fix (see [RestoreIssue]). It stays set while that retry runs, so the
+  /// retry screen stays up instead of the splash.
+  final RestoreIssue? restoreIssue;
+
+  /// Launch failed because the network or server was unavailable, not
+  /// because the session was invalid. The UI offers retry instead of
+  /// forcing a sign-in.
+  bool get restoreFailedOffline => restoreIssue != null;
 
   bool get isAuthenticated => employee != null;
 
   AuthState copyWith({
     Employee? employee,
     bool? isRestoring,
-    bool? restoreFailedOffline,
+    RestoreIssue? restoreIssue,
+    bool clearRestoreIssue = false,
     bool clearEmployee = false,
   }) => AuthState(
     employee: clearEmployee ? null : (employee ?? this.employee),
     isRestoring: isRestoring ?? this.isRestoring,
-    restoreFailedOffline: restoreFailedOffline ?? this.restoreFailedOffline,
+    restoreIssue: clearRestoreIssue
+        ? null
+        : (restoreIssue ?? this.restoreIssue),
   );
 }
 
@@ -88,9 +108,10 @@ class AuthController extends Notifier<AuthState> {
   }
 
   /// Attempt to resume a stored session. Called once at startup (and from
-  /// the offline screen's retry).
+  /// the offline screen's retry, during which [AuthState.restoreIssue] is
+  /// kept so that screen stays up).
   Future<void> restore() => _serialized(() async {
-    state = state.copyWith(isRestoring: true, restoreFailedOffline: false);
+    state = state.copyWith(isRestoring: true);
     try {
       final employee = await ref.read(authRepositoryProvider).restore();
       // A restored session is a new lifecycle: nothing from before it — a
@@ -98,8 +119,14 @@ class AuthController extends Notifier<AuthState> {
       if (employee != null) _epoch.advance();
       state = AuthState(employee: employee, isRestoring: false);
     } on NetworkException catch (error) {
-      _log('restore() -> offline: ${error.message}');
-      state = const AuthState(isRestoring: false, restoreFailedOffline: true);
+      // The request could not get through. Whether any network is up tells
+      // "turn on Wi-Fi or data" apart from "a network, but no way through".
+      final network = await ref.read(connectivityMonitorProvider).hasNetwork();
+      final issue = network == true
+          ? RestoreIssue.unreachable
+          : RestoreIssue.offline;
+      _log('restore() -> ${issue.name} (network: $network): ${error.message}');
+      state = AuthState(isRestoring: false, restoreIssue: issue);
     } on SessionExpiredException {
       // Handled by the repository (cookie cleared); signed out.
       state = const AuthState(isRestoring: false);
@@ -112,7 +139,10 @@ class AuthController extends Notifier<AuthState> {
       // kept and the agent gets the same retry screen as being offline,
       // rather than a Login screen that reads as "you were signed out".
       state = error.statusCode >= 500
-          ? const AuthState(isRestoring: false, restoreFailedOffline: true)
+          ? const AuthState(
+              isRestoring: false,
+              restoreIssue: RestoreIssue.serverError,
+            )
           : const AuthState(isRestoring: false);
     } catch (error) {
       // The persisted cookie store itself failed to load (e.g. a corrupt

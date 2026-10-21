@@ -2307,6 +2307,29 @@ class _ComposerState extends ConsumerState<_Composer> {
       text: result.text,
       selection: TextSelection.collapsed(offset: result.caret),
     );
+
+    // Its file joins the composer as an attachment card: the server copies
+    // it into a draft (nothing is uploaded from the phone), it can be
+    // removed before sending, and Send carries it with the text like any
+    // attached file. Never pasted in as a link.
+    final asset = reply.asset;
+    if (asset == null) return;
+    if (!(conversation?.outboundMedia ?? true)) {
+      // This channel takes no files from an agent: the text is in, the
+      // file is not — and the agent is told so.
+      _showMessage(context.l10n.savedReplyMediaNotSupportedOnChannel);
+      return;
+    }
+    if (_uploads.count >= maxComposerAttachments) {
+      _showMessage(context.l10n.attachmentLimitReached);
+      return;
+    }
+    final repository = ref.read(conversationRepositoryProvider);
+    _uploads.addRemote(
+      preview: asset.toAttachment(),
+      stage: () =>
+          repository.attachmentFromSavedReply(widget.conversationId, reply.id),
+    );
   }
 
   void _onVoiceStaged(StagedAttachment staged) {

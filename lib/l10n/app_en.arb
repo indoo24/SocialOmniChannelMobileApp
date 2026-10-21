@@ -2082,5 +2082,241 @@
   "noReviewsWaitingMessage": "Conversations colleagues ask you to review will appear here.",
   "@noReviewsWaitingMessage": {
     "description": "Need review tab, empty: what will appear here."
+  },
+  "startupOfflineTitle": "No internet connection",
+  "@startupOfflineTitle": {
+    "description": "Launch: no network interface is up."
+  },
+  "startupOfflineMessage": "Make sure Wi-Fi or mobile data is on, then try again.",
+  "@startupOfflineMessage": {
+    "description": "Launch, offline: what to do."
+  },
+  "startupUnreachableTitle": "Can't reach the server",
+  "@startupUnreachableTitle": {
+    "description": "Launch: a network is up but the server could not be reached."
+  },
+  "startupUnreachableMessage": "You're connected to a network, but the server can't be reached. The network may not have internet access, or the server may be temporarily unavailable.",
+  "@startupUnreachableMessage": {
+    "description": "Launch, unreachable: what may be wrong."
+  },
+  "startupServerErrorTitle": "The server isn't responding",
+  "@startupServerErrorTitle": {
+    "description": "Launch: the server answered with an error (5xx)."
+  },
+  "startupServerErrorMessage": "The problem is on our side, not your connection. Please try again in a moment.",
+  "@startupServerErrorMessage": {
+    "description": "Launch, server error: what to do."
+  },
+  "startupRetryButton": "Try again",
+  "@startupRetryButton": {
+    "description": "Launch retry button."
+  },
+  "startupRetryingButton": "Trying again…",
+  "@startupRetryingButton": {
+    "description": "Launch retry button while the retry runs."
+  },
+  "startupStillOffline": "Still no connection. Check Wi-Fi or mobile data.",
+  "@startupStillOffline": {
+    "description": "A requested retry found no network again."
+  },
+  "startupStillUnreachable": "Still can't reach the server.",
+  "@startupStillUnreachable": {
+    "description": "A requested retry could not reach the server again."
+  },
+  "startupStillServerError": "The server still isn't responding.",
+  "@startupStillServerError": {
+    "description": "A requested retry got a server error again."
+  },
+  "startupAutoRetryHint": "We'll try again automatically when you're back online.",
+  "@startupAutoRetryHint": {
+    "description": "Launch, offline: an automatic retry follows the network coming back."
+  },
+  "startupSessionKeptHint": "You're still signed in.",
+  "@startupSessionKeptHint": {
+    "description": "Launch: the stored session was kept."
+  },
+  "savedReplyCategoriesTitle": "Categories",
+  "@savedReplyCategoriesTitle": {
+    "description": "Saved replies settings: the categories panel title."
+  },
+  "savedReplyCategoriesHint": "Drag or use the arrows to set the order replies are grouped in.",
+  "@savedReplyCategoriesHint": {
+    "description": "Categories panel: how the order is set and what it does."
+  },
+  "savedReplyCategoriesEmpty": "No categories yet. Add one below.",
+  "@savedReplyCategoriesEmpty": {
+    "description": "Categories panel: there are none."
+  },
+  "savedReplyCategoriesLoadFailed": "Couldn't load the categories.",
+  "@savedReplyCategoriesLoadFailed": {
+    "description": "Categories panel: the list failed to load."
+  },
+  "savedReplyCategoryNameHint": "New category name",
+  "@savedReplyCategoryNameHint": {
+    "description": "Categories panel: the add field hint."
+  },
+  "savedReplyCategoryNameLabel": "Category name",
+  "@savedReplyCategoryNameLabel": {
+    "description": "Rename dialog: the field label."
+  },
+  "savedReplyCategoryAddAction": "Add",
+  "@savedReplyCategoryAddAction": {
+    "description": "Categories panel: add button."
+  },
+  "savedReplyCategoryNameRequired": "Enter a category name.",
+  "@savedReplyCategoryNameRequired": {
+    "description": "Validation: empty name."
+  },
+  "savedReplyCategoryDuplicate": "A category with this name already exists.",
+  "@savedReplyCategoryDuplicate": {
+    "description": "Validation: the name is taken."
+  },
+  "savedReplyCategoryAdded": "Category added",
+  "@savedReplyCategoryAdded": {
+    "description": "After the server created a category."
+  },
+  "savedReplyCategoryRenamed": "Category renamed",
+  "@savedReplyCategoryRenamed": {
+    "description": "After the server renamed a category."
+  },
+  "savedReplyCategoryDeleted": "Category deleted. Its replies are now uncategorized.",
+  "@savedReplyCategoryDeleted": {
+    "description": "After the server deleted a category."
+  },
+  "savedReplyCategoryOrderFailed": "Couldn't save the new order.",
+  "@savedReplyCategoryOrderFailed": {
+    "description": "A reorder failed; the order shown is the server's."
+  },
+  "savedReplyCategoryRequestFailed": "Couldn't save the change. Please try again.",
+  "@savedReplyCategoryRequestFailed": {
+    "description": "A category change failed for a network or server reason."
+  },
+  "savedReplyCategoryNoPermission": "You don't have permission to manage categories.",
+  "@savedReplyCategoryNoPermission": {
+    "description": "The server refused a category change (403)."
+  },
+  "savedReplyCategoryRenameTitle": "Rename category",
+  "@savedReplyCategoryRenameTitle": {
+    "description": "Rename dialog title."
+  },
+  "savedReplyCategoryRenameAction": "Rename",
+  "@savedReplyCategoryRenameAction": {
+    "description": "Category row: rename button tooltip."
+  },
+  "savedReplyCategoryDeleteAction": "Delete",
+  "@savedReplyCategoryDeleteAction": {
+    "description": "Category row: delete button tooltip and confirm."
+  },
+  "savedReplyCategoryDeleteTitle": "Delete “{name}”?",
+  "@savedReplyCategoryDeleteTitle": {
+    "description": "Delete confirmation title.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "savedReplyCategoryDeleteWithReplies": "{count, plural, =1{Its 1 saved reply will move to Uncategorized.} other{Its {count} saved replies will move to Uncategorized.}} The replies themselves are not deleted.",
+  "@savedReplyCategoryDeleteWithReplies": {
+    "description": "Delete confirmation: what happens to its replies.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "savedReplyCategoryDeleteEmpty": "This category has no saved replies.",
+  "@savedReplyCategoryDeleteEmpty": {
+    "description": "Delete confirmation for an empty category."
+  },
+  "savedReplyCategoryReplyCount": "{count, plural, =0{No replies} =1{1 reply} other{{count} replies}}",
+  "@savedReplyCategoryReplyCount": {
+    "description": "Category row: how many replies it holds.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "savedReplyCategoryMoveUp": "Move up",
+  "@savedReplyCategoryMoveUp": {
+    "description": "Category row: move up."
+  },
+  "savedReplyCategoryMoveDown": "Move down",
+  "@savedReplyCategoryMoveDown": {
+    "description": "Category row: move down."
+  },
+  "savedReplyCategoryDragHint": "Drag to reorder",
+  "@savedReplyCategoryDragHint": {
+    "description": "Category row: drag handle label."
+  },
+  "savedReplyNoCategoryOption": "No category",
+  "@savedReplyNoCategoryOption": {
+    "description": "Reply form: the category choice for none."
+  },
+  "savedReplySectionEmpty": "No saved replies in this category yet.",
+  "@savedReplySectionEmpty": {
+    "description": "Saved replies list: a category with none of your replies."
+  },
+  "savedReplyMediaNotSupportedOnChannel": "The text was added, but this channel doesn't accept files, so the saved reply's file wasn't attached.",
+  "@savedReplyMediaNotSupportedOnChannel": {
+    "description": "Composer: a saved reply with a file, on a channel that takes no files from agents."
+  },
+  "savedReplyFilePickFailed": "Couldn't open that file. Try another one.",
+  "@savedReplyFilePickFailed": {
+    "description": "Saved reply form: a picked file could not be read."
+  },
+  "savedReplyAttachmentLabel": "Attachment (optional)",
+  "@savedReplyAttachmentLabel": {
+    "description": "Saved reply form: attachment section label."
+  },
+  "savedReplyAttachImage": "Image",
+  "@savedReplyAttachImage": {
+    "description": "Saved reply form: pick an image."
+  },
+  "savedReplyAttachVideo": "Video",
+  "@savedReplyAttachVideo": {
+    "description": "Saved reply form: pick a video."
+  },
+  "savedReplyAttachAudio": "Audio",
+  "@savedReplyAttachAudio": {
+    "description": "Saved reply form: pick an audio file."
+  },
+  "savedReplyAttachFile": "File",
+  "@savedReplyAttachFile": {
+    "description": "Saved reply form: pick any file."
+  },
+  "savedReplyRecordVoice": "Record",
+  "@savedReplyRecordVoice": {
+    "description": "Saved reply form: record a voice message."
+  },
+  "savedReplyAttachmentHint": "One file per reply: an image, video, audio, document or voice message.",
+  "@savedReplyAttachmentHint": {
+    "description": "Saved reply form: what can be attached."
+  },
+  "savedReplyAttachmentReplaceHint": "Choosing another file replaces this one.",
+  "@savedReplyAttachmentReplaceHint": {
+    "description": "Saved reply form: one file per reply."
+  },
+  "savedReplyVoiceMessageLabel": "Voice message",
+  "@savedReplyVoiceMessageLabel": {
+    "description": "A recorded voice message attached to a saved reply."
+  },
+  "savedReplyFileUploadFailedReason": "Check your connection and try again.",
+  "@savedReplyFileUploadFailedReason": {
+    "description": "Why the file upload failed: network or server."
+  },
+  "savedReplyFileNotSaved": "The reply's text was saved, but its file wasn't. {reason} Tap Save to try the file again.",
+  "@savedReplyFileNotSaved": {
+    "description": "Saved reply form: the text saved, the file did not.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "savedReplyUploadCancelled": "Upload cancelled. The reply's text was saved; tap Save to upload the file again.",
+  "@savedReplyUploadCancelled": {
+    "description": "Saved reply form: the file upload was cancelled."
   }
 }

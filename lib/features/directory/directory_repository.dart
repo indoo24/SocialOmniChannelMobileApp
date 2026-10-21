@@ -205,20 +205,29 @@ class DirectoryRepository {
     return Paginated.fromJson(data, Conversation.fromJson);
   }
 
-  Future<Paginated<ChannelConnection>> channels() async {
+  Future<Paginated<ChannelConnection>> channels({int page = 1}) async {
     try {
       final data = await _api.get<Map<String, dynamic>>(
         '/channels/',
-        query: {'page_size': 50},
+        query: {'page_size': 50, if (page > 1) 'page': page},
       );
       return Paginated.fromJson(data, ChannelConnection.fromJson);
     } on ApiException catch (e) {
       if (e.statusCode == 403) {
-        final data = await _api.get<Map<String, dynamic>>(
+        final data = await _api.get<dynamic>(
           '/conversations/channels/',
-          query: {'page_size': 50},
+          query: {'page_size': 50, if (page > 1) 'page': page},
         );
-        return Paginated.fromJson(data, ChannelConnection.fromJson);
+        // The live server answers with a bare array of every account, not
+        // the page `API.md` describes; either is read.
+        if (data is List) {
+          final results = JsonSafe.parseList(data, ChannelConnection.fromJson);
+          return Paginated(results: results, count: results.length);
+        }
+        return Paginated.fromJson(
+          JsonSafe.asMap(data),
+          ChannelConnection.fromJson,
+        );
       }
       rethrow;
     }

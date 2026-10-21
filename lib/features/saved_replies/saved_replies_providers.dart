@@ -8,11 +8,14 @@
 /// derived client-side from the same list.
 library;
 
+import 'package:dio/dio.dart'
+    show CancelToken, DioMediaType, FormData, MultipartFile, ProgressCallback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/models/conversation.dart';
 import '../../core/providers.dart';
+import '../../core/utils/json_safe.dart';
 import 'saved_reply.dart';
 
 class SavedRepliesRepository {
@@ -46,12 +49,14 @@ class SavedRepliesRepository {
   /// scope exists server-side but the mobile form does not offer it, matching
   /// the web Settings screen's own Add dialog. `scope` and `teamId` are
   /// write-once: the server does not accept them on update.
+  ///
+  /// [categoryId] places it in that `SavedReplyCategory`; none when null.
   Future<SavedReply> create({
     required String title,
     required String body,
     required String scope,
     String shortcut = '',
-    String category = '',
+    int? categoryId,
   }) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/saved-replies/',
@@ -60,7 +65,7 @@ class SavedRepliesRepository {
         'body': body,
         'scope': scope,
         if (shortcut.isNotEmpty) 'shortcut': shortcut,
-        if (category.isNotEmpty) 'category': category,
+        'category_id': ?categoryId,
       },
     );
     return SavedReply.fromJson(data);
@@ -68,12 +73,18 @@ class SavedRepliesRepository {
 
   /// `PATCH /saved-replies/{id}/`. Scope is immutable after creation, so it is
   /// never sent here.
+  ///
+  /// The category is sent only with [changeCategory]: then [categoryId]
+  /// moves the reply there, or out of every category when null. Otherwise
+  /// it is left as the server has it — a reply whose category is only a
+  /// name keeps it.
   Future<SavedReply> update(
     int id, {
     required String title,
     required String body,
     String shortcut = '',
-    String category = '',
+    bool changeCategory = false,
+    int? categoryId,
   }) async {
     final data = await _api.patch<Map<String, dynamic>>(
       '/saved-replies/$id/',
@@ -81,10 +92,122 @@ class SavedRepliesRepository {
         'title': title,
         'body': body,
         'shortcut': shortcut,
-        'category': category,
+        if (changeCategory) 'category_id': categoryId,
       },
     );
     return SavedReply.fromJson(data);
+  }
+
+  // -- the reply's file -----------------------------------------------------
+
+  /// `POST /saved-reply-assets/` (multipart): [filePath] becomes the file of
+  /// reply [savedReplyId], replacing any it had. Streamed from disk through
+  /// [ApiClient.upload] — progress, cancel, a stall timeout. [isVoice] and
+  /// [durationMs] mark a recorded voice message. Answers with the reply.
+  Future<SavedReply> uploadAsset(
+    int savedReplyId, {
+    required String filePath,
+    required String fileName,
+    String? mimeType,
+    bool isVoice = false,
+    int? durationMs,
+    ProgressCallback? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final form = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        filePath,
+        filename: fileName,
+        contentType: mimeType == null || mimeType.isEmpty
+            ? null
+            : DioMediaType.parse(mimeType),
+      ),
+      'saved_reply_id': savedReplyId.toString(),
+      if (isVoice) 'is_voice': 'true',
+      if (durationMs != null) 'duration_ms': durationMs.toString(),
+    });
+    final data = await _api.upload<Map<String, dynamic>>(
+      '/saved-reply-assets/',
+      body: form,
+      onSendProgress: onSendProgress,
+      cancelToken: cancelToken,
+    );
+    return SavedReply.fromJson(data);
+  }
+
+  /// `DELETE /saved-reply-assets/{id}/` — the reply keeps its text and loses
+  /// its file (messages already sent keep theirs). Answers with the reply.
+  Future<SavedReply> removeAsset(int assetId) async {
+    final data = await _api.delete<Map<String, dynamic>>(
+      '/saved-reply-assets/$assetId/',
+    );
+    return SavedReply.fromJson(data);
+  }
+
+  // -- categories -------------------------------------------------------------
+
+  /// `GET /saved-reply-categories/`, in their saved order ([position]).
+  Future<List<SavedReplyCategory>> categories() async {
+    final data = await _api.get<dynamic>(
+      '/saved-reply-categories/',
+      query: {'page_size': 100},
+    );
+    return _categoriesFrom(data);
+  }
+
+  /// `POST /saved-reply-categories/` `{name}`. Needs `saved_reply.manage`.
+  Future<SavedReplyCategory> createCategory(String name) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/saved-reply-categories/',
+      body: {'name': name},
+    );
+    return SavedReplyCategory.fromJson(data);
+  }
+
+  /// `PATCH /saved-reply-categories/{id}/` `{name}`.
+  Future<SavedReplyCategory> renameCategory(int id, String name) async {
+    final data = await _api.patch<Map<String, dynamic>>(
+      '/saved-reply-categories/$id/',
+      body: {'name': name},
+    );
+    return SavedReplyCategory.fromJson(data);
+  }
+
+  /// `DELETE /saved-reply-categories/{id}/` → 204. Its replies are kept and
+  /// become uncategorized.
+  Future<void> deleteCategory(int id) =>
+      _api.delete<dynamic>('/saved-reply-categories/$id/');
+
+  /// `POST /saved-reply-categories/reorder/` `{ids}` — every category, in
+  /// the new order. Answers with the categories as saved.
+  Future<List<SavedReplyCategory>> reorderCategories(List<int> ids) async {
+    final data = await _api.post<dynamic>(
+      '/saved-reply-categories/reorder/',
+      body: {'ids': ids},
+    );
+    return _categoriesFrom(data);
+  }
+
+  /// Categories from either shape the server answers with: a plain array
+  /// (what `reorder/` sends, though the schema documents a page) or the
+  /// paginated envelope's `results`. In their saved order.
+  static List<SavedReplyCategory> _categoriesFrom(Object? data) => _inOrder(
+    data is Map
+        ? Paginated<SavedReplyCategory>.fromJson(
+            JsonSafe.asMap(data),
+            SavedReplyCategory.fromJson,
+          ).results
+        : JsonSafe.parseList(data, SavedReplyCategory.fromJson),
+  );
+
+  /// By [SavedReplyCategory.position]; the server's order breaks ties.
+  static List<SavedReplyCategory> _inOrder(List<SavedReplyCategory> list) {
+    final indexed = list.indexed.toList()
+      ..sort((a, b) {
+        final byPosition = a.$2.position.compareTo(b.$2.position);
+        return byPosition != 0 ? byPosition : a.$1.compareTo(b.$1);
+      });
+    return [for (final (_, c) in indexed) c];
   }
 
   /// `DELETE /saved-replies/{id}/` — deactivates rather than deletes and
@@ -109,3 +232,90 @@ final savedRepliesProvider = FutureProvider.autoDispose
 final manageableSavedRepliesProvider = FutureProvider<List<SavedReply>>((ref) {
   return ref.watch(savedRepliesRepositoryProvider).manageable();
 });
+
+/// The saved-reply categories in their saved order, and the changes to them.
+///
+/// Every change waits for the server and shows its answer, except a reorder,
+/// which shows the new order at once and, if the server refuses it, shows
+/// the order the server actually has (re-read; the previous one if even
+/// that fails). One reorder at a time: a second while one is saving is
+/// refused rather than raced.
+class SavedReplyCategoriesController
+    extends AsyncNotifier<List<SavedReplyCategory>> {
+  @override
+  Future<List<SavedReplyCategory>> build() =>
+      ref.watch(savedRepliesRepositoryProvider).categories();
+
+  SavedRepliesRepository get _repository =>
+      ref.read(savedRepliesRepositoryProvider);
+
+  List<SavedReplyCategory> get _current => state.value ?? const [];
+
+  bool _reordering = false;
+
+  /// A reorder is being saved.
+  bool get isReordering => _reordering;
+
+  Future<SavedReplyCategory> create(String name) async {
+    final created = await _repository.createCategory(name);
+    state = AsyncData([
+      for (final c in _current)
+        if (c.id != created.id) c,
+      created,
+    ]);
+    return created;
+  }
+
+  Future<void> rename(int id, String name) async {
+    final renamed = await _repository.renameCategory(id, name);
+    state = AsyncData([for (final c in _current) c.id == id ? renamed : c]);
+    // Replies carry their category's name.
+    _refreshReplies();
+  }
+
+  /// Deletes the category; its replies become uncategorized, never deleted.
+  Future<void> delete(int id) async {
+    await _repository.deleteCategory(id);
+    state = AsyncData([
+      for (final c in _current)
+        if (c.id != id) c,
+    ]);
+    _refreshReplies();
+  }
+
+  /// Saves [ids] — every category, in the new order. Resolves to false
+  /// without sending anything when a reorder is already being saved.
+  Future<bool> reorder(List<int> ids) async {
+    if (_reordering) return false;
+    final previous = _current;
+    final byId = {for (final c in previous) c.id: c};
+    _reordering = true;
+    state = AsyncData([for (final id in ids) ?byId[id]]);
+    try {
+      state = AsyncData(await _repository.reorderCategories(ids));
+      // Replies carry their category's position, which orders the composer.
+      _refreshReplies();
+      return true;
+    } catch (_) {
+      try {
+        state = AsyncData(await _repository.categories());
+      } catch (_) {
+        state = AsyncData(previous);
+      }
+      rethrow;
+    } finally {
+      _reordering = false;
+    }
+  }
+
+  void _refreshReplies() {
+    ref.invalidate(manageableSavedRepliesProvider);
+    ref.invalidate(savedRepliesProvider);
+  }
+}
+
+final savedReplyCategoriesProvider =
+    AsyncNotifierProvider<
+      SavedReplyCategoriesController,
+      List<SavedReplyCategory>
+    >(SavedReplyCategoriesController.new);

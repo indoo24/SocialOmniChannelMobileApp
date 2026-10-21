@@ -434,6 +434,9 @@ void main() {
       await _scrollToAndTapSave(tester);
 
       expect(find.text('That shortcut is already used.'), findsOneWidget);
+      // The sheet is still open: back at its top, its title is there too.
+      await tester.drag(_sheetScrollable(), const Offset(0, 2000));
+      await tester.pumpAndSettle();
       expect(find.text('New saved reply'), findsNWidgets(2));
     });
   });

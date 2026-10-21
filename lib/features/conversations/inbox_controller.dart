@@ -85,16 +85,57 @@ List<int>? computeAllowedChannelConnections(
   return allowedIds..sort();
 }
 
-/// The primary quick filters permanently visible in the Inbox header: the
-/// web's five (`jn = ["all", "mine", "unassigned", "unread", "open"]`) plus
-/// mobile's Need review and Resolved, in the order shown.
+/// The accounts whose conversations the inbox may show: those the account
+/// list still lists, active and not `DISCONNECTED` (its credential destroyed —
+/// `POST …/disconnect/`). A degraded, failing or pending account stays in:
+/// that is a passing problem, not a disconnection. Muted accounts are left
+/// out, as the server leaves them out by default.
+///
+/// An allow-list, not a list of exclusions: a removed account is archived,
+/// and an archived account is missing from the account list altogether (and
+/// a 404 on `/channels/{id}/`) while the server keeps its conversations — and,
+/// by default, still lists them in the inbox. Only naming the accounts that
+/// remain, as `channel_connections`, keeps those out.
+///
+/// Null — no narrowing, the server's own default — when the list is unknown.
+/// An empty list means none is eligible.
+List<int>? eligibleInboxAccounts(List<ChannelConnection>? channels) {
+  if (channels == null) return null;
+  return [
+    for (final c in channels)
+      if (c.isActive && c.status.toUpperCase() != 'DISCONNECTED' && !c.isMuted)
+        c.id,
+  ]..sort();
+}
+
+/// [filters] for a request, limited to [accounts] unless the agent already
+/// picked accounts (a pick only ever names connected ones).
+ConversationFilters scopeToEligibleAccounts(
+  ConversationFilters filters,
+  List<int>? accounts,
+) => filters.channelConnections != null || accounts == null
+    ? filters
+    : filters.copyWith(channelConnections: accounts);
+
+bool _sameIds(List<int>? a, List<int>? b) {
+  if (a == null || b == null) return a == b;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+/// The primary quick filters permanently visible in the Inbox header, in the
+/// order shown: All, Mine, Need review, Unread, Resolved, then Unassigned and
+/// Open. Each is identified by its value, never its position.
 enum InboxQuickFilter {
   all,
   mine,
   needsReview,
+  unread,
   resolved,
   unassigned,
-  unread,
   open,
 }
 
@@ -263,9 +304,15 @@ class InboxState {
 }
 
 class InboxController extends AsyncNotifier<InboxState> {
-  /// The filters the loaded list was fetched with. Every batch request uses
-  /// these, never whatever the filter bar says at that moment.
+  /// The filters the loaded list was fetched with — the agent's, limited to
+  /// the eligible accounts ([eligibleInboxAccounts]). Every batch request
+  /// uses these, never whatever the filter bar says at that moment.
   ConversationFilters _listFilters = const ConversationFilters();
+
+  /// Reloads from the top in progress. A head refresh waits them out: it
+  /// could otherwise fold rows fetched for the previous account scope into
+  /// the list that replaces it.
+  int _reloads = 0;
 
   /// Identifies the list the agent is looking at. Bumped whenever it is
   /// replaced from the top — new filters or search, pull to refresh, a reload.
@@ -303,7 +350,7 @@ class InboxController extends AsyncNotifier<InboxState> {
     final filters = ref.watch(inboxFiltersProvider);
     // Whatever was loading for the previous list is dropped when it lands;
     // this build is the list now.
-    _epoch++;
+    final epoch = ++_epoch;
 
     // When channels change (disconnected, removed, reconnected), drop a
     // selected-account filter that points at a channel that is no longer
@@ -346,7 +393,23 @@ class InboxController extends AsyncNotifier<InboxState> {
                     clearChannelConnections: allowed == null,
                   ),
                 );
+            return;
           }
+        }
+      }
+      // An account was disconnected (or reconnected) — here or on another
+      // device, seen the next time the account list is read. The loaded
+      // list was fetched for the old set: reload it for the new one.
+      if (current != null &&
+          channels != null &&
+          _reloads == 0 &&
+          !state.isLoading) {
+        final wanted = scopeToEligibleAccounts(
+          ref.read(inboxFiltersProvider),
+          eligibleInboxAccounts(channels),
+        ).channelConnections;
+        if (!_sameIds(wanted, _listFilters.channelConnections)) {
+          _resetQuietly();
         }
       }
     });
@@ -359,7 +422,24 @@ class InboxController extends AsyncNotifier<InboxState> {
       reason: _hasBuilt ? 'filter_change' : 'initial_load',
     );
     _hasBuilt = true;
-    return _firstBatch(filters, navigation: ++_navigation);
+    final first = await _firstBatch(filters, navigation: ++_navigation);
+    if (epoch == _epoch) _listFilters = first.filters;
+    return first.state;
+  }
+
+  /// The eligible accounts ([eligibleInboxAccounts]) from the account list,
+  /// read fresh when it was just invalidated. Null — no narrowing — if the
+  /// list cannot be read in time; the channel listener catches up when it
+  /// arrives.
+  Future<List<int>?> _eligibleAccounts() async {
+    try {
+      final channels = await ref
+          .read(channelsProvider.future)
+          .timeout(const Duration(seconds: 5));
+      return eligibleInboxAccounts(channels);
+    } catch (_) {
+      return null;
+    }
   }
 
   // -- requests -------------------------------------------------------------
@@ -421,25 +501,31 @@ class InboxController extends AsyncNotifier<InboxState> {
   /// After this many such batches the list is taken to have ended.
   static const _maxBarrenBatches = 3;
 
-  /// The first batch of [filters] as a whole list.
-  Future<InboxState> _firstBatch(
+  /// The first batch of [filters] — limited to the eligible accounts — as a
+  /// whole list, with the filters it was fetched with, which every later
+  /// batch of that list uses.
+  Future<({InboxState state, ConversationFilters filters})> _firstBatch(
     ConversationFilters filters, {
     required int navigation,
   }) async {
     _barrenBatches = 0;
     final pinSeq = _pinSeq;
-    final result = await _request(filters, 1);
+    final scoped = scopeToEligibleAccounts(filters, await _eligibleAccounts());
+    final result = await _request(scoped, 1);
     final page = _pageOf(result, 1);
-    return InboxState(
-      groups: _withConfirmedPins(
-        appendDeduped(const [], result.results).groups,
-        pinSeq,
+    return (
+      state: InboxState(
+        groups: _withConfirmedPins(
+          appendDeduped(const [], result.results).groups,
+          pinSeq,
+        ),
+        page: page,
+        totalPages: _totalPages(result, page),
+        total: result.count,
+        hasMore: result.hasMore,
+        navigation: navigation,
       ),
-      page: page,
-      totalPages: _totalPages(result, page),
-      total: result.count,
-      hasMore: result.hasMore,
-      navigation: navigation,
+      filters: scoped,
     );
   }
 
@@ -597,17 +683,20 @@ class InboxController extends AsyncNotifier<InboxState> {
   Future<void> refresh() async {
     _pagelog.refresh(currentPage: 1, reason: 'pull_to_refresh');
     final epoch = ++_epoch;
+    _reloads++;
     try {
       ref.invalidate(channelsProvider);
       ref.invalidate(conversationCountsProvider);
       final filters = ref.read(inboxFiltersProvider);
       final fresh = await _firstBatch(filters, navigation: ++_navigation);
       if (!ref.mounted || epoch != _epoch) return;
-      _listFilters = filters;
-      state = AsyncData(fresh);
+      _listFilters = fresh.filters;
+      state = AsyncData(fresh.state);
     } on ApiException catch (error, stack) {
       if (!ref.mounted || epoch != _epoch) return;
       state = AsyncError(error, stack);
+    } finally {
+      _reloads--;
     }
   }
 
@@ -648,12 +737,13 @@ class InboxController extends AsyncNotifier<InboxState> {
   Future<void> _resetQuietly() async {
     _pagelog.refresh(currentPage: 1, reason: 'reset');
     final epoch = ++_epoch;
+    _reloads++;
     try {
       final filters = ref.read(inboxFiltersProvider);
       final fresh = await _firstBatch(filters, navigation: ++_navigation);
       if (!ref.mounted || epoch != _epoch) return;
-      _listFilters = filters;
-      state = AsyncData(fresh);
+      _listFilters = fresh.filters;
+      state = AsyncData(fresh.state);
     } on ApiException {
       // Leave the list on screen as it is. A batch that was loading for it
       // was dropped when this reset began, so it is no longer loading.
@@ -664,6 +754,8 @@ class InboxController extends AsyncNotifier<InboxState> {
           current.isLoadingMore) {
         state = AsyncData(current.copyWith(isLoadingMore: false));
       }
+    } finally {
+      _reloads--;
     }
   }
 
@@ -706,7 +798,9 @@ class InboxController extends AsyncNotifier<InboxState> {
   /// to the top. How deep the list is loaded ([InboxState.page]) is kept.
   Future<void> _refreshHead() async {
     final before = state.value;
-    if (before == null || state.isLoading) return;
+    // A reload brings the top of the list itself, for the current account
+    // scope; a head fetched alongside could carry the previous one's rows.
+    if (before == null || state.isLoading || _reloads > 0) return;
     _pagelog.refresh(currentPage: 1, reason: 'realtime');
 
     final epoch = _epoch;
@@ -833,9 +927,12 @@ class InboxController extends AsyncNotifier<InboxState> {
   }
 
   /// Shows the review the server confirmed for [conversationId] (null: none)
-  /// on that thread, wherever it is loaded — so a completed, withdrawn or
-  /// retargeted review leaves the Need review tab at once. Only that thread's
-  /// review changes.
+  /// on that thread, wherever it is loaded. Only that thread's review
+  /// changes.
+  ///
+  /// The Need review list is the server's (`review=mine`), so a review that
+  /// changed there — completed, withdrawn, retargeted — reloads it from the
+  /// top rather than being judged here: the server decides what it holds.
   void applyReview(int conversationId, ConversationReview? review) {
     final current = state.value;
     if (current == null) return;
@@ -855,6 +952,7 @@ class InboxController extends AsyncNotifier<InboxState> {
     ];
     if (!changed) return;
     state = AsyncData(current.copyWith(groups: updated));
+    if (_listFilters.needsMyReview) _resetQuietly();
   }
 
   /// [groups] with every pin confirmed after [sinceSeq] applied to its
@@ -929,12 +1027,25 @@ class InboxController extends AsyncNotifier<InboxState> {
 final inboxControllerProvider =
     AsyncNotifierProvider<InboxController, InboxState>(InboxController.new);
 
-final conversationCountsProvider = FutureProvider<Map<String, int>>((ref) {
+final conversationCountsProvider = FutureProvider<Map<String, int>>((
+  ref,
+) async {
   final filters = ref.watch(inboxFiltersProvider);
+  // The badges count what the list shows, so they are limited to the same
+  // eligible accounts ([eligibleInboxAccounts]).
+  List<int>? accounts;
+  try {
+    accounts = eligibleInboxAccounts(await ref.watch(channelsProvider.future));
+  } catch (_) {
+    accounts = null;
+  }
   return ref
       .watch(conversationRepositoryProvider)
       .counts(
-        channelConnections: filters.channelConnections,
+        channelConnections: scopeToEligibleAccounts(
+          filters,
+          accounts,
+        ).channelConnections,
         currentEmployeeId: ref.watch(currentEmployeeProvider)?.id,
       );
 });

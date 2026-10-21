@@ -3616,4 +3616,207 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get noReviewsWaitingMessage =>
       'ستظهر هنا المحادثات التي يطلب منك زملاؤك مراجعتها.';
+
+  @override
+  String get startupOfflineTitle => 'مفيش اتصال بالإنترنت';
+
+  @override
+  String get startupOfflineMessage =>
+      'اتأكد إن الواي فاي أو بيانات الهاتف شغالة، وبعدها حاول تاني.';
+
+  @override
+  String get startupUnreachableTitle => 'مش قادرين نوصل للسيرفر';
+
+  @override
+  String get startupUnreachableMessage =>
+      'الجهاز متصل بشبكة، بس مش قادرين نوصل للسيرفر. ممكن الشبكة مفيهاش إنترنت، أو السيرفر مش متاح مؤقتًا.';
+
+  @override
+  String get startupServerErrorTitle => 'السيرفر مش بيرد دلوقتي';
+
+  @override
+  String get startupServerErrorMessage =>
+      'المشكلة عندنا، مش في الاتصال عندك. حاول تاني بعد شوية.';
+
+  @override
+  String get startupRetryButton => 'إعادة المحاولة';
+
+  @override
+  String get startupRetryingButton => 'جاري المحاولة…';
+
+  @override
+  String get startupStillOffline =>
+      'لسه مفيش اتصال. اتأكد من الواي فاي أو بيانات الهاتف.';
+
+  @override
+  String get startupStillUnreachable => 'لسه مش قادرين نوصل للسيرفر.';
+
+  @override
+  String get startupStillServerError => 'السيرفر لسه مش بيرد.';
+
+  @override
+  String get startupAutoRetryHint =>
+      'هنحاول تاني تلقائيًا أول ما الاتصال يرجع.';
+
+  @override
+  String get startupSessionKeptHint => 'لسه مسجّل دخولك.';
+
+  @override
+  String get savedReplyCategoriesTitle => 'الفئات';
+
+  @override
+  String get savedReplyCategoriesHint =>
+      'اسحب أو استخدم الأسهم لترتيب الفئات، والردود بتظهر بنفس الترتيب.';
+
+  @override
+  String get savedReplyCategoriesEmpty =>
+      'لا توجد فئات بعد. أضف فئة من الأسفل.';
+
+  @override
+  String get savedReplyCategoriesLoadFailed => 'تعذّر تحميل الفئات.';
+
+  @override
+  String get savedReplyCategoryNameHint => 'اسم فئة جديدة';
+
+  @override
+  String get savedReplyCategoryNameLabel => 'اسم الفئة';
+
+  @override
+  String get savedReplyCategoryAddAction => 'إضافة';
+
+  @override
+  String get savedReplyCategoryNameRequired => 'اكتب اسم الفئة.';
+
+  @override
+  String get savedReplyCategoryDuplicate => 'توجد فئة بهذا الاسم بالفعل.';
+
+  @override
+  String get savedReplyCategoryAdded => 'تمت إضافة الفئة';
+
+  @override
+  String get savedReplyCategoryRenamed => 'تمت إعادة تسمية الفئة';
+
+  @override
+  String get savedReplyCategoryDeleted =>
+      'تم حذف الفئة، وأصبحت ردودها بدون تصنيف.';
+
+  @override
+  String get savedReplyCategoryOrderFailed => 'تعذّر حفظ الترتيب الجديد.';
+
+  @override
+  String get savedReplyCategoryRequestFailed =>
+      'تعذّر حفظ التغيير. حاول مرة أخرى.';
+
+  @override
+  String get savedReplyCategoryNoPermission =>
+      'ليست لديك صلاحية لإدارة الفئات.';
+
+  @override
+  String get savedReplyCategoryRenameTitle => 'إعادة تسمية الفئة';
+
+  @override
+  String get savedReplyCategoryRenameAction => 'إعادة تسمية';
+
+  @override
+  String get savedReplyCategoryDeleteAction => 'حذف';
+
+  @override
+  String savedReplyCategoryDeleteTitle(String name) {
+    return 'حذف «$name»؟';
+  }
+
+  @override
+  String savedReplyCategoryDeleteWithReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'الـ $count رد المحفوظين فيها هيتنقلوا لـ «بدون تصنيف».',
+      few: 'الـ $count ردود المحفوظة فيها هيتنقلوا لـ «بدون تصنيف».',
+      two: 'الردّين المحفوظين فيها هيتنقلوا لـ «بدون تصنيف».',
+      one: 'الرد المحفوظ الوحيد فيها هيتنقل لـ «بدون تصنيف».',
+    );
+    return '$_temp0 الردود نفسها مش هتتحذف.';
+  }
+
+  @override
+  String get savedReplyCategoryDeleteEmpty =>
+      'لا توجد ردود محفوظة في هذه الفئة.';
+
+  @override
+  String savedReplyCategoryReplyCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رد',
+      few: '$count ردود',
+      two: 'ردّان',
+      one: 'رد واحد',
+      zero: 'لا توجد ردود',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedReplyCategoryMoveUp => 'تحريك لأعلى';
+
+  @override
+  String get savedReplyCategoryMoveDown => 'تحريك لأسفل';
+
+  @override
+  String get savedReplyCategoryDragHint => 'اسحب لإعادة الترتيب';
+
+  @override
+  String get savedReplyNoCategoryOption => 'بدون فئة';
+
+  @override
+  String get savedReplySectionEmpty => 'لا توجد ردود محفوظة في هذه الفئة بعد.';
+
+  @override
+  String get savedReplyMediaNotSupportedOnChannel =>
+      'تمت إضافة النص، لكن هذه القناة لا تقبل الملفات، لذلك لم يُرفق ملف الرد المحفوظ.';
+
+  @override
+  String get savedReplyFilePickFailed => 'تعذّر فتح هذا الملف. جرّب ملفًا آخر.';
+
+  @override
+  String get savedReplyAttachmentLabel => 'مرفق (اختياري)';
+
+  @override
+  String get savedReplyAttachImage => 'صورة';
+
+  @override
+  String get savedReplyAttachVideo => 'فيديو';
+
+  @override
+  String get savedReplyAttachAudio => 'صوت';
+
+  @override
+  String get savedReplyAttachFile => 'ملف';
+
+  @override
+  String get savedReplyRecordVoice => 'تسجيل';
+
+  @override
+  String get savedReplyAttachmentHint =>
+      'ملف واحد لكل رد: صورة أو فيديو أو صوت أو مستند أو رسالة صوتية.';
+
+  @override
+  String get savedReplyAttachmentReplaceHint =>
+      'اختيار ملف آخر سيستبدل هذا الملف.';
+
+  @override
+  String get savedReplyVoiceMessageLabel => 'رسالة صوتية';
+
+  @override
+  String get savedReplyFileUploadFailedReason =>
+      'تحقّق من الاتصال وحاول مرة أخرى.';
+
+  @override
+  String savedReplyFileNotSaved(String reason) {
+    return 'تم حفظ نص الرد، لكن لم يتم حفظ الملف. $reason اضغط حفظ لإعادة محاولة رفع الملف.';
+  }
+
+  @override
+  String get savedReplyUploadCancelled =>
+      'تم إلغاء الرفع. تم حفظ نص الرد؛ اضغط حفظ لرفع الملف مرة أخرى.';
 }
