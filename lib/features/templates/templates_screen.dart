@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/directory.dart';
 import '../../core/models/employee.dart';
 import '../../core/models/template.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/section_scaffold.dart';
@@ -30,7 +31,6 @@ class TemplatesScreen extends ConsumerWidget {
     final employee = ref.watch(currentEmployeeProvider);
     final canManage = employee?.can(Perm.channelManage) ?? false;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return SectionScaffold(
       title: context.l10n.templatesTitle,
@@ -72,9 +72,7 @@ class TemplatesScreen extends ConsumerWidget {
               Text(
                 context.l10n.templatesSubtitle,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: isDark
-                      ? ScenarioColors.darkMutedForeground
-                      : ScenarioColors.mutedForeground,
+                  color: AppColors.of(context).mutedForeground,
                 ),
               ),
               const SizedBox(height: Space.lg),
@@ -133,16 +131,13 @@ class _WabaSelectorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(Space.md),
       decoration: BoxDecoration(
-        color: isDark ? ScenarioColors.darkCard : ScenarioColors.card,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(Radii.lg),
-        border: Border.all(
-          color: isDark ? ScenarioColors.darkBorder : ScenarioColors.border,
-        ),
+        border: Border.all(color: AppColors.of(context).border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,9 +145,7 @@ class _WabaSelectorCard extends StatelessWidget {
           Text(
             context.l10n.wabaAccountLabel,
             style: theme.textTheme.labelMedium?.copyWith(
-              color: isDark
-                  ? ScenarioColors.darkMutedForeground
-                  : ScenarioColors.mutedForeground,
+              color: AppColors.of(context).mutedForeground,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -199,7 +192,6 @@ class _TemplatesSubheader extends ConsumerWidget {
     final templatesAsync = ref.watch(templatesForChannelProvider(channelId));
     final count = templatesAsync.value?.length ?? 0;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Wrap(
       alignment: WrapAlignment.spaceBetween,
@@ -211,9 +203,7 @@ class _TemplatesSubheader extends ConsumerWidget {
           context.l10n.templatesCount(count),
           style: theme.textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: isDark
-                ? ScenarioColors.darkForeground
-                : ScenarioColors.foreground,
+            color: AppColors.of(context).foreground,
           ),
         ),
         // Wrap, not Row: on a 320px phone Refresh and Create template do not
@@ -237,11 +227,7 @@ class _TemplatesSubheader extends ConsumerWidget {
                   horizontal: Space.md,
                   vertical: Space.xs,
                 ),
-                side: BorderSide(
-                  color: isDark
-                      ? ScenarioColors.darkBorder
-                      : ScenarioColors.border,
-                ),
+                side: BorderSide(color: AppColors.of(context).border),
               ),
             ),
             if (canManage)
@@ -253,7 +239,7 @@ class _TemplatesSubheader extends ConsumerWidget {
                 label: Text(context.l10n.createTemplateAction),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(0, 36),
-                  backgroundColor: ScenarioColors.primary,
+                  backgroundColor: AppColors.of(context).solidPrimary,
                   visualDensity: VisualDensity.compact,
                   padding: const EdgeInsets.symmetric(
                     horizontal: Space.md,
@@ -349,11 +335,9 @@ class _TemplateCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: Space.md),
       padding: const EdgeInsets.all(Space.md),
       decoration: BoxDecoration(
-        color: isDark ? ScenarioColors.darkCard : ScenarioColors.card,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(Radii.lg),
-        border: Border.all(
-          color: isDark ? ScenarioColors.darkBorder : ScenarioColors.border,
-        ),
+        border: Border.all(color: AppColors.of(context).border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,14 +366,12 @@ class _TemplateCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(Space.sm),
               decoration: BoxDecoration(
-                color: isDark
-                    ? ScenarioColors.darkBackground
-                    : ScenarioColors.background,
+                color: AppColors.of(context).background,
                 borderRadius: BorderRadius.circular(Radii.sm),
                 border: Border.all(
-                  color: isDark
-                      ? ScenarioColors.darkBorder
-                      : ScenarioColors.border.withValues(alpha: 0.5),
+                  color: AppColors.of(
+                    context,
+                  ).border.withValues(alpha: isDark ? 1 : 0.5),
                 ),
               ),
               child: Text(
@@ -503,11 +485,7 @@ class _TemplateCard extends StatelessWidget {
                   horizontal: Space.md,
                   vertical: Space.xs,
                 ),
-                side: BorderSide(
-                  color: isDark
-                      ? ScenarioColors.darkBorder
-                      : ScenarioColors.border,
-                ),
+                side: BorderSide(color: AppColors.of(context).border),
               ),
             ),
           ),
@@ -526,7 +504,6 @@ class _MetaItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -534,9 +511,7 @@ class _MetaItem extends StatelessWidget {
         Text(
           '$label: ',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: isDark
-                ? ScenarioColors.darkMutedForeground
-                : ScenarioColors.mutedForeground,
+            color: AppColors.of(context).mutedForeground,
             fontSize: 12,
           ),
         ),

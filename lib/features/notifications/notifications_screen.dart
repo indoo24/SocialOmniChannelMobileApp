@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
 import '../../core/models/notification.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/badges.dart';
@@ -80,7 +81,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 ),
               ),
               style: TextButton.styleFrom(
-                foregroundColor: ScenarioColors.primary,
+                foregroundColor: AppColors.of(context).solidPrimary,
               ),
             ),
           const UserAccountMenuButton(),
@@ -181,11 +182,11 @@ class _NotificationTile extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onMarkRead;
 
-  Color _severityColor() {
+  Color _severityColor(BuildContext context) {
     return switch (notification.severity) {
       NotificationSeverity.critical => ScenarioColors.destructive,
       NotificationSeverity.warning => ScenarioColors.warning,
-      _ => ScenarioColors.info,
+      _ => AppColors.of(context).info,
     };
   }
 
@@ -199,9 +200,9 @@ class _NotificationTile extends StatelessWidget {
     final relativeTime = formatRelativeTime(context, notification.createdAt);
 
     final tileBackground = isUnread
-        ? (isDark
-              ? ScenarioColors.darkPrimary.withValues(alpha: 0.12)
-              : ScenarioColors.primary.withValues(alpha: 0.05))
+        ? (AppColors.of(
+            context,
+          ).primary.withValues(alpha: isDark ? 0.12 : 0.05))
         : Colors.transparent;
 
     return Material(
@@ -224,7 +225,7 @@ class _NotificationTile extends StatelessWidget {
                 height: 48,
                 margin: const EdgeInsetsDirectional.only(end: Space.md, top: 2),
                 decoration: BoxDecoration(
-                  color: _severityColor(),
+                  color: _severityColor(context),
                   borderRadius: BorderRadius.circular(Radii.sm),
                 ),
               ),
@@ -259,7 +260,7 @@ class _NotificationTile extends StatelessWidget {
                             height: 7,
                             margin: const EdgeInsets.only(top: 5),
                             decoration: BoxDecoration(
-                              color: ScenarioColors.primary,
+                              color: AppColors.of(context).solidPrimary,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -322,7 +323,9 @@ class _NotificationTile extends StatelessWidget {
                               ),
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              foregroundColor: ScenarioColors.primary,
+                              foregroundColor: AppColors.of(
+                                context,
+                              ).solidPrimary,
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,

@@ -55,6 +55,11 @@ class ScenarioColors {
   static final darkDestructive = _hsl(0, 63, 51);
   static final darkBorder = _hsl(217, 33, 20);
 
+  /// The agent's own message bubble in dark mode. The lighter dark-mode
+  /// primary only gives white text about 3.6:1 contrast; the light-mode
+  /// indigo keeps the brand colour at better than 6:1.
+  static final darkOutgoingBubble = _hsl(243, 75, 59);
+
   // --- semantic status colours -------------------------------------------
   // Mirrors the web Badge variants (success / warning / danger / muted).
   static final success = _hsl(142, 71, 45);
@@ -70,6 +75,7 @@ class ScenarioColors {
 /// Spacing scale. Tailwind's 4px rhythm, which the web app uses throughout.
 class Space {
   const Space._();
+  static const xxs = 2.0;
   static const xs = 4.0;
   static const sm = 8.0;
   static const md = 12.0;
@@ -81,8 +87,44 @@ class Space {
 /// `--radius: 0.625rem` = 10px, with the same −2/−4 derivations Tailwind makes.
 class Radii {
   const Radii._();
+
+  /// Message bubbles and the composer's input field.
+  static const xl = 18.0;
   static const lg = 10.0;
   static const md = 8.0;
   static const sm = 6.0;
   static const pill = 999.0;
+}
+
+/// Component dimensions shared by the inbox and the conversation, so their
+/// controls line up and stay comfortably tappable.
+class Sizes {
+  const Sizes._();
+
+  /// Minimum side of anything tappable (Material's 48 minus the visual
+  /// density the dense headers already use).
+  static const touchTarget = 44.0;
+
+  /// Height of the inbox filter pills and account selectors.
+  static const pill = 36.0;
+
+  static const iconSm = 16.0;
+  static const iconMd = 20.0;
+  static const iconLg = 24.0;
+
+  /// Customer avatar in an inbox row.
+  static const rowAvatar = 44.0;
+
+  /// Start inset of the divider between inbox rows: row padding + avatar +
+  /// gap, so separators line up with the text, not the avatar.
+  static const rowDividerIndent = Space.lg + rowAvatar + Space.md;
+
+  /// Widest a message bubble gets, however wide the screen.
+  static const bubbleMaxWidth = 520.0;
+
+  /// Fraction of the screen width a message bubble may take.
+  static const bubbleWidthFactor = 0.78;
+
+  /// Width of a single inline image in a bubble.
+  static const inlineImageWidth = 240.0;
 }

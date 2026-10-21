@@ -267,7 +267,7 @@ void main() {
       );
     }
 
-    testWidgets('1-5. All 5 primary quick filters are permanently visible', (
+    testWidgets('1-5. All 7 primary quick filters are permanently visible', (
       tester,
     ) async {
       await tester.pumpWidget(createInboxApp());
@@ -275,6 +275,11 @@ void main() {
 
       expect(find.byKey(const Key('quick_filter_all')), findsOneWidget);
       expect(find.byKey(const Key('quick_filter_mine')), findsOneWidget);
+      expect(
+        find.byKey(const Key('quick_filter_needs_review')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('quick_filter_resolved')), findsOneWidget);
       expect(find.byKey(const Key('quick_filter_unassigned')), findsOneWidget);
       expect(find.byKey(const Key('quick_filter_unread')), findsOneWidget);
       expect(find.byKey(const Key('quick_filter_open')), findsOneWidget);
@@ -368,7 +373,10 @@ void main() {
       req = adapter.received.lastWhere(_isListRequest);
       expect(req.uri.queryParameters['unread'], equals('true'));
 
-      // Tap Open
+      // Tap Open — the last pill, scrolled into view first now that the
+      // row (with Need review and Resolved) is wider than the screen.
+      await tester.ensureVisible(find.byKey(const Key('quick_filter_open')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('quick_filter_open')));
       await tester.pumpAndSettle();
       expect(container.read(inboxFiltersProvider).status, equals('OPEN'));
@@ -377,6 +385,8 @@ void main() {
       expect(req.uri.queryParameters['status'], equals('OPEN'));
 
       // Tap All -> clears primary filters
+      await tester.ensureVisible(find.byKey(const Key('quick_filter_all')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('quick_filter_all')));
       await tester.pumpAndSettle();
       expect(container.read(inboxFiltersProvider).status, isNull);

@@ -505,6 +505,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noFilterMatchesMessage => 'Try widening or clearing the filters.';
 
   @override
+  String noSearchResultsTitle(String query) {
+    return 'No results for “$query”';
+  }
+
+  @override
+  String get noSearchResultsMessage =>
+      'Try a different name, number or keyword.';
+
+  @override
+  String get clearSearchButton => 'Clear search';
+
+  @override
   String get clearFiltersButton => 'Clear filters';
 
   @override
@@ -3379,4 +3391,423 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportActionLabel => 'Export';
+
+  @override
+  String get saveContactAction => 'Save to contacts';
+
+  @override
+  String get saveContactNoPhone => 'This customer has no phone number to save.';
+
+  @override
+  String get saveContactSaved => 'Contact saved.';
+
+  @override
+  String get saveContactUnavailable =>
+      'Contacts can\'t be opened on this device.';
+
+  @override
+  String get savedRepliesAllCategories => 'All';
+
+  @override
+  String get savedRepliesUncategorized => 'Uncategorized';
+
+  @override
+  String get conversationResolvedSnackbar => 'Conversation resolved';
+
+  @override
+  String get undoAction => 'Undo';
+
+  @override
+  String get conversationReopenedSnackbar => 'Conversation reopened';
+
+  @override
+  String get resolveUndoFailedMessage =>
+      'Couldn\'t undo. The conversation is still resolved.';
+
+  @override
+  String get appProductName => 'Scenario Omni Channel';
+
+  @override
+  String get loginTagline => 'Manage all your conversations in one place.';
+
+  @override
+  String get showPasswordTooltip => 'Show password';
+
+  @override
+  String get hidePasswordTooltip => 'Hide password';
+
+  @override
+  String get appearanceModeLabel => 'Light or dark';
+
+  @override
+  String get colorThemeLabel => 'Colour theme';
+
+  @override
+  String get colorThemeOceanBlue => 'Ocean Blue';
+
+  @override
+  String get colorThemeOceanBlueDescription => 'The original Scenario look.';
+
+  @override
+  String get colorThemeEmerald => 'Emerald';
+
+  @override
+  String get colorThemeEmeraldDescription => 'Calm green accents.';
+
+  @override
+  String get colorThemeRoyalPurple => 'Royal Purple';
+
+  @override
+  String get colorThemeRoyalPurpleDescription => 'Rich violet accents.';
+
+  @override
+  String get colorThemeGraphiteOrange => 'Graphite Orange';
+
+  @override
+  String get colorThemeGraphiteOrangeDescription =>
+      'Neutral greys with orange highlights.';
+
+  @override
+  String get pinConversationAction => 'Pin conversation';
+
+  @override
+  String get unpinConversationAction => 'Unpin conversation';
+
+  @override
+  String get pinnedIndicator => 'Pinned';
+
+  @override
+  String get conversationPinnedMessage => 'Conversation pinned';
+
+  @override
+  String get conversationUnpinnedMessage => 'Conversation unpinned';
+
+  @override
+  String get pinLimitReachedMessage =>
+      'You\'ve reached the maximum number of pinned conversations.';
+
+  @override
+  String get conversationUnavailableMessage =>
+      'This conversation is no longer available.';
+
+  @override
+  String get pinPermissionDeniedMessage =>
+      'You don\'t have permission to pin conversations.';
+
+  @override
+  String get pinRequestFailedMessage =>
+      'Couldn\'t update the pin. Please try again.';
+
+  @override
+  String get requestReviewAction => 'Request review';
+
+  @override
+  String get changeReviewerAction => 'Change reviewer';
+
+  @override
+  String get withdrawReviewAction => 'Withdraw review';
+
+  @override
+  String get completeReviewAction => 'Mark review complete';
+
+  @override
+  String get reviewSectionTitle => 'Review';
+
+  @override
+  String reviewWithReviewer(String name) {
+    return 'Reviewer: $name';
+  }
+
+  @override
+  String get reviewReviewerLabel => 'Reviewer';
+
+  @override
+  String get reviewRequestedByLabel => 'Requested by';
+
+  @override
+  String get reviewRequestedAtLabel => 'Requested';
+
+  @override
+  String get reviewStatusLabel => 'Status';
+
+  @override
+  String get reviewNoteLabel => 'Note';
+
+  @override
+  String get reviewStatusPending => 'Pending';
+
+  @override
+  String get reviewExplanation =>
+      'A colleague looks over this conversation. It stays assigned as it is, and you can keep replying.';
+
+  @override
+  String get reviewChooseReviewerHint =>
+      'Choose a colleague who can review conversations.';
+
+  @override
+  String get reviewNoteHint => 'What should the reviewer look at?';
+
+  @override
+  String get reviewSubmitButton => 'Send request';
+
+  @override
+  String get reviewReviewerRequired => 'Choose a reviewer.';
+
+  @override
+  String get reviewNoColleaguesFound => 'No colleagues found.';
+
+  @override
+  String get reviewCurrentReviewerLabel => 'Current reviewer';
+
+  @override
+  String reviewRequestedMessage(String name) {
+    return 'Review requested from $name';
+  }
+
+  @override
+  String reviewerChangedMessage(String name) {
+    return 'Reviewer changed to $name';
+  }
+
+  @override
+  String get reviewWithdrawnMessage => 'Review withdrawn';
+
+  @override
+  String get reviewCompletedMessage => 'Review completed';
+
+  @override
+  String get withdrawReviewConfirmTitle => 'Withdraw this review?';
+
+  @override
+  String get withdrawReviewConfirmMessage =>
+      'The reviewer will no longer be asked to look at this conversation.';
+
+  @override
+  String get reviewReviewerNotEligibleMessage =>
+      'This person can\'t be asked to review this conversation.';
+
+  @override
+  String get reviewPermissionDeniedMessage =>
+      'You don\'t have permission to do this.';
+
+  @override
+  String get reviewNotPendingMessage =>
+      'There\'s no review pending on this conversation.';
+
+  @override
+  String get reviewRequestFailedMessage =>
+      'Couldn\'t update the review. Please try again.';
+
+  @override
+  String get needsReviewFilter => 'Need review';
+
+  @override
+  String get resolvedFilter => 'Resolved';
+
+  @override
+  String get noReviewsWaitingTitle => 'Nothing to review';
+
+  @override
+  String get noReviewsWaitingMessage =>
+      'Conversations colleagues ask you to review will appear here.';
+
+  @override
+  String get startupOfflineTitle => 'No internet connection';
+
+  @override
+  String get startupOfflineMessage =>
+      'Make sure Wi-Fi or mobile data is on, then try again.';
+
+  @override
+  String get startupUnreachableTitle => 'Can\'t reach the server';
+
+  @override
+  String get startupUnreachableMessage =>
+      'You\'re connected to a network, but the server can\'t be reached. The network may not have internet access, or the server may be temporarily unavailable.';
+
+  @override
+  String get startupServerErrorTitle => 'The server isn\'t responding';
+
+  @override
+  String get startupServerErrorMessage =>
+      'The problem is on our side, not your connection. Please try again in a moment.';
+
+  @override
+  String get startupRetryButton => 'Try again';
+
+  @override
+  String get startupRetryingButton => 'Trying again…';
+
+  @override
+  String get startupStillOffline =>
+      'Still no connection. Check Wi-Fi or mobile data.';
+
+  @override
+  String get startupStillUnreachable => 'Still can\'t reach the server.';
+
+  @override
+  String get startupStillServerError => 'The server still isn\'t responding.';
+
+  @override
+  String get startupAutoRetryHint =>
+      'We\'ll try again automatically when you\'re back online.';
+
+  @override
+  String get startupSessionKeptHint => 'You\'re still signed in.';
+
+  @override
+  String get savedReplyCategoriesTitle => 'Categories';
+
+  @override
+  String get savedReplyCategoriesHint =>
+      'Drag or use the arrows to set the order replies are grouped in.';
+
+  @override
+  String get savedReplyCategoriesEmpty => 'No categories yet. Add one below.';
+
+  @override
+  String get savedReplyCategoriesLoadFailed => 'Couldn\'t load the categories.';
+
+  @override
+  String get savedReplyCategoryNameHint => 'New category name';
+
+  @override
+  String get savedReplyCategoryNameLabel => 'Category name';
+
+  @override
+  String get savedReplyCategoryAddAction => 'Add';
+
+  @override
+  String get savedReplyCategoryNameRequired => 'Enter a category name.';
+
+  @override
+  String get savedReplyCategoryDuplicate =>
+      'A category with this name already exists.';
+
+  @override
+  String get savedReplyCategoryAdded => 'Category added';
+
+  @override
+  String get savedReplyCategoryRenamed => 'Category renamed';
+
+  @override
+  String get savedReplyCategoryDeleted =>
+      'Category deleted. Its replies are now uncategorized.';
+
+  @override
+  String get savedReplyCategoryOrderFailed => 'Couldn\'t save the new order.';
+
+  @override
+  String get savedReplyCategoryRequestFailed =>
+      'Couldn\'t save the change. Please try again.';
+
+  @override
+  String get savedReplyCategoryNoPermission =>
+      'You don\'t have permission to manage categories.';
+
+  @override
+  String get savedReplyCategoryRenameTitle => 'Rename category';
+
+  @override
+  String get savedReplyCategoryRenameAction => 'Rename';
+
+  @override
+  String get savedReplyCategoryDeleteAction => 'Delete';
+
+  @override
+  String savedReplyCategoryDeleteTitle(String name) {
+    return 'Delete “$name”?';
+  }
+
+  @override
+  String savedReplyCategoryDeleteWithReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Its $count saved replies will move to Uncategorized.',
+      one: 'Its 1 saved reply will move to Uncategorized.',
+    );
+    return '$_temp0 The replies themselves are not deleted.';
+  }
+
+  @override
+  String get savedReplyCategoryDeleteEmpty =>
+      'This category has no saved replies.';
+
+  @override
+  String savedReplyCategoryReplyCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count replies',
+      one: '1 reply',
+      zero: 'No replies',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedReplyCategoryMoveUp => 'Move up';
+
+  @override
+  String get savedReplyCategoryMoveDown => 'Move down';
+
+  @override
+  String get savedReplyCategoryDragHint => 'Drag to reorder';
+
+  @override
+  String get savedReplyNoCategoryOption => 'No category';
+
+  @override
+  String get savedReplySectionEmpty => 'No saved replies in this category yet.';
+
+  @override
+  String get savedReplyMediaNotSupportedOnChannel =>
+      'The text was added, but this channel doesn\'t accept files, so the saved reply\'s file wasn\'t attached.';
+
+  @override
+  String get savedReplyFilePickFailed =>
+      'Couldn\'t open that file. Try another one.';
+
+  @override
+  String get savedReplyAttachmentLabel => 'Attachment (optional)';
+
+  @override
+  String get savedReplyAttachImage => 'Image';
+
+  @override
+  String get savedReplyAttachVideo => 'Video';
+
+  @override
+  String get savedReplyAttachAudio => 'Audio';
+
+  @override
+  String get savedReplyAttachFile => 'File';
+
+  @override
+  String get savedReplyRecordVoice => 'Record';
+
+  @override
+  String get savedReplyAttachmentHint =>
+      'One file per reply: an image, video, audio, document or voice message.';
+
+  @override
+  String get savedReplyAttachmentReplaceHint =>
+      'Choosing another file replaces this one.';
+
+  @override
+  String get savedReplyVoiceMessageLabel => 'Voice message';
+
+  @override
+  String get savedReplyFileUploadFailedReason =>
+      'Check your connection and try again.';
+
+  @override
+  String savedReplyFileNotSaved(String reason) {
+    return 'The reply\'s text was saved, but its file wasn\'t. $reason Tap Save to try the file again.';
+  }
+
+  @override
+  String get savedReplyUploadCancelled =>
+      'Upload cancelled. The reply\'s text was saved; tap Save to upload the file again.';
 }

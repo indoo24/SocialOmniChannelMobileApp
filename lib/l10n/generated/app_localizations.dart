@@ -992,6 +992,24 @@ abstract class AppLocalizations {
   /// **'Try widening or clearing the filters.'**
   String get noFilterMatchesMessage;
 
+  /// Inbox empty state when a search matches no conversation.
+  ///
+  /// In en, this message translates to:
+  /// **'No results for “{query}”'**
+  String noSearchResultsTitle(String query);
+
+  /// Inbox empty state hint under the no-search-results title.
+  ///
+  /// In en, this message translates to:
+  /// **'Try a different name, number or keyword.'**
+  String get noSearchResultsMessage;
+
+  /// Button that clears the inbox search query.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearSearchButton;
+
   /// No description provided for @clearFiltersButton.
   ///
   /// In en, this message translates to:
@@ -6036,6 +6054,726 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Export'**
   String get exportActionLabel;
+
+  /// Opens the phone's new-contact screen prefilled with the customer.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to contacts'**
+  String get saveContactAction;
+
+  /// Shown when Save to contacts is tapped for a customer without a phone number.
+  ///
+  /// In en, this message translates to:
+  /// **'This customer has no phone number to save.'**
+  String get saveContactNoPhone;
+
+  /// Confirmation after the agent saved the contact in the system screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact saved.'**
+  String get saveContactSaved;
+
+  /// The device has no contacts screen the app can open.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts can\'t be opened on this device.'**
+  String get saveContactUnavailable;
+
+  /// Saved-reply picker chip showing replies of every category.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get savedRepliesAllCategories;
+
+  /// Heading and chip for saved replies saved without a category.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncategorized'**
+  String get savedRepliesUncategorized;
+
+  /// Confirmation after resolving, shown with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation resolved'**
+  String get conversationResolvedSnackbar;
+
+  /// Snack bar action that reverses the last action.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undoAction;
+
+  /// Confirmation after Undo put a resolved conversation back.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation reopened'**
+  String get conversationReopenedSnackbar;
+
+  /// Undo after resolving failed; the conversation stays resolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t undo. The conversation is still resolved.'**
+  String get resolveUndoFailedMessage;
+
+  /// Product name on the sign-in screen. A brand name: not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Scenario Omni Channel'**
+  String get appProductName;
+
+  /// Sign-in screen subtitle under the product name.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage all your conversations in one place.'**
+  String get loginTagline;
+
+  /// Tooltip of the eye button that reveals the password.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get showPasswordTooltip;
+
+  /// Tooltip of the eye button that hides the password again.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get hidePasswordTooltip;
+
+  /// Settings label above the System / Light / Dark choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Light or dark'**
+  String get appearanceModeLabel;
+
+  /// Settings label above the list of colour themes.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour theme'**
+  String get colorThemeLabel;
+
+  /// Colour theme name.
+  ///
+  /// In en, this message translates to:
+  /// **'Ocean Blue'**
+  String get colorThemeOceanBlue;
+
+  /// Ocean Blue colour theme description.
+  ///
+  /// In en, this message translates to:
+  /// **'The original Scenario look.'**
+  String get colorThemeOceanBlueDescription;
+
+  /// Colour theme name.
+  ///
+  /// In en, this message translates to:
+  /// **'Emerald'**
+  String get colorThemeEmerald;
+
+  /// Emerald colour theme description.
+  ///
+  /// In en, this message translates to:
+  /// **'Calm green accents.'**
+  String get colorThemeEmeraldDescription;
+
+  /// Colour theme name.
+  ///
+  /// In en, this message translates to:
+  /// **'Royal Purple'**
+  String get colorThemeRoyalPurple;
+
+  /// Royal Purple colour theme description.
+  ///
+  /// In en, this message translates to:
+  /// **'Rich violet accents.'**
+  String get colorThemeRoyalPurpleDescription;
+
+  /// Colour theme name.
+  ///
+  /// In en, this message translates to:
+  /// **'Graphite Orange'**
+  String get colorThemeGraphiteOrange;
+
+  /// Graphite Orange colour theme description.
+  ///
+  /// In en, this message translates to:
+  /// **'Neutral greys with orange highlights.'**
+  String get colorThemeGraphiteOrangeDescription;
+
+  /// Action that pins a conversation for the signed-in employee only.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin conversation'**
+  String get pinConversationAction;
+
+  /// Action that removes the employee's pin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin conversation'**
+  String get unpinConversationAction;
+
+  /// Tooltip and screen-reader label of the pin shown on a pinned conversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get pinnedIndicator;
+
+  /// Shown after the server confirmed a pin.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation pinned'**
+  String get conversationPinnedMessage;
+
+  /// Shown after the server confirmed an unpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation unpinned'**
+  String get conversationUnpinnedMessage;
+
+  /// The server refused a pin because the employee has pinned as many as allowed.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached the maximum number of pinned conversations.'**
+  String get pinLimitReachedMessage;
+
+  /// The conversation was removed or is no longer visible to the employee.
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation is no longer available.'**
+  String get conversationUnavailableMessage;
+
+  /// The server refused a pin for lack of permission.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to pin conversations.'**
+  String get pinPermissionDeniedMessage;
+
+  /// A pin or unpin request failed for a network or server reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the pin. Please try again.'**
+  String get pinRequestFailedMessage;
+
+  /// Action that asks a colleague to review the conversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Request review'**
+  String get requestReviewAction;
+
+  /// Action that sends the pending review request to a different colleague.
+  ///
+  /// In en, this message translates to:
+  /// **'Change reviewer'**
+  String get changeReviewerAction;
+
+  /// Action that withdraws the pending review request.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw review'**
+  String get withdrawReviewAction;
+
+  /// Action, for the reviewer (or an admin), that completes the review. It sends nothing to the customer.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark review complete'**
+  String get completeReviewAction;
+
+  /// Title of the conversation review sheet and banner.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get reviewSectionTitle;
+
+  /// Banner line naming the colleague asked to review.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewer: {name}'**
+  String reviewWithReviewer(String name);
+
+  /// Field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewer'**
+  String get reviewReviewerLabel;
+
+  /// Field label: who asked for the review.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested by'**
+  String get reviewRequestedByLabel;
+
+  /// Field label: when the review was asked for.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested'**
+  String get reviewRequestedAtLabel;
+
+  /// Field label: the review status.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get reviewStatusLabel;
+
+  /// Field label: the note sent with the review request.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get reviewNoteLabel;
+
+  /// Display name of the PENDING review status.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get reviewStatusPending;
+
+  /// Explains, in the request sheet, that a review is not a transfer.
+  ///
+  /// In en, this message translates to:
+  /// **'A colleague looks over this conversation. It stays assigned as it is, and you can keep replying.'**
+  String get reviewExplanation;
+
+  /// Hint above the reviewer list.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a colleague who can review conversations.'**
+  String get reviewChooseReviewerHint;
+
+  /// Hint in the optional note field.
+  ///
+  /// In en, this message translates to:
+  /// **'What should the reviewer look at?'**
+  String get reviewNoteHint;
+
+  /// Submits the review request.
+  ///
+  /// In en, this message translates to:
+  /// **'Send request'**
+  String get reviewSubmitButton;
+
+  /// Validation: no reviewer picked.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a reviewer.'**
+  String get reviewReviewerRequired;
+
+  /// The reviewer list is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No colleagues found.'**
+  String get reviewNoColleaguesFound;
+
+  /// Marks the colleague the pending review is with.
+  ///
+  /// In en, this message translates to:
+  /// **'Current reviewer'**
+  String get reviewCurrentReviewerLabel;
+
+  /// Shown after the server confirmed a review request.
+  ///
+  /// In en, this message translates to:
+  /// **'Review requested from {name}'**
+  String reviewRequestedMessage(String name);
+
+  /// Shown after the server confirmed a retargeted review.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewer changed to {name}'**
+  String reviewerChangedMessage(String name);
+
+  /// Shown after the server confirmed a withdrawal.
+  ///
+  /// In en, this message translates to:
+  /// **'Review withdrawn'**
+  String get reviewWithdrawnMessage;
+
+  /// Shown after the server confirmed the review is complete.
+  ///
+  /// In en, this message translates to:
+  /// **'Review completed'**
+  String get reviewCompletedMessage;
+
+  /// Confirmation dialog title.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw this review?'**
+  String get withdrawReviewConfirmTitle;
+
+  /// Confirmation dialog body.
+  ///
+  /// In en, this message translates to:
+  /// **'The reviewer will no longer be asked to look at this conversation.'**
+  String get withdrawReviewConfirmMessage;
+
+  /// The server refused the chosen reviewer (400).
+  ///
+  /// In en, this message translates to:
+  /// **'This person can\'t be asked to review this conversation.'**
+  String get reviewReviewerNotEligibleMessage;
+
+  /// The server refused a review action for lack of permission (403).
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to do this.'**
+  String get reviewPermissionDeniedMessage;
+
+  /// Withdraw or complete found no pending review (409).
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s no review pending on this conversation.'**
+  String get reviewNotPendingMessage;
+
+  /// A review action failed for a network or server reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the review. Please try again.'**
+  String get reviewRequestFailedMessage;
+
+  /// Inbox quick filter: conversations whose pending review names the signed-in employee as reviewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Need review'**
+  String get needsReviewFilter;
+
+  /// Inbox quick filter: resolved conversations.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved'**
+  String get resolvedFilter;
+
+  /// Need review tab, empty: no conversation names the employee as reviewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to review'**
+  String get noReviewsWaitingTitle;
+
+  /// Need review tab, empty: what will appear here.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations colleagues ask you to review will appear here.'**
+  String get noReviewsWaitingMessage;
+
+  /// Launch: no network interface is up.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection'**
+  String get startupOfflineTitle;
+
+  /// Launch, offline: what to do.
+  ///
+  /// In en, this message translates to:
+  /// **'Make sure Wi-Fi or mobile data is on, then try again.'**
+  String get startupOfflineMessage;
+
+  /// Launch: a network is up but the server could not be reached.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t reach the server'**
+  String get startupUnreachableTitle;
+
+  /// Launch, unreachable: what may be wrong.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re connected to a network, but the server can\'t be reached. The network may not have internet access, or the server may be temporarily unavailable.'**
+  String get startupUnreachableMessage;
+
+  /// Launch: the server answered with an error (5xx).
+  ///
+  /// In en, this message translates to:
+  /// **'The server isn\'t responding'**
+  String get startupServerErrorTitle;
+
+  /// Launch, server error: what to do.
+  ///
+  /// In en, this message translates to:
+  /// **'The problem is on our side, not your connection. Please try again in a moment.'**
+  String get startupServerErrorMessage;
+
+  /// Launch retry button.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get startupRetryButton;
+
+  /// Launch retry button while the retry runs.
+  ///
+  /// In en, this message translates to:
+  /// **'Trying again…'**
+  String get startupRetryingButton;
+
+  /// A requested retry found no network again.
+  ///
+  /// In en, this message translates to:
+  /// **'Still no connection. Check Wi-Fi or mobile data.'**
+  String get startupStillOffline;
+
+  /// A requested retry could not reach the server again.
+  ///
+  /// In en, this message translates to:
+  /// **'Still can\'t reach the server.'**
+  String get startupStillUnreachable;
+
+  /// A requested retry got a server error again.
+  ///
+  /// In en, this message translates to:
+  /// **'The server still isn\'t responding.'**
+  String get startupStillServerError;
+
+  /// Launch, offline: an automatic retry follows the network coming back.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll try again automatically when you\'re back online.'**
+  String get startupAutoRetryHint;
+
+  /// Launch: the stored session was kept.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re still signed in.'**
+  String get startupSessionKeptHint;
+
+  /// Saved replies settings: the categories panel title.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get savedReplyCategoriesTitle;
+
+  /// Categories panel: how the order is set and what it does.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag or use the arrows to set the order replies are grouped in.'**
+  String get savedReplyCategoriesHint;
+
+  /// Categories panel: there are none.
+  ///
+  /// In en, this message translates to:
+  /// **'No categories yet. Add one below.'**
+  String get savedReplyCategoriesEmpty;
+
+  /// Categories panel: the list failed to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the categories.'**
+  String get savedReplyCategoriesLoadFailed;
+
+  /// Categories panel: the add field hint.
+  ///
+  /// In en, this message translates to:
+  /// **'New category name'**
+  String get savedReplyCategoryNameHint;
+
+  /// Rename dialog: the field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Category name'**
+  String get savedReplyCategoryNameLabel;
+
+  /// Categories panel: add button.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get savedReplyCategoryAddAction;
+
+  /// Validation: empty name.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a category name.'**
+  String get savedReplyCategoryNameRequired;
+
+  /// Validation: the name is taken.
+  ///
+  /// In en, this message translates to:
+  /// **'A category with this name already exists.'**
+  String get savedReplyCategoryDuplicate;
+
+  /// After the server created a category.
+  ///
+  /// In en, this message translates to:
+  /// **'Category added'**
+  String get savedReplyCategoryAdded;
+
+  /// After the server renamed a category.
+  ///
+  /// In en, this message translates to:
+  /// **'Category renamed'**
+  String get savedReplyCategoryRenamed;
+
+  /// After the server deleted a category.
+  ///
+  /// In en, this message translates to:
+  /// **'Category deleted. Its replies are now uncategorized.'**
+  String get savedReplyCategoryDeleted;
+
+  /// A reorder failed; the order shown is the server's.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the new order.'**
+  String get savedReplyCategoryOrderFailed;
+
+  /// A category change failed for a network or server reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the change. Please try again.'**
+  String get savedReplyCategoryRequestFailed;
+
+  /// The server refused a category change (403).
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to manage categories.'**
+  String get savedReplyCategoryNoPermission;
+
+  /// Rename dialog title.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename category'**
+  String get savedReplyCategoryRenameTitle;
+
+  /// Category row: rename button tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get savedReplyCategoryRenameAction;
+
+  /// Category row: delete button tooltip and confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get savedReplyCategoryDeleteAction;
+
+  /// Delete confirmation title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete “{name}”?'**
+  String savedReplyCategoryDeleteTitle(String name);
+
+  /// Delete confirmation: what happens to its replies.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Its 1 saved reply will move to Uncategorized.} other{Its {count} saved replies will move to Uncategorized.}} The replies themselves are not deleted.'**
+  String savedReplyCategoryDeleteWithReplies(int count);
+
+  /// Delete confirmation for an empty category.
+  ///
+  /// In en, this message translates to:
+  /// **'This category has no saved replies.'**
+  String get savedReplyCategoryDeleteEmpty;
+
+  /// Category row: how many replies it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No replies} =1{1 reply} other{{count} replies}}'**
+  String savedReplyCategoryReplyCount(int count);
+
+  /// Category row: move up.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get savedReplyCategoryMoveUp;
+
+  /// Category row: move down.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get savedReplyCategoryMoveDown;
+
+  /// Category row: drag handle label.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder'**
+  String get savedReplyCategoryDragHint;
+
+  /// Reply form: the category choice for none.
+  ///
+  /// In en, this message translates to:
+  /// **'No category'**
+  String get savedReplyNoCategoryOption;
+
+  /// Saved replies list: a category with none of your replies.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved replies in this category yet.'**
+  String get savedReplySectionEmpty;
+
+  /// Composer: a saved reply with a file, on a channel that takes no files from agents.
+  ///
+  /// In en, this message translates to:
+  /// **'The text was added, but this channel doesn\'t accept files, so the saved reply\'s file wasn\'t attached.'**
+  String get savedReplyMediaNotSupportedOnChannel;
+
+  /// Saved reply form: a picked file could not be read.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open that file. Try another one.'**
+  String get savedReplyFilePickFailed;
+
+  /// Saved reply form: attachment section label.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment (optional)'**
+  String get savedReplyAttachmentLabel;
+
+  /// Saved reply form: pick an image.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get savedReplyAttachImage;
+
+  /// Saved reply form: pick a video.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get savedReplyAttachVideo;
+
+  /// Saved reply form: pick an audio file.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get savedReplyAttachAudio;
+
+  /// Saved reply form: pick any file.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get savedReplyAttachFile;
+
+  /// Saved reply form: record a voice message.
+  ///
+  /// In en, this message translates to:
+  /// **'Record'**
+  String get savedReplyRecordVoice;
+
+  /// Saved reply form: what can be attached.
+  ///
+  /// In en, this message translates to:
+  /// **'One file per reply: an image, video, audio, document or voice message.'**
+  String get savedReplyAttachmentHint;
+
+  /// Saved reply form: one file per reply.
+  ///
+  /// In en, this message translates to:
+  /// **'Choosing another file replaces this one.'**
+  String get savedReplyAttachmentReplaceHint;
+
+  /// A recorded voice message attached to a saved reply.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice message'**
+  String get savedReplyVoiceMessageLabel;
+
+  /// Why the file upload failed: network or server.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your connection and try again.'**
+  String get savedReplyFileUploadFailedReason;
+
+  /// Saved reply form: the text saved, the file did not.
+  ///
+  /// In en, this message translates to:
+  /// **'The reply\'s text was saved, but its file wasn\'t. {reason} Tap Save to try the file again.'**
+  String savedReplyFileNotSaved(String reason);
+
+  /// Saved reply form: the file upload was cancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload cancelled. The reply\'s text was saved; tap Save to upload the file again.'**
+  String get savedReplyUploadCancelled;
 }
 
 class _AppLocalizationsDelegate

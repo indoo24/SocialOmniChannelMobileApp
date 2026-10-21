@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/customer_fields.dart';
 import '../../core/models/employee.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/csv_export.dart';
 import '../../l10n/l10n_extensions.dart';
@@ -31,6 +32,7 @@ class MoreSettingsTab extends ConsumerWidget {
       onRefresh: () async {
         ref.invalidate(customerFieldDefinitionsProvider);
         ref.invalidate(manageableSavedRepliesProvider);
+        ref.invalidate(savedReplyCategoriesProvider);
         await Future.wait([
           if (canSeeCustomerFields)
             ref
@@ -40,6 +42,10 @@ class MoreSettingsTab extends ConsumerWidget {
             ref
                 .read(manageableSavedRepliesProvider.future)
                 .catchError((_) => <SavedReply>[]),
+          if (canSeeSavedReplies)
+            ref
+                .read(savedReplyCategoriesProvider.future)
+                .catchError((_) => <SavedReplyCategory>[]),
         ]);
       },
       child: ListView(
@@ -94,9 +100,6 @@ class _SettingsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Container(
       width: double.infinity,
       // The card sits where the list's own horizontal padding used to, and
@@ -110,11 +113,9 @@ class _SettingsSection extends StatelessWidget {
         vertical: Space.lg,
       ),
       decoration: BoxDecoration(
-        color: isDark ? ScenarioColors.darkCard : ScenarioColors.card,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(Radii.lg),
-        border: Border.all(
-          color: isDark ? ScenarioColors.darkBorder : ScenarioColors.border,
-        ),
+        border: Border.all(color: AppColors.of(context).border),
       ),
       child: child,
     );

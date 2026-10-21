@@ -1,8 +1,10 @@
 /// How pages and refreshed heads are combined into the Inbox's loaded list.
 ///
-/// Pure functions over the groups the server returned — nothing here fetches,
-/// regroups or filters. Each one keeps the instance of every group it does not
-/// change, so a row that did not change is not rebuilt.
+/// Pure functions over the groups the server returned — nothing here fetches
+/// or regroups, and only the display helper at the end ([pinnedFirst])
+/// reorders what is shown. Each one keeps the
+/// instance of every group it does not change, so a row that did not change
+/// is not rebuilt.
 ///
 /// Why duplicates can happen at all: the list is ordered by activity, so a new
 /// message moves a conversation to the top and pushes everything below it one
@@ -119,4 +121,27 @@ bool headDiffers(Groups loaded, Groups head) {
   }
   // Fewer loaded rows than the head: the rest are new to this list.
   return head.length > loaded.length;
+}
+
+/// [groups] as the inbox shows them: every row holding a pinned conversation
+/// first, then the rest. Both parts keep the order they had, so this only
+/// lifts pinned rows above the others — and changes nothing when the server
+/// already sorts them first. It reorders rows the server returned for the
+/// current filter and search; it never adds or removes one. The same list
+/// when no row moves.
+Groups pinnedFirst(Groups groups) {
+  final pinned = <CustomerConversationGroup>[];
+  final rest = <CustomerConversationGroup>[];
+  var seenUnpinned = false;
+  var moves = false;
+  for (final group in groups) {
+    if (group.hasPinned) {
+      pinned.add(group);
+      if (seenUnpinned) moves = true;
+    } else {
+      rest.add(group);
+      seenUnpinned = true;
+    }
+  }
+  return moves ? [...pinned, ...rest] : groups;
 }

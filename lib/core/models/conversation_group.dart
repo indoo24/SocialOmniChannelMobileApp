@@ -45,6 +45,11 @@ class CustomerConversationGroup {
   /// Whether this group has any unread messages.
   bool get isUnread => unreadCount > 0;
 
+  /// Whether any of this customer's threads is pinned. A pin belongs to one
+  /// conversation, not to the customer: the row shows it when it holds a
+  /// pinned thread, and each thread keeps its own [Conversation.isPinned].
+  bool get hasPinned => conversations.any((c) => c.isPinned);
+
   /// Primary conversation (the one with the latest message activity).
   Conversation get primaryConversation {
     if (conversations.isEmpty) {

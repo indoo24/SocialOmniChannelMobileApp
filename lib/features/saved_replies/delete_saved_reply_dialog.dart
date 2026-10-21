@@ -52,6 +52,7 @@ Future<void> confirmDeleteSavedReply(
     await ref.read(savedRepliesRepositoryProvider).deactivate(reply.id);
     if (!context.mounted) return;
     ref.invalidate(manageableSavedRepliesProvider);
+    ref.invalidate(savedReplyCategoriesProvider);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(context.l10n.savedReplyDeletedSnackbar)),
     );

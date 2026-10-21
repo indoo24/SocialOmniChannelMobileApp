@@ -28,6 +28,7 @@ import '../api/api_exception.dart';
 import '../providers.dart';
 import '../realtime/realtime_bridge.dart';
 import '../session/session_epoch.dart';
+import '../theme/app_palette.dart';
 import '../theme/tokens.dart';
 import 'push_service.dart';
 
@@ -395,7 +396,7 @@ class _PushBridgeState extends ConsumerState<PushBridge>
 }
 
 /// A dismissible in-app banner for a foreground push, styled to match the
-/// existing `SnackBarThemeData` (`ScenarioColors.sidebar`, white text) rather
+/// existing `SnackBarThemeData` (`AppColors.of(context).sidebar`, white text) rather
 /// than reaching for an unconfigured Material color this app doesn't
 /// otherwise use.
 ///
@@ -424,7 +425,7 @@ class ForegroundPushBanner extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(Space.sm),
         child: Material(
-          color: ScenarioColors.sidebar,
+          color: AppColors.of(context).sidebar,
           elevation: 4,
           borderRadius: BorderRadius.circular(Radii.md),
           child: InkWell(

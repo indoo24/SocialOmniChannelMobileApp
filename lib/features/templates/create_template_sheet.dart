@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'templates_providers.dart';
@@ -104,7 +105,6 @@ class _CreateTemplateSheetState extends ConsumerState<CreateTemplateSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
@@ -113,7 +113,7 @@ class _CreateTemplateSheetState extends ConsumerState<CreateTemplateSheet> {
       ),
       padding: EdgeInsets.fromLTRB(Space.lg, Space.lg, Space.lg, bottomInset),
       decoration: BoxDecoration(
-        color: isDark ? ScenarioColors.darkCard : ScenarioColors.card,
+        color: AppColors.of(context).surface,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(Radii.lg),
         ),
@@ -149,9 +149,7 @@ class _CreateTemplateSheetState extends ConsumerState<CreateTemplateSheet> {
               Text(
                 context.l10n.createTemplateSubtitle,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: isDark
-                      ? ScenarioColors.darkMutedForeground
-                      : ScenarioColors.mutedForeground,
+                  color: AppColors.of(context).mutedForeground,
                 ),
               ),
               const SizedBox(height: Space.lg),
@@ -298,7 +296,7 @@ class _CreateTemplateSheetState extends ConsumerState<CreateTemplateSheet> {
                     onPressed: _submitting ? null : _submit,
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(0, 44),
-                      backgroundColor: ScenarioColors.primary,
+                      backgroundColor: AppColors.of(context).solidPrimary,
                       padding: const EdgeInsets.symmetric(
                         horizontal: Space.lg,
                         vertical: Space.md,

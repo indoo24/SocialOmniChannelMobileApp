@@ -7,16 +7,43 @@ import 'inbox_controller.dart';
 
 /// Horizontally scrollable row of primary Inbox quick filters.
 ///
-/// Prominently displays the 5 primary views:
-///   [ All ]  [ Mine ]  [ Unassigned ]  [ Unread ]  [ Open ]
+/// Prominently displays the primary views, in [InboxQuickFilter]'s order:
+///   [ All ]  [ Mine ]  [ Need review ]  [ Unread ]  [ Resolved ]
+///   [ Unassigned ]  [ Open ]
 ///
-/// Mirrors Web behavior (`jn = ["all", "mine", "unassigned", "unread", "open"]`
-/// in `inbox.js`):
-///  - Active item renders with filled primary styling.
-///  - Inactive items render with secondary tonal styling.
+/// The web's five (`jn = ["all", "mine", "unassigned", "unread", "open"]`
+/// in `inbox.js`) plus Need review and Resolved, and the same behaviour:
+///  - Active item renders filled with the primary colour and a check.
+///  - Inactive items render outlined on the page.
 ///  - Label only — no count badge.
+///
+/// Each pill is keyed by its filter (`quick_filter_<name>`), never its
+/// position, so selection follows the filter wherever it sits.
 class InboxQuickFilterBar extends ConsumerWidget {
   const InboxQuickFilterBar({super.key});
+
+  static String _keyOf(InboxQuickFilter filter) => switch (filter) {
+    InboxQuickFilter.all => 'quick_filter_all',
+    InboxQuickFilter.mine => 'quick_filter_mine',
+    InboxQuickFilter.needsReview => 'quick_filter_needs_review',
+    InboxQuickFilter.unread => 'quick_filter_unread',
+    InboxQuickFilter.resolved => 'quick_filter_resolved',
+    InboxQuickFilter.unassigned => 'quick_filter_unassigned',
+    InboxQuickFilter.open => 'quick_filter_open',
+  };
+
+  static String _labelOf(BuildContext context, InboxQuickFilter filter) {
+    final l10n = context.l10n;
+    return switch (filter) {
+      InboxQuickFilter.all => l10n.allFilter,
+      InboxQuickFilter.mine => l10n.mineFilter,
+      InboxQuickFilter.needsReview => l10n.needsReviewFilter,
+      InboxQuickFilter.unread => l10n.unreadFilter,
+      InboxQuickFilter.resolved => l10n.resolvedFilter,
+      InboxQuickFilter.unassigned => l10n.unassignedFilter,
+      InboxQuickFilter.open => l10n.openFilter,
+    };
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,57 +52,27 @@ class InboxQuickFilterBar extends ConsumerWidget {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(
-        horizontal: Space.md,
-        vertical: Space.xs,
+      padding: const EdgeInsets.fromLTRB(
+        Space.lg,
+        Space.xs,
+        Space.lg,
+        Space.sm,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _QuickFilterPill(
-            key: const Key('quick_filter_all'),
-            label: context.l10n.allFilter,
-            isActive: activeFilter == InboxQuickFilter.all,
-            onTap: () => ref
-                .read(inboxFiltersProvider.notifier)
-                .selectQuickFilter(InboxQuickFilter.all),
-          ),
-          const SizedBox(width: Space.xs),
-          _QuickFilterPill(
-            key: const Key('quick_filter_mine'),
-            label: context.l10n.mineFilter,
-            isActive: activeFilter == InboxQuickFilter.mine,
-            onTap: () => ref
-                .read(inboxFiltersProvider.notifier)
-                .selectQuickFilter(InboxQuickFilter.mine),
-          ),
-          const SizedBox(width: Space.xs),
-          _QuickFilterPill(
-            key: const Key('quick_filter_unassigned'),
-            label: context.l10n.unassignedFilter,
-            isActive: activeFilter == InboxQuickFilter.unassigned,
-            onTap: () => ref
-                .read(inboxFiltersProvider.notifier)
-                .selectQuickFilter(InboxQuickFilter.unassigned),
-          ),
-          const SizedBox(width: Space.xs),
-          _QuickFilterPill(
-            key: const Key('quick_filter_unread'),
-            label: context.l10n.unreadFilter,
-            isActive: activeFilter == InboxQuickFilter.unread,
-            onTap: () => ref
-                .read(inboxFiltersProvider.notifier)
-                .selectQuickFilter(InboxQuickFilter.unread),
-          ),
-          const SizedBox(width: Space.xs),
-          _QuickFilterPill(
-            key: const Key('quick_filter_open'),
-            label: context.l10n.openFilter,
-            isActive: activeFilter == InboxQuickFilter.open,
-            onTap: () => ref
-                .read(inboxFiltersProvider.notifier)
-                .selectQuickFilter(InboxQuickFilter.open),
-          ),
+          for (final filter in InboxQuickFilter.values) ...[
+            if (filter != InboxQuickFilter.values.first)
+              const SizedBox(width: Space.sm),
+            _QuickFilterPill(
+              key: Key(_keyOf(filter)),
+              label: _labelOf(context, filter),
+              isActive: activeFilter == filter,
+              onTap: () => ref
+                  .read(inboxFiltersProvider.notifier)
+                  .selectQuickFilter(filter),
+            ),
+          ],
         ],
       ),
     );
@@ -97,39 +94,50 @@ class _QuickFilterPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final scheme = theme.colorScheme;
 
-    final backgroundColor = isActive
-        ? theme.colorScheme.primary
-        : (isDark
-              ? theme.colorScheme.surfaceContainerHigh
-              : theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.65,
-                ));
-
-    final textColor = isActive
-        ? theme.colorScheme.onPrimary
-        : theme.colorScheme.onSurfaceVariant;
-
-    return Material(
-      color: backgroundColor,
+    // Selected = filled brand colour with a check; unselected = outlined on
+    // the page. The check means the state never rests on colour alone.
+    final foreground = isActive ? scheme.onPrimary : scheme.onSurface;
+    final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(Radii.pill),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(Radii.pill),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 32),
-          padding: const EdgeInsets.symmetric(
-            horizontal: Space.md - 2,
-            vertical: 6,
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: textColor,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-              fontSize: 12.5,
+      side: isActive
+          ? BorderSide.none
+          : BorderSide(color: scheme.outlineVariant),
+    );
+
+    return Semantics(
+      button: true,
+      selected: isActive,
+      child: Material(
+        color: isActive ? scheme.primary : scheme.surface,
+        shape: shape,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: Sizes.pill),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Space.md + 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isActive) ...[
+                    Icon(Icons.check_rounded, size: 16, color: foreground),
+                    const SizedBox(width: Space.xs),
+                  ],
+                  Text(
+                    label,
+                    maxLines: 1,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: foreground,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 13,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

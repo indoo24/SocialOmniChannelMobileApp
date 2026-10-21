@@ -17,6 +17,7 @@ library;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart' show CancelToken;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -29,8 +30,10 @@ import 'package:record/record.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/message.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/attachment_helper.dart';
+import '../../core/utils/safe_url.dart';
 import '../conversations/conversation_repository.dart';
 import '../../l10n/l10n_extensions.dart';
 
@@ -76,9 +79,18 @@ enum ComposerUploadStatus { uploading, uploaded, failed }
 /// (updated per whole percent of bytes actually sent), [status] for which
 /// state the card is in, [staged] once the server has accepted the draft.
 class ComposerUpload {
-  ComposerUpload._(this.file);
+  ComposerUpload._(this.file, {this.remote, this.remotePreview});
 
   final PickedAttachmentFile file;
+
+  /// For a file already on the server (a saved reply's): makes the draft
+  /// instead of uploading [file], which then has no path.
+  final Future<AttachmentDraft> Function()? remote;
+
+  /// What a [remote] file looks like — its name, type and server URL.
+  final MessageAttachment? remotePreview;
+
+  bool get isRemote => remote != null;
 
   /// Share of this file's request bytes sent (0–1), or null until the first
   /// byte has gone — queued behind other uploads, or still preparing.
@@ -110,6 +122,7 @@ class ComposerUpload {
   /// until then.
   MessageAttachment get preview =>
       staged?.attachment ??
+      remotePreview ??
       MessageAttachment(
         type: file.isImage ? 'IMAGE' : 'FILE',
         fileName: file.name,
@@ -172,6 +185,32 @@ class ComposerUploadQueue extends ChangeNotifier {
     _pump();
   }
 
+  /// Adds a card for a file already on the server — a saved reply's — whose
+  /// draft [stage] makes server-side (no bytes leave the phone). It then
+  /// behaves like any other card: progress until the draft exists, × to
+  /// remove (discarding the draft), retry when that is worth it, and Send
+  /// references its draft. [preview] is the file as the card shows it.
+  void addRemote({
+    required MessageAttachment preview,
+    required Future<AttachmentDraft> Function() stage,
+  }) {
+    if (_disposed) return;
+    final upload = ComposerUpload._(
+      (
+        path: '',
+        name: preview.fileName,
+        size: preview.sizeBytes,
+        isImage: preview.isImage,
+      ),
+      remote: stage,
+      remotePreview: preview,
+    );
+    _items.add(upload);
+    _waiting.add(upload);
+    notifyListeners();
+    _pump();
+  }
+
   /// Removes the uploaded cards and returns their drafts, in card order,
   /// for Send. Uploading and failed cards stay where they are.
   List<StagedAttachment> takeUploaded() {
@@ -226,27 +265,30 @@ class ComposerUploadQueue extends ChangeNotifier {
     upload._token = token;
     final file = upload.file;
     try {
-      final data = await repository.stageAttachment(
-        conversationId,
-        filePath: file.path,
-        fileName: file.name,
-        mimeType: AttachmentHelper.detectMimeType(
-          fileName: file.name,
-          filePath: file.path,
-          headerBytes: await AttachmentHelper.readHeaderBytes(file.path),
-        ),
-        cancelToken: token,
-        onSendProgress: (sent, total) {
-          if (total <= 0 || token.isCancelled) return;
-          final fraction = (sent / total).clamp(0.0, 1.0);
-          final previous = upload.progress.value;
-          // Whole percents only: a large file reports thousands of chunks.
-          if (previous == null ||
-              (fraction * 100).floor() != (previous * 100).floor()) {
-            upload.progress.value = fraction;
-          }
-        },
-      );
+      final remote = upload.remote;
+      final data = remote != null
+          ? await remote()
+          : await repository.stageAttachment(
+              conversationId,
+              filePath: file.path,
+              fileName: file.name,
+              mimeType: AttachmentHelper.detectMimeType(
+                fileName: file.name,
+                filePath: file.path,
+                headerBytes: await AttachmentHelper.readHeaderBytes(file.path),
+              ),
+              cancelToken: token,
+              onSendProgress: (sent, total) {
+                if (total <= 0 || token.isCancelled) return;
+                final fraction = (sent / total).clamp(0.0, 1.0);
+                final previous = upload.progress.value;
+                // Whole percents only: a large file reports thousands of chunks.
+                if (previous == null ||
+                    (fraction * 100).floor() != (previous * 100).floor()) {
+                  upload.progress.value = fraction;
+                }
+              },
+            );
       final staged = StagedAttachment(
         draftId: data.id,
         localPath: file.path,
@@ -255,8 +297,12 @@ class ComposerUploadQueue extends ChangeNotifier {
           type: data.type,
           fileName: data.fileName,
           mimeType: data.mimeType,
-          localFilePath: file.path,
+          // A remote file has no local copy: its server URL lets the sent
+          // bubble show it until the server's message replaces it.
+          url: upload.remotePreview?.url ?? '',
+          localFilePath: upload.isRemote ? null : file.path,
           sizeBytes: file.size ?? data.sizeBytes,
+          durationMs: data.durationMs ?? upload.remotePreview?.durationMs,
         ),
       );
       if (_disposed || !_items.contains(upload)) {
@@ -504,19 +550,15 @@ class _ComposerAttachmentButtonState
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
+    // Borderless, like the saved-replies and microphone buttons beside it.
+    return SizedBox(
       width: 44,
       height: 44,
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(Radii.md),
-      ),
       child: IconButton(
         tooltip: context.l10n.attachmentTooltip,
         padding: EdgeInsets.zero,
         onPressed: widget.enabled ? _openSheet : null,
-        icon: const Icon(Icons.attach_file_rounded, size: 20),
+        icon: const Icon(Icons.attach_file_rounded, size: 22),
       ),
     );
   }
@@ -666,7 +708,7 @@ class _DocumentUploadCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark
             ? theme.colorScheme.surfaceContainerHighest
-            : const Color(0xFFF8FAFC),
+            : AppColors.of(context).background,
         borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(
           color: failed
@@ -894,17 +936,20 @@ class _ImageUploadCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.file(
-              File(upload.file.path),
-              fit: BoxFit.cover,
-              errorBuilder: (context, _, _) => ColoredBox(
-                color: theme.colorScheme.surfaceContainerHighest,
-                child: Icon(
-                  Icons.image_outlined,
-                  color: theme.colorScheme.onSurfaceVariant,
+            if (upload.isRemote)
+              RemoteAttachmentImage(url: upload.preview.resolvedUrl)
+            else
+              Image.file(
+                File(upload.file.path),
+                fit: BoxFit.cover,
+                errorBuilder: (context, _, _) => ColoredBox(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  child: Icon(
+                    Icons.image_outlined,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
-            ),
             if (status == ComposerUploadStatus.uploading)
               ColoredBox(
                 color: Colors.black.withValues(alpha: 0.45),
@@ -959,6 +1004,43 @@ class _ImageUploadCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// An image on the server ([url], session-authenticated), filling its box:
+/// the session cookie is handed to the image loader, which Dio's cookie
+/// interceptor never sees. A neutral tile while it loads or if it cannot.
+class RemoteAttachmentImage extends ConsumerWidget {
+  const RemoteAttachmentImage({required this.url, super.key});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final tile = ColoredBox(
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Icon(
+        Icons.image_outlined,
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+    final safe = SafeUrl.forImage(url);
+    if (safe.isEmpty) return tile;
+    return FutureBuilder<Map<String, String>>(
+      future: ref.read(apiClientProvider).mediaAuthHeaders(),
+      builder: (context, snapshot) {
+        final headers = snapshot.data;
+        if (headers == null) return tile;
+        return CachedNetworkImage(
+          imageUrl: safe,
+          httpHeaders: headers,
+          fit: BoxFit.cover,
+          placeholder: (_, _) => tile,
+          errorWidget: (_, _, _) => tile,
+        );
+      },
     );
   }
 }
@@ -1251,7 +1333,9 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
-                        color: isDark ? Colors.white : const Color(0xFF1E293B),
+                        color: isDark
+                            ? Colors.white
+                            : AppColors.of(context).foreground,
                       ),
                     ),
                   ),
@@ -1266,7 +1350,7 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
                         fontWeight: FontWeight.w500,
                         color: isDark
                             ? Colors.white60
-                            : const Color(0xFF64748B),
+                            : AppColors.of(context).mutedForeground,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -1281,7 +1365,9 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               icon: Icon(
                 Icons.delete_outline,
-                color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                color: isDark
+                    ? Colors.white70
+                    : AppColors.of(context).mutedForeground,
                 size: 20,
               ),
               onPressed: _cancel,

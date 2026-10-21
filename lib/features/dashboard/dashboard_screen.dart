@@ -15,6 +15,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/router.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/directory.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/cache/cached_async_value.dart';
 import '../../core/widgets/avatar.dart';
@@ -257,23 +258,21 @@ class _ReviewCallout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = AppColors.of(context);
+    // Text in the theme's own foreground: the light tint's fixed black text
+    // was unreadable once the banner follows dark mode.
+    final ink = colors.foreground.withValues(alpha: 0.75);
     return Container(
       padding: const EdgeInsets.all(Space.md),
       decoration: BoxDecoration(
-        color: ScenarioColors.warningSurface,
+        color: colors.warningSurface,
         borderRadius: BorderRadius.circular(Radii.lg),
-        border: Border.all(
-          color: ScenarioColors.warning.withValues(alpha: 0.35),
-        ),
+        border: Border.all(color: colors.warning.withValues(alpha: 0.35)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            size: 20,
-            color: ScenarioColors.warning,
-          ),
+          Icon(Icons.warning_amber_rounded, size: 20, color: colors.warning),
           const SizedBox(width: Space.sm),
           Expanded(
             child: Column(
@@ -281,9 +280,7 @@ class _ReviewCallout extends StatelessWidget {
               children: [
                 Text(
                   context.l10n.reviewNeededMessage(count),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: Colors.black38,
-                  ),
+                  style: theme.textTheme.titleSmall?.copyWith(color: ink),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -297,16 +294,16 @@ class _ReviewCallout extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       elevation: 3,
                       shape: BeveledRectangleBorder(
-                        side: BorderSide(color: Colors.black45),
+                        side: BorderSide(color: ink),
                       ),
-                      backgroundColor: ScenarioColors.warningSurface,
+                      backgroundColor: colors.warningSurface,
                     ),
                     onPressed: () {
                       context.go('/inbox');
                     },
                     child: Text(
                       context.l10n.checkInboxButton,
-                      style: const TextStyle(color: Colors.black45),
+                      style: TextStyle(color: ink),
                     ),
                   ),
                 ),

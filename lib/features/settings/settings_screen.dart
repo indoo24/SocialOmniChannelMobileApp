@@ -44,6 +44,7 @@ import 'channel_connect_sheets.dart';
 import 'more_settings_tab.dart';
 import 'settings_skeleton.dart';
 import 'workload_window_card.dart';
+import 'appearance_settings.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -379,7 +380,6 @@ class _PreferencesSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
 
     return Column(
@@ -394,32 +394,8 @@ class _PreferencesSection extends ConsumerWidget {
         ),
         const SizedBox(height: Space.md),
 
-        Text(context.l10n.themeLabel, style: theme.textTheme.bodySmall),
-        const SizedBox(height: Space.sm),
-        Wrap(
-          spacing: Space.sm,
-          runSpacing: Space.sm,
-          children: [
-            ChoiceChip(
-              label: Text(context.l10n.themeSystem),
-              selected: themeMode == ThemeMode.system,
-              onSelected: (_) =>
-                  ref.read(themeModeProvider.notifier).update(ThemeMode.system),
-            ),
-            ChoiceChip(
-              label: Text(context.l10n.themeLight),
-              selected: themeMode == ThemeMode.light,
-              onSelected: (_) =>
-                  ref.read(themeModeProvider.notifier).update(ThemeMode.light),
-            ),
-            ChoiceChip(
-              label: Text(context.l10n.themeDark),
-              selected: themeMode == ThemeMode.dark,
-              onSelected: (_) =>
-                  ref.read(themeModeProvider.notifier).update(ThemeMode.dark),
-            ),
-          ],
-        ),
+        // Colour theme and light/dark mode, both applied immediately.
+        const AppearanceSettings(),
 
         const SizedBox(height: Space.lg),
         Text(context.l10n.languageLabel, style: theme.textTheme.bodySmall),
@@ -1582,14 +1558,19 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
     );
   }
 
-  Future<void> _run(Future<void> Function() action) async {
-    if (_busy) return;
+  /// Runs [action]; true once it succeeded. A failure is shown here, and
+  /// whatever follows a success (refreshing the inbox, saying it was done)
+  /// must not run after one.
+  Future<bool> _run(Future<void> Function() action) async {
+    if (_busy) return false;
     setState(() => _busy = true);
     try {
       await action();
       ref.invalidate(channelsProvider);
+      return true;
     } on ApiException catch (error) {
       _showMessage(error.message, isError: true);
+      return false;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -1669,7 +1650,7 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
     );
     if (confirmed != true || !mounted) return;
 
-    await _run(() async {
+    final disconnected = await _run(() async {
       final repository = ref.read(directoryRepositoryProvider);
       switch (channel.provider) {
         case 'WHATSAPP':
@@ -1682,10 +1663,14 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
           await repository.disconnectTikTok(channel.id);
       }
     });
+    if (!disconnected) return;
 
     // A disconnect is a direct REST mutation from this screen, not a
-    // realtime event — nothing else in the app would otherwise notice that
-    // GET /api/conversations/ just started excluding this channel's rows.
+    // realtime event — nothing else in the app would otherwise notice it.
+    // The server keeps the account's conversations and still lists them by
+    // default; the inbox leaves them out by asking only for eligible
+    // accounts (`eligibleInboxAccounts`), read from the account list this
+    // reload fetches afresh.
     // Same reconciliation `realtime_bridge.dart` runs for every other
     // server-side change that can alter the list: refetch the inbox (REST
     // stays the single source of truth — no local filtering by provider)
@@ -1747,10 +1732,11 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
     );
     if (confirmed != true || !mounted) return;
 
-    await _run(() async {
+    final deleted = await _run(() async {
       final repository = ref.read(directoryRepositoryProvider);
       await repository.deleteChannel(channel.id);
     });
+    if (!deleted) return;
 
     // A channel changed, which can add or remove rows anywhere in the
     // list — not only at the top — so reload the list from the top rather

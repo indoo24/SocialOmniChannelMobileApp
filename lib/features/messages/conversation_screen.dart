@@ -14,8 +14,10 @@ import '../../core/models/conversation.dart';
 import '../../core/models/employee.dart';
 import '../../core/models/message.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
+import '../../core/utils/text_direction.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
@@ -29,6 +31,7 @@ import '../saved_replies/saved_reply.dart';
 import '../saved_replies/saved_reply_picker.dart';
 import '../../core/models/template.dart';
 import 'assign_conversation_sheet.dart';
+import 'conversation_review.dart' show ConversationReviewBanner;
 import 'composer_attachment.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
@@ -879,6 +882,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         ),
         data: (state) => Column(
           children: [
+            // Above the thread, never in the composer's place: a pending
+            // review leaves replying exactly as it was.
+            if (state.conversation.review case final review?)
+              ConversationReviewBanner(
+                conversationId: widget.conversationId,
+                review: review,
+              ),
             Expanded(
               child: Stack(
                 children: [
@@ -1005,13 +1015,15 @@ class _FollowUpButton extends ConsumerWidget {
 
     return IconButton(
       tooltip: tooltip,
-      visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      constraints: const BoxConstraints(
+        minWidth: Sizes.touchTarget,
+        minHeight: Sizes.touchTarget,
+      ),
       icon: Icon(
         isFollowUp ? Icons.flag_rounded : Icons.flag_outlined,
         color: flagColor,
-        size: 20,
+        size: Sizes.iconMd + 2,
       ),
       onPressed: canChange
           ? () => _showFollowUpDialog(context, ref, conversation)
@@ -1073,7 +1085,8 @@ class _AssigneeAvatar extends StatelessWidget {
           conversation: conversation,
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          // 26 px avatar + 9 px each side = a 44 px target.
+          padding: const EdgeInsets.all(9),
           child: avatar,
         ),
       ),
@@ -1320,7 +1333,7 @@ class _ScrollToBottomButton extends StatelessWidget {
                   border: Border.all(
                     color: isDark
                         ? theme.colorScheme.outline
-                        : const Color(0xFFE2E8F0),
+                        : AppColors.of(context).border,
                     width: 1,
                   ),
                 ),
@@ -1376,12 +1389,12 @@ class _Header extends StatelessWidget {
                       conversation.customer.displayName as String,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                        fontSize: 14,
+                        height: 1.25,
                       ),
                     ),
-                    const SizedBox(height: 1.5),
+                    const SizedBox(height: Space.xxs),
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final maxW = constraints.maxWidth;
@@ -1409,11 +1422,7 @@ class _Header extends StatelessWidget {
                                 _formatSubtitle(context, conversation),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  fontSize: 11,
-                                  color: theme.textTheme.labelSmall?.color
-                                      ?.withValues(alpha: 0.75),
-                                ),
+                                style: theme.textTheme.bodySmall,
                               ),
                             ),
                           ],
@@ -1434,7 +1443,9 @@ class _Header extends StatelessWidget {
     final phone = conversation.customer.phone as String?;
     final channelName = conversation.channelName as String?;
     final parts = <String>[
-      if (phone != null && phone.isNotEmpty) '@$phone',
+      // Isolated left-to-right, so in Arabic a leading `+` or the `@` does
+      // not jump to the far end of the number.
+      if (phone != null && phone.isNotEmpty) '\u2066@$phone\u2069',
       if (channelName != null && channelName.isNotEmpty) channelName,
     ];
     if (parts.isNotEmpty) return parts.join(' · ');
@@ -1453,22 +1464,18 @@ class _ChannelPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final (icon, color, label) = _providerInfo(context, provider);
+    final (icon, color, label) = _providerInfo(context, provider, isDark);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: isDark ? 0.2 : 0.1),
+        color: color.withValues(alpha: isDark ? 0.16 : 0.1),
         borderRadius: BorderRadius.circular(Radii.pill),
-        border: Border.all(
-          color: color.withValues(alpha: isDark ? 0.35 : 0.25),
-          width: 0.8,
-        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 10.5, color: color),
+          Icon(icon, size: 12, color: color),
           const SizedBox(width: 3),
           Flexible(
             child: Text(
@@ -1476,8 +1483,9 @@ class _ChannelPill extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
+                height: 1.35,
                 color: color,
               ),
             ),
@@ -1487,24 +1495,53 @@ class _ChannelPill extends StatelessWidget {
     );
   }
 
+  /// Glyph, text colour and name of the channel. The text colours are darker
+  /// (light theme) or lighter (dark theme) than the brand colours, which
+  /// are too faint as small text on either background.
   static (IconData, Color, String) _providerInfo(
     BuildContext context,
     String provider,
-  ) => switch (provider.toUpperCase()) {
-    'WHATSAPP' => (
-      Icons.chat_bubble_rounded,
-      const Color(0xFF16A34A),
-      'WhatsApp',
-    ),
-    'MESSENGER' => (Icons.facebook, const Color(0xFF2563EB), 'Messenger'),
-    'INSTAGRAM' => (
-      Icons.camera_alt_outlined,
-      const Color(0xFFE11D48),
-      'Instagram',
-    ),
-    'TELEGRAM' => (Icons.send_rounded, const Color(0xFF0284C7), 'Telegram'),
-    _ => (Icons.chat_bubble_outline_rounded, ScenarioColors.primary, provider),
-  };
+    bool isDark,
+  ) {
+    final key = provider.toUpperCase();
+    final label = switch (key) {
+      'MESSENGER' => 'Messenger',
+      'TELEGRAM' => 'Telegram',
+      _ => ConversationBadges.providerLabel(context, key),
+    };
+    return switch (key) {
+      'WHATSAPP' => (
+        Icons.chat_bubble_rounded,
+        isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+        label,
+      ),
+      'FACEBOOK' || 'MESSENGER' => (
+        Icons.facebook,
+        isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
+        label,
+      ),
+      'INSTAGRAM' => (
+        Icons.camera_alt_outlined,
+        isDark ? const Color(0xFFFB7185) : const Color(0xFFBE123C),
+        label,
+      ),
+      'TIKTOK' => (
+        Icons.music_note,
+        Theme.of(context).colorScheme.onSurface,
+        label,
+      ),
+      'TELEGRAM' => (
+        Icons.send_rounded,
+        isDark ? const Color(0xFF38BDF8) : const Color(0xFF0369A1),
+        label,
+      ),
+      _ => (
+        Icons.chat_bubble_outline_rounded,
+        Theme.of(context).colorScheme.primary,
+        label,
+      ),
+    };
+  }
 }
 
 class _TimelineEntry {
@@ -1620,6 +1657,14 @@ class _MessageList extends ConsumerWidget {
           final previous = offset > 0 ? entries[offset - 1] : null;
           final showDay =
               previous == null || !_sameDay(previous.time, entry.time);
+          final previousMessage = previous?.message;
+          final isContinuation =
+              !showDay &&
+              entry.message != null &&
+              previousMessage != null &&
+              !previousMessage.isSystem &&
+              previousMessage.isOutbound == entry.message!.isOutbound &&
+              entry.time.difference(previous.time).abs() < _runGap;
 
           // Stable identity so prepending older history (pagination) or
           // inserting a realtime message reuses existing elements instead of
@@ -1641,6 +1686,7 @@ class _MessageList extends ConsumerWidget {
                       ? keyForMessage?.call(entry.message!.id)
                       : null,
                   message: entry.message!,
+                  isContinuation: isContinuation,
                   provider: state.conversation.provider,
                   onRetry: _retryHandlerFor(
                     ref,
@@ -1686,6 +1732,9 @@ class _MessageList extends ConsumerWidget {
       ),
     );
   }
+
+  /// Messages from the same side closer together than this read as one run.
+  static const _runGap = Duration(minutes: 5);
 
   static bool _sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
@@ -1939,36 +1988,33 @@ class _DayDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // A small centred label on the page, not a full-width rule: it marks the
+    // day without looking like part of the bubble above or below it.
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: Space.md),
-      child: Row(
-        children: [
-          Expanded(
-            child: Divider(
-              color: theme.colorScheme.outline.withValues(alpha: 0.5),
-              height: 1,
-            ),
+      padding: const EdgeInsets.only(top: Space.lg, bottom: Space.sm),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Space.md,
+            vertical: Space.xs,
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Space.md),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(Radii.pill),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+          child: Semantics(
+            header: true,
             child: Text(
               formatDayHeading(context, date),
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.textTheme.labelSmall?.color?.withValues(
-                  alpha: 0.7,
-                ),
+              style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 11.5,
+                height: 1.2,
               ),
             ),
           ),
-          Expanded(
-            child: Divider(
-              color: theme.colorScheme.outline.withValues(alpha: 0.5),
-              height: 1,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1996,48 +2042,58 @@ class _SegmentTab extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(Radii.pill),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: active
-                ? activeColor.withValues(alpha: isDark ? 0.25 : 0.12)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(Radii.pill),
-            border: Border.all(
-              color: active
-                  ? activeColor.withValues(alpha: isDark ? 0.5 : 0.3)
-                  : Colors.transparent,
-              width: 1,
+    return Semantics(
+      button: true,
+      selected: active,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(Radii.pill),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            constraints: const BoxConstraints(minHeight: 34),
+            padding: const EdgeInsets.symmetric(
+              horizontal: Space.md,
+              vertical: 6,
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 14,
+            decoration: BoxDecoration(
+              color: active
+                  ? activeColor.withValues(alpha: isDark ? 0.25 : 0.12)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(Radii.pill),
+              border: Border.all(
                 color: active
-                    ? activeColor
-                    : theme.colorScheme.onSurfaceVariant,
+                    ? activeColor.withValues(alpha: isDark ? 0.5 : 0.3)
+                    : Colors.transparent,
+                width: 1,
               ),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: Sizes.iconSm,
                   color: active
                       ? activeColor
-                      : theme.colorScheme.onSurfaceVariant,
+                      : theme.textTheme.bodySmall?.color,
                 ),
-              ),
-            ],
+                const SizedBox(width: Space.xs + 2),
+                Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.2,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                    color: active
+                        ? activeColor
+                        : theme.textTheme.bodySmall?.color,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -2251,6 +2307,29 @@ class _ComposerState extends ConsumerState<_Composer> {
       text: result.text,
       selection: TextSelection.collapsed(offset: result.caret),
     );
+
+    // Its file joins the composer as an attachment card: the server copies
+    // it into a draft (nothing is uploaded from the phone), it can be
+    // removed before sending, and Send carries it with the text like any
+    // attached file. Never pasted in as a link.
+    final asset = reply.asset;
+    if (asset == null) return;
+    if (!(conversation?.outboundMedia ?? true)) {
+      // This channel takes no files from an agent: the text is in, the
+      // file is not — and the agent is told so.
+      _showMessage(context.l10n.savedReplyMediaNotSupportedOnChannel);
+      return;
+    }
+    if (_uploads.count >= maxComposerAttachments) {
+      _showMessage(context.l10n.attachmentLimitReached);
+      return;
+    }
+    final repository = ref.read(conversationRepositoryProvider);
+    _uploads.addRemote(
+      preview: asset.toAttachment(),
+      stage: () =>
+          repository.attachmentFromSavedReply(widget.conversationId, reply.id),
+    );
   }
 
   void _onVoiceStaged(StagedAttachment staged) {
@@ -2345,7 +2424,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                     label: context.l10n.replyTab,
                     icon: Icons.chat_bubble_outline_rounded,
                     active: currentMode == _ComposerMode.reply,
-                    activeColor: ScenarioColors.primary,
+                    activeColor: theme.colorScheme.primary,
                     onTap: () {
                       _userToggledMode = true;
                       setState(() => _mode = _ComposerMode.reply);
@@ -2372,9 +2451,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                       label: context.l10n.templateTab,
                       icon: Icons.description_outlined,
                       active: currentMode == _ComposerMode.template,
-                      activeColor: isDark
-                          ? const Color(0xFFA5B4FC)
-                          : const Color(0xFF4F46E5),
+                      activeColor: theme.colorScheme.primary,
                       onTap: () {
                         _userToggledMode = true;
                         setState(() => _mode = _ComposerMode.template);
@@ -2455,11 +2532,12 @@ class _ComposerState extends ConsumerState<_Composer> {
                       // WhatsApp's 24-hour window the composer shows the
                       // template route instead.
                       SizedBox(
-                        width: 40,
-                        height: 44,
+                        width: Sizes.touchTarget,
+                        height: Sizes.touchTarget,
                         child: IconButton(
                           key: const Key('savedRepliesButton'),
                           tooltip: context.l10n.savedRepliesTooltip,
+                          padding: EdgeInsets.zero,
                           onPressed: widget.sending ? null : _insertSavedReply,
                           icon: const Icon(Icons.quickreply_outlined, size: 22),
                         ),
@@ -2467,18 +2545,40 @@ class _ComposerState extends ConsumerState<_Composer> {
                       const SizedBox(width: Space.xs),
                       // Text input in the middle
                       Expanded(
-                        child: TextField(
-                          key: const ValueKey('composer_reply_input'),
-                          controller: widget.controller,
-                          minLines: 1,
-                          maxLines: 5,
-                          textCapitalization: TextCapitalization.sentences,
-                          keyboardType: TextInputType.multiline,
-                          decoration: InputDecoration(
-                            hintText: context.l10n.writeReplyHint,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: Space.md,
-                              vertical: 10,
+                        // Runs in the direction of what is typed: Arabic
+                        // right-to-left in the English app, and the reverse.
+                        child: ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: widget.controller,
+                          builder: (context, value, _) => TextField(
+                            key: const ValueKey('composer_reply_input'),
+                            controller: widget.controller,
+                            textDirection: inputDirectionOf(value.text),
+                            minLines: 1,
+                            maxLines: 5,
+                            textCapitalization: TextCapitalization.sentences,
+                            keyboardType: TextInputType.multiline,
+                            style: theme.textTheme.bodyLarge,
+                            decoration: InputDecoration(
+                              hintText: context.l10n.writeReplyHint,
+                              isDense: true,
+                              filled: true,
+                              fillColor: isDark
+                                  ? theme.colorScheme.surfaceContainerHighest
+                                  : theme.scaffoldBackgroundColor,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: Space.lg,
+                                vertical: 12,
+                              ),
+                              border: _composerFieldBorder(
+                                theme.colorScheme.outlineVariant,
+                              ),
+                              enabledBorder: _composerFieldBorder(
+                                theme.colorScheme.outlineVariant,
+                              ),
+                              focusedBorder: _composerFieldBorder(
+                                theme.colorScheme.primary,
+                                width: 1.5,
+                              ),
                             ),
                           ),
                         ),
@@ -2499,7 +2599,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                             }
                           },
                         ),
-                      const SizedBox(width: Space.xs),
+                      const SizedBox(width: Space.xxs),
                       // Send button fixed at far right
                       SizedBox(
                         width: 44,
@@ -2540,67 +2640,76 @@ class _ComposerState extends ConsumerState<_Composer> {
             ] else if (currentMode == _ComposerMode.internalNote) ...[
               Column(
                 children: [
-                  TextField(
-                    key: const ValueKey('composer_internal_note_input'),
-                    controller: widget.controller,
-                    minLines: 2,
-                    maxLines: 5,
-                    textCapitalization: TextCapitalization.sentences,
-                    keyboardType: TextInputType.multiline,
-                    decoration: InputDecoration(
-                      filled: true,
-                      hintText: context.l10n.internalNoteInputHint,
-                      fillColor: isDark
-                          ? ScenarioColors.warning.withValues(alpha: 0.1)
-                          : const Color(0xFFFFFBEB),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Radii.md),
-                        borderSide: BorderSide(
-                          color: isDark
-                              ? const Color(0xFFFBBF24)
-                              : const Color(0xFFEAB308),
-                          width: 1.5,
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: widget.controller,
+                    builder: (context, value, _) => TextField(
+                      key: const ValueKey('composer_internal_note_input'),
+                      controller: widget.controller,
+                      textDirection: inputDirectionOf(value.text),
+                      minLines: 2,
+                      maxLines: 5,
+                      textCapitalization: TextCapitalization.sentences,
+                      keyboardType: TextInputType.multiline,
+                      decoration: InputDecoration(
+                        filled: true,
+                        hintText: context.l10n.internalNoteInputHint,
+                        fillColor: isDark
+                            ? ScenarioColors.warning.withValues(alpha: 0.1)
+                            : const Color(0xFFFFFBEB),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(Radii.md),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? const Color(0xFFFBBF24)
+                                : const Color(0xFFEAB308),
+                            width: 1.5,
+                          ),
                         ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Radii.md),
-                        borderSide: BorderSide(
-                          color: isDark
-                              ? ScenarioColors.warning.withValues(alpha: 0.3)
-                              : const Color(0xFFFDE68A),
-                          width: 1,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(Radii.md),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? ScenarioColors.warning.withValues(alpha: 0.3)
+                                : const Color(0xFFFDE68A),
+                            width: 1,
+                          ),
                         ),
+                        contentPadding: const EdgeInsets.all(Space.md),
                       ),
-                      contentPadding: const EdgeInsets.all(Space.md),
                     ),
                   ),
                   const SizedBox(height: Space.sm),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.lock_outline_rounded,
-                            size: 13,
-                            color: isDark
-                                ? const Color(0xFFFBBF24)
-                                : const Color(0xFFB45309),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            context.l10n.notSentToCustomer,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                      // Takes what the button leaves and wraps if it must,
+                      // so Save note always fits beside it.
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.lock_outline_rounded,
+                              size: 13,
                               color: isDark
                                   ? const Color(0xFFFBBF24)
                                   : const Color(0xFFB45309),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                context.l10n.notSentToCustomer,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark
+                                      ? const Color(0xFFFBBF24)
+                                      : const Color(0xFFB45309),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: Space.sm),
                       FilledButton.icon(
                         style: FilledButton.styleFrom(
                           minimumSize: const Size(0, 36),
@@ -2811,7 +2920,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                                 ),
                                 const SizedBox(width: Space.xs),
                                 IconButton(
-                                  tooltip: 'Reset',
+                                  tooltip: context.l10n.refreshAction,
                                   icon: const Icon(Icons.refresh_rounded),
                                   onPressed: () {
                                     setState(() => _selectedTemplate = null);
@@ -2929,6 +3038,14 @@ class _ComposerState extends ConsumerState<_Composer> {
     );
   }
 }
+
+/// The reply field's outline: a fully rounded field, so it reads as the
+/// place to type rather than as one more form box.
+OutlineInputBorder _composerFieldBorder(Color color, {double width = 1}) =>
+    OutlineInputBorder(
+      borderRadius: BorderRadius.circular(Radii.xl + 4),
+      borderSide: BorderSide(color: color, width: width),
+    );
 
 class _WhatsAppWindowClosedCallout extends StatelessWidget {
   const _WhatsAppWindowClosedCallout({
@@ -3094,7 +3211,7 @@ class _ConversationClosedNotice extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark
             ? theme.colorScheme.surfaceContainerHighest
-            : const Color(0xFFF1F5F9),
+            : AppColors.of(context).muted,
         borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(
           color: theme.colorScheme.outline.withValues(alpha: 0.5),

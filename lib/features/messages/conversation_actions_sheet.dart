@@ -12,8 +12,10 @@ import '../../core/models/conversation.dart';
 import '../../core/models/employee.dart';
 import '../../core/models/performance.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
+import '../../core/utils/text_direction.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
@@ -24,6 +26,8 @@ import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
 import 'assign_conversation_sheet.dart';
 import 'conversation_controller.dart';
+import 'conversation_review.dart'
+    show showConversationReviewSheet, showRequestReviewSheet;
 import 'conversation_history_sheet.dart';
 import 'conversion_sheet.dart';
 import 'customer_intelligence_section.dart';
@@ -31,9 +35,11 @@ import 'intelligence_providers.dart';
 import 'notes_sheet.dart';
 import '../customer_fields/custom_fields_section.dart';
 import '../directory/edit_customer_sheet.dart';
+import '../directory/save_to_contacts.dart';
 import '../orders/customer_data_sheet.dart';
 import '../orders/order_and_fact_dialogs.dart';
 import '../orders/order_details.dart';
+import '../conversations/conversation_pin.dart';
 
 const _statuses = [
   'OPEN',
@@ -119,7 +125,13 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
     }
   }
 
-  Future<void> _run(Future<void> Function() action, String success) async {
+  /// Runs [action], then closes the sheet and confirms with [success] — or,
+  /// when [onSuccess] is given, lets it confirm instead.
+  Future<void> _run(
+    Future<void> Function() action,
+    String success, {
+    void Function(BuildContext context)? onSuccess,
+  }) async {
     setState(() => _busy = true);
     try {
       await action();
@@ -127,9 +139,13 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
       ref.invalidate(conversationControllerProvider(widget.conversationId));
       ref.read(inboxControllerProvider.notifier).refreshQuietly();
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(success)));
+      if (onSuccess != null) {
+        onSuccess(context);
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(success)));
+      }
     } on ApiException catch (error) {
       if (!mounted) return;
       setState(() => _busy = false);
@@ -233,18 +249,19 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
           ),
 
         // ------------------------------------------------------------
-        // TOP RESOLVED ACTION BUTTON
+        // TOP QUICK ACTIONS: PIN AND REVIEW
         // ------------------------------------------------------------
-        _SheetResolveButton(
-          conversation: conversation,
-          canChange: canChangeStatus && conversation != null,
-          busy: _busy,
-          onResolve: () => _run(
-            () => repository.changeStatus(widget.conversationId, 'RESOLVED'),
-            context.l10n.statusUpdatedMessage,
+        // Resolve lives in the conversation's top bar.
+        if (conversation != null) ...[
+          Row(
+            children: [
+              Expanded(child: _SheetPinButton(conversation: conversation)),
+              const SizedBox(width: Space.sm),
+              Expanded(child: _SheetReviewButton(conversation: conversation)),
+            ],
           ),
-        ),
-        const SizedBox(height: Space.lg),
+          const SizedBox(height: Space.lg),
+        ],
 
         // ------------------------------------------------------------
         // 1. CONTACT SECTION
@@ -256,22 +273,35 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
         _SectionCard(
           title: context.l10n.contactSectionTitle,
           icon: Icons.person_outline,
-          trailing: (canEditCustomer && customerId != null)
-              ? TextButton(
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Space.sm,
-                      vertical: 2,
+          trailing: conversation == null
+              ? null
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Offered even without a number, so tapping it can say
+                    // why there is nothing to save.
+                    SaveToContactsButton(
+                      name: conversation.customer.displayName,
+                      phone: _customerPhone(ref, conversation.customer),
+                      compact: true,
                     ),
-                    visualDensity: VisualDensity.compact,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  onPressed: _editing
-                      ? null
-                      : () => _openEditCustomer(customerId),
-                  child: Text(context.l10n.contactEditButton),
-                )
-              : null,
+                    if (canEditCustomer && customerId != null)
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: Space.sm,
+                            vertical: 2,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: _editing
+                            ? null
+                            : () => _openEditCustomer(customerId),
+                        child: Text(context.l10n.contactEditButton),
+                      ),
+                  ],
+                ),
           child: conversation == null
               ? const LoadingState()
               : _CustomerDetailsView(conversation: conversation),
@@ -808,6 +838,16 @@ class _SectionCardState extends State<_SectionCard> {
   }
 }
 
+/// The customer's number as the backend has it. The conversation's `customer`
+/// carries no identities, so when it has no stored phone, fall back to the
+/// WhatsApp number on the customer detail. Empty when neither exists.
+String _customerPhone(WidgetRef ref, CustomerBrief customer) {
+  if (customer.phone.isNotEmpty) return customer.phone;
+  if (customer.id <= 0) return '';
+  return ref.watch(customerDetailProvider(customer.id)).value?.displayPhone ??
+      '';
+}
+
 // ---------------------------------------------------------------------------
 // 1. CUSTOMER DETAILS VIEW
 // ---------------------------------------------------------------------------
@@ -820,15 +860,7 @@ class _CustomerDetailsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final customer = conversation.customer;
-    // The conversation's `customer` carries no identities, so when it has no
-    // stored phone, fall back to the WhatsApp number on the customer detail.
-    final phone = customer.phone.isNotEmpty
-        ? customer.phone
-        : (customer.id > 0
-                  ? ref.watch(customerDetailProvider(customer.id)).value
-                  : null)
-              ?.displayPhone ??
-              '';
+    final phone = _customerPhone(ref, customer);
 
     final inboxState = ref.watch(inboxControllerProvider).value;
     final groups = inboxState?.groups ?? const [];
@@ -957,11 +989,16 @@ class _CustomerDetailsView extends ConsumerWidget {
             value: customer.preferredLanguage,
           ),
         if (phone.isNotEmpty)
-          _KeyValueRow(label: context.l10n.phoneFieldLabel, value: phone),
+          _KeyValueRow(
+            label: context.l10n.phoneFieldLabel,
+            value: phone,
+            ltr: true,
+          ),
         if (customer.email.isNotEmpty)
           _KeyValueRow(
             label: context.l10n.emailFieldLabel,
             value: customer.email,
+            ltr: true,
           ),
         if (customer.city.isNotEmpty || customer.country.isNotEmpty)
           _KeyValueRow(
@@ -1108,10 +1145,18 @@ class _CustomerDataPreview extends StatelessWidget {
 }
 
 class _KeyValueRow extends StatelessWidget {
-  const _KeyValueRow({required this.label, required this.value});
+  const _KeyValueRow({
+    required this.label,
+    required this.value,
+    this.ltr = false,
+  });
 
   final String label;
   final String value;
+
+  /// For phone numbers and e-mail addresses: always left-to-right, so in
+  /// Arabic a leading `+` stays in front of the number.
+  final bool ltr;
 
   @override
   Widget build(BuildContext context) {
@@ -1133,6 +1178,8 @@ class _KeyValueRow extends StatelessWidget {
           Expanded(
             child: Text(
               value.isEmpty ? '—' : value,
+              textDirection: ltr && value.isNotEmpty ? TextDirection.ltr : null,
+              textAlign: ltr ? ambientStartAlign(context) : null,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -1596,110 +1643,110 @@ class _Label extends StatelessWidget {
   );
 }
 
-/// Prominent "Resolved" action button displayed at the top of the actions bottom sheet,
-/// styled with the Web green resolve tokens.
-class _SheetResolveButton extends StatelessWidget {
-  const _SheetResolveButton({
-    required this.conversation,
-    required this.canChange,
-    required this.busy,
-    required this.onResolve,
-  });
+/// Pin / unpin for the signed-in employee. The title follows the state the
+/// server confirmed (this sheet shows the conversation's controller), and
+/// the button waits while a request is on its way.
+class _SheetPinButton extends ConsumerWidget {
+  const _SheetPinButton({required this.conversation});
 
-  final Conversation? conversation;
-  final bool canChange;
-  final bool busy;
-  final VoidCallback onResolve;
+  final Conversation conversation;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final busy = ref.watch(pinningProvider).contains(conversation.id);
+    final (label, icon) = pinActionLabel(context.l10n, conversation.isPinned);
+    return _SheetQuickAction(
+      key: const Key('conversation_actions_sheet_pin_button'),
+      icon: icon,
+      label: label,
+      selected: conversation.isPinned,
+      busy: busy,
+      onPressed: () => toggleConversationPin(
+        context,
+        conversationId: conversation.id,
+        currentlyPinned: conversation.isPinned,
+      ),
+    );
+  }
+}
+
+/// Request a review when there is none; open the pending one otherwise,
+/// highlighted as a pinned pin is.
+class _SheetReviewButton extends StatelessWidget {
+  const _SheetReviewButton({required this.conversation});
+
+  final Conversation conversation;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isResolved = conversation?.status.toUpperCase() == 'RESOLVED';
+    final l10n = context.l10n;
+    final review = conversation.review;
+    return _SheetQuickAction(
+      key: const Key('conversation_actions_sheet_review_button'),
+      icon: review == null ? Icons.rate_review_outlined : Icons.rate_review,
+      label: review == null
+          ? l10n.requestReviewAction
+          : l10n.reviewSectionTitle,
+      selected: review != null,
+      onPressed: () => review == null
+          ? showRequestReviewSheet(context, conversationId: conversation.id)
+          : showConversationReviewSheet(
+              context,
+              conversationId: conversation.id,
+            ),
+    );
+  }
+}
 
-    final Color backgroundColor = isDark
-        ? const Color(0xFF065F46).withValues(alpha: isResolved ? 0.35 : 0.20)
-        : (isResolved ? const Color(0xFFD1FAE5) : const Color(0xFFECFDF5));
+/// An icon with its title, outlined; tinted in the primary colour while
+/// [selected]. A spinner stands in for the icon while [busy].
+class _SheetQuickAction extends StatelessWidget {
+  const _SheetQuickAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.selected = false,
+    this.busy = false,
+    super.key,
+  });
 
-    final Color borderColor = isDark
-        ? const Color(0xFF059669)
-        : const Color(0xFF6EE7B7);
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final bool selected;
+  final bool busy;
 
-    final Color foregroundColor = isDark
-        ? const Color(0xFF6EE7B7)
-        : const Color(0xFF065F46);
-
-    final bool isEnabled = canChange && !busy && !isResolved;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        key: const Key('conversation_actions_sheet_resolve_button'),
-        borderRadius: BorderRadius.circular(Radii.md),
-        onTap: isEnabled
-            ? onResolve
-            : (isResolved
-                  ? () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(context.l10n.statusUpdatedMessage),
-                        ),
-                      );
-                    }
-                  : null),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(
-            horizontal: Space.md,
-            vertical: 12.0,
-          ),
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(Radii.md),
-            border: Border.all(color: borderColor, width: 1.0),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (busy)
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: foregroundColor,
-                  ),
-                )
-              else
-                Icon(
-                  isResolved ? Icons.check_circle_rounded : Icons.check_rounded,
-                  size: 18,
-                  color: foregroundColor,
-                ),
-              const SizedBox(width: Space.sm),
-              Text(
-                context.l10n.statusResolved,
-                style: TextStyle(
-                  color: foregroundColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
-                ),
-              ),
-              if (isResolved) ...[
-                const SizedBox(width: Space.xs),
-                Text(
-                  '✓',
-                  style: TextStyle(
-                    color: foregroundColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ],
-          ),
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return OutlinedButton.icon(
+      onPressed: busy ? null : onPressed,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 46),
+        padding: const EdgeInsets.symmetric(horizontal: Space.sm),
+        foregroundColor: selected
+            ? colors.primary
+            : Theme.of(context).colorScheme.onSurface,
+        backgroundColor: selected
+            ? colors.primary.withValues(alpha: 0.08)
+            : null,
+        side: BorderSide(
+          color: selected
+              ? colors.primary.withValues(alpha: 0.5)
+              : colors.border,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
       ),
+      icon: busy
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(icon, size: 20),
+      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
     );
   }
 }

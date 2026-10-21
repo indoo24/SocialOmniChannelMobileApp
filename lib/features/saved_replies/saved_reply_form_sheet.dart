@@ -10,17 +10,32 @@
 /// `scope` is immutable once a reply exists: on edit it is shown read-only
 /// (as plain text, not a field), and is never sent in the update payload,
 /// matching the API's own "scope cannot change" contract.
+///
+/// A reply may carry one file (`saved_reply_attachment_field.dart`). Saving
+/// stores the text first, then uploads the file to that reply
+/// (`POST /saved-reply-assets/`, which replaces any file it had) or removes
+/// it (`DELETE /saved-reply-assets/{id}/`). Only when both succeed does the
+/// sheet close and say so. If the text was saved but the file was not, the
+/// sheet stays open on that reply, says exactly that, and the next Save
+/// retries the file without creating a second reply.
 library;
 
+import 'dart:async';
+import 'dart:io' show FileSystemException;
+
+import 'package:dio/dio.dart' show CancelToken;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/theme/tokens.dart';
+import '../../core/utils/attachment_helper.dart';
 import '../../core/widgets/states.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'saved_replies_providers.dart';
 import 'saved_reply.dart';
+import 'saved_reply_attachment_field.dart';
 
 String savedReplyScopeLabel(BuildContext context, String scope) =>
     switch (scope) {
@@ -99,24 +114,111 @@ class _SavedReplyFormSheet extends ConsumerStatefulWidget {
 class _SavedReplyFormSheetState extends ConsumerState<_SavedReplyFormSheet> {
   late final _title = TextEditingController(text: widget.existing?.title);
   late final _shortcut = TextEditingController(text: widget.existing?.shortcut);
-  late final _category = TextEditingController(text: widget.existing?.category);
   late final _body = TextEditingController(text: widget.existing?.body);
   late String _scope = widget.existing?.scope ?? 'personal';
 
   bool _submitting = false;
   String? _error;
 
+  /// A file chosen here, uploaded on Save.
+  PendingSavedReplyFile? _pending;
+
+  /// The reply's file on the server the person removed, deleted on Save.
+  int? _removeAssetId;
+
+  /// The reply as the server last returned it from this sheet — set once its
+  /// text has been saved, so a retry updates it rather than creating another.
+  SavedReply? _saved;
+
+  bool _recording = false;
+
+  /// The upload's share sent, while uploading; null otherwise.
+  final _progress = ValueNotifier<double?>(null);
+  CancelToken? _uploadToken;
+
+  bool get _isEdit => widget.isEdit || _saved != null;
+  SavedReply? get _reply => _saved ?? widget.existing;
+
+  /// The server's file, unless the person removed it.
+  SavedReplyAsset? get _keptAsset {
+    final asset = _reply?.asset;
+    return asset == null || asset.id == _removeAssetId ? null : asset;
+  }
+
+  void _onPicked(PendingSavedReplyFile file) {
+    final previous = _pending;
+    setState(() {
+      _pending = file;
+      _error = null;
+    });
+    if (previous != null && previous.path != file.path) {
+      unawaited(discardPendingFile(previous));
+    }
+  }
+
+  void _onRemoveFile() {
+    final pending = _pending;
+    setState(() {
+      if (pending != null) {
+        _pending = null;
+      } else {
+        _removeAssetId = _reply?.asset?.id;
+      }
+    });
+    unawaited(discardPendingFile(pending));
+  }
+
+  void _showError(String message) => setState(() => _error = message);
+
+  /// Why the file did not save, for the sentence that says so.
+  String _fileReason(ApiException error) {
+    final l10n = context.l10n;
+    if (error.statusCode == 413) return l10n.attachmentTooLargeError;
+    if (error is NetworkException || error.statusCode >= 500) {
+      return l10n.savedReplyFileUploadFailedReason;
+    }
+    return error.message.isNotEmpty
+        ? error.message
+        : l10n.savedReplyFileUploadFailedReason;
+  }
+
+  /// The category chosen in the form, or [_noCategory]; null until the
+  /// person picks one, which keeps the reply's current category untouched.
+  int? _chosenCategory;
+
+  /// The "No category" choice. No category has this id.
+  static const _noCategory = -1;
+
+  /// What the field shows before a choice: the reply's category — by id, or
+  /// for a reply whose category is only a name, the category of that name.
+  int _initialCategory(List<SavedReplyCategory> categories) {
+    final existing = widget.existing;
+    if (existing == null) return _noCategory;
+    final id = existing.categoryId;
+    if (id != null) {
+      return categories.any((c) => c.id == id) ? id : _noCategory;
+    }
+    final name = existing.category.trim().toLowerCase();
+    if (name.isEmpty) return _noCategory;
+    for (final c in categories) {
+      if (c.name.trim().toLowerCase() == name) return c.id;
+    }
+    return _noCategory;
+  }
+
   @override
   void dispose() {
+    _uploadToken?.cancel();
+    unawaited(discardPendingFile(_pending));
+    _progress.dispose();
     _title.dispose();
     _shortcut.dispose();
-    _category.dispose();
     _body.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (_submitting) return;
+    if (_submitting || _recording) return;
 
     final title = _title.text.trim();
     if (title.isEmpty) {
@@ -124,56 +226,174 @@ class _SavedReplyFormSheetState extends ConsumerState<_SavedReplyFormSheet> {
       return;
     }
     final body = _body.text.trim();
-    if (body.isEmpty) {
+    // A reply with a file may be the file alone.
+    if (body.isEmpty && _pending == null && _keptAsset == null) {
       setState(() => _error = context.l10n.savedReplyBodyRequiredError);
       return;
     }
 
     final repository = ref.read(savedRepliesRepositoryProvider);
     final shortcut = _shortcut.text.trim();
-    final category = _category.text.trim();
+    final chosen = _chosenCategory;
+    final categoryId = chosen == null || chosen == _noCategory ? null : chosen;
 
+    final l10n = context.l10n;
     setState(() {
       _submitting = true;
       _error = null;
     });
+    var textSaved = false;
     try {
-      if (widget.isEdit) {
-        await repository.update(
-          widget.existing!.id,
-          title: title,
-          body: body,
-          shortcut: shortcut,
-          category: category,
+      final id = _reply?.id;
+      var saved = id != null
+          ? await repository.update(
+              id,
+              title: title,
+              body: body,
+              shortcut: shortcut,
+              // Only a category the person changed is sent.
+              changeCategory: chosen != null,
+              categoryId: categoryId,
+            )
+          : await repository.create(
+              title: title,
+              body: body,
+              scope: _scope,
+              shortcut: shortcut,
+              categoryId: categoryId,
+            );
+      textSaved = true;
+      if (mounted) setState(() => _saved = saved);
+
+      final pending = _pending;
+      final removeId = _removeAssetId;
+      if (pending != null) {
+        final token = CancelToken();
+        // Rebuilt so Cancel now stops the upload.
+        if (mounted) setState(() => _uploadToken = token);
+        _progress.value = 0;
+        saved = await repository.uploadAsset(
+          saved.id,
+          filePath: pending.path,
+          fileName: pending.name,
+          // From the bytes, not the name alone; the server re-checks.
+          mimeType: pending.isRecording
+              ? 'audio/ogg'
+              : AttachmentHelper.detectMimeType(
+                  fileName: pending.name,
+                  filePath: pending.path,
+                  headerBytes: await AttachmentHelper.readHeaderBytes(
+                    pending.path,
+                  ),
+                ),
+          isVoice: pending.isRecording,
+          durationMs: pending.durationMs,
+          cancelToken: token,
+          onSendProgress: (sent, total) {
+            if (total > 0) _progress.value = (sent / total).clamp(0.0, 1.0);
+          },
         );
-      } else {
-        await repository.create(
-          title: title,
-          body: body,
-          scope: _scope,
-          shortcut: shortcut,
-          category: category,
-        );
+        _pending = null;
+        // Uploaded: the recording's temporary file has done its job.
+        unawaited(discardPendingFile(pending));
+      } else if (removeId != null &&
+          saved.assets.any((a) => a.id == removeId)) {
+        saved = await repository.removeAsset(removeId);
       }
+      _removeAssetId = null;
+      _saved = saved;
 
       if (!mounted) return;
-      ref.invalidate(manageableSavedRepliesProvider);
+      _refreshLists();
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             widget.isEdit
-                ? context.l10n.savedReplyUpdatedSnackbar
-                : context.l10n.savedReplyAddedSnackbar,
+                ? l10n.savedReplyUpdatedSnackbar
+                : l10n.savedReplyAddedSnackbar,
           ),
         ),
       );
+    } on RequestCancelledException {
+      // The upload was cancelled; the text, already saved, stays.
+      if (!mounted) return;
+      _refreshLists();
+      setState(() => _error = l10n.savedReplyUploadCancelled);
     } on ApiException catch (error) {
       if (!mounted) return;
-      setState(() => _error = error.message);
+      if (textSaved) {
+        _refreshLists();
+        setState(
+          () => _error = l10n.savedReplyFileNotSaved(_fileReason(error)),
+        );
+      } else {
+        setState(() => _error = error.message);
+      }
+    } on FileSystemException {
+      // The chosen file can no longer be read.
+      if (!mounted) return;
+      if (textSaved) _refreshLists();
+      setState(
+        () => _error = textSaved
+            ? l10n.savedReplyFileNotSaved(l10n.savedReplyFilePickFailed)
+            : l10n.savedReplyFilePickFailed,
+      );
     } finally {
+      _uploadToken = null;
+      _progress.value = null;
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  void _refreshLists() {
+    ref.invalidate(manageableSavedRepliesProvider);
+    // Each category's count of replies.
+    ref.invalidate(savedReplyCategoriesProvider);
+  }
+
+  /// The categories from `GET /saved-reply-categories/`, plus "No category".
+  /// Until they load (or if they cannot) the field is disabled, and the
+  /// reply's category stays as it is.
+  Widget _categoryField(BuildContext context) {
+    final categories = ref.watch(savedReplyCategoriesProvider).value;
+    final l10n = context.l10n;
+    // A form field reads its initial value once: built again when the
+    // categories arrive, so it shows the reply's own.
+    return KeyedSubtree(
+      key: ValueKey(categories != null),
+      child: _categoryDropdown(l10n, categories),
+    );
+  }
+
+  Widget _categoryDropdown(
+    AppLocalizations l10n,
+    List<SavedReplyCategory>? categories,
+  ) {
+    return DropdownButtonFormField<int>(
+      key: const Key('saved-reply-form-category'),
+      initialValue: categories == null
+          ? _noCategory
+          : (_chosenCategory ?? _initialCategory(categories)),
+      isExpanded: true,
+      decoration: InputDecoration(labelText: l10n.savedReplyCategoryFieldLabel),
+      items: [
+        DropdownMenuItem(
+          value: _noCategory,
+          child: Text(l10n.savedReplyNoCategoryOption),
+        ),
+        for (final c in categories ?? const <SavedReplyCategory>[])
+          DropdownMenuItem(
+            value: c.id,
+            child: Text(c.name, overflow: TextOverflow.ellipsis),
+          ),
+      ],
+      onChanged: categories == null || _submitting
+          ? null
+          : (value) {
+              if (value != null) setState(() => _chosenCategory = value);
+            },
+    );
   }
 
   @override
@@ -181,16 +401,17 @@ class _SavedReplyFormSheetState extends ConsumerState<_SavedReplyFormSheet> {
     final theme = Theme.of(context);
     final scopeOptions = <String>[
       'personal',
-      if (widget.isEdit && _scope == 'team') 'team',
-      if (widget.canCreateOrganizationWide || widget.isEdit) 'organization',
+      if (_isEdit && _scope == 'team') 'team',
+      if (widget.canCreateOrganizationWide || _isEdit) 'organization',
     ];
+    final uploading = _uploadToken != null;
 
     return ListView(
       controller: widget.scrollController,
       padding: const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.xxl),
       children: [
         Text(
-          widget.isEdit
+          _isEdit
               ? context.l10n.editSavedReplyTitle
               : context.l10n.addSavedReplyTitle,
           style: theme.textTheme.titleLarge?.copyWith(
@@ -198,10 +419,6 @@ class _SavedReplyFormSheetState extends ConsumerState<_SavedReplyFormSheet> {
           ),
         ),
         const SizedBox(height: Space.lg),
-        if (_error != null) ...[
-          InlineError(message: _error!),
-          const SizedBox(height: Space.md),
-        ],
         TextField(
           key: const Key('saved-reply-form-title'),
           controller: _title,
@@ -225,15 +442,7 @@ class _SavedReplyFormSheetState extends ConsumerState<_SavedReplyFormSheet> {
               ),
             ),
             const SizedBox(width: Space.md),
-            Expanded(
-              child: TextField(
-                key: const Key('saved-reply-form-category'),
-                controller: _category,
-                decoration: InputDecoration(
-                  labelText: context.l10n.savedReplyCategoryFieldLabel,
-                ),
-              ),
-            ),
+            Expanded(child: _categoryField(context)),
           ],
         ),
         const SizedBox(height: Space.xs),
@@ -244,7 +453,7 @@ class _SavedReplyFormSheetState extends ConsumerState<_SavedReplyFormSheet> {
           ),
         ),
         const SizedBox(height: Space.md),
-        if (widget.isEdit)
+        if (_isEdit)
           _ReadOnlyScopeRow(scope: _scope)
         else
           DropdownButtonFormField<String>(
@@ -287,18 +496,46 @@ class _SavedReplyFormSheetState extends ConsumerState<_SavedReplyFormSheet> {
           ),
         ),
         const SizedBox(height: Space.lg),
+        SavedReplyAttachmentField(
+          existing: _keptAsset,
+          pending: _pending,
+          enabled: !_submitting,
+          progress: _progress,
+          onPicked: _onPicked,
+          onRemove: _onRemoveFile,
+          onError: _showError,
+          onRecordingChanged: (recording) =>
+              setState(() => _recording = recording),
+        ),
+        const SizedBox(height: Space.lg),
+        // Beside Save, where the person is when it appears: the form is
+        // longer than a screen, and an error at its top would go unseen.
+        if (_error != null) ...[
+          InlineError(
+            key: const Key('saved-reply-form-error'),
+            message: _error!,
+          ),
+          const SizedBox(height: Space.md),
+        ],
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             TextButton(
-              onPressed: _submitting ? null : () => Navigator.of(context).pop(),
+              key: const Key('saved-reply-form-cancel'),
+              // While the file uploads, Cancel stops the upload; otherwise
+              // it closes the sheet.
+              onPressed: uploading
+                  ? () => _uploadToken?.cancel()
+                  : _submitting
+                  ? null
+                  : () => Navigator.of(context).pop(),
               child: Text(context.l10n.cancel),
             ),
             const SizedBox(width: Space.md),
             FilledButton(
               key: const Key('saved-reply-form-save'),
               style: FilledButton.styleFrom(minimumSize: const Size(80, 40)),
-              onPressed: _submitting ? null : _submit,
+              onPressed: _submitting || _recording ? null : _submit,
               child: _submitting
                   ? const SizedBox(
                       width: 20,

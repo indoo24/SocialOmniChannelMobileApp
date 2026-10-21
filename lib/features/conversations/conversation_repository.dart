@@ -27,6 +27,7 @@ class ConversationFilters {
     this.assignedToMe = false,
     this.unassigned = false,
     this.unread = false,
+    this.needsMyReview = false,
     this.search = '',
     this.selectedAccounts = const {},
     this.channelConnections,
@@ -38,6 +39,12 @@ class ConversationFilters {
   final bool assignedToMe;
   final bool unassigned;
   final bool unread;
+
+  /// Only conversations with a pending review asked of the signed-in
+  /// employee — their review to-do list: `review=mine`, which the list and
+  /// grouped endpoints apply before paginating (the web inbox's Needs review
+  /// filter, counted by `ConversationCounts.review_mine`).
+  final bool needsMyReview;
   final String search;
 
   /// Map of uppercase provider (e.g. 'FACEBOOK', 'INSTAGRAM') to selected channel ID.
@@ -74,6 +81,7 @@ class ConversationFilters {
     // only accepts a specific employee id.
     if (unassigned) query['view'] = 'unassigned';
     if (unread) query['unread'] = true;
+    if (needsMyReview) query['review'] = 'mine';
     if (channelConnections != null) {
       query['channel_connections'] = channelConnections!.isEmpty
           ? '0'
@@ -89,6 +97,7 @@ class ConversationFilters {
     bool? assignedToMe,
     bool? unassigned,
     bool? unread,
+    bool? needsMyReview,
     String? search,
     Map<String, int?>? selectedAccounts,
     List<int>? channelConnections,
@@ -103,6 +112,7 @@ class ConversationFilters {
     assignedToMe: assignedToMe ?? this.assignedToMe,
     unassigned: unassigned ?? this.unassigned,
     unread: unread ?? this.unread,
+    needsMyReview: needsMyReview ?? this.needsMyReview,
     search: search ?? this.search,
     selectedAccounts: selectedAccounts ?? this.selectedAccounts,
     channelConnections: clearChannelConnections
@@ -119,15 +129,17 @@ class ConversationFilters {
       provider != null ||
       assignedToMe ||
       unassigned ||
-      unread;
+      unread ||
+      needsMyReview;
 
   /// Whether any advanced/secondary filter from the filter sheet is active.
-  /// Primary quick filters (All/Mine/Unassigned/Unread/Open) are represented
-  /// in the persistent quick filter row on the inbox screen.
+  /// Primary quick filters (All/Mine/Need review/Resolved/Unassigned/Unread/
+  /// Open) are represented in the persistent quick filter row on the inbox
+  /// screen.
   bool get hasAdvancedFilters =>
       priority != null ||
       provider != null ||
-      (status != null && status != 'OPEN');
+      (status != null && status != 'OPEN' && status != 'RESOLVED');
 
   bool get isEmpty =>
       status == null &&
@@ -136,6 +148,7 @@ class ConversationFilters {
       !assignedToMe &&
       !unassigned &&
       !unread &&
+      !needsMyReview &&
       search.trim().isEmpty &&
       !hasActiveAccountFilter;
 
@@ -150,6 +163,7 @@ class ConversationFilters {
           assignedToMe == other.assignedToMe &&
           unassigned == other.unassigned &&
           unread == other.unread &&
+          needsMyReview == other.needsMyReview &&
           search == other.search &&
           _mapEquals(selectedAccounts, other.selectedAccounts) &&
           _listEquals(channelConnections, other.channelConnections);
@@ -162,6 +176,7 @@ class ConversationFilters {
     assignedToMe,
     unassigned,
     unread,
+    needsMyReview,
     search,
     Object.hashAll(
       selectedAccounts.entries.map((e) => Object.hash(e.key, e.value)),
@@ -432,6 +447,22 @@ class ConversationRepository {
     return AttachmentDraft.fromJson(data);
   }
 
+  /// `POST /conversations/{id}/attachments/from-saved-reply/`: the server
+  /// copies saved reply [savedReplyId]'s file into a draft for this
+  /// conversation, as [stageAttachment] would have — nothing is uploaded
+  /// from the phone. Sent like any draft, through `reply()`'s
+  /// `attachment_ids`.
+  Future<AttachmentDraft> attachmentFromSavedReply(
+    int conversationId,
+    int savedReplyId,
+  ) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/attachments/from-saved-reply/',
+      body: {'saved_reply_id': savedReplyId},
+    );
+    return AttachmentDraft.fromJson(data);
+  }
+
   /// Removes a staged draft and its bytes. Safe to call on something
   /// already gone — a double-tap on "remove" is not an error.
   Future<void> discardAttachment(int conversationId, String draftId) => _api
@@ -520,6 +551,61 @@ class ConversationRepository {
       body: body,
     );
     return Conversation.fromJson(data);
+  }
+
+  /// Pins (`POST`) or unpins (`DELETE`) `/conversations/{id}/pin/` for the
+  /// signed-in employee only. Both are idempotent and answer with the
+  /// conversation; its `is_pinned` is the state to show. Should a response
+  /// ever leave the field out, the request that succeeded is the answer.
+  Future<bool> setPinned(int conversationId, {required bool pinned}) async {
+    final path = '/conversations/$conversationId/pin/';
+    final data = pinned
+        ? await _api.post<dynamic>(path)
+        : await _api.delete<dynamic>(path);
+    if (data is Map && data.containsKey('is_pinned')) {
+      return JsonSafe.asBool(data['is_pinned'], fallback: pinned);
+    }
+    return pinned;
+  }
+
+  /// Asks [reviewerId] to review the conversation — or, when a review is
+  /// already pending, retargets that request to them (the server keeps one
+  /// pending review, never two). Not an assignment: the conversation keeps
+  /// its assignee, claim and team. [note] is left out when blank.
+  ///
+  /// Returns the conversation as the server now holds it; its `review` is
+  /// the confirmed one.
+  Future<Conversation> requestReview(
+    int conversationId, {
+    required int reviewerId,
+    String note = '',
+  }) async {
+    final data = await _api.post<dynamic>(
+      '/conversations/$conversationId/review/',
+      body: {
+        'reviewer_id': reviewerId,
+        if (note.trim().isNotEmpty) 'note': note.trim(),
+      },
+    );
+    return Conversation.fromJson(JsonSafe.asMap(data));
+  }
+
+  /// Withdraws the pending review. `409` when none is pending.
+  Future<Conversation> withdrawReview(int conversationId) async {
+    final data = await _api.delete<dynamic>(
+      '/conversations/$conversationId/review/',
+    );
+    return Conversation.fromJson(JsonSafe.asMap(data));
+  }
+
+  /// Completes the pending review — the named reviewer's call, or an
+  /// ADMIN's. Separate from replying: no message is sent. `409` when none
+  /// is pending.
+  Future<Conversation> completeReview(int conversationId) async {
+    final data = await _api.post<dynamic>(
+      '/conversations/$conversationId/review/complete/',
+    );
+    return Conversation.fromJson(JsonSafe.asMap(data));
   }
 
   Future<List<InternalNote>> notes(int conversationId) async {

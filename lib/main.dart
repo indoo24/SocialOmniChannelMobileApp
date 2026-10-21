@@ -20,9 +20,9 @@ import 'core/providers.dart';
 import 'core/realtime/realtime_bridge.dart';
 import 'core/theme/app_theme.dart';
 import 'core/update/app_update_bridge.dart';
-import 'core/widgets/states.dart';
 import 'features/authentication/auth_controller.dart';
 import 'features/splash/splash_screen.dart';
+import 'features/startup/startup_connection_screen.dart';
 import 'l10n/generated/app_localizations.dart';
 
 Future<void> main() async {
@@ -77,13 +77,15 @@ class ScenarioApp extends ConsumerStatefulWidget {
 }
 
 class _ScenarioAppState extends ConsumerState<ScenarioApp> {
-  /// Floor on how long the splash stays up, regardless of how fast session
-  /// restoration resolves. Without this, a warm cache or a fast network
-  /// answers `/auth/me/` well before the entrance animation
-  /// (`SplashMotion.totalDuration`) finishes, and the brand moment gets cut
-  /// off mid-animation.
-  static const _minSplashDuration = Duration(seconds: 4);
-  bool _minSplashElapsed = false;
+  /// Set by the splash once its intro has played, session restore is done,
+  /// and it has faded out. Until then the splash stays up even if restore
+  /// answers early, so a warm cache never cuts the animation off mid-way.
+  bool _splashFinished = false;
+
+  /// Whether the saved theme and language have been read. The splash (which
+  /// is always white) waits for it too, so the app proper never shows a
+  /// frame in the default theme before switching to the saved one.
+  bool _preferencesRestored = false;
 
   @override
   void initState() {
@@ -98,11 +100,13 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
     // unlike auth there is no redirect logic waiting on them.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(authControllerProvider.notifier).restore();
-      ref.read(themeModeProvider.notifier).restore();
-      ref.read(localeProvider.notifier).restore();
-    });
-    Future.delayed(_minSplashDuration, () {
-      if (mounted) setState(() => _minSplashElapsed = true);
+      restoreDisplayPreferences(
+        ref.read(themeModeProvider.notifier),
+        ref.read(colorThemeProvider.notifier),
+        ref.read(localeProvider.notifier),
+      ).then((_) {
+        if (mounted) setState(() => _preferencesRestored = true);
+      });
     });
   }
 
@@ -116,48 +120,60 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
 
     final auth = ref.watch(authControllerProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final colorTheme = ref.watch(colorThemeProvider);
+    final lightTheme = AppTheme.of(colorTheme, Brightness.light);
+    final darkTheme = AppTheme.of(colorTheme, Brightness.dark);
     final locale = ref.watch(localeProvider);
 
-    // Hold a splash while the session is being checked, and for at least
-    // _minSplashDuration regardless — building the router during restore
-    // would let its redirect run against an unknown state, and cutting the
-    // splash short whenever restore is fast would cut off its animation.
-    if (auth.isRestoring || !_minSplashElapsed) {
+    // Hold the splash while the session is being checked, and until the
+    // splash itself says it is done — building the router during restore
+    // would let its redirect run against an unknown state. Swapping the root
+    // app out (rather than pushing a route) also leaves nothing to navigate
+    // back to. A retry from the offline screen restores with the reason
+    // still set: that screen stays up, its button showing the progress.
+    final restoringAtLaunch = auth.isRestoring && !auth.restoreFailedOffline;
+    if (restoringAtLaunch || !_preferencesRestored || !_splashFinished) {
       return MaterialApp(
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: themeMode,
-        locale: locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        debugShowCheckedModeBanner: false,
-        home: const Scaffold(body: SplashScreen()),
-      );
-    }
-
-    if (auth.restoreFailedOffline) {
-      return MaterialApp(
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
+        theme: lightTheme,
+        darkTheme: darkTheme,
         themeMode: themeMode,
         locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-          body: ErrorStateView(
-            error: _offlineError,
-            onRetry: () => ref.read(authControllerProvider.notifier).restore(),
+          body: SplashScreen(
+            initDone: !restoringAtLaunch && _preferencesRestored,
+            playIntro: !_splashFinished,
+            onFinished: () {
+              if (mounted) setState(() => _splashFinished = true);
+            },
           ),
         ),
+      );
+    }
+
+    // The stored session could not be resumed for a reason a retry may fix
+    // (no network, server unreachable, a 5xx). The session is kept; this
+    // screen retries the restore, by hand or once the network is back.
+    if (auth.restoreIssue case final issue?) {
+      return MaterialApp(
+        theme: lightTheme,
+        darkTheme: darkTheme,
+        themeMode: themeMode,
+        locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        debugShowCheckedModeBanner: false,
+        home: StartupConnectionScreen(issue: issue, retrying: auth.isRestoring),
       );
     }
 
     return MaterialApp.router(
       title: 'Scenario',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: lightTheme,
+      darkTheme: darkTheme,
       themeMode: themeMode,
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -184,13 +200,6 @@ class _ScenarioAppState extends ConsumerState<ScenarioApp> {
       ),
     );
   }
-}
-
-final _offlineError = _OfflineError();
-
-class _OfflineError implements Exception {
-  @override
-  String toString() => 'Could not reach the server.';
 }
 
 /// Shown when a build has no API host configured.
