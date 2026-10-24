@@ -37,12 +37,22 @@ import 'message_forwarding.dart';
 /// is already in).
 typedef ForwardDestinationsKey = ({String search, int excludeId});
 
-typedef ForwardDestinations = ({List<Conversation> items, bool hasMore});
+/// [hidden] counts the rows left out because they provably cannot be sent a
+/// free-form message ([destinationProvablyIneligible]).
+typedef ForwardDestinations = ({
+  List<Conversation> items,
+  int hidden,
+  bool hasMore,
+});
 
 /// One page of conversations matching [ForwardDestinationsKey.search], newest
 /// activity first, as the server answers it. Limited to the accounts the
 /// inbox itself shows (a removed or disconnected account's conversations are
-/// not offered as somewhere to send).
+/// not offered as somewhere to send), and without the ones its rows prove
+/// cannot be sent a free-form message — closed, or WhatsApp past the 24-hour
+/// window. Everything else is offered, not vouched for: a list row does not
+/// say whether the destination will accept the message, so that is asked of
+/// the server again when the agent confirms.
 final forwardDestinationsProvider = FutureProvider.autoDispose
     .family<ForwardDestinations, ForwardDestinationsKey>((ref, key) async {
       List<int>? accounts;
@@ -61,11 +71,19 @@ final forwardDestinationsProvider = FutureProvider.autoDispose
               accounts,
             ),
           );
+      final others = [
+        for (final conversation in page.results)
+          if (conversation.id != key.excludeId) conversation,
+      ];
+      final now = DateTime.now();
+      final offered = [
+        for (final conversation in others)
+          if (!destinationProvablyIneligible(conversation, now: now))
+            conversation,
+      ];
       return (
-        items: [
-          for (final conversation in page.results)
-            if (conversation.id != key.excludeId) conversation,
-        ],
+        items: offered,
+        hidden: others.length - offered.length,
         hasMore: page.hasMore,
       );
     });
@@ -122,6 +140,10 @@ class _ForwardMessageSheetState extends ConsumerState<ForwardMessageSheet> {
   /// A forward is in flight. Everything that could start another is off while
   /// it is, and the sheet cannot be dismissed from under it.
   bool _busy = false;
+
+  /// Destinations the server has just refused to be sent to: they are taken
+  /// off the list at once rather than offered again.
+  final _unfit = <int>{};
 
   /// The confirmation dialog is open (or opening): a second tap on the
   /// button behind it must not stack another.
@@ -251,6 +273,18 @@ class _ForwardMessageSheetState extends ConsumerState<ForwardMessageSheet> {
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(l10n.forwardedToMessage(name))));
+    } on ForwardDestinationBlocked catch (blocked) {
+      // It could not take the message when checked, so nothing was
+      // transferred. Say why, and stop offering it if that is its state now.
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = forwardErrorMessage(l10n, blocked);
+        if (blocked.hidesDestination) {
+          _unfit.add(destination.id);
+          _selected = null;
+        }
+      });
     } on SessionExpiredException {
       // The app is already taking the agent back to sign in.
       if (mounted) setState(() => _busy = false);
@@ -330,6 +364,12 @@ class _ForwardMessageSheetState extends ConsumerState<ForwardMessageSheet> {
                   l10n.forwardChooseHint,
                   style: theme.textTheme.labelSmall?.copyWith(color: muted),
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  l10n.forwardEligibilityHint,
+                  key: const Key('forwardEligibilityHint'),
+                  style: theme.textTheme.labelSmall?.copyWith(color: muted),
+                ),
                 Flexible(
                   child: results.when(
                     loading: () => const Padding(
@@ -342,14 +382,29 @@ class _ForwardMessageSheetState extends ConsumerState<ForwardMessageSheet> {
                           ref.invalidate(forwardDestinationsProvider),
                     ),
                     data: (found) {
-                      if (found.items.isEmpty) {
+                      final shown = [
+                        for (final c in found.items)
+                          if (!_unfit.contains(c.id)) c,
+                      ];
+                      final hidden =
+                          found.hidden + (found.items.length - shown.length);
+                      if (shown.isEmpty) {
+                        // Told apart: nothing matched, or things matched and
+                        // none of them can be sent to.
+                        final noneEligible = hidden > 0;
                         return Padding(
                           padding: const EdgeInsets.symmetric(
                             vertical: Space.lg,
                           ),
                           child: Text(
-                            l10n.forwardNoResults,
-                            key: const Key('forwardNoResults'),
+                            noneEligible
+                                ? l10n.forwardNoEligible
+                                : l10n.forwardNoResults,
+                            key: Key(
+                              noneEligible
+                                  ? 'forwardNoEligible'
+                                  : 'forwardNoResults',
+                            ),
                             style: theme.textTheme.bodySmall,
                           ),
                         );
@@ -357,7 +412,7 @@ class _ForwardMessageSheetState extends ConsumerState<ForwardMessageSheet> {
                       return ListView(
                         shrinkWrap: true,
                         children: [
-                          for (final c in found.items)
+                          for (final c in shown)
                             _DestinationRow(
                               conversation: c,
                               channel: _channelOf(context, c),
@@ -367,6 +422,19 @@ class _ForwardMessageSheetState extends ConsumerState<ForwardMessageSheet> {
                                 _selected = c;
                                 _error = null;
                               }),
+                            ),
+                          if (hidden > 0)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: Space.sm,
+                              ),
+                              child: Text(
+                                l10n.forwardHiddenCount(hidden),
+                                key: const Key('forwardHiddenNote'),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: muted,
+                                ),
+                              ),
                             ),
                           if (found.hasMore)
                             Padding(

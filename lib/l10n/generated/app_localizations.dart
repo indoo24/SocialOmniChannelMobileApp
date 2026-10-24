@@ -6235,6 +6235,48 @@ abstract class AppLocalizations {
   /// **'Too many messages sent. Wait a moment and try again.'**
   String get forwardTooManyMessage;
 
+  /// No description provided for @forwardEligibilityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed conversations and WhatsApp chats past the 24-hour window are hidden. Whether a conversation can receive this message is checked again before it is sent.'**
+  String get forwardEligibilityHint;
+
+  /// No description provided for @forwardHiddenCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 conversation hidden: it can\'t receive messages right now.} other{{count} conversations hidden: they can\'t receive messages right now.}}'**
+  String forwardHiddenCount(int count);
+
+  /// No description provided for @forwardNoEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations are currently eligible to receive messages.'**
+  String get forwardNoEligible;
+
+  /// No description provided for @forwardDestinationClosedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'That conversation is closed.'**
+  String get forwardDestinationClosedMessage;
+
+  /// No description provided for @forwardWindowClosedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp\'s 24-hour window for that customer has ended. A free-form message can\'t be sent until they write again.'**
+  String get forwardWindowClosedMessage;
+
+  /// No description provided for @forwardPlatformLimitMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'That conversation isn\'t accepting more messages right now.'**
+  String get forwardPlatformLimitMessage;
+
+  /// No description provided for @forwardNoMediaMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'That conversation\'s channel can\'t receive attachments.'**
+  String get forwardNoMediaMessage;
+
   /// Saved-reply picker chip showing replies of every category.
   ///
   /// In en, this message translates to:

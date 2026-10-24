@@ -25,6 +25,27 @@
 /// so a failure while staging sends nothing. The reply carries a stable
 /// `client_message_id`, so retrying a request whose answer was lost cannot
 /// store the message twice.
+///
+/// ## Can the destination take it?
+///
+/// A free-form message is refused by WhatsApp once 24 hours have passed since
+/// the customer last wrote, and by other platforms under their own limits.
+/// The server is the authority, and it says so in one place only: the
+/// conversation **detail** (`last_customer_message_at`, `messaging_policy`) —
+/// the same two fields the composer reads (`Conversation.canReplyFreeText`,
+/// `isMessagingLimited`). List rows do not carry them, and reading a detail
+/// marks the thread read, so candidates cannot be checked one by one in the
+/// picker. Instead:
+///
+///  * the picker hides only what its list rows *prove* ineligible
+///    ([destinationProvablyIneligible]) and guesses nothing about the rest;
+///  * [MessageForwarder.forward] reads the destination's detail first, once
+///    the agent has confirmed, and stops — before downloading or uploading a
+///    byte — if it can no longer take the message ([destinationBlockOf]).
+///
+/// The server's own refusal at the final send is still shown if it comes.
+/// A message is never turned into a template to get past a closed window:
+/// templates are a separate, approved-text flow.
 library;
 
 import 'dart:io';
@@ -32,6 +53,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/models/conversation.dart';
 import '../../core/models/message.dart';
 import '../../core/providers.dart';
 import '../../core/utils/attachment_helper.dart';
@@ -109,6 +131,86 @@ String forwardBlockMessage(AppLocalizations l10n, ForwardBlock block) =>
       ForwardBlock.attachmentUnavailable => l10n.forwardAttachmentUnavailable,
     };
 
+/// What a conversation *list row* can prove about whether the destination can
+/// be sent a free-form message — true only when it provably cannot.
+///
+/// Two things, both from fields list rows carry:
+///  * the conversation is closed (the composer allows no free text there);
+///  * WhatsApp, and the thread's latest message is the customer's and more
+///    than 24 hours old — so the customer has not written within the window,
+///    whatever else is true. (When the latest message is the agent's, the
+///    customer's last message is not in the row, so nothing is proven.)
+///
+/// False means *not proven ineligible*, not *eligible*: the row has no
+/// `last_customer_message_at` or `messaging_policy`. The 24-hour rule is the
+/// one `Conversation.isMessagingWindowClosed` applies, taken from the web
+/// client; the server remains the authority and is asked before sending.
+bool destinationProvablyIneligible(Conversation row, {DateTime? now}) {
+  if (row.isClosed) return true;
+  if (row.provider.toUpperCase() != 'WHATSAPP') return false;
+  if (row.lastMessageDirection.toUpperCase() != 'INBOUND') return false;
+  final last = row.lastMessageAt;
+  if (last == null) return false;
+  final age = (now ?? DateTime.now()).toUtc().difference(last.toUtc());
+  return age > const Duration(hours: 24);
+}
+
+/// Why the destination cannot be sent this message right now.
+enum DestinationBlock {
+  /// The conversation is closed.
+  conversationClosed,
+
+  /// WhatsApp: more than 24 hours since the customer last wrote (or never).
+  windowClosed,
+
+  /// The platform's own limit refuses another message (`messaging_policy`).
+  platformLimit,
+
+  /// The message has attachments and the channel takes none.
+  noAttachments,
+}
+
+/// The reason [destination] — read from the **detail** endpoint, never a list
+/// row — cannot be sent a free-form message, or null when it can. The rules
+/// are the composer's own: `canReplyFreeText`, `isMessagingLimited` and
+/// `outboundMedia`.
+DestinationBlock? destinationBlockOf(
+  Conversation destination, {
+  required bool hasAttachments,
+}) {
+  if (destination.isClosed) return DestinationBlock.conversationClosed;
+  if (destination.isMessagingWindowClosed) return DestinationBlock.windowClosed;
+  if (destination.isMessagingLimited) return DestinationBlock.platformLimit;
+  if (hasAttachments && !destination.outboundMedia) {
+    return DestinationBlock.noAttachments;
+  }
+  return null;
+}
+
+/// The destination could not take the message when it was checked, just
+/// before sending. Nothing was downloaded, uploaded or sent.
+class ForwardDestinationBlocked implements Exception {
+  const ForwardDestinationBlocked(
+    this.block, {
+    this.provider = '',
+    this.reason = '',
+  });
+
+  final DestinationBlock block;
+
+  /// The destination's platform and the server's `messaging_policy.reason`,
+  /// for the platforms that have their own words for it.
+  final String provider;
+  final String reason;
+
+  /// A block that is the conversation's present state, not about this
+  /// message: the picker stops offering it.
+  bool get hidesDestination => block != DestinationBlock.noAttachments;
+
+  @override
+  String toString() => 'ForwardDestinationBlocked(${block.name})';
+}
+
 /// A forward that could not be carried out for a reason of its own, as
 /// opposed to the server refusing a request ([ApiException]).
 class ForwardException implements Exception {
@@ -124,15 +226,37 @@ class ForwardException implements Exception {
 ///
 /// A `400` is the server's refusal of *this message to this conversation* —
 /// a closed WhatsApp 24-hour window, an expired token, a file the channel
-/// cannot carry — and its message is written to be shown, so it is. The other
-/// statuses are named in the app's own words.
+/// cannot carry. Its message is written to be shown, but it is English and it
+/// has no code of its own (`docs/MOBILE_BACKEND_SYNC.md`, K2). The one refusal
+/// that can be told reliably — a closed WhatsApp window, which is the case the
+/// picker and the pre-send check exist to head off — is recognised by its
+/// wording, as the composer already does, and said in the app's language. The
+/// rest of a 400 is shown as the server wrote it. The other statuses are named
+/// in the app's own words.
 String forwardErrorMessage(AppLocalizations l10n, Object error) {
   if (error is ForwardException) return forwardBlockMessage(l10n, error.block);
+  if (error is ForwardDestinationBlocked) {
+    return switch (error.block) {
+      DestinationBlock.conversationClosed =>
+        l10n.forwardDestinationClosedMessage,
+      DestinationBlock.windowClosed => l10n.forwardWindowClosedMessage,
+      // TikTok has its own words for its limits; anything else, ours.
+      DestinationBlock.platformLimit
+          when error.provider.toUpperCase() == 'TIKTOK' =>
+        error.reason == 'tiktok_no_customer_message'
+            ? l10n.tiktokNoCustomerMessageNotice
+            : l10n.tiktokLimitReachedNotice,
+      DestinationBlock.platformLimit => l10n.forwardPlatformLimitMessage,
+      DestinationBlock.noAttachments => l10n.forwardNoMediaMessage,
+    };
+  }
   if (error is ApiException) {
     if (error is NetworkException || error.statusCode >= 500) {
       return l10n.forwardFailedMessage;
     }
     return switch (error.statusCode) {
+      400 when _isClosedWindowRefusal(error.message) =>
+        l10n.forwardWindowClosedMessage,
       400 =>
         error.message.trim().isNotEmpty
             ? error.message.trim()
@@ -144,6 +268,17 @@ String forwardErrorMessage(AppLocalizations l10n, Object error) {
     };
   }
   return l10n.forwardFailedMessage;
+}
+
+/// Whether a server refusal is WhatsApp's 24-hour window being closed: it
+/// names the window and says it is closed, expired or 24 hours. A stop-gap for
+/// the missing error code, with the same intent as the composer's own check.
+bool _isClosedWindowRefusal(String message) {
+  final text = message.toLowerCase();
+  return text.contains('window') &&
+      (text.contains('closed') ||
+          text.contains('expired') ||
+          text.contains('24'));
 }
 
 /// Fetches an attachment's bytes onto the device (the cache, when it is
@@ -173,8 +308,10 @@ class MessageForwarder {
   /// [clientMessageId] is the idempotency key for the final send: the same
   /// key on a retry returns the already-stored message instead of a second
   /// one. Throws [ForwardException] for a message that cannot be forwarded,
-  /// and the server's [ApiException] for a refusal — in both cases after
-  /// discarding whatever drafts were staged, with nothing sent.
+  /// [ForwardDestinationBlocked] for a destination that cannot take it (before
+  /// anything is transferred), and the server's [ApiException] for a refusal —
+  /// in every case after discarding whatever drafts were staged, with nothing
+  /// sent.
   Future<Message> forward({
     required Message message,
     required int destinationConversationId,
@@ -186,6 +323,24 @@ class MessageForwarder {
     final repository = _ref.read(conversationRepositoryProvider);
     final fetch = _ref.read(forwardAttachmentFetcherProvider);
     final staged = <String>[];
+
+    // Ask the server whether the destination can take it *now*, before a byte
+    // is downloaded or uploaded: the picker could only rule things out, and
+    // the window may have closed since. (Reading a detail marks that thread
+    // read — which is only done here, once the agent has chosen to send to
+    // it, never for the conversations merely listed.)
+    final destination = await repository.detail(destinationConversationId);
+    final unfit = destinationBlockOf(
+      destination,
+      hasAttachments: message.attachments.isNotEmpty,
+    );
+    if (unfit != null) {
+      throw ForwardDestinationBlocked(
+        unfit,
+        provider: destination.provider,
+        reason: destination.messagingPolicy?.reason ?? '',
+      );
+    }
 
     try {
       for (final attachment in message.attachments) {

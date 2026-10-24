@@ -3522,6 +3522,42 @@ class AppLocalizationsAr extends AppLocalizations {
       'تم إرسال رسائل كثيرة. انتظر قليلًا وحاول مرة أخرى.';
 
   @override
+  String get forwardEligibilityHint =>
+      'المحادثات المغلقة ومحادثات WhatsApp التي انتهت نافذة الـ 24 ساعة فيها مخفية. يُتحقق من إمكانية استقبال المحادثة لهذه الرسالة مرة أخرى قبل إرسالها.';
+
+  @override
+  String forwardHiddenCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة مخفية: لا يمكنها استقبال رسائل الآن.',
+      many: '$count محادثة مخفية: لا يمكنها استقبال رسائل الآن.',
+      few: '$count محادثات مخفية: لا يمكنها استقبال رسائل الآن.',
+      two: 'محادثتان مخفيتان: لا يمكنهما استقبال رسائل الآن.',
+      one: 'محادثة واحدة مخفية: لا يمكنها استقبال رسائل الآن.',
+      zero: 'لا توجد محادثات مخفية',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get forwardNoEligible => 'لا توجد محادثات متاح الإرسال إليها حاليًا.';
+
+  @override
+  String get forwardDestinationClosedMessage => 'هذه المحادثة مغلقة.';
+
+  @override
+  String get forwardWindowClosedMessage =>
+      'انتهت نافذة الـ 24 ساعة في WhatsApp لهذا العميل. لا يمكن إرسال رسالة حرة قبل أن يراسلك من جديد.';
+
+  @override
+  String get forwardPlatformLimitMessage =>
+      'هذه المحادثة لا تقبل المزيد من الرسائل الآن.';
+
+  @override
+  String get forwardNoMediaMessage => 'قناة هذه المحادثة لا تستقبل المرفقات.';
+
+  @override
   String get savedRepliesAllCategories => 'الكل';
 
   @override

@@ -633,6 +633,47 @@ failure. So the destination's permissions (`conversation.reply`, visibility),
 its channel's attachment rules and the WhatsApp 24-hour window are all decided
 by the server, and its refusal (`400`/`403`/`404`/`429`) is shown.
 
+**Which destinations are offered (the 24-hour window and other limits).**
+Whether a free-form message can be sent to a conversation is on the
+conversation **detail** only: `last_customer_message_at` (WhatsApp: more than 24
+hours since the customer wrote, or never, means closed; the rule the web client
+and the mobile composer both apply) and `messaging_policy` (`allowed`, `state`,
+`reason`, for platforms with their own limits, e.g. TikTok). Neither is on a
+list row, a grouped row or `/customers/{id}/conversations/`
+(`ConversationList` has `status`, `provider`, `last_message_at` and
+`last_message_direction` only). And `GET /conversations/{id}/` **marks the
+thread read** as a side effect, so mobile cannot read the detail of every
+candidate to filter the picker: that would mark dozens of customers' threads
+read. So:
+- The picker **hides only what a row proves**: a closed conversation, or a
+  WhatsApp one whose latest message is the customer's and over 24 hours old.
+  Where the agent wrote last, the customer's last message is not in the row and
+  nothing is proven, so the conversation is offered, not declared eligible. A
+  line says how many were hidden, and says so if none are left.
+- Once the agent **confirms**, and before any attachment is downloaded or
+  uploaded, mobile reads the destination's detail (marking that one thread read,
+  which is consistent with sending to it) and stops if the composer's own rules
+  say it cannot take the message: closed, WhatsApp window closed (a missing
+  `last_customer_message_at` counts as closed, as on the web), `messaging_policy`
+  not `allowed`, or attachments to a channel with `outbound_media: false`. The
+  conversation then leaves the list. Nothing is converted to a template.
+- The server's refusal at the final send is still shown. It is a `400` with
+  English text and no code (K2); mobile recognises the closed-window wording and
+  says it in the user's language, and shows any other `400` text as written.
+
+**Missing capability, and why it matters.** The picker cannot offer *only*
+eligible conversations, because eligibility is not on the list. Any one of these
+would fix it (proposals, not existing APIs):
+1. `messaging_policy` and `last_customer_message_at` on `ConversationList`
+   (and so on grouped rows), as on the detail; or one computed
+   `can_send_free_text: bool` per row;
+2. a filter on `GET /conversations/` such as `?can_send=true`, so the server
+   answers "where can a free-form message go right now?" in one request;
+3. a side-effect-free read of the detail (for example `?mark_read=false`), so a
+   client can check a candidate without changing the unread state.
+Also: a specific error `code` on `/reply/` for a closed window, so no client has
+to read English (K2).
+
 **What this is not.** A forward here is a **new message from the employee**.
 The server does not know it is a forward; the recipient sees no "forwarded"
 label; who wrote the original and which message it was are not recorded; and

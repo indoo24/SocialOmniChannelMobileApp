@@ -3509,6 +3509,41 @@ class AppLocalizationsEn extends AppLocalizations {
       'Too many messages sent. Wait a moment and try again.';
 
   @override
+  String get forwardEligibilityHint =>
+      'Closed conversations and WhatsApp chats past the 24-hour window are hidden. Whether a conversation can receive this message is checked again before it is sent.';
+
+  @override
+  String forwardHiddenCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count conversations hidden: they can\'t receive messages right now.',
+      one: '1 conversation hidden: it can\'t receive messages right now.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get forwardNoEligible =>
+      'No conversations are currently eligible to receive messages.';
+
+  @override
+  String get forwardDestinationClosedMessage => 'That conversation is closed.';
+
+  @override
+  String get forwardWindowClosedMessage =>
+      'WhatsApp\'s 24-hour window for that customer has ended. A free-form message can\'t be sent until they write again.';
+
+  @override
+  String get forwardPlatformLimitMessage =>
+      'That conversation isn\'t accepting more messages right now.';
+
+  @override
+  String get forwardNoMediaMessage =>
+      'That conversation\'s channel can\'t receive attachments.';
+
+  @override
   String get savedRepliesAllCategories => 'All';
 
   @override

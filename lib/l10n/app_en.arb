@@ -1867,6 +1867,18 @@
   "forwardPermissionDeniedMessage": "You don't have permission to send to that conversation.",
   "forwardDestinationGoneMessage": "That conversation isn't available any more.",
   "forwardTooManyMessage": "Too many messages sent. Wait a moment and try again.",
+  "forwardEligibilityHint": "Closed conversations and WhatsApp chats past the 24-hour window are hidden. Whether a conversation can receive this message is checked again before it is sent.",
+  "forwardHiddenCount": "{count, plural, one{1 conversation hidden: it can't receive messages right now.} other{{count} conversations hidden: they can't receive messages right now.}}",
+  "@forwardHiddenCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "forwardNoEligible": "No conversations are currently eligible to receive messages.",
+  "forwardDestinationClosedMessage": "That conversation is closed.",
+  "forwardWindowClosedMessage": "WhatsApp's 24-hour window for that customer has ended. A free-form message can't be sent until they write again.",
+  "forwardPlatformLimitMessage": "That conversation isn't accepting more messages right now.",
+  "forwardNoMediaMessage": "That conversation's channel can't receive attachments.",
   "savedRepliesAllCategories": "All",
   "@savedRepliesAllCategories": {
     "description": "Saved-reply picker chip showing replies of every category."
