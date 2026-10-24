@@ -22,6 +22,7 @@ import '../logging/app_log.dart';
 import '../../app/router.dart';
 import '../../features/authentication/auth_controller.dart';
 import '../../features/conversations/inbox_controller.dart';
+import '../../features/conversations/review_count.dart';
 import '../../features/messages/conversation_controller.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../api/api_exception.dart';
@@ -31,6 +32,62 @@ import '../session/session_epoch.dart';
 import '../theme/app_palette.dart';
 import '../theme/tokens.dart';
 import 'push_service.dart';
+
+/// A positive conversation id out of a push's data, or null.
+///
+/// A notification is the one input that reaches this app without the user
+/// doing anything, and it is the only path that navigates on its own. It is
+/// still authenticated data — FCM delivers only to tokens registered against
+/// this employee — but the id it names is not proof of anything: it decides
+/// which conversation to *open*, and the backend's `visible_to()` decides
+/// whether that conversation loads. A hostile or malformed id therefore
+/// costs a wasted navigation to a screen that 403s, which is why this
+/// validates the shape and lets the server judge the substance.
+///
+/// Any push type that names a conversation opens it on tap, whatever its
+/// `type`: a review request needs no special case.
+int? conversationIdFromPushData(Map<String, dynamic> data) {
+  final raw = data[PushDataKeys.conversationId];
+  final id = raw is int ? raw : int.tryParse(raw?.toString().trim() ?? '');
+  if (id == null || id <= 0) return null;
+  return id;
+}
+
+/// What a push that arrived while the app was open asks of the app. Decided
+/// from the payload alone, so it can be tested without Firebase.
+class ForegroundPushPlan {
+  const ForegroundPushPlan({
+    required this.refreshInbox,
+    required this.reconcileReviews,
+    this.conversationId,
+  });
+
+  /// A message or assignment push: refresh the list and the counts, and show
+  /// the banner unless that conversation is the one on screen.
+  final bool refreshInbox;
+
+  /// A push of a type this app does not know. It is neither shown nor acted
+  /// on, but it says something changed on the server — a review request, say,
+  /// which the server pushes without sending the socket an event — so the
+  /// review count is read again. Never adjusted from the payload.
+  final bool reconcileReviews;
+
+  final int? conversationId;
+}
+
+ForegroundPushPlan planForegroundPush(Map<String, dynamic> data) {
+  // `data` is server-controlled; a non-string value must not throw.
+  final type = data[PushDataKeys.type]?.toString();
+  final known =
+      type == PushDataKeys.typeNewMessage ||
+      type == PushDataKeys.typeConversationAssigned;
+  final conversationId = conversationIdFromPushData(data);
+  return ForegroundPushPlan(
+    refreshInbox: known && conversationId != null,
+    reconcileReviews: !known,
+    conversationId: conversationId,
+  );
+}
 
 class PushBridge extends ConsumerStatefulWidget {
   const PushBridge({required this.child, super.key});
@@ -256,23 +313,6 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     }
   }
 
-  /// Pull a positive conversation id out of a push payload, or null.
-  ///
-  /// A notification is the one input that reaches this app without the user
-  /// doing anything, and it is the only path that navigates on its own. It is
-  /// still authenticated data — FCM delivers only to tokens registered against
-  /// this employee — but the id it names is not proof of anything: it decides
-  /// which conversation to *open*, and the backend's `visible_to()` decides
-  /// whether that conversation loads. A hostile or malformed id therefore
-  /// costs a wasted navigation to a screen that 403s, which is why this
-  /// validates the shape and lets the server judge the substance.
-  static int? _conversationIdFrom(RemoteMessage message) {
-    final raw = message.data[PushDataKeys.conversationId];
-    final id = raw is int ? raw : int.tryParse(raw?.toString().trim() ?? '');
-    if (id == null || id <= 0) return null;
-    return id;
-  }
-
   /// A push arrived while the app was open. The socket already carries this
   /// signal (§5); treat this identically in case it arrives first or the
   /// socket had briefly dropped — never as a second source of truth.
@@ -291,17 +331,17 @@ class _PushBridgeState extends ConsumerState<PushBridge>
       return;
     }
 
-    // `message.data` is a server-controlled Map<String, dynamic>; a
-    // non-string value here would throw on the cast rather than be ignored.
-    final type = message.data[PushDataKeys.type]?.toString();
-    if (type != PushDataKeys.typeNewMessage &&
-        type != PushDataKeys.typeConversationAssigned) {
-      _log('_handleForegroundPush() — unrecognised type "$type", ignoring.');
+    final plan = planForegroundPush(message.data);
+    if (plan.reconcileReviews) {
+      _log(
+        '_handleForegroundPush() — unrecognised type, not shown; '
+        're-reading the review count.',
+      );
+      ref.invalidate(reviewCountProvider);
       return;
     }
-
-    final conversationId = _conversationIdFrom(message);
-    if (conversationId == null) {
+    final conversationId = plan.conversationId;
+    if (!plan.refreshInbox || conversationId == null) {
       _log(
         '_handleForegroundPush() — missing/invalid conversation_id, ignoring.',
       );
@@ -309,8 +349,7 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     }
 
     _log(
-      '_handleForegroundPush() — type: $type, conversationId: '
-      '$conversationId, refreshing.',
+      '_handleForegroundPush() — conversationId: $conversationId, refreshing.',
     );
     ref.read(inboxControllerProvider.notifier).refreshQuietly();
     ref.invalidate(conversationCountsProvider);
@@ -356,9 +395,11 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     ref.read(routerProvider).go(Routes.conversation(conversationId));
   }
 
-  /// The agent tapped a notification (backgrounded or cold-started). Both
-  /// `new_message` and `conversation_assigned` deep-link to the same place:
-  /// the conversation, whose detail fetch also marks it read (§4).
+  /// The agent tapped a notification (backgrounded or cold-started). Every
+  /// push that names a conversation deep-links to the same place: the
+  /// conversation, whose detail fetch also marks it read (§4) and carries its
+  /// current `review` — so a review since withdrawn or completed is shown as
+  /// it now is, not as the push left it.
   void _handleNotificationTap(RemoteMessage message) {
     _log(
       '_handleNotificationTap() — messageId: '
@@ -378,7 +419,7 @@ class _PushBridgeState extends ConsumerState<PushBridge>
       return;
     }
 
-    final conversationId = _conversationIdFrom(message);
+    final conversationId = conversationIdFromPushData(message.data);
     if (conversationId == null) {
       _log(
         '_handleNotificationTap() — missing/invalid conversation_id, ignoring.',

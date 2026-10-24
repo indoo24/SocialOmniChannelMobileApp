@@ -1,5 +1,37 @@
 import '../utils/json_safe.dart';
 
+/// Someone who may be asked to review a conversation: a row of
+/// `GET /conversations/reviewers/` (an `EmployeeBrief`).
+///
+/// The server's list *is* the eligibility rule — active colleagues holding
+/// `conversation.review`, the caller left out — so nothing here, a role name
+/// or otherwise, decides who qualifies. The brief carries no role, which is
+/// why none is shown.
+class ReviewerCandidate {
+  const ReviewerCandidate({
+    required this.id,
+    required this.fullName,
+    this.initials = '',
+    this.avatarUrl = '',
+    this.availability = '',
+  });
+
+  final int id;
+  final String fullName;
+  final String initials;
+  final String avatarUrl;
+  final String availability;
+
+  factory ReviewerCandidate.fromJson(Map<String, dynamic> json) =>
+      ReviewerCandidate(
+        id: JsonSafe.asInt(json['id'], fallback: -1),
+        fullName: JsonSafe.asString(json['full_name']),
+        initials: JsonSafe.asString(json['initials']),
+        avatarUrl: JsonSafe.asString(json['avatar_url']),
+        availability: JsonSafe.asString(json['availability']),
+      );
+}
+
 /// A colleague's review of a conversation — the `review` object on a
 /// conversation response.
 ///

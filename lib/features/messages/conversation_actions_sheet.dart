@@ -35,6 +35,7 @@ import 'intelligence_providers.dart';
 import 'notes_sheet.dart';
 import '../customer_fields/custom_fields_section.dart';
 import '../directory/edit_customer_sheet.dart';
+import '../directory/call_customer_button.dart';
 import '../directory/save_to_contacts.dart';
 import '../orders/customer_data_sheet.dart';
 import '../orders/order_and_fact_dialogs.dart';
@@ -256,8 +257,14 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
           Row(
             children: [
               Expanded(child: _SheetPinButton(conversation: conversation)),
-              const SizedBox(width: Space.sm),
-              Expanded(child: _SheetReviewButton(conversation: conversation)),
+              // Asking for a review needs `conversation.reply` (the server
+              // refuses anyone without it), so it is not offered to them. An
+              // existing review can still be opened.
+              if (conversation.review != null ||
+                  ref.watch(canProvider(Perm.conversationReply))) ...[
+                const SizedBox(width: Space.sm),
+                Expanded(child: _SheetReviewButton(conversation: conversation)),
+              ],
             ],
           ),
           const SizedBox(height: Space.lg),
@@ -278,8 +285,12 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
               : Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Offered even without a number, so tapping it can say
-                    // why there is nothing to save.
+                    // Both offered even without a number, so tapping can say
+                    // why there is nothing to call or to save.
+                    CallCustomerButton(
+                      phone: _customerPhone(ref, conversation.customer),
+                      compact: true,
+                    ),
                     SaveToContactsButton(
                       name: conversation.customer.displayName,
                       phone: _customerPhone(ref, conversation.customer),
@@ -895,6 +906,12 @@ class _CustomerDetailsView extends ConsumerWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+                  // The number is the first thing wanted from here, so it
+                  // sits straight under the name, not down in the details.
+                  if (phone.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    _PhoneLine(phone: phone),
+                  ],
                   const SizedBox(height: 2),
                   Row(
                     children: [
@@ -987,12 +1004,6 @@ class _CustomerDetailsView extends ConsumerWidget {
           _KeyValueRow(
             label: context.l10n.languageLabel,
             value: customer.preferredLanguage,
-          ),
-        if (phone.isNotEmpty)
-          _KeyValueRow(
-            label: context.l10n.phoneFieldLabel,
-            value: phone,
-            ltr: true,
           ),
         if (customer.email.isNotEmpty)
           _KeyValueRow(
@@ -1139,6 +1150,45 @@ class _CustomerDataPreview extends StatelessWidget {
               child: Text(context.l10n.customerDataMoreCount(hidden)),
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// The customer's number under their name: an icon, then the number in the
+/// semibold body size, always left-to-right (so a leading `+` stays in front
+/// in Arabic) and on one line, shortened rather than overflowing.
+class _PhoneLine extends StatelessWidget {
+  const _PhoneLine({required this.phone});
+
+  final String phone;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      key: const Key('contactPhoneLine'),
+      children: [
+        Icon(
+          Icons.phone_outlined,
+          size: 16,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            phone,
+            key: const Key('contactPhoneText'),
+            textDirection: TextDirection.ltr,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ),
       ],
     );
   }

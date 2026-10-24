@@ -40,6 +40,7 @@ import '../../core/models/conversation.dart';
 import '../../core/models/conversation_group.dart';
 import '../../core/models/conversation_review.dart';
 import '../../core/models/directory.dart';
+import '../../core/models/employee.dart';
 import '../../core/providers.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
@@ -139,6 +140,15 @@ enum InboxQuickFilter {
   open,
 }
 
+/// The quick filters shown to someone who [canReview] (holds
+/// `conversation.review`), in order. Need review is for them alone — it is
+/// their own review queue — so for anyone else it is left out of the bar, not
+/// disabled; the others keep their relative order.
+List<InboxQuickFilter> visibleQuickFilters({required bool canReview}) => [
+  for (final filter in InboxQuickFilter.values)
+    if (filter != InboxQuickFilter.needsReview || canReview) filter,
+];
+
 /// The statuses a quick filter sets, and so clears when another is chosen.
 const _quickFilterStatuses = {'OPEN', 'RESOLVED'};
 
@@ -160,6 +170,12 @@ final inboxFiltersProvider =
     );
 
 class InboxFiltersController extends Notifier<ConversationFilters> {
+  // Deliberately depends on nothing — least of all who is signed in. The auth
+  // controller ends a session by invalidating the inbox providers, and a
+  // provider that (transitively) depended on the auth controller would make
+  // that a circular dependency. What follows from the signed-in employee's
+  // capabilities is done where the tab is drawn (`InboxQuickFilterBar`), and
+  // in [selectQuickFilter] by reading, not watching.
   @override
   ConversationFilters build() => const ConversationFilters();
 
@@ -169,6 +185,11 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
   /// including a status another quick filter set. A status chosen in the
   /// filter sheet (say WAITING_CUSTOMER) is left alone.
   void selectQuickFilter(InboxQuickFilter filter) {
+    // Not offered to someone without the capability, so never selectable.
+    if (filter == InboxQuickFilter.needsReview &&
+        !ref.read(canProvider(Perm.conversationReview))) {
+      return;
+    }
     final quickStatus = _quickFilterStatuses.contains(state.status);
     final status = switch (filter) {
       InboxQuickFilter.open => 'OPEN',

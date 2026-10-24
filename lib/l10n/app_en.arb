@@ -1804,7 +1804,7 @@
   "exportConversationsSubtitle": "Export all conversations as a CSV file.",
   "exportCustomersSubtitle": "Export all customers as a CSV file.",
   "exportActionLabel": "Export",
-  "saveContactAction": "Save to contacts",
+  "saveContactAction": "Add to contacts",
   "@saveContactAction": {
     "description": "Opens the phone's new-contact screen prefilled with the customer."
   },
@@ -1820,6 +1820,65 @@
   "@saveContactUnavailable": {
     "description": "The device has no contacts screen the app can open."
   },
+  "callAction": "Call",
+  "callNoPhone": "This customer has no phone number to call.",
+  "callInvalidPhone": "This phone number can't be dialed.",
+  "callUnavailable": "The phone app can't be opened on this device.",
+  "forwardMessageAction": "Forward",
+  "forwardSheetTitle": "Forward to",
+  "forwardChooseHint": "Choose the conversation to send this message to.",
+  "forwardSearchHint": "Search conversations or customers",
+  "forwardNoResults": "No conversations found.",
+  "forwardMoreHint": "Showing the first results. Search to narrow them down.",
+  "forwardToNamed": "Forward to {name}",
+  "@forwardToNamed": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "forwardConfirmTitle": "Forward this message?",
+  "forwardConfirmBody": "It will be sent to {name} on {channel}.",
+  "@forwardConfirmBody": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "channel": {"type": "String"}
+    }
+  },
+  "forwardAttachmentCount": "{count, plural, one{1 attachment} other{{count} attachments}}",
+  "@forwardAttachmentCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "forwardingInProgress": "Forwarding…",
+  "forwardedToMessage": "Forwarded to {name}.",
+  "@forwardedToMessage": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "forwardBlockedSystem": "System messages can't be forwarded.",
+  "forwardBlockedNotSent": "This message hasn't been sent yet.",
+  "forwardBlockedUnsupported": "This kind of message can't be forwarded.",
+  "forwardBlockedNothing": "There's nothing in this message to forward.",
+  "forwardAttachmentUnavailable": "An attachment in this message isn't available to forward.",
+  "forwardFailedMessage": "Couldn't forward the message. Check your connection and try again.",
+  "forwardDestinationRefusedMessage": "That conversation can't receive this message right now.",
+  "forwardPermissionDeniedMessage": "You don't have permission to send to that conversation.",
+  "forwardDestinationGoneMessage": "That conversation isn't available any more.",
+  "forwardTooManyMessage": "Too many messages sent. Wait a moment and try again.",
+  "forwardEligibilityHint": "Closed conversations and WhatsApp chats past the 24-hour window are hidden. Whether a conversation can receive this message is checked again before it is sent.",
+  "forwardHiddenCount": "{count, plural, one{1 conversation hidden: it can't receive messages right now.} other{{count} conversations hidden: they can't receive messages right now.}}",
+  "@forwardHiddenCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "forwardNoEligible": "No conversations are currently eligible to receive messages.",
+  "forwardDestinationClosedMessage": "That conversation is closed.",
+  "forwardWindowClosedMessage": "WhatsApp's 24-hour window for that customer has ended. A free-form message can't be sent until they write again.",
+  "forwardPlatformLimitMessage": "That conversation isn't accepting more messages right now.",
+  "forwardNoMediaMessage": "That conversation's channel can't receive attachments.",
   "savedRepliesAllCategories": "All",
   "@savedRepliesAllCategories": {
     "description": "Saved-reply picker chip showing replies of every category."
@@ -2010,6 +2069,7 @@
     "description": "Validation: no reviewer picked."
   },
   "reviewNoColleaguesFound": "No colleagues found.",
+  "reviewNoEligibleReviewers": "No one can be asked to review this conversation right now.",
   "@reviewNoColleaguesFound": {
     "description": "The reviewer list is empty."
   },
@@ -2070,6 +2130,13 @@
   "needsReviewFilter": "Need review",
   "@needsReviewFilter": {
     "description": "Inbox quick filter: conversations whose pending review names the signed-in employee as reviewer."
+  },
+  "reviewsWaitingForYou": "{count, plural, one{A conversation is waiting for your review} other{{count} conversations are waiting for your review}}",
+  "@reviewsWaitingForYou": {
+    "description": "Spoken label of the number on the Need review tab: how many conversations a colleague asked this employee to review.",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
   },
   "resolvedFilter": "Resolved",
   "@resolvedFilter": {

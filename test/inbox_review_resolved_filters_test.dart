@@ -59,6 +59,7 @@ ResponseBody _json(Object body) => ResponseBody.fromString(
 /// The inbox list itself, not one of the `page_size=1` badge probes.
 bool _isListRequest(RequestOptions r) =>
     r.uri.path.contains('/conversations/') &&
+    !r.uri.path.endsWith('/counts/') &&
     r.uri.queryParameters['page_size'] == null;
 
 final _me = Employee(
@@ -69,7 +70,7 @@ final _me = Employee(
   role: 'AGENT',
   roleDisplay: 'Agent',
   availability: 'ONLINE',
-  permissions: const {Perm.conversationReply},
+  permissions: const {Perm.conversationReply, Perm.conversationReview},
   visibilityScope: 'ALL',
 );
 
@@ -101,7 +102,9 @@ void main() {
 
     test('each tab sends what it always sent', () {
       ConversationFilters tab(InboxQuickFilter f) {
-        final c = ProviderContainer();
+        final c = ProviderContainer(
+          overrides: [currentEmployeeProvider.overrideWith((ref) => _me)],
+        );
         addTearDown(c.dispose);
         c.read(inboxFiltersProvider.notifier).selectQuickFilter(f);
         return c.read(inboxFiltersProvider);
@@ -168,7 +171,9 @@ void main() {
     ConversationFilters state() => container.read(inboxFiltersProvider);
 
     setUp(() {
-      container = ProviderContainer();
+      container = ProviderContainer(
+        overrides: [currentEmployeeProvider.overrideWith((ref) => _me)],
+      );
       addTearDown(container.dispose);
     });
 
