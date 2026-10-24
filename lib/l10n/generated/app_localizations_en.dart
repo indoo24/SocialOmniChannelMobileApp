@@ -3419,6 +3419,96 @@ class AppLocalizationsEn extends AppLocalizations {
       'The phone app can\'t be opened on this device.';
 
   @override
+  String get forwardMessageAction => 'Forward';
+
+  @override
+  String get forwardSheetTitle => 'Forward to';
+
+  @override
+  String get forwardChooseHint =>
+      'Choose the conversation to send this message to.';
+
+  @override
+  String get forwardSearchHint => 'Search conversations or customers';
+
+  @override
+  String get forwardNoResults => 'No conversations found.';
+
+  @override
+  String get forwardMoreHint =>
+      'Showing the first results. Search to narrow them down.';
+
+  @override
+  String forwardToNamed(String name) {
+    return 'Forward to $name';
+  }
+
+  @override
+  String get forwardConfirmTitle => 'Forward this message?';
+
+  @override
+  String forwardConfirmBody(String name, String channel) {
+    return 'It will be sent to $name on $channel.';
+  }
+
+  @override
+  String forwardAttachmentCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count attachments',
+      one: '1 attachment',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get forwardingInProgress => 'Forwarding…';
+
+  @override
+  String forwardedToMessage(String name) {
+    return 'Forwarded to $name.';
+  }
+
+  @override
+  String get forwardBlockedSystem => 'System messages can\'t be forwarded.';
+
+  @override
+  String get forwardBlockedNotSent => 'This message hasn\'t been sent yet.';
+
+  @override
+  String get forwardBlockedUnsupported =>
+      'This kind of message can\'t be forwarded.';
+
+  @override
+  String get forwardBlockedNothing =>
+      'There\'s nothing in this message to forward.';
+
+  @override
+  String get forwardAttachmentUnavailable =>
+      'An attachment in this message isn\'t available to forward.';
+
+  @override
+  String get forwardFailedMessage =>
+      'Couldn\'t forward the message. Check your connection and try again.';
+
+  @override
+  String get forwardDestinationRefusedMessage =>
+      'That conversation can\'t receive this message right now.';
+
+  @override
+  String get forwardPermissionDeniedMessage =>
+      'You don\'t have permission to send to that conversation.';
+
+  @override
+  String get forwardDestinationGoneMessage =>
+      'That conversation isn\'t available any more.';
+
+  @override
+  String get forwardTooManyMessage =>
+      'Too many messages sent. Wait a moment and try again.';
+
+  @override
   String get savedRepliesAllCategories => 'All';
 
   @override

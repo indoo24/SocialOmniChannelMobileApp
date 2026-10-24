@@ -6103,6 +6103,138 @@ abstract class AppLocalizations {
   /// **'The phone app can\'t be opened on this device.'**
   String get callUnavailable;
 
+  /// No description provided for @forwardMessageAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward'**
+  String get forwardMessageAction;
+
+  /// No description provided for @forwardSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward to'**
+  String get forwardSheetTitle;
+
+  /// No description provided for @forwardChooseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the conversation to send this message to.'**
+  String get forwardChooseHint;
+
+  /// No description provided for @forwardSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search conversations or customers'**
+  String get forwardSearchHint;
+
+  /// No description provided for @forwardNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations found.'**
+  String get forwardNoResults;
+
+  /// No description provided for @forwardMoreHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing the first results. Search to narrow them down.'**
+  String get forwardMoreHint;
+
+  /// No description provided for @forwardToNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward to {name}'**
+  String forwardToNamed(String name);
+
+  /// No description provided for @forwardConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward this message?'**
+  String get forwardConfirmTitle;
+
+  /// No description provided for @forwardConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It will be sent to {name} on {channel}.'**
+  String forwardConfirmBody(String name, String channel);
+
+  /// No description provided for @forwardAttachmentCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 attachment} other{{count} attachments}}'**
+  String forwardAttachmentCount(int count);
+
+  /// No description provided for @forwardingInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Forwarding…'**
+  String get forwardingInProgress;
+
+  /// No description provided for @forwardedToMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Forwarded to {name}.'**
+  String forwardedToMessage(String name);
+
+  /// No description provided for @forwardBlockedSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System messages can\'t be forwarded.'**
+  String get forwardBlockedSystem;
+
+  /// No description provided for @forwardBlockedNotSent.
+  ///
+  /// In en, this message translates to:
+  /// **'This message hasn\'t been sent yet.'**
+  String get forwardBlockedNotSent;
+
+  /// No description provided for @forwardBlockedUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This kind of message can\'t be forwarded.'**
+  String get forwardBlockedUnsupported;
+
+  /// No description provided for @forwardBlockedNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s nothing in this message to forward.'**
+  String get forwardBlockedNothing;
+
+  /// No description provided for @forwardAttachmentUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'An attachment in this message isn\'t available to forward.'**
+  String get forwardAttachmentUnavailable;
+
+  /// No description provided for @forwardFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t forward the message. Check your connection and try again.'**
+  String get forwardFailedMessage;
+
+  /// No description provided for @forwardDestinationRefusedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'That conversation can\'t receive this message right now.'**
+  String get forwardDestinationRefusedMessage;
+
+  /// No description provided for @forwardPermissionDeniedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to send to that conversation.'**
+  String get forwardPermissionDeniedMessage;
+
+  /// No description provided for @forwardDestinationGoneMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'That conversation isn\'t available any more.'**
+  String get forwardDestinationGoneMessage;
+
+  /// No description provided for @forwardTooManyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many messages sent. Wait a moment and try again.'**
+  String get forwardTooManyMessage;
+
   /// Saved-reply picker chip showing replies of every category.
   ///
   /// In en, this message translates to:

@@ -367,12 +367,11 @@ Still open for the backend:
   phone learns of one only by asking again. See R4 for what mobile does
   meanwhile and the contract it needs.
 
-**Forwarding.** No forwarding endpoint exists in the API or in this app. The
-supported way to hand a conversation over is `POST /api/conversations/{id}/assign/`
-(`assignee_id` / `team_id`, or `null` to release; `conversation.assign_any`
-for anyone else's work), already in mobile as the Assign picker
-(`assign_conversation_sheet.dart`). Forwarding a message to another
-destination has no contract and is not built.
+**Forwarding.** There is no forward endpoint in the API. Handing a
+*conversation* over is `POST /api/conversations/{id}/assign/` (`assignee_id` /
+`team_id`, or `null` to release; `conversation.assign_any` for anyone else's
+work), already in mobile as the Assign picker (`assign_conversation_sheet.dart`).
+Forwarding a *message* into another conversation is R6.
 
 The original proposal follows for reference.
 
@@ -610,6 +609,63 @@ the UI; none of this is a substitute.
    state it (today any holder of `conversation.reply` is offered it).
 5. Review push and realtime go only to the designated reviewer, never to every
    holder of `conversation.review` (R4).
+
+### R6 — Forward a message into another conversation
+
+**Seen 2026-10-24.** There is no forward endpoint: not in `API.md`, not in the
+live OpenAPI (`/api/schema/`; the only "forward" in it is `X-Forwarded-For`).
+Backend source is not in this repository, so nothing server-side was built.
+
+**Mobile now: forwarding composed on the phone, from documented endpoints
+only.** Long-press a message, Forward, search for a destination conversation
+(`GET /conversations/?search=`, limited to the accounts the inbox shows),
+choose it, confirm. Then, for the *destination* conversation:
+1. each attachment of the original is downloaded
+   (`GET /attachments/{public_id}/content/`) and staged as a draft
+   (`POST /conversations/{dest}/attachments/`, with `is_voice` and
+   `duration_ms` for a voice note);
+2. one `POST /conversations/{dest}/reply/` carries the original's text and the
+   draft ids, with a stable `client_message_id` per destination so a retry
+   whose answer was lost does not store it twice.
+
+Nothing reaches the customer until step 2, and drafts are discarded on any
+failure. So the destination's permissions (`conversation.reply`, visibility),
+its channel's attachment rules and the WhatsApp 24-hour window are all decided
+by the server, and its refusal (`400`/`403`/`404`/`429`) is shown.
+
+**What this is not.** A forward here is a **new message from the employee**.
+The server does not know it is a forward; the recipient sees no "forwarded"
+label; who wrote the original and which message it was are not recorded; and
+the file travels down to the phone and back up, so it is slow and
+bandwidth-heavy for large media, and a lost connection mid-way leaves nothing
+sent but costs the transfer. Not forwarded at all, and refused with a message:
+system lines, templates, stickers, any other attachment kind, a message with an
+attachment the server does not have ready, and an empty message. A quoted
+reply is forwarded as its own text, without the quote. A voice note is
+forwarded as one only when the server describes it as a voice note (type
+`VOICE`, or `whatsapp_type: voice`); otherwise it goes as an audio file. A
+message of several attachments is sent as one reply, which the server stores
+as one message per attachment.
+
+**Proposed contract** (names are proposals, not existing APIs):
+
+| Part | Proposal |
+|---|---|
+| Route | `POST /api/conversations/{source_id}/messages/{message_id}/forward/` |
+| Body | `{destination_conversation_id: int, client_message_id?: string}`. One destination to start with. |
+| Response | `201` the new `Message` in the destination, as `/reply/` returns it. |
+| Who | `conversation.reply`, and visibility of **both** the source conversation (and message, not deleted) and the destination. A conversation the caller cannot see is `404`, as elsewhere; another organization is `404`. |
+| Content | The server copies the text and the attachment files itself (as `from-saved-reply/` does), so nothing round-trips through the phone. Refuses, with a code and message, what the destination's channel cannot carry. |
+| Sending | Through the same provider pipeline as `/reply/`: 24-hour window and templates, TikTok and other channel limits, delivery status, `message.created` in the destination. `400` carries the provider's refusal, as `/reply/` does. |
+| Errors | `400` channel refusal or unsupported content; `403` no permission; `404` message, source or destination not visible; `409` the original is deleted or an attachment is gone; `429` throttle (share `/reply/`'s 120/min). |
+| Idempotency | `client_message_id`, as on `/reply/`. |
+| Provenance | `Message` gains `is_forwarded: bool` and `forwarded_from: {conversation_id, message_id} \| null` (ids only: no original sender name or text), so the thread can show a "Forwarded" label to the employees who can see it. Whether the **customer** is shown a forwarded marker is a channel matter (WhatsApp has its own); mobile will not claim one. |
+| History | A `MESSAGE_FORWARDED` conversation event on both conversations, with the other conversation's id. |
+| Open question for product | Forwarding sends one customer's words to another customer. Should that need its own capability (e.g. `conversation.forward`) rather than `conversation.reply`, or an organization setting? |
+
+**When it exists, mobile** replaces the two-step flow with this one call, shows
+the "Forwarded" label, and drops the download and re-upload; the picker, the
+confirmation and the error messages stay.
 
 ---
 

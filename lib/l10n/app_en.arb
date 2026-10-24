@@ -1824,6 +1824,49 @@
   "callNoPhone": "This customer has no phone number to call.",
   "callInvalidPhone": "This phone number can't be dialed.",
   "callUnavailable": "The phone app can't be opened on this device.",
+  "forwardMessageAction": "Forward",
+  "forwardSheetTitle": "Forward to",
+  "forwardChooseHint": "Choose the conversation to send this message to.",
+  "forwardSearchHint": "Search conversations or customers",
+  "forwardNoResults": "No conversations found.",
+  "forwardMoreHint": "Showing the first results. Search to narrow them down.",
+  "forwardToNamed": "Forward to {name}",
+  "@forwardToNamed": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "forwardConfirmTitle": "Forward this message?",
+  "forwardConfirmBody": "It will be sent to {name} on {channel}.",
+  "@forwardConfirmBody": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "channel": {"type": "String"}
+    }
+  },
+  "forwardAttachmentCount": "{count, plural, one{1 attachment} other{{count} attachments}}",
+  "@forwardAttachmentCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "forwardingInProgress": "Forwarding…",
+  "forwardedToMessage": "Forwarded to {name}.",
+  "@forwardedToMessage": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "forwardBlockedSystem": "System messages can't be forwarded.",
+  "forwardBlockedNotSent": "This message hasn't been sent yet.",
+  "forwardBlockedUnsupported": "This kind of message can't be forwarded.",
+  "forwardBlockedNothing": "There's nothing in this message to forward.",
+  "forwardAttachmentUnavailable": "An attachment in this message isn't available to forward.",
+  "forwardFailedMessage": "Couldn't forward the message. Check your connection and try again.",
+  "forwardDestinationRefusedMessage": "That conversation can't receive this message right now.",
+  "forwardPermissionDeniedMessage": "You don't have permission to send to that conversation.",
+  "forwardDestinationGoneMessage": "That conversation isn't available any more.",
+  "forwardTooManyMessage": "Too many messages sent. Wait a moment and try again.",
   "savedRepliesAllCategories": "All",
   "@savedRepliesAllCategories": {
     "description": "Saved-reply picker chip showing replies of every category."

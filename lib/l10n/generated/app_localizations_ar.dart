@@ -3429,6 +3429,99 @@ class AppLocalizationsAr extends AppLocalizations {
   String get callUnavailable => 'تعذّر فتح تطبيق الهاتف على هذا الجهاز.';
 
   @override
+  String get forwardMessageAction => 'إعادة توجيه';
+
+  @override
+  String get forwardSheetTitle => 'إعادة توجيه إلى';
+
+  @override
+  String get forwardChooseHint =>
+      'اختر المحادثة التي ستُرسل إليها هذه الرسالة.';
+
+  @override
+  String get forwardSearchHint => 'ابحث في المحادثات أو العملاء';
+
+  @override
+  String get forwardNoResults => 'لم يُعثر على محادثات.';
+
+  @override
+  String get forwardMoreHint =>
+      'تظهر النتائج الأولى فقط. استخدم البحث لتضييقها.';
+
+  @override
+  String forwardToNamed(String name) {
+    return 'إعادة توجيه إلى $name';
+  }
+
+  @override
+  String get forwardConfirmTitle => 'إعادة توجيه هذه الرسالة؟';
+
+  @override
+  String forwardConfirmBody(String name, String channel) {
+    return 'ستُرسل إلى $name عبر $channel.';
+  }
+
+  @override
+  String forwardAttachmentCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مرفق',
+      many: '$count مرفقًا',
+      few: '$count مرفقات',
+      two: 'مرفقان',
+      one: 'مرفق واحد',
+      zero: 'بدون مرفقات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get forwardingInProgress => 'جارٍ إعادة التوجيه…';
+
+  @override
+  String forwardedToMessage(String name) {
+    return 'تمت إعادة التوجيه إلى $name.';
+  }
+
+  @override
+  String get forwardBlockedSystem => 'لا يمكن إعادة توجيه رسائل النظام.';
+
+  @override
+  String get forwardBlockedNotSent => 'لم تُرسل هذه الرسالة بعد.';
+
+  @override
+  String get forwardBlockedUnsupported =>
+      'لا يمكن إعادة توجيه هذا النوع من الرسائل.';
+
+  @override
+  String get forwardBlockedNothing =>
+      'لا يوجد في هذه الرسالة ما يمكن إعادة توجيهه.';
+
+  @override
+  String get forwardAttachmentUnavailable =>
+      'أحد مرفقات هذه الرسالة غير متاح لإعادة التوجيه.';
+
+  @override
+  String get forwardFailedMessage =>
+      'تعذّرت إعادة توجيه الرسالة. تحقق من اتصالك وحاول مرة أخرى.';
+
+  @override
+  String get forwardDestinationRefusedMessage =>
+      'لا يمكن لهذه المحادثة استقبال الرسالة الآن.';
+
+  @override
+  String get forwardPermissionDeniedMessage =>
+      'ليست لديك صلاحية الإرسال إلى هذه المحادثة.';
+
+  @override
+  String get forwardDestinationGoneMessage => 'هذه المحادثة لم تعد متاحة.';
+
+  @override
+  String get forwardTooManyMessage =>
+      'تم إرسال رسائل كثيرة. انتظر قليلًا وحاول مرة أخرى.';
+
+  @override
   String get savedRepliesAllCategories => 'الكل';
 
   @override
