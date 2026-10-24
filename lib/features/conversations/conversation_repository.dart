@@ -12,6 +12,7 @@ import '../../core/api/api_client.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/conversation_group.dart';
 import '../../core/models/conversation_event.dart';
+import '../../core/models/conversation_review.dart';
 import '../../core/models/conversion_event.dart';
 import '../../core/models/intelligence.dart';
 import '../../core/models/message.dart';
@@ -314,6 +315,44 @@ class ConversationRepository {
       'unread': results[3],
       'open': results[4],
     };
+  }
+
+  /// Who may be asked to review: `GET /conversations/reviewers/`, the active
+  /// colleagues holding `conversation.review` (ADMIN and SUPERVISOR), the
+  /// caller excluded. Every page is read should the server paginate it; the
+  /// documented answer is a plain array, which is one page. It cannot say
+  /// who can see a particular conversation — the request itself is checked
+  /// for that and answers 400 for someone who cannot.
+  Future<List<ReviewerCandidate>> reviewers() async {
+    final byId = <int, ReviewerCandidate>{};
+    for (var page = 1; page <= 20; page++) {
+      final data = await _api.get<dynamic>(
+        '/conversations/reviewers/',
+        query: page > 1 ? {'page': page} : null,
+      );
+      final isPage = data is Map;
+      final rows = JsonSafe.parseList(
+        isPage ? data['results'] : data,
+        ReviewerCandidate.fromJson,
+      );
+      for (final candidate in rows) {
+        if (candidate.id > 0) byId[candidate.id] = candidate;
+      }
+      if (!isPage || (JsonSafe.asStringOrNull(data['next']) ?? '').isEmpty) {
+        break;
+      }
+    }
+    return byId.values.toList();
+  }
+
+  /// How many conversations have a review pending that was asked of the
+  /// signed-in employee: `ConversationCounts.review_mine` from
+  /// `GET /conversations/counts/`. It counts conversations, not customers,
+  /// is the caller's own number (never the organization's), and is 0 for
+  /// anyone who is not a chosen reviewer. Null when the answer carries none.
+  Future<int?> reviewCount() async {
+    final data = await _api.get<Map<String, dynamic>>('/conversations/counts/');
+    return JsonSafe.asIntOrNull(data['review_mine']);
   }
 
   Future<Paginated<Message>> messages(

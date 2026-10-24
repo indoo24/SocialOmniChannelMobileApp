@@ -6058,7 +6058,7 @@ abstract class AppLocalizations {
   /// Opens the phone's new-contact screen prefilled with the customer.
   ///
   /// In en, this message translates to:
-  /// **'Save to contacts'**
+  /// **'Add to contacts'**
   String get saveContactAction;
 
   /// Shown when Save to contacts is tapped for a customer without a phone number.
@@ -6078,6 +6078,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contacts can\'t be opened on this device.'**
   String get saveContactUnavailable;
+
+  /// No description provided for @callAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get callAction;
+
+  /// No description provided for @callNoPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'This customer has no phone number to call.'**
+  String get callNoPhone;
+
+  /// No description provided for @callInvalidPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone number can\'t be dialed.'**
+  String get callInvalidPhone;
+
+  /// No description provided for @callUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The phone app can\'t be opened on this device.'**
+  String get callUnavailable;
+
+  /// No description provided for @forwardMessageAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward'**
+  String get forwardMessageAction;
+
+  /// No description provided for @forwardSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward to'**
+  String get forwardSheetTitle;
+
+  /// No description provided for @forwardChooseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the conversation to send this message to.'**
+  String get forwardChooseHint;
+
+  /// No description provided for @forwardSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search conversations or customers'**
+  String get forwardSearchHint;
+
+  /// No description provided for @forwardNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations found.'**
+  String get forwardNoResults;
+
+  /// No description provided for @forwardMoreHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing the first results. Search to narrow them down.'**
+  String get forwardMoreHint;
+
+  /// No description provided for @forwardToNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward to {name}'**
+  String forwardToNamed(String name);
+
+  /// No description provided for @forwardConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward this message?'**
+  String get forwardConfirmTitle;
+
+  /// No description provided for @forwardConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It will be sent to {name} on {channel}.'**
+  String forwardConfirmBody(String name, String channel);
+
+  /// No description provided for @forwardAttachmentCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 attachment} other{{count} attachments}}'**
+  String forwardAttachmentCount(int count);
+
+  /// No description provided for @forwardingInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Forwarding…'**
+  String get forwardingInProgress;
+
+  /// No description provided for @forwardedToMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Forwarded to {name}.'**
+  String forwardedToMessage(String name);
+
+  /// No description provided for @forwardBlockedSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System messages can\'t be forwarded.'**
+  String get forwardBlockedSystem;
+
+  /// No description provided for @forwardBlockedNotSent.
+  ///
+  /// In en, this message translates to:
+  /// **'This message hasn\'t been sent yet.'**
+  String get forwardBlockedNotSent;
+
+  /// No description provided for @forwardBlockedUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This kind of message can\'t be forwarded.'**
+  String get forwardBlockedUnsupported;
+
+  /// No description provided for @forwardBlockedNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s nothing in this message to forward.'**
+  String get forwardBlockedNothing;
+
+  /// No description provided for @forwardAttachmentUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'An attachment in this message isn\'t available to forward.'**
+  String get forwardAttachmentUnavailable;
+
+  /// No description provided for @forwardFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t forward the message. Check your connection and try again.'**
+  String get forwardFailedMessage;
+
+  /// No description provided for @forwardDestinationRefusedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'That conversation can\'t receive this message right now.'**
+  String get forwardDestinationRefusedMessage;
+
+  /// No description provided for @forwardPermissionDeniedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to send to that conversation.'**
+  String get forwardPermissionDeniedMessage;
+
+  /// No description provided for @forwardDestinationGoneMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'That conversation isn\'t available any more.'**
+  String get forwardDestinationGoneMessage;
+
+  /// No description provided for @forwardTooManyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many messages sent. Wait a moment and try again.'**
+  String get forwardTooManyMessage;
+
+  /// No description provided for @forwardEligibilityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed conversations and WhatsApp chats past the 24-hour window are hidden. Whether a conversation can receive this message is checked again before it is sent.'**
+  String get forwardEligibilityHint;
+
+  /// No description provided for @forwardHiddenCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 conversation hidden: it can\'t receive messages right now.} other{{count} conversations hidden: they can\'t receive messages right now.}}'**
+  String forwardHiddenCount(int count);
+
+  /// No description provided for @forwardNoEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations are currently eligible to receive messages.'**
+  String get forwardNoEligible;
+
+  /// No description provided for @forwardDestinationClosedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'That conversation is closed.'**
+  String get forwardDestinationClosedMessage;
+
+  /// No description provided for @forwardWindowClosedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp\'s 24-hour window for that customer has ended. A free-form message can\'t be sent until they write again.'**
+  String get forwardWindowClosedMessage;
+
+  /// No description provided for @forwardPlatformLimitMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'That conversation isn\'t accepting more messages right now.'**
+  String get forwardPlatformLimitMessage;
+
+  /// No description provided for @forwardNoMediaMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'That conversation\'s channel can\'t receive attachments.'**
+  String get forwardNoMediaMessage;
 
   /// Saved-reply picker chip showing replies of every category.
   ///
@@ -6361,6 +6559,12 @@ abstract class AppLocalizations {
   /// **'No colleagues found.'**
   String get reviewNoColleaguesFound;
 
+  /// No description provided for @reviewNoEligibleReviewers.
+  ///
+  /// In en, this message translates to:
+  /// **'No one can be asked to review this conversation right now.'**
+  String get reviewNoEligibleReviewers;
+
   /// Marks the colleague the pending review is with.
   ///
   /// In en, this message translates to:
@@ -6432,6 +6636,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Need review'**
   String get needsReviewFilter;
+
+  /// Spoken label of the number on the Need review tab: how many conversations a colleague asked this employee to review.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{A conversation is waiting for your review} other{{count} conversations are waiting for your review}}'**
+  String reviewsWaitingForYou(int count);
 
   /// Inbox quick filter: resolved conversations.
   ///

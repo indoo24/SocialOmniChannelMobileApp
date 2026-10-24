@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/authentication/auth_controller.dart';
 import '../../features/conversations/inbox_controller.dart';
+import '../../features/conversations/review_count.dart';
 import '../../features/directory/directory_providers.dart';
 import '../../features/messages/conversation_controller.dart';
 import '../../features/messages/intelligence_providers.dart';
@@ -218,6 +219,7 @@ class _RealtimeBridgeState extends ConsumerState<RealtimeBridge>
         if (isAuthenticated) {
           client.connect();
           ref.invalidate(channelsProvider);
+          ref.invalidate(reviewCountProvider);
           // The socket was down; whatever arrived meanwhile is missing.
           ref.read(inboxControllerProvider.notifier).refreshQuietly();
           final active = ref.read(activeConversationProvider);
@@ -367,6 +369,9 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
       case RealtimeEvents.conversationStatusChanged:
         ref.read(inboxControllerProvider.notifier).refreshQuietly();
         ref.invalidate(conversationCountsProvider);
+        // The server sends no event of its own for a review, so these are
+        // the closest signal; the count is re-read, never adjusted.
+        ref.invalidate(reviewCountProvider);
         if (conversationId != null) {
           _refreshConversation(
             ref,
@@ -470,8 +475,13 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
         ref.invalidate(notificationsControllerProvider);
         ref.invalidate(notificationsUnreadCountProvider);
 
-      case RealtimeEvents.presenceChanged:
+      // Sent on every connect, so also after an offline spell or a dropped
+      // socket: events in between are never replayed, and a review asked
+      // meanwhile would otherwise go unseen.
       case RealtimeEvents.connectionReady:
+        ref.invalidate(reviewCountProvider);
+
+      case RealtimeEvents.presenceChanged:
         break;
     }
 

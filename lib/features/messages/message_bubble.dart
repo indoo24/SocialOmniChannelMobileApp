@@ -46,6 +46,7 @@ class MessageBubble extends ConsumerWidget {
     this.onDiscard,
     this.onDelete,
     this.onReply,
+    this.onForward,
     this.onQuoteTap,
     this.isHighlighted,
     this.isContinuation = false,
@@ -75,6 +76,10 @@ class MessageBubble extends ConsumerWidget {
   /// signed-in employee holds `conversation.reply` (there being nothing to
   /// quote a message *into* without it).
   final VoidCallback? onReply;
+
+  /// Null hides Forward from the long-press menu. Supplied only to someone who
+  /// may send messages, for a message that is really stored.
+  final VoidCallback? onForward;
 
   /// Tapping the quoted message preview inside this bubble jumps to and
   /// highlights the referenced message.
@@ -188,12 +193,14 @@ class MessageBubble extends ConsumerWidget {
                     GestureDetector(
                       onLongPressStart:
                           (onReply != null ||
+                              onForward != null ||
                               copyText != null ||
                               onDelete != null)
                           ? (details) => showMessageActionsMenu(
                               context,
                               position: details.globalPosition,
                               onReply: onReply,
+                              onForward: onForward,
                               copyText: copyText,
                               onDelete: onDelete,
                             )
@@ -331,14 +338,15 @@ String? copyableMessageText(String text) {
   return trimmed.isEmpty ? null : trimmed;
 }
 
-/// The long-press menu on a bubble (and on an internal note) — Reply, Copy
-/// and/or Delete, whichever the caller made available. Positioned at the
+/// The long-press menu on a bubble (and on an internal note) — Reply, Forward,
+/// Copy and/or Delete, whichever the caller made available. Positioned at the
 /// touch point rather than anchored to the bubble, matching the platform's
 /// own context-menu placement.
 void showMessageActionsMenu(
   BuildContext context, {
   required Offset position,
   VoidCallback? onReply,
+  VoidCallback? onForward,
   String? copyText,
   VoidCallback? onDelete,
 }) {
@@ -359,6 +367,15 @@ void showMessageActionsMenu(
           child: ListTile(
             leading: const Icon(Icons.reply_outlined),
             title: Text(context.l10n.replyMessageAction),
+          ),
+        ),
+      if (onForward != null)
+        PopupMenuItem<VoidCallback>(
+          key: const Key('messageForwardAction'),
+          value: onForward,
+          child: ListTile(
+            leading: const Icon(Icons.forward_outlined),
+            title: Text(context.l10n.forwardMessageAction),
           ),
         ),
       if (copyText != null)

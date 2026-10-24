@@ -39,6 +39,7 @@ import 'conversation_resolve_button.dart';
 import 'conversation_skeleton.dart';
 import 'conversation_source_card.dart';
 import 'media_group_grid.dart';
+import 'forward_message_sheet.dart' show startForwardMessage;
 import 'message_bubble.dart';
 import 'package:flutter/rendering.dart';
 import 'highlight_message_coordinator.dart';
@@ -1586,6 +1587,8 @@ class _MessageList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canDelete = ref.watch(canProvider(Perm.conversationDeleteMessage));
+    // Forwarding is sending: it needs what replying needs.
+    final canForward = ref.watch(canProvider(Perm.conversationReply));
     final notes =
         ref.watch(notesControllerProvider(conversationId)).value ?? const [];
 
@@ -1723,6 +1726,20 @@ class _MessageList extends ConsumerWidget {
                           !entry.message!.hasFailed &&
                           entry.message!.id >= 0
                       ? () => onReply!(entry.message!)
+                      : null,
+                  // Offered for any stored message; one that cannot be
+                  // forwarded says why when it is chosen.
+                  onForward:
+                      canForward &&
+                          !entry.message!.isSystem &&
+                          !entry.message!.isPending &&
+                          !entry.message!.hasFailed &&
+                          entry.message!.id >= 0
+                      ? () => startForwardMessage(
+                          context,
+                          conversationId: conversationId,
+                          message: entry.message!,
+                        )
                       : null,
                   onQuoteTap: onQuoteTap,
                 ),

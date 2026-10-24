@@ -115,6 +115,7 @@ const _channelsJson =
 /// the strings the actual HTTP query string would contain.
 bool _isListRequest(RequestOptions r) =>
     r.path.contains('/conversations/') &&
+    !r.path.endsWith('/counts/') &&
     r.queryParameters['page_size'] == null;
 
 bool _isCountsProbe(RequestOptions r) =>

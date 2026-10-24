@@ -333,6 +333,12 @@ class Conversation {
 
   /// Whether WhatsApp's 24-hour customer service messaging window has expired.
   ///
+  /// **Only meaningful on a conversation read from the detail endpoint.**
+  /// `last_customer_message_at` is not on list or grouped rows, so on a row it
+  /// is always null and this is `true` for every WhatsApp conversation. What a
+  /// row can prove is `destinationProvablyIneligible`
+  /// (`features/messages/message_forwarding.dart`).
+  ///
   /// Replicates the Web implementation (`inbox-xhnnac5D.js`):
   /// ```javascript
   /// const C = s.provider === "WHATSAPP";

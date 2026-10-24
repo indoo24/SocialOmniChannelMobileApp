@@ -3405,7 +3405,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get exportActionLabel => 'تصدير';
 
   @override
-  String get saveContactAction => 'حفظ في جهات الاتصال';
+  String get saveContactAction => 'إضافة إلى جهات الاتصال';
 
   @override
   String get saveContactNoPhone => 'لا يوجد رقم هاتف لهذا العميل لحفظه.';
@@ -3415,6 +3415,147 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get saveContactUnavailable => 'تعذّر فتح جهات الاتصال على هذا الجهاز.';
+
+  @override
+  String get callAction => 'اتصال';
+
+  @override
+  String get callNoPhone => 'لا يوجد رقم هاتف لهذا العميل للاتصال به.';
+
+  @override
+  String get callInvalidPhone => 'لا يمكن الاتصال بهذا الرقم.';
+
+  @override
+  String get callUnavailable => 'تعذّر فتح تطبيق الهاتف على هذا الجهاز.';
+
+  @override
+  String get forwardMessageAction => 'إعادة توجيه';
+
+  @override
+  String get forwardSheetTitle => 'إعادة توجيه إلى';
+
+  @override
+  String get forwardChooseHint =>
+      'اختر المحادثة التي ستُرسل إليها هذه الرسالة.';
+
+  @override
+  String get forwardSearchHint => 'ابحث في المحادثات أو العملاء';
+
+  @override
+  String get forwardNoResults => 'لم يُعثر على محادثات.';
+
+  @override
+  String get forwardMoreHint =>
+      'تظهر النتائج الأولى فقط. استخدم البحث لتضييقها.';
+
+  @override
+  String forwardToNamed(String name) {
+    return 'إعادة توجيه إلى $name';
+  }
+
+  @override
+  String get forwardConfirmTitle => 'إعادة توجيه هذه الرسالة؟';
+
+  @override
+  String forwardConfirmBody(String name, String channel) {
+    return 'ستُرسل إلى $name عبر $channel.';
+  }
+
+  @override
+  String forwardAttachmentCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مرفق',
+      many: '$count مرفقًا',
+      few: '$count مرفقات',
+      two: 'مرفقان',
+      one: 'مرفق واحد',
+      zero: 'بدون مرفقات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get forwardingInProgress => 'جارٍ إعادة التوجيه…';
+
+  @override
+  String forwardedToMessage(String name) {
+    return 'تمت إعادة التوجيه إلى $name.';
+  }
+
+  @override
+  String get forwardBlockedSystem => 'لا يمكن إعادة توجيه رسائل النظام.';
+
+  @override
+  String get forwardBlockedNotSent => 'لم تُرسل هذه الرسالة بعد.';
+
+  @override
+  String get forwardBlockedUnsupported =>
+      'لا يمكن إعادة توجيه هذا النوع من الرسائل.';
+
+  @override
+  String get forwardBlockedNothing =>
+      'لا يوجد في هذه الرسالة ما يمكن إعادة توجيهه.';
+
+  @override
+  String get forwardAttachmentUnavailable =>
+      'أحد مرفقات هذه الرسالة غير متاح لإعادة التوجيه.';
+
+  @override
+  String get forwardFailedMessage =>
+      'تعذّرت إعادة توجيه الرسالة. تحقق من اتصالك وحاول مرة أخرى.';
+
+  @override
+  String get forwardDestinationRefusedMessage =>
+      'لا يمكن لهذه المحادثة استقبال الرسالة الآن.';
+
+  @override
+  String get forwardPermissionDeniedMessage =>
+      'ليست لديك صلاحية الإرسال إلى هذه المحادثة.';
+
+  @override
+  String get forwardDestinationGoneMessage => 'هذه المحادثة لم تعد متاحة.';
+
+  @override
+  String get forwardTooManyMessage =>
+      'تم إرسال رسائل كثيرة. انتظر قليلًا وحاول مرة أخرى.';
+
+  @override
+  String get forwardEligibilityHint =>
+      'المحادثات المغلقة ومحادثات WhatsApp التي انتهت نافذة الـ 24 ساعة فيها مخفية. يُتحقق من إمكانية استقبال المحادثة لهذه الرسالة مرة أخرى قبل إرسالها.';
+
+  @override
+  String forwardHiddenCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة مخفية: لا يمكنها استقبال رسائل الآن.',
+      many: '$count محادثة مخفية: لا يمكنها استقبال رسائل الآن.',
+      few: '$count محادثات مخفية: لا يمكنها استقبال رسائل الآن.',
+      two: 'محادثتان مخفيتان: لا يمكنهما استقبال رسائل الآن.',
+      one: 'محادثة واحدة مخفية: لا يمكنها استقبال رسائل الآن.',
+      zero: 'لا توجد محادثات مخفية',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get forwardNoEligible => 'لا توجد محادثات متاح الإرسال إليها حاليًا.';
+
+  @override
+  String get forwardDestinationClosedMessage => 'هذه المحادثة مغلقة.';
+
+  @override
+  String get forwardWindowClosedMessage =>
+      'انتهت نافذة الـ 24 ساعة في WhatsApp لهذا العميل. لا يمكن إرسال رسالة حرة قبل أن يراسلك من جديد.';
+
+  @override
+  String get forwardPlatformLimitMessage =>
+      'هذه المحادثة لا تقبل المزيد من الرسائل الآن.';
+
+  @override
+  String get forwardNoMediaMessage => 'قناة هذه المحادثة لا تستقبل المرفقات.';
 
   @override
   String get savedRepliesAllCategories => 'الكل';
@@ -3564,6 +3705,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reviewNoColleaguesFound => 'لم يُعثر على زملاء.';
 
   @override
+  String get reviewNoEligibleReviewers =>
+      'لا يوجد أحد يمكن طلب مراجعة هذه المحادثة منه حاليًا.';
+
+  @override
   String get reviewCurrentReviewerLabel => 'المراجِع الحالي';
 
   @override
@@ -3606,6 +3751,21 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get needsReviewFilter => 'تحتاج مراجعة';
+
+  @override
+  String reviewsWaitingForYou(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة بانتظار مراجعتك',
+      many: '$count محادثة بانتظار مراجعتك',
+      few: '$count محادثات بانتظار مراجعتك',
+      two: 'محادثتان بانتظار مراجعتك',
+      one: 'محادثة جديدة بانتظار مراجعتك',
+      zero: 'لا توجد محادثات بانتظار مراجعتك',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get resolvedFilter => 'محلولة';
