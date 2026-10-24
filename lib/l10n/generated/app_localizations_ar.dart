@@ -3405,7 +3405,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get exportActionLabel => 'تصدير';
 
   @override
-  String get saveContactAction => 'حفظ في جهات الاتصال';
+  String get saveContactAction => 'إضافة إلى جهات الاتصال';
 
   @override
   String get saveContactNoPhone => 'لا يوجد رقم هاتف لهذا العميل لحفظه.';
@@ -3415,6 +3415,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get saveContactUnavailable => 'تعذّر فتح جهات الاتصال على هذا الجهاز.';
+
+  @override
+  String get callAction => 'اتصال';
+
+  @override
+  String get callNoPhone => 'لا يوجد رقم هاتف لهذا العميل للاتصال به.';
+
+  @override
+  String get callInvalidPhone => 'لا يمكن الاتصال بهذا الرقم.';
+
+  @override
+  String get callUnavailable => 'تعذّر فتح تطبيق الهاتف على هذا الجهاز.';
 
   @override
   String get savedRepliesAllCategories => 'الكل';

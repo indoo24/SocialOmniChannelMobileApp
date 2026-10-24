@@ -3393,7 +3393,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportActionLabel => 'Export';
 
   @override
-  String get saveContactAction => 'Save to contacts';
+  String get saveContactAction => 'Add to contacts';
 
   @override
   String get saveContactNoPhone => 'This customer has no phone number to save.';
@@ -3404,6 +3404,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get saveContactUnavailable =>
       'Contacts can\'t be opened on this device.';
+
+  @override
+  String get callAction => 'Call';
+
+  @override
+  String get callNoPhone => 'This customer has no phone number to call.';
+
+  @override
+  String get callInvalidPhone => 'This phone number can\'t be dialed.';
+
+  @override
+  String get callUnavailable =>
+      'The phone app can\'t be opened on this device.';
 
   @override
   String get savedRepliesAllCategories => 'All';

@@ -6058,7 +6058,7 @@ abstract class AppLocalizations {
   /// Opens the phone's new-contact screen prefilled with the customer.
   ///
   /// In en, this message translates to:
-  /// **'Save to contacts'**
+  /// **'Add to contacts'**
   String get saveContactAction;
 
   /// Shown when Save to contacts is tapped for a customer without a phone number.
@@ -6078,6 +6078,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contacts can\'t be opened on this device.'**
   String get saveContactUnavailable;
+
+  /// No description provided for @callAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get callAction;
+
+  /// No description provided for @callNoPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'This customer has no phone number to call.'**
+  String get callNoPhone;
+
+  /// No description provided for @callInvalidPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone number can\'t be dialed.'**
+  String get callInvalidPhone;
+
+  /// No description provided for @callUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The phone app can\'t be opened on this device.'**
+  String get callUnavailable;
 
   /// Saved-reply picker chip showing replies of every category.
   ///

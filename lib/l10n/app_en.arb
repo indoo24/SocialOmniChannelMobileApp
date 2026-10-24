@@ -1804,7 +1804,7 @@
   "exportConversationsSubtitle": "Export all conversations as a CSV file.",
   "exportCustomersSubtitle": "Export all customers as a CSV file.",
   "exportActionLabel": "Export",
-  "saveContactAction": "Save to contacts",
+  "saveContactAction": "Add to contacts",
   "@saveContactAction": {
     "description": "Opens the phone's new-contact screen prefilled with the customer."
   },
@@ -1820,6 +1820,10 @@
   "@saveContactUnavailable": {
     "description": "The device has no contacts screen the app can open."
   },
+  "callAction": "Call",
+  "callNoPhone": "This customer has no phone number to call.",
+  "callInvalidPhone": "This phone number can't be dialed.",
+  "callUnavailable": "The phone app can't be opened on this device.",
   "savedRepliesAllCategories": "All",
   "@savedRepliesAllCategories": {
     "description": "Saved-reply picker chip showing replies of every category."
