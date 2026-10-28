@@ -44,7 +44,6 @@ import 'message_bubble.dart';
 import 'package:flutter/rendering.dart';
 import 'highlight_message_coordinator.dart';
 import 'notes_controller.dart';
-import 'voice_playback_coordinator.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({required this.conversationId, super.key});
@@ -655,10 +654,23 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final inboxNotifier = _inboxNotifier;
     final container = _container;
     final conversationId = widget.conversationId;
+    // The badge as the server last reported it. Leaving a thread does not
+    // mean it was read: opening one only clears the badge for the person
+    // responsible for it (see ConversationController.markReadAndSync).
+    int? unreadCount;
+    try {
+      unreadCount = container
+          .read(conversationControllerProvider(conversationId))
+          .value
+          ?.conversation
+          .unreadCount;
+    } catch (_) {}
 
     Future.microtask(() {
       try {
-        inboxNotifier.markAsRead(conversationId);
+        if (unreadCount != null) {
+          inboxNotifier.setUnreadCount(conversationId, unreadCount);
+        }
         container.invalidate(conversationCountsProvider);
         inboxNotifier.refreshQuietly();
         activeNotifier.closed(conversationId);
@@ -667,8 +679,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       }
     });
 
+    // A voice note playing is deliberately left playing: it belongs to the
+    // app-wide player (voicePlaybackProvider), not to this conversation.
     try {
-      container.read(activeVoicePlaybackProvider.notifier).stopAll();
       container.read(highlightedMessageProvider.notifier).clear();
     } catch (_) {}
 
@@ -850,6 +863,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         ),
         actions: [
           async.maybeWhen(
+            data: (state) => state.conversation.hasUnread
+                ? _MarkReadButton(conversationId: widget.conversationId)
+                : const SizedBox.shrink(),
+            orElse: () => const SizedBox.shrink(),
+          ),
+          async.maybeWhen(
             data: (state) => ConversationResolveButton(
               conversation: state.conversation,
               canChange: canChangeStatus,
@@ -987,6 +1006,71 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// "Mark as read", in the header while the thread still shows an unread
+/// badge — as web offers it whenever `unread_count > 0`.
+///
+/// A badge still standing on an open thread is the server saying it is not
+/// this viewer's to clear by looking, and ADMIN and SUPERVISOR never clear
+/// one by looking at all ([Employee.marksReadExplicitly]). This is how they
+/// clear it on purpose. The button disappears once the server confirms;
+/// on failure it stays, with the badge, and says so.
+class _MarkReadButton extends ConsumerStatefulWidget {
+  const _MarkReadButton({required this.conversationId});
+
+  final int conversationId;
+
+  @override
+  ConsumerState<_MarkReadButton> createState() => _MarkReadButtonState();
+}
+
+class _MarkReadButtonState extends ConsumerState<_MarkReadButton> {
+  bool _busy = false;
+
+  Future<void> _markRead() async {
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(conversationControllerProvider(widget.conversationId).notifier)
+          .markReadExplicitly();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.markAsReadFailed),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return IconButton(
+      key: const ValueKey('markAsReadButton'),
+      tooltip: context.l10n.markAsReadAction,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(
+        minWidth: Sizes.touchTarget,
+        minHeight: Sizes.touchTarget,
+      ),
+      icon: _busy
+          ? const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              Icons.mark_chat_read_outlined,
+              color: theme.colorScheme.primary,
+              size: Sizes.iconMd + 2,
+            ),
+      onPressed: _busy ? null : _markRead,
     );
   }
 }

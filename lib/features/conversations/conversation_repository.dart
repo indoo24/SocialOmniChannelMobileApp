@@ -507,8 +507,22 @@ class ConversationRepository {
   Future<void> discardAttachment(int conversationId, String draftId) => _api
       .delete<dynamic>('/conversations/$conversationId/attachments/$draftId/');
 
-  Future<void> markRead(int conversationId) =>
-      _api.post<dynamic>('/conversations/$conversationId/read/');
+  /// `POST /conversations/{id}/read/`, returning the unread badge as it now
+  /// stands.
+  ///
+  /// Without [explicit] the server applies the same rule as opening the
+  /// thread: the badge clears only for the assignee, whoever claimed the
+  /// thread, or a conversation nobody holds — so the count can come back
+  /// unchanged. [explicit] is a person pressing "Mark as read", and clears it
+  /// regardless. A response without `unread_count` reads as 0, which is all
+  /// this endpoint ever answered before it took a body.
+  Future<int> markRead(int conversationId, {bool explicit = false}) async {
+    final data = await _api.post<dynamic>(
+      '/conversations/$conversationId/read/',
+      body: explicit ? const {'explicit': true} : null,
+    );
+    return data is Map ? JsonSafe.asInt(data['unread_count']) : 0;
+  }
 
   /// Assignment. The backend decides whether this is legal — the app only asks.
   ///

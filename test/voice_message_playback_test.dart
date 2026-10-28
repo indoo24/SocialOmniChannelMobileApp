@@ -600,7 +600,8 @@ void main() {
     );
 
     testWidgets(
-      '7. Player disposal: navigating away cleans up player and coordinator',
+      '7. Player lifetime: navigating away keeps the shared player playing; '
+      'it is disposed with the app\'s provider scope',
       (tester) async {
         final client = _conversationClient(
           _messagesResponse([
@@ -638,7 +639,16 @@ void main() {
           await tester.pump(const Duration(milliseconds: 50));
         }
 
-        // Player is disposed cleanly
+        // The conversation is gone; the voice note is not. Playback belongs
+        // to the app-wide player, which outlives every screen.
+        expect(fakeAudioPlatform.disposedPlayers, isEmpty);
+        expect(fakeAudioPlatform.pauseCalls[playerId], 0);
+
+        // The app's provider scope goes: so does the player.
+        await tester.pumpWidget(const SizedBox());
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
         expect(fakeAudioPlatform.disposedPlayers, contains(playerId));
         expect(tester.takeException(), isNull);
       },

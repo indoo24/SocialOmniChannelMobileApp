@@ -453,6 +453,9 @@
   "conversationSourceJumpTo": "Go to the conversation source",
   "conversationSourceOpenAd": "Open the original advertisement on Meta",
   "conversationSourceOpenPost": "Open the original post on Meta",
+  "conversationSourceAdImage": "Advertisement image",
+  "markAsReadAction": "Mark as read",
+  "markAsReadFailed": "Couldn't mark this conversation as read. Try again.",
   "photoMessageLabel": "Photo",
   "photosMessageLabel": "Photos",
   "videoMessageLabel": "Video",
@@ -1498,6 +1501,14 @@
   "dateFilterToday": "Today",
   "@dateFilterToday": {
     "description": "Preset date filter for today"
+  },
+  "dateFilterYesterday": "Yesterday",
+  "@dateFilterYesterday": {
+    "description": "Preset date filter for the previous calendar day"
+  },
+  "dateFilterLast3Days": "Last 3 days",
+  "@dateFilterLast3Days": {
+    "description": "Preset date filter for today and the two days before it"
   },
   "dateFilterLast7Days": "Last 7 days",
   "@dateFilterLast7Days": {

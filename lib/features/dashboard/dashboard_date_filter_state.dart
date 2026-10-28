@@ -1,7 +1,8 @@
 /// State representation and provider for the Dashboard date-range filter.
 ///
-/// Supports standard presets ('today', 'last_7_days', 'last_30_days',
-/// 'this_month', 'last_month') as well as custom date ranges.
+/// Supports standard presets ('today', 'yesterday', 'last_3_days',
+/// 'last_7_days', 'last_30_days', 'this_month', 'last_month') as well as
+/// custom date ranges.
 library;
 
 import 'package:flutter/material.dart';
@@ -9,9 +10,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n_extensions.dart';
 
-/// Presets supported by the OpenAPI `/api/dashboard/` endpoint.
+/// Presets supported by the OpenAPI `/api/dashboard/` endpoint, in the order
+/// the picker shows them.
+///
+/// The server resolves every preset itself, as local calendar days in the
+/// organization's timezone (`apps/dashboard/periods.py`); only the name is
+/// sent. [yesterday] is the one preset that excludes today, and [last3Days]
+/// is today plus the two days before it, like [last7Days] beside it — not a
+/// rolling 72 hours.
 enum DashboardPreset {
   today('today'),
+  yesterday('yesterday'),
+  last3Days('last_3_days'),
   last7Days('last_7_days'),
   last30Days('last_30_days'),
   thisMonth('this_month'),
@@ -25,6 +35,8 @@ enum DashboardPreset {
   /// Localized display label.
   String label(BuildContext context) => switch (this) {
     DashboardPreset.today => context.l10n.dateFilterToday,
+    DashboardPreset.yesterday => context.l10n.dateFilterYesterday,
+    DashboardPreset.last3Days => context.l10n.dateFilterLast3Days,
     DashboardPreset.last7Days => context.l10n.dateFilterLast7Days,
     DashboardPreset.last30Days => context.l10n.dateFilterLast30Days,
     DashboardPreset.thisMonth => context.l10n.dateFilterThisMonth,
@@ -36,6 +48,14 @@ enum DashboardPreset {
     final today = DateTime(now.year, now.month, now.day);
     return switch (this) {
       DashboardPreset.today => (today, today),
+      DashboardPreset.yesterday => (
+        DateTime(today.year, today.month, today.day - 1),
+        DateTime(today.year, today.month, today.day - 1),
+      ),
+      DashboardPreset.last3Days => (
+        DateTime(today.year, today.month, today.day - 2),
+        today,
+      ),
       DashboardPreset.last7Days => (
         today.subtract(const Duration(days: 6)),
         today,

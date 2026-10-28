@@ -996,6 +996,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get conversationSourceOpenPost => 'Open the original post on Meta';
 
   @override
+  String get conversationSourceAdImage => 'Advertisement image';
+
+  @override
+  String get markAsReadAction => 'Mark as read';
+
+  @override
+  String get markAsReadFailed =>
+      'Couldn\'t mark this conversation as read. Try again.';
+
+  @override
   String get photoMessageLabel => 'Photo';
 
   @override
@@ -2802,6 +2812,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dateFilterToday => 'Today';
+
+  @override
+  String get dateFilterYesterday => 'Yesterday';
+
+  @override
+  String get dateFilterLast3Days => 'Last 3 days';
 
   @override
   String get dateFilterLast7Days => 'Last 7 days';

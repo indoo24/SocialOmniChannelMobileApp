@@ -445,8 +445,8 @@ class DirectoryRepository {
   /// permission check here — asking is always allowed and the answer is already
   /// scoped.
   ///
-  /// Supports [preset] ('today', 'last_7_days', 'last_30_days', 'this_month',
-  /// 'last_month') or custom [from] and [to] dates ('YYYY-MM-DD'). When supplied,
+  /// Supports [preset] ('today', 'yesterday', 'last_3_days', 'last_7_days',
+  /// 'last_30_days', 'this_month', 'last_month') or custom [from] and [to] dates ('YYYY-MM-DD'). When supplied,
   /// date filters take precedence over [days] (which defaults to 14 when no
   /// date filter is passed).
   Future<PerformanceReport> performance({

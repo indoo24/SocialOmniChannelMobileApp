@@ -39,6 +39,8 @@ import 'package:scenario_mobile/features/authentication/auth_controller.dart';
 import 'package:scenario_mobile/features/messages/conversation_screen.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
+import 'support/ogg_opus_fixtures.dart';
+
 /// A genuine, decodable 1x1 JPEG — the composer's preview renders the
 /// picked file with `Image.file()`, which needs real image bytes or the
 /// codec throws "Invalid image data"; arbitrary placeholder bytes fail it.
@@ -179,6 +181,16 @@ class _FakeRecordPlatform extends RecordPlatform {
   bool disposed = false;
   int startCallCount = 0;
 
+  /// The config the app actually handed the platform on the last start().
+  RecordConfig? startedWith;
+
+  /// The app's `setOnConfigChanged` handler, for a test to report a config
+  /// the platform "adjusted" to, as the real plugin does after start().
+  void Function(RecordConfig config)? configChanged;
+
+  /// When set, reported through [configChanged] before start() returns.
+  RecordConfig? adjustDuringStart;
+
   final _stateController = StreamController<RecordState>.broadcast();
 
   @override
@@ -192,7 +204,10 @@ class _FakeRecordPlatform extends RecordPlatform {
   }) async {
     startCallCount++;
     if (startThrows) throw Exception('platform start failure');
+    startedWith = config;
     stopReturnsPath ??= path;
+    final adjusted = adjustDuringStart;
+    if (adjusted != null) configChanged?.call(adjusted);
   }
 
   @override
@@ -258,7 +273,7 @@ class _FakeRecordPlatform extends RecordPlatform {
   void setOnConfigChanged(
     String recorderId,
     void Function(RecordConfig config)? handler,
-  ) {}
+  ) => configChanged = handler;
 }
 
 // ---------------------------------------------------------------------------
@@ -1639,6 +1654,15 @@ void main() {
         expect(fakeRecord.stopped, isTrue);
         expect(fakeRecord.disposed, isTrue);
 
+        // What the platform was actually asked for: mono Opus for speech.
+        // record's own default is 2 channels, which WhatsApp recipients
+        // cannot play.
+        final config = fakeRecord.startedWith!;
+        expect(config.encoder, AudioEncoder.opus);
+        expect(config.numChannels, 1);
+        expect(config.sampleRate, 16000);
+        expect(config.bitRate, 24000);
+
         final uploadReq = adapter.received.firstWhere(
           (r) =>
               r.method == 'POST' && r.path == '/conversations/42/attachments/',
@@ -1649,6 +1673,14 @@ void main() {
           formData.fields.any((f) => f.key == 'is_voice' && f.value == 'true'),
           isTrue,
         );
+        expect(
+          formData.fields.any((f) => f.key == 'duration_ms'),
+          isTrue,
+        );
+        final part = formData.files.single;
+        expect(part.key, 'file');
+        expect(part.value.filename, 'voice-message.ogg');
+        expect(part.value.contentType?.mimeType, 'audio/ogg');
 
         final replyReq = adapter.received.firstWhere(
           (r) => r.method == 'POST' && r.path == '/conversations/42/reply/',
@@ -1691,6 +1723,131 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
+    });
+
+    testWidgets(
+      'a platform that moves a recording off mono after start discards it '
+      'and sends nothing',
+      (tester) async {
+        final fakeRecord = _FakeRecordPlatform();
+        RecordPlatform.instance = fakeRecord;
+
+        final adapter = _StubAdapter((options) {
+          if (options.path.contains('/messages/')) {
+            return _json('{"results": []}', 200);
+          }
+          if (options.path.contains('/notes/')) {
+            return _json('[]', 200);
+          }
+          if (options.path.contains('/conversations/42/')) {
+            return _json(_conversationDetail, 200);
+          }
+          return _json('{}', 200);
+        });
+        final client = ApiClient.create(cookieJar: CookieJar());
+        client.raw.httpClientAdapter = adapter;
+
+        await _pumpConversation(tester, client);
+        await _tapMicAndWaitForRecording(tester);
+        expect(find.textContaining('Recording'), findsOneWidget);
+
+        await tester.runAsync(() async {
+          fakeRecord.configChanged!(
+            fakeRecord.startedWith!.copyWith(numChannels: 2),
+          );
+          for (var i = 0; i < 30; i++) {
+            await Future<void>.delayed(const Duration(milliseconds: 20));
+            await tester.pump();
+          }
+        });
+
+        expect(fakeRecord.cancelled, isTrue);
+        expect(fakeRecord.stopped, isFalse);
+        expect(
+          find.text("Couldn't start recording. Please try again."),
+          findsOneWidget,
+        );
+        expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
+        expect(
+          adapter.received.any((r) => r.path.contains('/attachments/')),
+          isFalse,
+        );
+      },
+    );
+
+    testWidgets('a platform that stays mono but adjusts the sample rate keeps '
+        'recording', (tester) async {
+      final fakeRecord = _FakeRecordPlatform();
+      RecordPlatform.instance = fakeRecord;
+
+      final client = _stubClient((options) {
+        if (options.path.contains('/messages/')) {
+          return _json('{"results": []}', 200);
+        }
+        if (options.path.contains('/notes/')) {
+          return _json('[]', 200);
+        }
+        if (options.path.contains('/conversations/42/')) {
+          return _json(_conversationDetail, 200);
+        }
+        return _json('{}', 200);
+      });
+
+      await _pumpConversation(tester, client);
+      await _tapMicAndWaitForRecording(tester);
+
+      await tester.runAsync(() async {
+        fakeRecord.configChanged!(
+          fakeRecord.startedWith!.copyWith(sampleRate: 24000),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await tester.pump();
+      });
+
+      expect(fakeRecord.cancelled, isFalse);
+      expect(find.textContaining('Recording'), findsOneWidget);
+
+      // Clean up: cancel so the timer doesn't outlive the test.
+      await tester.runAsync(() async {
+        await tester.tap(find.byIcon(Icons.delete_outline));
+        await tester.pump();
+      });
+    });
+
+    testWidgets('a stereo adjustment reported during start() fails the start', (
+      tester,
+    ) async {
+      final fakeRecord = _FakeRecordPlatform()
+        ..adjustDuringStart = const RecordConfig(
+          encoder: AudioEncoder.opus,
+          numChannels: 2,
+        );
+      RecordPlatform.instance = fakeRecord;
+
+      final client = _stubClient((options) {
+        if (options.path.contains('/messages/')) {
+          return _json('{"results": []}', 200);
+        }
+        if (options.path.contains('/notes/')) {
+          return _json('[]', 200);
+        }
+        if (options.path.contains('/conversations/42/')) {
+          return _json(_conversationDetail, 200);
+        }
+        return _json('{}', 200);
+      });
+
+      await _pumpConversation(tester, client);
+      await _tapAndPumpUntilIdle(tester, find.byIcon(Icons.mic_none_rounded));
+
+      expect(fakeRecord.cancelled, isTrue);
+      expect(
+        find.text("Couldn't start recording. Please try again."),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Recording'), findsNothing);
+      expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('an upload failure after stopping is handled gracefully', (
@@ -1738,6 +1895,97 @@ void main() {
 
       expect(find.text('Too large.'), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+
+    _StubAdapter voiceUploadServer() => _StubAdapter((options) {
+      if (options.method == 'POST' &&
+          options.path == '/conversations/42/attachments/') {
+        return _json('''
+{"id": "voice-draft-1", "type": "AUDIO", "mime_type": "audio/ogg",
+ "file_name": "voice-message.ogg", "size_bytes": 8, "is_voice": true,
+ "duration_ms": 3000, "expires_at": "2026-09-04T12:00:00Z"}
+''', 201);
+      }
+      if (options.path.contains('/messages/')) {
+        return _json('{"results": []}', 200);
+      }
+      if (options.path.contains('/notes/')) {
+        return _json('[]', 200);
+      }
+      if (options.path.contains('/conversations/42/')) {
+        return _json(_conversationDetail, 200);
+      }
+      return _json('{}', 200);
+    });
+
+    testWidgets('an Android Ogg recording is uploaded re-paged: same audio, '
+        'RFC 7845 granules, an end-of-stream page', (tester) async {
+      final recorded = androidOggOpus(packets: 50);
+      final voiceFile = File('${tempDir.path}/voice-recorded.ogg');
+      await tester.runAsync(() => voiceFile.writeAsBytes(recorded));
+      RecordPlatform.instance = _FakeRecordPlatform()
+        ..stopReturnsPath = voiceFile.path;
+      final adapter = voiceUploadServer();
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await _pumpConversation(tester, client);
+      await _tapMicAndWaitForRecording(tester);
+      await _tapAndPumpUntilIdle(
+        tester,
+        find.byIcon(Icons.stop_rounded),
+        passes: 2,
+      );
+
+      // The multipart part streams this file, so these are the bytes sent.
+      final sent = (await tester.runAsync(voiceFile.readAsBytes))!;
+      final upload = adapter.received.firstWhere(
+        (r) => r.path == '/conversations/42/attachments/',
+      );
+      final part = (upload.data as FormData).files.single;
+      expect(part.value.length, sent.length);
+      expect(part.value.filename, 'voice-message.ogg');
+      expect(part.value.contentType?.mimeType, 'audio/ogg');
+
+      final ogg = inspectOgg(sent);
+      expect(ogg.packets, inspectOgg(recorded).packets, reason: 'remux only');
+      expect(ogg.pages.every((p) => p.crcOk), isTrue);
+      expect(ogg.pages.last.flags, eosFlag);
+      expect(ogg.pages[2].granule, 104 + 960);
+      expect(ogg.pages.last.granule, 104 + 50 * 960);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a recording whose own header says stereo is discarded and '
+        'never uploaded', (tester) async {
+      final voiceFile = File('${tempDir.path}/voice-recorded.ogg');
+      await tester.runAsync(
+        () => voiceFile.writeAsBytes(
+          androidOggOpus(channels: 2, rate: 48000, packets: 5),
+        ),
+      );
+      RecordPlatform.instance = _FakeRecordPlatform()
+        ..stopReturnsPath = voiceFile.path;
+      final adapter = voiceUploadServer();
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await _pumpConversation(tester, client);
+      await _tapMicAndWaitForRecording(tester);
+      await _tapAndPumpUntilIdle(tester, find.byIcon(Icons.stop_rounded));
+
+      expect(
+        adapter.received.where(
+          (r) => r.path == '/conversations/42/attachments/',
+        ),
+        isEmpty,
+      );
+      expect(
+        find.text("Couldn't start recording. Please try again."),
+        findsOneWidget,
+      );
+      expect(voiceFile.existsSync(), isFalse, reason: 'deleted, not kept');
+      expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
     });
 
     testWidgets(

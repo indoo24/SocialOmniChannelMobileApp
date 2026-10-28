@@ -6,11 +6,19 @@
 /// It is conversation-level content, not a message: it belongs to no bubble,
 /// is placed by the message list at the top of the history, and appears only
 /// once that history has been loaded back to its start.
+///
+/// A paid ad's picture, when the backend captured one, sits at the start of
+/// the card with the text beside it, as on web. Most conversations have none
+/// (see [ConversationReferral.creativeThumbnailPath]); the card then looks
+/// exactly as it did before pictures existed.
 library;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/conversation_attribution.dart';
+import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/external_link.dart';
 import '../../core/utils/formatting.dart';
@@ -136,6 +144,7 @@ class _PrimaryReferral extends StatelessWidget {
       ],
     );
 
+    final imageUrl = referral.creativeImageUrl;
     final radius = BorderRadius.circular(Radii.lg);
     final card = CustomPaint(
       painter: _DashedBorderPainter(
@@ -147,7 +156,15 @@ class _PrimaryReferral extends StatelessWidget {
           horizontal: Space.md,
           vertical: Space.sm + 4,
         ),
-        child: content,
+        child: imageUrl.isEmpty
+            ? content
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _CreativeThumbnail(url: imageUrl),
+                  Expanded(child: content),
+                ],
+              ),
       ),
     );
 
@@ -170,6 +187,66 @@ class _PrimaryReferral extends StatelessWidget {
             ),
     );
   }
+}
+
+/// The ad's picture: a small square cropped to fill, as web draws it
+/// (56×56, `object-cover`), followed by the gap before the card's text.
+///
+/// A neutral tile holds the place while it loads. If it cannot be loaded —
+/// the creative was removed, the session lapsed, the network is down — it
+/// takes no space at all, so a failure looks the same as an ad without a
+/// picture rather than a broken image.
+class _CreativeThumbnail extends ConsumerWidget {
+  const _CreativeThumbnail({required this.url});
+
+  final String url;
+
+  static const double _size = 56;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return FutureBuilder<Map<String, String>>(
+      // Served by our own API behind the session cookie, which
+      // CachedNetworkImage's HTTP client does not carry by itself.
+      future: ref.read(apiClientProvider).mediaAuthHeaders(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return _frame(context, null);
+        return CachedNetworkImage(
+          key: const ValueKey('conversationSourceCreative'),
+          imageUrl: url,
+          httpHeaders: snapshot.data,
+          imageBuilder: (context, image) => _frame(
+            context,
+            Image(
+              image: image,
+              width: _size,
+              height: _size,
+              fit: BoxFit.cover,
+              semanticLabel: context.l10n.conversationSourceAdImage,
+            ),
+          ),
+          placeholder: (context, _) => _frame(context, null),
+          errorWidget: (_, _, _) => const SizedBox.shrink(),
+        );
+      },
+    );
+  }
+
+  Widget _frame(BuildContext context, Widget? image) => Padding(
+    key: const ValueKey('conversationSourceCreativeFrame'),
+    padding: const EdgeInsetsDirectional.only(end: Space.md),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(Radii.md),
+      child: SizedBox.square(
+        dimension: _size,
+        child:
+            image ??
+            ColoredBox(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
+      ),
+    ),
+  );
 }
 
 /// "Most recent: {headline} · Seen {date}" — the later referral on a thread
