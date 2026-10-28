@@ -243,8 +243,8 @@ final performanceProvider = FutureProvider<PerformanceReport>((ref) {
 
 /// Performance metrics filtered by the Dashboard's active date-range filter.
 ///
-/// Driven by [dashboardDateFilterProvider] so when the user selects Today,
-/// Last 7 days, Last 30 days, This month, Last month, or a Custom range,
+/// Driven by [dashboardDateFilterProvider] so when the user selects any
+/// preset (see [DashboardPreset]) or a Custom range,
 /// the performance numbers update synchronously with the rest of the Dashboard.
 final dashboardPerformanceProvider = FutureProvider<PerformanceReport>((ref) {
   final filter = ref.watch(dashboardDateFilterProvider);

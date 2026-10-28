@@ -1916,6 +1916,24 @@ abstract class AppLocalizations {
   /// **'Open the original post on Meta'**
   String get conversationSourceOpenPost;
 
+  /// No description provided for @conversationSourceAdImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Advertisement image'**
+  String get conversationSourceAdImage;
+
+  /// No description provided for @markAsReadAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as read'**
+  String get markAsReadAction;
+
+  /// No description provided for @markAsReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t mark this conversation as read. Try again.'**
+  String get markAsReadFailed;
+
   /// No description provided for @photoMessageLabel.
   ///
   /// In en, this message translates to:
@@ -5040,6 +5058,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Today'**
   String get dateFilterToday;
+
+  /// Preset date filter for the previous calendar day
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get dateFilterYesterday;
+
+  /// Preset date filter for today and the two days before it
+  ///
+  /// In en, this message translates to:
+  /// **'Last 3 days'**
+  String get dateFilterLast3Days;
 
   /// Preset date filter for last 7 days
   ///

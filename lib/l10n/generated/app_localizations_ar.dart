@@ -990,6 +990,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get conversationSourceOpenPost => 'فتح المنشور الأصلي على Meta';
 
   @override
+  String get conversationSourceAdImage => 'صورة الإعلان';
+
+  @override
+  String get markAsReadAction => 'تعليم كمقروء';
+
+  @override
+  String get markAsReadFailed => 'تعذّر تعليم المحادثة كمقروءة. حاول مرة أخرى.';
+
+  @override
   String get photoMessageLabel => 'صورة';
 
   @override
@@ -2819,6 +2828,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get dateFilterToday => 'اليوم';
+
+  @override
+  String get dateFilterYesterday => 'أمس';
+
+  @override
+  String get dateFilterLast3Days => 'آخر 3 أيام';
 
   @override
   String get dateFilterLast7Days => 'آخر 7 أيام';

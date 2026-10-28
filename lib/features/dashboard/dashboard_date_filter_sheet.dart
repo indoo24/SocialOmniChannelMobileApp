@@ -1,7 +1,8 @@
 /// Dashboard date-range filter button and modal sheet.
 ///
 /// Reproduces the Web dashboard's date-range filter popover on mobile:
-/// - Presets: Today (default), Last 7 days, Last 30 days, This month, Last month
+/// - Presets: Today (default), Yesterday, Last 3 days, Last 7 days,
+///   Last 30 days, This month, Last month
 /// - Custom range: From / To date pickers with validation (from <= to, <= 366 days),
 ///   Cancel and Apply actions.
 /// - Communicates with `dashboardDateFilterProvider`, which drives `dashboardProvider`.

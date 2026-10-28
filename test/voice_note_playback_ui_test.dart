@@ -115,6 +115,8 @@ class _FakePlatform extends AudioplayersPlatformInterface {
     Uint8List bytes, {
     String? mimeType,
   }) async {
+    // A new source starts at the beginning, as on a real platform.
+    position[playerId] = Duration.zero;
     _events[playerId]?.add(
       const AudioEvent(eventType: AudioEventType.prepared, isPrepared: true),
     );
@@ -477,9 +479,12 @@ void main() {
     expect(_in(2, find.byIcon(Icons.pause)), findsOneWidget);
     expect(_speedLabel(tester, 2), '1x');
 
-    // Playing the first again starts it from the top.
+    // Playing the first again starts it from the top. Voice notes share the
+    // app's one player, so that is the first recording loaded afresh rather
+    // than a seek on a player of its own.
     await _tapPlayPause(tester, 1);
-    expect(platform.seeks[player(0)]!.last, Duration.zero);
+    expect(platform.players, hasLength(1));
+    expect(platform.position[player(0)], Duration.zero);
     expect(_time(tester, 1), '0:00');
     expect(_in(2, find.byIcon(Icons.play_arrow)), findsOneWidget);
   });

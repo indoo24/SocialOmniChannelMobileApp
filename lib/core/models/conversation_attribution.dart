@@ -13,13 +13,24 @@
 ///
 /// * `attribution`: `first`, `latest`, `has_multiple`
 /// * each referral: `id`, `source`, `platform_hint`, `source_url`,
-///   `headline`, `summary`, `summary_truncated`, `observed_at`
+///   `headline`, `summary`, `summary_truncated`, `observed_at`,
+///   `creative_thumbnail_url`
+///
+/// `creative_thumbnail_url` is the ad's picture as the backend captured it:
+/// a path on this API (`/api/referral-creatives/{public_id}/content/`), or
+/// null — the ordinary case for any conversation older than the capture, an
+/// ad with no media, or one whose Meta URL had already expired. Meta's own
+/// `image_url`/`thumbnail_url` are withheld by the backend because they expire
+/// within days, so nothing here ever builds a Meta URL.
 ///
 /// Nothing else is read. Every key is optional and type-checked: a missing or
 /// malformed value hides only its own piece of the card, and a malformed
 /// attribution as a whole is simply no attribution — it can never stop a
 /// conversation from loading.
 library;
+
+import '../config/environment.dart';
+import '../utils/safe_url.dart';
 
 /// What kind of Meta source a referral was (`source`).
 enum ReferralSource {
@@ -44,6 +55,7 @@ class ConversationReferral {
     this.summary = '',
     this.summaryTruncated = false,
     this.observedAt,
+    this.creativeThumbnailPath = '',
   });
 
   /// Compared only to tell `first` and `latest` apart. Kept as text so a
@@ -61,6 +73,13 @@ class ConversationReferral {
   /// The backend cut [summary] short — shown with a trailing "…".
   final bool summaryTruncated;
   final DateTime? observedAt;
+
+  /// `creative_thumbnail_url` when it is a path on this API, else `''`.
+  ///
+  /// Only a host-relative path is taken. The image is fetched with the
+  /// session cookie attached by hand, so an absolute URL — which the backend
+  /// never sends — could hand that cookie to another host.
+  final String creativeThumbnailPath;
 
   /// A referral object, or null for anything that is not one.
   static ConversationReferral? fromJson(Object? json) {
@@ -81,8 +100,20 @@ class ConversationReferral {
       observedAt: json['observed_at'] is String
           ? DateTime.tryParse(json['observed_at'] as String)?.toLocal()
           : null,
+      creativeThumbnailPath: _apiPath(json['creative_thumbnail_url']),
     );
   }
+
+  static String _apiPath(Object? value) {
+    if (value is! String) return '';
+    final path = value.trim();
+    return path.startsWith('/') && !path.startsWith('//') ? path : '';
+  }
+
+  /// The ad's picture, fetchable from the API host, or `''` when there is
+  /// none to show.
+  String get creativeImageUrl =>
+      SafeUrl.forImage(Environment.current.resolveMedia(creativeThumbnailPath));
 
   static String _text(Object? value) => value is String ? value.trim() : '';
 

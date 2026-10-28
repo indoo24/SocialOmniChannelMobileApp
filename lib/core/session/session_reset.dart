@@ -37,6 +37,7 @@ import '../../features/dashboard/dashboard_date_filter_state.dart';
 import '../../features/directory/directory_providers.dart';
 import '../../features/directory/employee_filter_state.dart';
 import '../../features/messages/conversation_controller.dart';
+import '../../features/messages/voice_playback_service.dart';
 import '../logging/app_log.dart';
 import '../realtime/realtime_bridge.dart';
 import '../realtime/realtime_logger.dart';
@@ -98,6 +99,11 @@ void clearSessionScopedState(Ref ref) {
   // Team/role/status selections are scoped to the previous org's team list
   // and would otherwise silently narrow the next agent's Employees screen.
   ref.invalidate(employeeFiltersProvider);
+
+  // The app-wide voice-note player outlives every screen on purpose, so it
+  // would outlive the person too: a customer's recording must not keep
+  // playing for the next agent. Invalidating it disposes the player.
+  ref.invalidate(voicePlaybackProvider);
 
   // Latency traces hold conversation and message ids.
   RealtimeLogger.reset();

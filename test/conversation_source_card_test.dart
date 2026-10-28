@@ -8,12 +8,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scenario_mobile/core/api/api_client.dart';
+import 'package:scenario_mobile/core/config/environment.dart';
 import 'package:scenario_mobile/core/models/conversation.dart';
 import 'package:scenario_mobile/core/models/conversation_attribution.dart';
 import 'package:scenario_mobile/core/models/employee.dart';
@@ -38,7 +40,9 @@ Map<String, dynamic> _referral({
   String? summary = 'Everything your hair needs in one routine',
   bool truncated = true,
   String? observedAt = '2026-09-25T10:55:00Z',
+  String? creative,
 }) => {
+  'creative_thumbnail_url': ?creative,
   'id': ?id,
   'source': ?source,
   'platform_hint': ?platform,
@@ -148,6 +152,7 @@ Future<_Server> _open(
   Locale? locale,
   ThemeData? theme,
   Size size = const Size(800, 1400),
+  bool settle = true,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -178,12 +183,26 @@ Future<_Server> _open(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    // A creative's image load keeps scheduling frames; bounded pumps are
+    // enough for the thread and the card to be on screen.
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+  }
   return server;
 }
 
 final _card = find.byKey(const ValueKey('conversationSourceCard'));
 final _pill = find.byKey(const ValueKey('conversationSourceJump'));
+final _creative = find.byKey(const ValueKey('conversationSourceCreative'));
+final _creativeFrame = find.byKey(
+  const ValueKey('conversationSourceCreativeFrame'),
+);
+const _creativePath =
+    '/api/referral-creatives/0b5f3c1e-8d2a-4f6b-9c7e-1a2b3c4d5e6f/content/';
 
 void main() {
   group('ConversationAttribution parsing', () {
@@ -316,6 +335,48 @@ void main() {
       expect(r.observedAt, isNull);
     });
 
+    test(
+      'creative_thumbnail_url: only a path on this API becomes a picture',
+      () {
+        ConversationReferral parse(Object? value) =>
+            ConversationAttribution.fromJson({
+              'first': {..._referral(), 'creative_thumbnail_url': value},
+            })!.primary;
+
+        final r = parse(_creativePath);
+        expect(r.creativeThumbnailPath, _creativePath);
+        expect(
+          r.creativeImageUrl,
+          Environment.current.resolveMedia(_creativePath),
+        );
+        expect(r.creativeImageUrl, startsWith(Environment.current.apiBaseUrl));
+
+        // Absent is the ordinary case and simply means no picture.
+        expect(
+          ConversationAttribution.fromJson({
+            'first': _referral(),
+          })!.primary.creativeImageUrl,
+          isEmpty,
+        );
+        for (final value in <Object?>[
+          null,
+          '',
+          '   ',
+          42,
+          {'url': _creativePath},
+          // Never fetched with the session cookie: another host's URL, even
+          // Meta's own, and a protocol-relative one.
+          'https://scontent.xx.fbcdn.net/v/t45.1600-4/ad.jpg',
+          '//evil.example/x.jpg',
+          'api/referral-creatives/x/content/',
+        ]) {
+          final r = parse(value);
+          expect(r.creativeThumbnailPath, isEmpty, reason: '$value');
+          expect(r.creativeImageUrl, isEmpty, reason: '$value');
+        }
+      },
+    );
+
     test('the conversation parses around a malformed attribution, and '
         'copyWith keeps a good one', () {
       final bad = Conversation.fromJson(_conversation(attribution: 'oops'));
@@ -370,6 +431,118 @@ void main() {
           matching: find.byIcon(Icons.campaign_outlined),
         ),
         findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('an ad with a captured creative asks our API for its picture '
+        'and shows it at the start of the card, beside the text', (
+      tester,
+    ) async {
+      await _open(
+        tester,
+        attribution: {'first': _referral(creative: _creativePath)},
+        settle: false,
+      );
+
+      expect(_card, findsOneWidget);
+      expect(find.text('Deep hydration course — last seats'), findsOneWidget);
+      expect(
+        find.text('Everything your hair needs in one routine…'),
+        findsOneWidget,
+      );
+
+      final image = tester.widget<CachedNetworkImage>(_creative);
+      expect(image.imageUrl, Environment.current.resolveMedia(_creativePath));
+      expect(
+        find.descendant(of: _card, matching: _creative),
+        findsOneWidget,
+        reason: 'one picture, inside the card — not a message attachment',
+      );
+
+      // While it loads, a 56×56 tile holds its place before the text.
+      final frame = find.descendant(
+        of: _creativeFrame,
+        matching: find.byType(SizedBox),
+      );
+      expect(tester.getSize(frame.first), const Size.square(56));
+      expect(
+        tester.getTopLeft(_creativeFrame).dx,
+        lessThan(
+          tester.getTopLeft(find.text('Deep hydration course — last seats')).dx,
+        ),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a creative that cannot be loaded leaves the card as it would '
+        'be without one: text intact, no broken image', (tester) async {
+      await _open(
+        tester,
+        attribution: {'first': _referral(creative: _creativePath)},
+        settle: false,
+      );
+      expect(_creativeFrame, findsOneWidget);
+
+      // CachedNetworkImage's own fetch never settles under flutter_test (its
+      // cache store is a platform plugin), so drive the failure through the
+      // widget's error builder — what a 403, a 404/409 or a dead network
+      // render as.
+      final image = tester.widget<CachedNetworkImage>(_creative);
+      final failed = image.errorWidget!(
+        tester.element(_creative),
+        image.imageUrl,
+        Exception('HTTP 409'),
+      );
+      expect(failed, isA<SizedBox>());
+      expect((failed as SizedBox).width, 0, reason: 'takes no space at all');
+      expect(failed.height, 0);
+      expect(failed.child, isNull, reason: 'no broken-image glyph');
+
+      expect(find.text('Deep hydration course — last seats'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('no creative, or one that is not ours: no picture is fetched', (
+      tester,
+    ) async {
+      await _open(tester, attribution: {'first': _referral()});
+      expect(_creative, findsNothing);
+      expect(_creativeFrame, findsNothing);
+
+      await _open(
+        tester,
+        attribution: {
+          'first': _referral(
+            creative: 'https://scontent.xx.fbcdn.net/v/t45.1600-4/ad.jpg',
+          ),
+        },
+      );
+      expect(_card, findsOneWidget);
+      expect(_creative, findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a creative in Arabic RTL sits at the start — the right', (
+      tester,
+    ) async {
+      await _open(
+        tester,
+        attribution: {
+          'first': _referral(
+            headline: 'آخر قطع من كورس الترطيب العميق',
+            creative: _creativePath,
+          ),
+        },
+        locale: const Locale('ar'),
+        settle: false,
+      );
+
+      expect(
+        tester.getTopRight(_creativeFrame).dx,
+        greaterThan(
+          tester.getTopRight(find.text('آخر قطع من كورس الترطيب العميق')).dx,
+        ),
       );
       expect(tester.takeException(), isNull);
     });
