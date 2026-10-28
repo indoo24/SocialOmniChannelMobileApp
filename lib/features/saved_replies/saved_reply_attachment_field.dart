@@ -26,6 +26,7 @@ import '../../core/theme/tokens.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../messages/composer_attachment.dart' show RemoteAttachmentImage;
 import '../messages/message_bubble.dart' show VoiceNotePlayer;
+import '../messages/voice_note_recording.dart';
 import 'saved_reply.dart';
 
 /// What kind of file was chosen — which picker it came from.
@@ -267,9 +268,16 @@ class _SavedReplyAttachmentFieldState extends State<SavedReplyAttachmentField>
       final dir = await getTemporaryDirectory();
       final path =
           '${dir.path}/saved-reply-voice-${DateTime.now().microsecondsSinceEpoch}.ogg';
-      await recorder.start(
-        const RecordConfig(encoder: AudioEncoder.opus),
+      await startVoiceNote(
+        recorder,
         path: path,
+        onNotMono: () {
+          if (!mounted || !_recording || !identical(_recorder, recorder)) {
+            return;
+          }
+          unawaited(_discardRecording());
+          widget.onError(l10n.recordingFailedError);
+        },
       );
       if (!mounted) {
         unawaited(_abandon(recorder, path));

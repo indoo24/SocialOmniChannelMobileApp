@@ -131,9 +131,17 @@ class _FakeRecord extends RecordPlatform {
     required String path,
   }) async {
     starts++;
+    startedWith = config;
     this.path = path;
     File(path).writeAsBytesSync(List.filled(64, 1));
   }
+
+  /// The config the form actually handed the platform on the last start().
+  RecordConfig? startedWith;
+
+  /// The form's `setOnConfigChanged` handler, for a test to report a config
+  /// the platform "adjusted" to, as the real plugin does after start().
+  void Function(RecordConfig config)? configChanged;
 
   @override
   Future<Stream<Uint8List>> startStream(String id, RecordConfig c) async =>
@@ -185,7 +193,7 @@ class _FakeRecord extends RecordPlatform {
   void setOnConfigChanged(
     String recorderId,
     void Function(RecordConfig config)? handler,
-  ) {}
+  ) => configChanged = handler;
 }
 
 class _FakePathProvider extends PathProviderPlatform {
@@ -732,6 +740,13 @@ void main() {
       expect(_preview, findsNothing);
 
       await tapKey(tester, 'saved-reply-attach-record');
+      // Mono Opus for speech, as in the composer — not record's stereo
+      // default.
+      final config = record.startedWith!;
+      expect(config.encoder, AudioEncoder.opus);
+      expect(config.numChannels, 1);
+      expect(config.sampleRate, 16000);
+      expect(config.bitRate, 24000);
       await tester.pump(const Duration(seconds: 2));
       await tester.tap(find.byKey(const Key('saved-reply-recording-stop')));
       await tester.pumpAndSettle();
@@ -751,6 +766,31 @@ void main() {
       );
       // Uploaded: the recording's temporary file is gone.
       expect(File(recorded).existsSync(), isFalse);
+    });
+
+    testWidgets('a platform that moves a recording off mono discards it and '
+        'keeps no file', (tester) async {
+      await open(tester, _Server());
+      await fill(tester);
+      await tapKey(tester, 'saved-reply-attach-record');
+      final started = record.path!;
+      expect(
+        find.byKey(const Key('saved-reply-recording-bar')),
+        findsOneWidget,
+      );
+
+      // Deleting the file is real dart:io work: runAsync(), as in
+      // _tapAndSettle.
+      await tester.runAsync(() async {
+        record.configChanged!(record.startedWith!.copyWith(numChannels: 2));
+        await _turns(tester);
+      });
+
+      expect(record.cancelled, isTrue);
+      expect(File(started).existsSync(), isFalse);
+      expect(find.byKey(const Key('saved-reply-recording-bar')), findsNothing);
+      expect(_preview, findsNothing);
+      expect(find.byKey(const Key('saved-reply-form-error')), findsOneWidget);
     });
 
     testWidgets('a denied microphone records nothing and says why', (

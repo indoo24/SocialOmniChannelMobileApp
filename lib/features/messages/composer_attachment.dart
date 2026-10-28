@@ -36,6 +36,7 @@ import '../../core/utils/attachment_helper.dart';
 import '../../core/utils/safe_url.dart';
 import '../conversations/conversation_repository.dart';
 import '../../l10n/l10n_extensions.dart';
+import 'voice_note_recording.dart';
 
 /// A file picked/recorded locally and already uploaded as a draft, kept in
 /// the composer until the agent sends or removes it.
@@ -1161,9 +1162,16 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
       final path =
           '${dir.path}/voice-${DateTime.now().microsecondsSinceEpoch}.ogg';
 
-      await recorder.start(
-        const RecordConfig(encoder: AudioEncoder.opus),
+      await startVoiceNote(
+        recorder,
         path: path,
+        onNotMono: () {
+          if (!mounted || !_recording || !identical(_recorder, recorder)) {
+            return;
+          }
+          unawaited(_cancel());
+          widget.onError(context.l10n.recordingFailedError);
+        },
       );
 
       _recorder = recorder;
