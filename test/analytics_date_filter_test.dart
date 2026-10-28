@@ -224,6 +224,63 @@ void main() {
     },
   );
 
+  for (final (label, preset, apiValue) in [
+    ('Yesterday', DashboardPreset.yesterday, 'yesterday'),
+    ('Last 3 days', DashboardPreset.last3Days, 'last_3_days'),
+  ]) {
+    testWidgets('offers $label, and choosing it re-requests /dashboard/ with '
+        'preset=$apiValue and sets the filter Dashboard shares', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final requests = <RequestOptions>[];
+      final client = _clientFrom(
+        _adapter(
+          onDashboard: (options) {
+            requests.add(options);
+            return _json(_sampleDashboardJson, 200);
+          },
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          apiClientProvider.overrideWithValue(client),
+          currentEmployeeProvider.overrideWithValue(_employee()),
+          cookieJarProvider.overrideWithValue(CookieJar()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const AnalyticsScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      requests.clear();
+
+      await tester.tap(find.byType(DashboardDateFilterButton));
+      await tester.pumpAndSettle();
+      expect(find.text('Yesterday'), findsOneWidget);
+      expect(find.text('Last 3 days'), findsOneWidget);
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+
+      expect(container.read(dashboardDateFilterProvider).preset, preset);
+      expect(find.text(label), findsOneWidget);
+      final dashReq = requests.firstWhere((r) => r.path == '/dashboard/');
+      expect(dashReq.queryParameters, {'preset': apiValue});
+    });
+  }
+
   testWidgets(
     'a custom range sends from/to on the /dashboard/ request Analytics reads',
     (tester) async {

@@ -321,7 +321,18 @@ class _SavedReplyAttachmentFieldState extends State<SavedReplyAttachmentField>
     }
     unawaited(recorder.dispose().catchError((Object _) {}));
     if (!mounted) return;
-    final file = path == null ? null : File(path);
+    var file = path == null ? null : File(path);
+    if (file != null && file.existsSync()) {
+      try {
+        prepareRecordedVoiceNote(file.path);
+      } catch (_) {
+        // Not mono, or not Opus WhatsApp can play: never offered for saving.
+        try {
+          file.deleteSync();
+        } catch (_) {}
+        file = null;
+      }
+    }
     if (file == null || !file.existsSync()) {
       if (fallbackPath != null) {
         unawaited(

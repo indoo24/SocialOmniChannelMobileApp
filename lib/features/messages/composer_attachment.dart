@@ -1241,6 +1241,18 @@ class ComposerVoiceRecorderState extends ConsumerState<ComposerVoiceRecorder> {
       _recorder = null;
     }
 
+    if (path != null) {
+      try {
+        prepareRecordedVoiceNote(path);
+      } catch (_) {
+        // Not mono, or not Opus WhatsApp can play: never sent.
+        try {
+          File(path).deleteSync();
+        } catch (_) {}
+        path = null;
+      }
+    }
+
     if (path == null) {
       if (mounted) {
         setState(() {

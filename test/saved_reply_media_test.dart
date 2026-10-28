@@ -34,6 +34,8 @@ import 'package:scenario_mobile/features/saved_replies/saved_replies_settings_sc
 import 'package:scenario_mobile/features/saved_replies/saved_reply.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
+import 'support/ogg_opus_fixtures.dart';
+
 // ---------------------------------------------------------------------------
 // Platform fakes
 // ---------------------------------------------------------------------------
@@ -133,8 +135,11 @@ class _FakeRecord extends RecordPlatform {
     starts++;
     startedWith = config;
     this.path = path;
-    File(path).writeAsBytesSync(List.filled(64, 1));
+    File(path).writeAsBytesSync(recordedBytes ?? List.filled(64, 1));
   }
+
+  /// What the "recording" file holds; filler bytes when unset.
+  List<int>? recordedBytes;
 
   /// The config the form actually handed the platform on the last start().
   RecordConfig? startedWith;
@@ -791,6 +796,50 @@ void main() {
       expect(find.byKey(const Key('saved-reply-recording-bar')), findsNothing);
       expect(_preview, findsNothing);
       expect(find.byKey(const Key('saved-reply-form-error')), findsOneWidget);
+    });
+
+    testWidgets('an Android Ogg recording is re-paged before it is offered '
+        'and uploaded', (tester) async {
+      final recorded = androidOggOpus(packets: 40);
+      record.recordedBytes = recorded;
+      final server = _Server();
+      await open(tester, server);
+      await fill(tester);
+      await tapKey(tester, 'saved-reply-attach-record');
+      await tester.pump(const Duration(seconds: 1));
+      await _tapAndSettle(
+        tester,
+        find.byKey(const Key('saved-reply-recording-stop')),
+      );
+      expect(_preview, findsOneWidget);
+
+      final kept = File(record.path!).readAsBytesSync();
+      final ogg = inspectOgg(kept);
+      expect(ogg.packets, inspectOgg(recorded).packets, reason: 'remux only');
+      expect(ogg.pages.last.flags, eosFlag);
+      expect(ogg.pages[2].granule, 104 + 960);
+
+      await _tapAndSettle(tester, _save);
+      final part = (server.writes.last.data as FormData).files.single;
+      expect(part.value.length, kept.length);
+    });
+
+    testWidgets('a recording whose own header says stereo is discarded, not '
+        'offered', (tester) async {
+      record.recordedBytes = androidOggOpus(channels: 2, rate: 48000);
+      await open(tester, _Server());
+      await fill(tester);
+      await tapKey(tester, 'saved-reply-attach-record');
+      final started = record.path!;
+      await tester.pump(const Duration(seconds: 1));
+      await _tapAndSettle(
+        tester,
+        find.byKey(const Key('saved-reply-recording-stop')),
+      );
+
+      expect(_preview, findsNothing);
+      expect(find.byKey(const Key('saved-reply-form-error')), findsOneWidget);
+      expect(File(started).existsSync(), isFalse);
     });
 
     testWidgets('a denied microphone records nothing and says why', (

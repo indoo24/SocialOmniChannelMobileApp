@@ -193,6 +193,16 @@ class Employee {
   /// comment on why that mirror is presentation-only in the first place.
   bool get isAdmin => role == 'ADMIN';
 
+  /// ADMIN and SUPERVISOR open conversations to oversee them, so the app
+  /// never asks the server to mark one read just because they opened it;
+  /// they clear a badge with the explicit "Mark as read" action instead.
+  ///
+  /// A presentation rule only. The backend applies its own to every
+  /// `GET /conversations/{id}/`: opening clears the badge for the assignee,
+  /// whoever claimed the thread, or a conversation nobody holds, whatever
+  /// the viewer's role.
+  bool get marksReadExplicitly => role == 'ADMIN' || role == 'SUPERVISOR';
+
   Employee copyWith({
     String? availability,
     String? firstName,

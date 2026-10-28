@@ -64,6 +64,14 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   /// would overwrite the faster one's merge with a stale base.
   bool _isRefreshing = false;
 
+  /// Bumped by every successful [markReadExplicitly]. A detail or `read/`
+  /// response requested before then carries the badge as it stood before
+  /// the person cleared it, so it must not put that count back.
+  int _readEpoch = 0;
+
+  /// The explicit mark-read request in flight, joined by repeated taps.
+  Future<void>? _explicitRead;
+
   @override
   Future<ConversationState> build() async {
     return _fetchAndMergeOnOpen();
@@ -94,13 +102,14 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     );
 
     final repository = ref.read(conversationRepositoryProvider);
+    final epoch = _readEpoch;
 
     final results = await Future.wait([
       repository.detail(conversationId),
       repository.messages(conversationId),
     ]);
 
-    final conversation = results[0] as Conversation;
+    final conversation = _sinceExplicitRead(results[0] as Conversation, epoch);
     final page = results[1] as Paginated<Message>;
 
     RealtimeLogger.log(
@@ -160,7 +169,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       data: {'totalMessages': finalMessages.length},
     );
 
-    markReadAndSync();
+    markReadAndSync(conversation);
 
     return ConversationState(
       conversation: conversation,
@@ -477,12 +486,15 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
   Future<void> _refreshConversationDetail() async {
     try {
+      final epoch = _readEpoch;
       final updated = await ref
           .read(conversationRepositoryProvider)
           .detail(conversationId);
       final current = state.value;
       if (current != null) {
-        state = AsyncData(current.copyWith(conversation: updated));
+        state = AsyncData(
+          current.copyWith(conversation: _sinceExplicitRead(updated, epoch)),
+        );
       }
     } catch (_) {}
   }
@@ -857,9 +869,13 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _isRefreshing = true;
     try {
       final repository = ref.read(conversationRepositoryProvider);
+      final epoch = _readEpoch;
       Conversation? freshConvo;
       try {
-        freshConvo = await repository.detail(current.conversation.id);
+        freshConvo = _sinceExplicitRead(
+          await repository.detail(current.conversation.id),
+          epoch,
+        );
       } catch (_) {}
       final serverPage = await repository.messages(current.conversation.id);
 
@@ -985,9 +1001,11 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       // If the refreshed conversation has unread messages and is currently
       // being viewed, mark it as read. This handles the case where a new
       // message arrives while the conversation is open — the agent is already
-      // looking at it, so it should be marked read immediately.
-      if (current.conversation.hasUnread) {
-        markReadAndSync();
+      // looking at it, so it should be marked read immediately. For ADMIN and
+      // SUPERVISOR this only shows the badge the server reported.
+      final viewed = freshConvo ?? latest.conversation;
+      if (current.conversation.hasUnread || viewed.hasUnread) {
+        markReadAndSync(viewed);
       }
     } on ApiException catch (e) {
       RealtimeLogger.log(
@@ -1002,25 +1020,92 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     }
   }
 
-  /// Marks the conversation as read on the server and synchronizes all local
-  /// state: the inbox row's unread count and the conversation counts badge.
+  /// What viewing this thread does to its unread badge, given the
+  /// [conversation] detail the server just returned.
+  ///
+  /// That detail's `unread_count` is already the server's answer: every
+  /// `GET /conversations/{id}/` clears the badge for the assignee, whoever
+  /// claimed the thread, or a conversation nobody holds, and leaves anyone
+  /// else's alone. So the inbox row shows that count instead of being zeroed
+  /// regardless.
+  ///
+  /// Every role but ADMIN and SUPERVISOR then also sends `POST …/read/`
+  /// without a body, as the app always has; the server applies the same
+  /// rule, so its answer goes to the inbox row and the thread keeps the
+  /// detail's own count. ADMIN and SUPERVISOR never mark a thread read by
+  /// viewing it ([Employee.marksReadExplicitly]) — they use
+  /// [markReadExplicitly].
   ///
   /// Safe to call multiple times — the server treats repeated mark-read as a
   /// no-op, and the local updates are idempotent.
-  void markReadAndSync() {
+  void markReadAndSync(Conversation conversation) {
     RealtimeLogger.log(
       'CONTROLLER',
       'MARK_AS_READ',
       conversationId: conversationId.toString(),
     );
-    Future.microtask(() {
-      ref
-          .read(conversationRepositoryProvider)
-          .markRead(conversationId)
-          .catchError((_) {});
-      ref.read(inboxControllerProvider.notifier).markAsRead(conversationId);
-      ref.invalidate(conversationCountsProvider);
+    final viewOnly =
+        ref.read(currentEmployeeProvider)?.marksReadExplicitly ?? false;
+    Future.microtask(() async {
+      _showInInbox(conversation.unreadCount);
+      if (viewOnly) return;
+      final epoch = _readEpoch;
+      try {
+        final remaining = await ref
+            .read(conversationRepositoryProvider)
+            .markRead(conversationId);
+        if (epoch == _readEpoch) _showInInbox(remaining);
+      } catch (_) {
+        // The row stays as the detail reported it.
+      }
     });
+  }
+
+  /// The "Mark as read" action: `POST …/read/` with `explicit: true`, which
+  /// clears the badge whoever the thread belongs to.
+  ///
+  /// A call while one is already in flight joins it instead of sending a
+  /// second request. On failure nothing changes locally and the error is
+  /// rethrown for the caller to report, so the badge stays as it was.
+  Future<void> markReadExplicitly() => _explicitRead ??= _sendExplicitRead()
+      .whenComplete(() => _explicitRead = null);
+
+  Future<void> _sendExplicitRead() async {
+    RealtimeLogger.log(
+      'CONTROLLER',
+      'MARK_AS_READ_EXPLICIT',
+      conversationId: conversationId.toString(),
+    );
+    final remaining = await ref
+        .read(conversationRepositoryProvider)
+        .markRead(conversationId, explicit: true);
+    _readEpoch++;
+    final current = state.value;
+    if (current != null) {
+      state = AsyncData(
+        current.copyWith(
+          conversation: current.conversation.copyWith(unreadCount: remaining),
+        ),
+      );
+    }
+    _showInInbox(remaining);
+  }
+
+  /// [fresh], unless an explicit mark-read succeeded after it was requested
+  /// at [epoch]: then the badge stays as that action left it.
+  Conversation _sinceExplicitRead(Conversation fresh, int epoch) {
+    if (epoch == _readEpoch) return fresh;
+    final known = state.value?.conversation.unreadCount;
+    return known == null ? fresh : fresh.copyWith(unreadCount: known);
+  }
+
+  /// Shows [unreadCount] as this thread's badge on its inbox row and in the
+  /// inbox counts.
+  void _showInInbox(int unreadCount) {
+    ref
+        .read(inboxControllerProvider.notifier)
+        .setUnreadCount(conversationId, unreadCount);
+    ref.invalidate(conversationCountsProvider);
   }
 
   Future<void> loadOlder() async {

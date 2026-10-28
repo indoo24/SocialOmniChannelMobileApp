@@ -880,7 +880,11 @@ class InboxController extends AsyncNotifier<InboxState> {
   // -- local patches --------------------------------------------------------
 
   /// Locally mark a conversation as read to provide immediate UI feedback.
-  void markAsRead(int conversationId) {
+  void markAsRead(int conversationId) => setUnreadCount(conversationId, 0);
+
+  /// Shows [unreadCount] on the conversation's row — the badge as the server
+  /// last reported it, which opening a thread no longer always clears.
+  void setUnreadCount(int conversationId, int unreadCount) {
     final current = state.value;
     if (current == null) return;
 
@@ -890,7 +894,9 @@ class InboxController extends AsyncNotifier<InboxState> {
       for (final group in current.groups)
         group.conversations.any((c) => c.id == conversationId)
             ? group.mapConversations(
-                (c) => c.id == conversationId ? c.copyWith(unreadCount: 0) : c,
+                (c) => c.id == conversationId
+                    ? c.copyWith(unreadCount: unreadCount)
+                    : c,
               )
             : group,
     ];

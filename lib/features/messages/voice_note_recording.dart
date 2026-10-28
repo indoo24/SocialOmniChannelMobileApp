@@ -8,7 +8,11 @@
 /// thrown away rather than sent.
 library;
 
+import 'dart:io';
+
 import 'package:record/record.dart';
+
+import 'voice_note_ogg.dart';
 
 /// Mono Opus for speech. 16 kHz is one of Opus's own rates (Android's
 /// encoder takes 8/12/16/24/48 kHz) and 24 kbps sits well inside its
@@ -65,4 +69,28 @@ Future<void> startVoiceNote(
     } catch (_) {}
     throw VoiceNoteNotMonoException(channels);
   }
+}
+
+/// Turns the finished recording at [path] into the file that is uploaded,
+/// in place.
+///
+/// An Ogg recording — Android's — is re-paged into a well-formed Ogg Opus
+/// stream ([repageOggOpus]: same audio, correct granule positions and an
+/// end-of-stream page), and its own header is the final word on the channel
+/// count: anything but mono throws [VoiceNoteNotMonoException], whatever the
+/// recorder reported. A file that is Ogg but not usable Opus throws
+/// [VoiceNoteFormatException]. Either way the caller discards it.
+///
+/// A recording in any other container is left exactly as recorded. iOS
+/// writes Opus through AVFoundation, whose container is not established yet,
+/// and guessing at it here would be worse than sending it unchanged.
+void prepareRecordedVoiceNote(String path) {
+  final file = File(path);
+  final bytes = file.readAsBytesSync();
+  if (!isOgg(bytes)) return;
+  final note = repageOggOpus(bytes);
+  if (note.channels != voiceNoteRecordConfig.numChannels) {
+    throw VoiceNoteNotMonoException(note.channels);
+  }
+  file.writeAsBytesSync(note.bytes, flush: true);
 }

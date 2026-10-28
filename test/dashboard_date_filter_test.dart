@@ -1,5 +1,6 @@
 /// Comprehensive regression tests for the Dashboard date-range filter:
-/// - Presets: Today, Last 7 days, Last 30 days, This month, Last month
+/// - Presets: Today, Yesterday, Last 3 days, Last 7 days, Last 30 days,
+///   This month, Last month
 /// - Custom range: From / To picker, range validation (from <= to, <= 366 days), Cancel and Apply
 /// - API serialization: preset parameter vs from/to query parameters (mutually exclusive)
 /// - Dashboard reload and state update
@@ -278,6 +279,58 @@ void main() {
         expect(janTo, DateTime(2025, 12, 31));
       },
     );
+
+    test('the two new presets carry the backend names', () {
+      expect(DashboardPreset.yesterday.apiValue, 'yesterday');
+      expect(DashboardPreset.last3Days.apiValue, 'last_3_days');
+      // Shortest first, as the backend's PRESETS orders the picker.
+      expect(DashboardPreset.values.take(4), [
+        DashboardPreset.today,
+        DashboardPreset.yesterday,
+        DashboardPreset.last3Days,
+        DashboardPreset.last7Days,
+      ]);
+    });
+
+    test('Yesterday is the previous calendar day only — never today', () {
+      final (from, to) = DashboardPreset.yesterday.calculateRange(
+        DateTime(2026, 9, 9, 0, 5),
+      );
+      expect(from, DateTime(2026, 9, 8));
+      expect(to, DateTime(2026, 9, 8));
+
+      // Month, year and leap-day boundaries.
+      expect(DashboardPreset.yesterday.calculateRange(DateTime(2026, 3, 1)), (
+        DateTime(2026, 2, 28),
+        DateTime(2026, 2, 28),
+      ));
+      expect(DashboardPreset.yesterday.calculateRange(DateTime(2028, 3, 1)), (
+        DateTime(2028, 2, 29),
+        DateTime(2028, 2, 29),
+      ));
+      expect(
+        DashboardPreset.yesterday.calculateRange(DateTime(2027, 1, 1, 23, 59)),
+        (DateTime(2026, 12, 31), DateTime(2026, 12, 31)),
+      );
+    });
+
+    test('Last 3 days is today plus the two days before it', () {
+      final (from, to) = DashboardPreset.last3Days.calculateRange(
+        DateTime(2026, 9, 9, 23, 59),
+      );
+      expect(from, DateTime(2026, 9, 7));
+      expect(to, DateTime(2026, 9, 9), reason: 'includes today, no later');
+      expect(to.difference(from).inDays, 2);
+
+      expect(DashboardPreset.last3Days.calculateRange(DateTime(2027, 1, 1)), (
+        DateTime(2026, 12, 30),
+        DateTime(2027, 1, 1),
+      ));
+      expect(DashboardPreset.last3Days.calculateRange(DateTime(2028, 3, 1)), (
+        DateTime(2028, 2, 28),
+        DateTime(2028, 3, 1),
+      ));
+    });
   });
 
   group('DirectoryRepository.dashboard Query Parameter Tests', () {
@@ -844,6 +897,163 @@ void main() {
         expect(perfReq.queryParameters['preset'], 'last_month');
       },
     );
+
+    testWidgets('the sheet offers Yesterday and Last 3 days after Today', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final client = _clientFrom(
+        _StubAdapter((options) {
+          if (options.path == '/dashboard/performance/') {
+            return _json(_performanceEmptyJson, 200);
+          }
+          return _json(_sampleDashboardJson, 200);
+        }),
+      );
+
+      await tester.pumpWidget(_buildHarness(apiClient: client));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DashboardDateFilterButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Yesterday'), findsOneWidget);
+      expect(find.text('Last 3 days'), findsOneWidget);
+      final rows = [
+        'Today',
+        'Yesterday',
+        'Last 3 days',
+        'Last 7 days',
+        'Last 30 days',
+        'This month',
+        'Last month',
+      ].map((label) => tester.getTopLeft(find.text(label).last).dy).toList();
+      expect(rows, [...rows]..sort(), reason: 'listed in this order');
+      expect(tester.takeException(), isNull);
+    });
+
+    for (final (label, apiValue) in [
+      ('Yesterday', 'yesterday'),
+      ('Last 3 days', 'last_3_days'),
+    ]) {
+      testWidgets(
+        'Selecting $label sends preset=$apiValue — and only the preset — to '
+        'both dashboard and performance, and shows it as selected',
+        (tester) async {
+          tester.view.physicalSize = const Size(800, 1200);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.reset);
+          final requests = <RequestOptions>[];
+          final client = _clientFrom(
+            _StubAdapter((options) {
+              requests.add(options);
+              if (options.path == '/dashboard/performance/') {
+                return _json(_samplePerformanceJson(), 200);
+              }
+              return _json(_sampleDashboardJson, 200);
+            }),
+          );
+
+          await tester.pumpWidget(_buildHarness(apiClient: client));
+          await tester.pumpAndSettle();
+          requests.clear();
+
+          await tester.tap(find.byType(DashboardDateFilterButton));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(label));
+          await tester.pumpAndSettle();
+
+          // The sheet closed and the button names the choice.
+          expect(find.text('Custom range'), findsNothing);
+          expect(
+            find.descendant(
+              of: find.byType(DashboardDateFilterButton),
+              matching: find.text(label),
+            ),
+            findsOneWidget,
+          );
+
+          // The organization's timezone decides the dates, server-side: the
+          // app sends the name and never device-computed from/to bounds.
+          for (final path in ['/dashboard/', '/dashboard/performance/']) {
+            final request = requests.firstWhere((r) => r.path == path);
+            expect(request.queryParameters, {'preset': apiValue}, reason: path);
+          }
+
+          // Reopened, the sheet marks it — and only it — as selected.
+          await tester.tap(find.byType(DashboardDateFilterButton));
+          await tester.pumpAndSettle();
+          expect(find.byIcon(Icons.check), findsOneWidget);
+          expect(
+            find.descendant(
+              of: find.widgetWithText(ListTile, label),
+              matching: find.byIcon(Icons.check),
+            ),
+            findsOneWidget,
+          );
+        },
+      );
+    }
+
+    testWidgets('a new preset refreshes the figures on screen', (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      var preset = 'today';
+      final client = _clientFrom(
+        _StubAdapter((options) {
+          if (options.path == '/dashboard/performance/') {
+            preset = '${options.queryParameters['preset']}';
+            return _json(
+              preset == 'yesterday'
+                  ? _samplePerformanceJson(handled: 7, messages: 19)
+                  : _samplePerformanceJson(handled: 12, messages: 35),
+              200,
+            );
+          }
+          return _json(_sampleDashboardJson, 200);
+        }),
+      );
+
+      await tester.pumpWidget(_buildHarness(apiClient: client));
+      await tester.pumpAndSettle();
+      expect(find.text('12 handled'), findsOneWidget);
+
+      await tester.tap(find.byType(DashboardDateFilterButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Yesterday'));
+      await tester.pumpAndSettle();
+
+      expect(preset, 'yesterday');
+      expect(find.text('7 handled'), findsOneWidget);
+      expect(find.text('19 messages sent'), findsOneWidget);
+    });
+
+    testWidgets('Arabic labels for the new presets', (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final client = _clientFrom(
+        _StubAdapter((options) {
+          if (options.path == '/dashboard/performance/') {
+            return _json(_performanceEmptyJson, 200);
+          }
+          return _json(_sampleDashboardJson, 200);
+        }),
+      );
+
+      await tester.pumpWidget(
+        _buildHarness(apiClient: client, locale: const Locale('ar')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DashboardDateFilterButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('أمس'), findsOneWidget);
+      expect(find.text('آخر 3 أيام'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
 
     testWidgets(
       'Changing the date filter refreshes the performance metrics in the UI',

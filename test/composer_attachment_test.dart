@@ -39,6 +39,8 @@ import 'package:scenario_mobile/features/authentication/auth_controller.dart';
 import 'package:scenario_mobile/features/messages/conversation_screen.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
+import 'support/ogg_opus_fixtures.dart';
+
 /// A genuine, decodable 1x1 JPEG — the composer's preview renders the
 /// picked file with `Image.file()`, which needs real image bytes or the
 /// codec throws "Invalid image data"; arbitrary placeholder bytes fail it.
@@ -1893,6 +1895,97 @@ void main() {
 
       expect(find.text('Too large.'), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+
+    _StubAdapter voiceUploadServer() => _StubAdapter((options) {
+      if (options.method == 'POST' &&
+          options.path == '/conversations/42/attachments/') {
+        return _json('''
+{"id": "voice-draft-1", "type": "AUDIO", "mime_type": "audio/ogg",
+ "file_name": "voice-message.ogg", "size_bytes": 8, "is_voice": true,
+ "duration_ms": 3000, "expires_at": "2026-09-04T12:00:00Z"}
+''', 201);
+      }
+      if (options.path.contains('/messages/')) {
+        return _json('{"results": []}', 200);
+      }
+      if (options.path.contains('/notes/')) {
+        return _json('[]', 200);
+      }
+      if (options.path.contains('/conversations/42/')) {
+        return _json(_conversationDetail, 200);
+      }
+      return _json('{}', 200);
+    });
+
+    testWidgets('an Android Ogg recording is uploaded re-paged: same audio, '
+        'RFC 7845 granules, an end-of-stream page', (tester) async {
+      final recorded = androidOggOpus(packets: 50);
+      final voiceFile = File('${tempDir.path}/voice-recorded.ogg');
+      await tester.runAsync(() => voiceFile.writeAsBytes(recorded));
+      RecordPlatform.instance = _FakeRecordPlatform()
+        ..stopReturnsPath = voiceFile.path;
+      final adapter = voiceUploadServer();
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await _pumpConversation(tester, client);
+      await _tapMicAndWaitForRecording(tester);
+      await _tapAndPumpUntilIdle(
+        tester,
+        find.byIcon(Icons.stop_rounded),
+        passes: 2,
+      );
+
+      // The multipart part streams this file, so these are the bytes sent.
+      final sent = (await tester.runAsync(voiceFile.readAsBytes))!;
+      final upload = adapter.received.firstWhere(
+        (r) => r.path == '/conversations/42/attachments/',
+      );
+      final part = (upload.data as FormData).files.single;
+      expect(part.value.length, sent.length);
+      expect(part.value.filename, 'voice-message.ogg');
+      expect(part.value.contentType?.mimeType, 'audio/ogg');
+
+      final ogg = inspectOgg(sent);
+      expect(ogg.packets, inspectOgg(recorded).packets, reason: 'remux only');
+      expect(ogg.pages.every((p) => p.crcOk), isTrue);
+      expect(ogg.pages.last.flags, eosFlag);
+      expect(ogg.pages[2].granule, 104 + 960);
+      expect(ogg.pages.last.granule, 104 + 50 * 960);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a recording whose own header says stereo is discarded and '
+        'never uploaded', (tester) async {
+      final voiceFile = File('${tempDir.path}/voice-recorded.ogg');
+      await tester.runAsync(
+        () => voiceFile.writeAsBytes(
+          androidOggOpus(channels: 2, rate: 48000, packets: 5),
+        ),
+      );
+      RecordPlatform.instance = _FakeRecordPlatform()
+        ..stopReturnsPath = voiceFile.path;
+      final adapter = voiceUploadServer();
+      final client = ApiClient.create(cookieJar: CookieJar());
+      client.raw.httpClientAdapter = adapter;
+
+      await _pumpConversation(tester, client);
+      await _tapMicAndWaitForRecording(tester);
+      await _tapAndPumpUntilIdle(tester, find.byIcon(Icons.stop_rounded));
+
+      expect(
+        adapter.received.where(
+          (r) => r.path == '/conversations/42/attachments/',
+        ),
+        isEmpty,
+      );
+      expect(
+        find.text("Couldn't start recording. Please try again."),
+        findsOneWidget,
+      );
+      expect(voiceFile.existsSync(), isFalse, reason: 'deleted, not kept');
+      expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
     });
 
     testWidgets(
