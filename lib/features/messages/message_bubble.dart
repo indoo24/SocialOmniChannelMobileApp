@@ -11,13 +11,13 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart' show ResponseType, Options;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/api_client.dart';
 import '../../core/models/message.dart';
 import '../../core/providers.dart';
 import '../../core/realtime/realtime_logger.dart';
@@ -36,7 +36,7 @@ import 'highlight_message_coordinator.dart';
 import 'audio_duration.dart';
 import 'media_group_grid.dart';
 import 'swipe_to_reply.dart';
-import 'voice_playback_coordinator.dart';
+import 'voice_playback_service.dart';
 
 class MessageBubble extends ConsumerWidget {
   const MessageBubble({
@@ -1117,10 +1117,14 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
 ///   idle: full length shown, speed control hidden, the next play starts from
 ///   `0:00` at `1x`.
 ///
-/// Audio is played by one [AudioPlayer], created on first play. Before that,
-/// the full length comes from the backend's `duration_ms` or, when a note
-/// carries none, from the recording's own container header (fetched once and
-/// reused for playback — see `audio_duration.dart`).
+/// The audio itself is played by the app's one shared player
+/// ([voicePlaybackProvider]), not by this widget: the bubble only shows and
+/// drives the session for its recording, so scrolling it away, opening an
+/// image or leaving the conversation does not stop the audio, and a bubble
+/// built again later shows the session where it is. Before playback, the
+/// full length comes from the backend's `duration_ms` or, when a note carries
+/// none, from the recording's own container header (fetched once and handed
+/// to the player — see `audio_duration.dart`).
 class VoiceNotePlayer extends ConsumerStatefulWidget {
   const VoiceNotePlayer({
     required this.attachment,
@@ -1141,49 +1145,64 @@ class VoiceNotePlayer extends ConsumerStatefulWidget {
 
 enum _PlaybackLoad { idle, loading, ready, error }
 
-class _VoiceNotePlayerState extends ConsumerState<VoiceNotePlayer>
-    with AutomaticKeepAliveClientMixin {
-  late final String _playbackId =
-      '${identityHashCode(this)}_${widget.attachment.attachmentId}';
+/// What identifies a recording to the shared player — the same for every
+/// bubble that shows it, and for the bubble rebuilt after scrolling back:
+/// the attachment's id, else its local file, else its URL.
+String voiceNotePlaybackKey(
+  MessageAttachment attachment, {
+  required String url,
+  String? localPath,
+}) {
+  if (attachment.attachmentId.isNotEmpty) {
+    return 'attachment:${attachment.attachmentId}';
+  }
+  if (localPath != null && localPath.isNotEmpty) return 'file:$localPath';
+  return 'url:$url';
+}
 
+/// A recording's bytes: the local file when there is one, otherwise the
+/// content endpoint through the app's own client (the session cookie). Takes
+/// the client rather than a widget's `ref`, so a fetch outlives the bubble
+/// that started it.
+Future<Uint8List> fetchVoiceNoteBytes(
+  ApiClient api, {
+  required String url,
+  String? localPath,
+}) async {
+  if (localPath != null &&
+      localPath.isNotEmpty &&
+      File(localPath).existsSync()) {
+    return File(localPath).readAsBytes();
+  }
+  final response = await api.raw.get<List<int>>(
+    url,
+    options: Options(responseType: ResponseType.bytes),
+  );
+  final status = response.statusCode ?? 0;
+  final data = response.data;
+  if (status < 200 || status >= 300 || data == null) {
+    throw StateError('attachment content fetch failed: $status');
+  }
+  return Uint8List.fromList(data);
+}
+
+class _VoiceNotePlayerState extends ConsumerState<VoiceNotePlayer> {
   /// The speeds the speed control cycles through, as WhatsApp's does.
   static const _playbackRates = [1.0, 1.5, 2.0];
-
-  AudioPlayer? _player;
-  StreamSubscription<PlayerState>? _stateSub;
-  StreamSubscription<Duration>? _positionSub;
-  StreamSubscription<Duration>? _durationSub;
-  StreamSubscription<void>? _completeSub;
-
-  _PlaybackLoad _load = _PlaybackLoad.idle;
-  bool _playing = false;
-
-  /// True from the moment playback starts until it completes or another
-  /// voice note takes over — including while paused. This is what switches
-  /// the label from the full length to the elapsed position, and shows the
-  /// speed control.
-  bool _started = false;
-
-  /// The player's position. A notifier rather than widget state: it ticks
-  /// several times a second, and only the waveform and the time label need
-  /// to repaint for it — not the rest of the bubble.
-  final ValueNotifier<Duration> _position = ValueNotifier(Duration.zero);
-
-  /// Reported by the player once the audio is loaded — the authority.
-  Duration? _duration;
 
   /// Read from the recording's header before playback, for notes the backend
   /// sent no `duration_ms` for.
   Duration? _fileDuration;
 
-  double _rate = 1.0;
-
   /// The recording's bytes, fetched at most once: for the header read that
-  /// finds the full length, and then for playback.
+  /// finds the full length, and then handed to the player.
   Future<Uint8List>? _bytes;
 
-  @override
-  bool get wantKeepAlive => _playing || _load == _PlaybackLoad.loading;
+  String get _key => voiceNotePlaybackKey(
+    widget.attachment,
+    url: widget.url,
+    localPath: widget.localPath,
+  );
 
   @override
   void initState() {
@@ -1196,7 +1215,18 @@ class _VoiceNotePlayerState extends ConsumerState<VoiceNotePlayer>
     super.didUpdateWidget(oldWidget);
     if (widget.url != oldWidget.url ||
         widget.localPath != oldWidget.localPath) {
-      _stopAndReset();
+      // A different file under the same bubble: whatever the old one was
+      // doing is over, as it always was.
+      final oldKey = voiceNotePlaybackKey(
+        oldWidget.attachment,
+        url: oldWidget.url,
+        localPath: oldWidget.localPath,
+      );
+      if (ref.read(voicePlaybackProvider)?.key == oldKey) {
+        unawaited(ref.read(voicePlaybackProvider.notifier).stop());
+      }
+      _bytes = null;
+      _fileDuration = null;
       _resolveFileDuration();
     }
   }
@@ -1209,260 +1239,65 @@ class _VoiceNotePlayerState extends ConsumerState<VoiceNotePlayer>
     return ms == null || ms <= 0 ? null : Duration(milliseconds: ms);
   }
 
-  /// The full length: the player's once it has one, otherwise the backend's
-  /// `duration_ms`, otherwise the one read from the file's header.
-  Duration? get _totalDuration =>
-      _duration ?? _durationFromAttachment() ?? _fileDuration;
-
-  Future<Uint8List> _loadBytes() => _bytes ??= _fetchBytes();
-
-  Future<Uint8List> _fetchBytes() async {
-    final localPath = widget.localPath;
-    if (localPath != null &&
-        localPath.isNotEmpty &&
-        File(localPath).existsSync()) {
-      return File(localPath).readAsBytes();
-    }
-    final api = ref.read(apiClientProvider);
-    final response = await api.raw.get<List<int>>(
-      widget.url,
-      options: Options(responseType: ResponseType.bytes),
+  Future<Uint8List> _loadBytes() {
+    final existing = _bytes;
+    if (existing != null) return existing;
+    final fetch = fetchVoiceNoteBytes(
+      ref.read(apiClientProvider),
+      url: widget.url,
+      localPath: widget.localPath,
     );
-    final status = response.statusCode ?? 0;
-    final data = response.data;
-    if (status < 200 || status >= 300 || data == null) {
-      throw StateError('attachment content fetch failed: $status');
-    }
-    return Uint8List.fromList(data);
+    _bytes = fetch;
+    // A failed fetch is not kept: the next attempt fetches again.
+    unawaited(
+      fetch.then<void>(
+        (_) {},
+        onError: (Object _) {
+          if (identical(_bytes, fetch)) _bytes = null;
+        },
+      ),
+    );
+    return fetch;
   }
 
   /// Finds the full length before playback when the backend did not send
   /// one, so an unplayed note shows `0:42` rather than `0:00`. Silent on
   /// failure: pressing play retries the fetch and reports any error then.
   Future<void> _resolveFileDuration() async {
-    if (!mounted || !_hasSource || _totalDuration != null) return;
+    if (!mounted ||
+        !_hasSource ||
+        _durationFromAttachment() != null ||
+        _fileDuration != null) {
+      return;
+    }
     try {
       final bytes = await _loadBytes();
       final duration = audioDurationFromBytes(bytes);
       if (duration != null && mounted) {
         setState(() => _fileDuration = duration);
       }
-    } catch (_) {
-      _bytes = null;
-    }
-  }
-
-  void _safePause() {
-    final p = _player;
-    if (p != null &&
-        p.state != PlayerState.disposed &&
-        p.state != PlayerState.stopped) {
-      try {
-        p.pause();
-      } catch (_) {}
-    }
-  }
-
-  void _disposePlayerOnly() {
-    unawaited(_stateSub?.cancel());
-    unawaited(_positionSub?.cancel());
-    unawaited(_durationSub?.cancel());
-    unawaited(_completeSub?.cancel());
-    _stateSub = null;
-    _positionSub = null;
-    _durationSub = null;
-    _completeSub = null;
-    final p = _player;
-    _player = null;
-    unawaited(p?.dispose());
-  }
-
-  void _stopAndReset() {
-    try {
-      ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
-    } catch (_) {}
-    _disposePlayerOnly();
-    _bytes = null;
-    _load = _PlaybackLoad.idle;
-    _playing = false;
-    _started = false;
-    _rate = 1.0;
-    _position.value = Duration.zero;
-    _duration = null;
-    _fileDuration = null;
-    if (mounted) setState(() {});
-  }
-
-  /// Back to idle, ready for a fresh play: full length shown, speed control
-  /// hidden, position rewound and speed back to 1x — on the player itself,
-  /// so the next session really does start at normal speed.
-  void _endSession() {
-    if (!mounted) return;
-    final player = _player;
-    if (_rate != 1.0 && player != null) {
-      unawaited(player.setPlaybackRate(1.0).catchError((_) {}));
-    }
-    setState(() {
-      _playing = false;
-      _started = false;
-      _rate = 1.0;
-    });
-    _position.value = Duration.zero;
-    updateKeepAlive();
-  }
-
-  void _onCompleted() {
-    if (!mounted) return;
-    try {
-      ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
-    } catch (_) {}
-    if (_playing || _started) _endSession();
-  }
-
-  /// Another voice note started playing: stop this one and reset it, rather
-  /// than leave it paused half-way with its speed control showing.
-  void _onPreempted() {
-    _safePause();
-    _endSession();
-  }
-
-  void _registerAsActive() {
-    try {
-      ref
-          .read(activeVoicePlaybackProvider.notifier)
-          .setActive(_playbackId, onPause: _onPreempted);
     } catch (_) {}
   }
 
-  @override
-  void dispose() {
-    try {
-      ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
-    } catch (_) {}
-    _disposePlayerOnly();
-    _position.dispose();
-    super.dispose();
-  }
-
-  Future<void> _toggle() async {
-    if (_load == _PlaybackLoad.loading) return;
-
-    if (_playing) {
+  void _toggle(VoicePlaybackSession? session) {
+    final playback = ref.read(voicePlaybackProvider.notifier);
+    if (session?.status == VoicePlaybackStatus.loading) return;
+    if (session?.status == VoicePlaybackStatus.playing) {
       // Paused, not ended: position and speed stay for the resume.
-      _safePause();
-      try {
-        ref.read(activeVoicePlaybackProvider.notifier).clear(_playbackId);
-      } catch (_) {}
-      if (mounted) {
-        setState(() => _playing = false);
-        updateKeepAlive();
-      }
+      unawaited(playback.pause(_key));
       return;
     }
-
-    // Player already loaded: resume a paused session, or start a new one
-    // from the top after completion.
-    if (_player != null && _load == _PlaybackLoad.ready) {
-      _registerAsActive();
-      try {
-        if (!_started) {
-          try {
-            await _player!
-                .seek(Duration.zero)
-                .timeout(const Duration(milliseconds: 300));
-          } catch (_) {}
-          _position.value = Duration.zero;
-        }
-        await _player!.resume();
-        if (mounted) {
-          setState(() {
-            _playing = true;
-            _started = true;
-          });
-          updateKeepAlive();
-        }
-        return;
-      } catch (_) {
-        _disposePlayerOnly();
-      }
-    }
-
-    if (_bytes == null && !_hasSource) {
-      if (mounted) setState(() => _load = _PlaybackLoad.error);
-      return;
-    }
-
-    setState(() => _load = _PlaybackLoad.loading);
-    updateKeepAlive();
-
-    try {
-      final bytes = await _loadBytes();
-      if (!mounted) return;
-      _fileDuration ??= audioDurationFromBytes(bytes);
-
-      final player = AudioPlayer();
-      await player.setReleaseMode(ReleaseMode.stop);
-
-      _stateSub = player.onPlayerStateChanged.listen((state) {
-        if (!mounted) return;
-        if (state == PlayerState.completed) {
-          _onCompleted();
-        } else {
-          setState(() => _playing = state == PlayerState.playing);
-          updateKeepAlive();
-        }
-      });
-      // The real position stream — never a timer. Ignored outside a session
-      // so a late tick after completion cannot show a stale position.
-      _positionSub = player.onPositionChanged.listen((position) {
-        if (!mounted || !_started) return;
-        _position.value = position;
-      });
-      _durationSub = player.onDurationChanged.listen((duration) {
-        if (!mounted || duration <= Duration.zero) return;
-        setState(() => _duration = duration);
-      });
-      _completeSub = player.onPlayerComplete.listen((_) {
-        _onCompleted();
-      });
-
-      _registerAsActive();
-      _started = true;
-      _position.value = Duration.zero;
-
-      await player.play(BytesSource(bytes));
-
-      if (!mounted) {
-        unawaited(player.dispose());
-        return;
-      }
-
-      _player = player;
-      setState(() {
-        _load = _PlaybackLoad.ready;
-        _playing = true;
-      });
-      updateKeepAlive();
-    } catch (_) {
-      _bytes = null;
-      _started = false;
-      if (mounted) {
-        setState(() => _load = _PlaybackLoad.error);
-        updateKeepAlive();
-      }
-    }
+    if (!_hasSource && _bytes == null) return;
+    unawaited(playback.play(_key, _loadBytes));
   }
 
   /// 1x → 1.5x → 2x → 1x, on the player itself. Changes speed only: the
   /// player neither restarts nor seeks, and a paused note stays paused.
-  Future<void> _cycleRate() async {
+  void _cycleRate(VoicePlaybackSession session) {
     final next =
-        _playbackRates[(_playbackRates.indexOf(_rate) + 1) %
+        _playbackRates[(_playbackRates.indexOf(session.rate) + 1) %
             _playbackRates.length];
-    setState(() => _rate = next);
-    try {
-      await _player?.setPlaybackRate(next);
-    } catch (_) {}
+    unawaited(ref.read(voicePlaybackProvider.notifier).setRate(_key, next));
   }
 
   String _format(Duration d) {
@@ -1473,11 +1308,28 @@ class _VoiceNotePlayerState extends ConsumerState<VoiceNotePlayer>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
+    final key = _key;
+    // Only this recording's session: another note playing elsewhere does
+    // not rebuild this bubble.
+    final session = ref.watch(
+      voicePlaybackProvider.select((s) => s?.key == key ? s : null),
+    );
+    final playback = ref.read(voicePlaybackProvider.notifier);
+
+    final load = switch (session?.status) {
+      VoicePlaybackStatus.loading => _PlaybackLoad.loading,
+      VoicePlaybackStatus.error => _PlaybackLoad.error,
+      null => _PlaybackLoad.idle,
+      _ => _PlaybackLoad.ready,
+    };
+    final playing = session?.status == VoicePlaybackStatus.playing;
+    // Playing or paused part-way: the label shows the elapsed position and
+    // the speed control appears. Idle and completed show the full length.
+    final started = session?.inProgress ?? false;
+    final total =
+        session?.duration ?? _durationFromAttachment() ?? _fileDuration;
 
     final theme = Theme.of(context);
-    final total = _totalDuration;
-
     final isOutbound = widget.isOutbound;
     final textColor = isOutbound ? Colors.white : theme.colorScheme.onSurface;
     final activeWaveColor = isOutbound
@@ -1487,6 +1339,50 @@ class _VoiceNotePlayerState extends ConsumerState<VoiceNotePlayer>
         ? Colors.white.withValues(alpha: 0.40)
         : theme.colorScheme.outlineVariant;
 
+    Widget progressRow(Duration position) {
+      final elapsed = total != null && position > total ? total : position;
+      final progress = started && total != null && total.inMilliseconds > 0
+          ? (elapsed.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0)
+          : 0.0;
+      final shown = started ? elapsed : (total ?? Duration.zero);
+      return Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 20,
+              child: _AudioWaveform(
+                progress: progress,
+                activeColor: activeWaveColor,
+                inactiveColor: inactiveWaveColor,
+                onSeek: (fraction) {
+                  if (load != _PlaybackLoad.ready || total == null) return;
+                  unawaited(
+                    playback.seek(
+                      key,
+                      Duration(
+                        milliseconds: (total.inMilliseconds * fraction).round(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _format(shown),
+            key: const ValueKey('voiceNoteTime'),
+            style: TextStyle(
+              color: textColor.withValues(alpha: 0.90),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      );
+    }
+
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 200, maxWidth: 260),
       child: Row(
@@ -1494,9 +1390,9 @@ class _VoiceNotePlayerState extends ConsumerState<VoiceNotePlayer>
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _PlaybackButton(
-            load: _load,
-            playing: _playing,
-            onTap: _toggle,
+            load: load,
+            playing: playing,
+            onTap: () => _toggle(session),
             isOutbound: isOutbound,
           ),
           const SizedBox(width: Space.sm),
@@ -1524,10 +1420,10 @@ class _VoiceNotePlayerState extends ConsumerState<VoiceNotePlayer>
                         ),
                       ),
                     ),
-                    if (_started) ...[
+                    if (started) ...[
                       _SpeedChip(
-                        rate: _rate,
-                        onTap: _cycleRate,
+                        rate: session!.rate,
+                        onTap: () => _cycleRate(session),
                         isOutbound: isOutbound,
                       ),
                       const SizedBox(width: 4),
@@ -1554,7 +1450,7 @@ class _VoiceNotePlayerState extends ConsumerState<VoiceNotePlayer>
                   ],
                 ),
                 const SizedBox(height: 6),
-                if (_load == _PlaybackLoad.error)
+                if (load == _PlaybackLoad.error)
                   Text(
                     context.l10n.voiceMessagePlaybackFailedError,
                     style: TextStyle(
@@ -1564,68 +1460,15 @@ class _VoiceNotePlayerState extends ConsumerState<VoiceNotePlayer>
                       fontSize: 11,
                     ),
                   )
-                else
+                else if (started)
+                  // The shared player's position; only the session's own
+                  // bubble listens to it.
                   ValueListenableBuilder<Duration>(
-                    valueListenable: _position,
-                    builder: (context, position, _) {
-                      final elapsed = total != null && position > total
-                          ? total
-                          : position;
-                      final progress =
-                          _started && total != null && total.inMilliseconds > 0
-                          ? (elapsed.inMilliseconds / total.inMilliseconds)
-                                .clamp(0.0, 1.0)
-                          : 0.0;
-                      // Idle: the full length. In a session (playing or
-                      // paused): the elapsed position.
-                      final shown = _started
-                          ? elapsed
-                          : (total ?? Duration.zero);
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 20,
-                              child: _AudioWaveform(
-                                progress: progress,
-                                activeColor: activeWaveColor,
-                                inactiveColor: inactiveWaveColor,
-                                onSeek: (fraction) {
-                                  if (_load == _PlaybackLoad.ready &&
-                                      _player != null &&
-                                      total != null) {
-                                    final target = Duration(
-                                      milliseconds:
-                                          (total.inMilliseconds * fraction)
-                                              .round(),
-                                    );
-                                    if (!_started) {
-                                      setState(() => _started = true);
-                                    }
-                                    _position.value = target;
-                                    _player!.seek(target);
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _format(shown),
-                            key: const ValueKey('voiceNoteTime'),
-                            style: TextStyle(
-                              color: textColor.withValues(alpha: 0.90),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                    valueListenable: playback.position,
+                    builder: (context, position, _) => progressRow(position),
+                  )
+                else
+                  progressRow(Duration.zero),
               ],
             ),
           ),

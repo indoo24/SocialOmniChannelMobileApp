@@ -44,7 +44,6 @@ import 'message_bubble.dart';
 import 'package:flutter/rendering.dart';
 import 'highlight_message_coordinator.dart';
 import 'notes_controller.dart';
-import 'voice_playback_coordinator.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({required this.conversationId, super.key});
@@ -680,8 +679,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       }
     });
 
+    // A voice note playing is deliberately left playing: it belongs to the
+    // app-wide player (voicePlaybackProvider), not to this conversation.
     try {
-      container.read(activeVoicePlaybackProvider.notifier).stopAll();
       container.read(highlightedMessageProvider.notifier).clear();
     } catch (_) {}
 
