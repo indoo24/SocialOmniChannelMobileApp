@@ -7014,6 +7014,738 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Upload cancelled. The reply\'s text was saved; tap Save to upload the file again.'**
   String get savedReplyUploadCancelled;
+
+  /// No description provided for @tabAiKnowledge.
+  ///
+  /// In en, this message translates to:
+  /// **'AI & Knowledge'**
+  String get tabAiKnowledge;
+
+  /// No description provided for @aiPilotNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal testing only. Nothing on this page is sent to customers — asking a question here creates no conversation and no message.'**
+  String get aiPilotNotice;
+
+  /// No description provided for @aiNotAvailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI knowledge isn\'t available'**
+  String get aiNotAvailableTitle;
+
+  /// No description provided for @aiNotAvailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your organization isn\'t in the AI knowledge pilot, or you no longer have access to it.'**
+  String get aiNotAvailableMessage;
+
+  /// No description provided for @aiKnowledgeBasesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge bases'**
+  String get aiKnowledgeBasesTitle;
+
+  /// No description provided for @aiKnowledgeBasesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A named collection of what the AI is allowed to answer from.'**
+  String get aiKnowledgeBasesHint;
+
+  /// No description provided for @aiNewKnowledgeBase.
+  ///
+  /// In en, this message translates to:
+  /// **'New knowledge base'**
+  String get aiNewKnowledgeBase;
+
+  /// No description provided for @aiEditKnowledgeBase.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit knowledge base'**
+  String get aiEditKnowledgeBase;
+
+  /// No description provided for @aiKnowledgeBaseName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get aiKnowledgeBaseName;
+
+  /// No description provided for @aiKnowledgeBaseNamePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Store policies'**
+  String get aiKnowledgeBaseNamePlaceholder;
+
+  /// No description provided for @aiKnowledgeBaseDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get aiKnowledgeBaseDescription;
+
+  /// No description provided for @aiKnowledgeBaseDescriptionPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'What this collection covers'**
+  String get aiKnowledgeBaseDescriptionPlaceholder;
+
+  /// No description provided for @aiKnowledgeBaseNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name.'**
+  String get aiKnowledgeBaseNameRequired;
+
+  /// No description provided for @aiCreateKnowledgeBase.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get aiCreateKnowledgeBase;
+
+  /// No description provided for @aiNoKnowledgeBases.
+  ///
+  /// In en, this message translates to:
+  /// **'No knowledge base yet. Create one to start adding knowledge.'**
+  String get aiNoKnowledgeBases;
+
+  /// No description provided for @aiKnowledgeBaseReadyCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{ready} of {total} ready'**
+  String aiKnowledgeBaseReadyCount(int ready, int total);
+
+  /// No description provided for @aiActivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate'**
+  String get aiActivate;
+
+  /// No description provided for @aiDeactivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate'**
+  String get aiDeactivate;
+
+  /// No description provided for @aiInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get aiInactive;
+
+  /// No description provided for @aiDeleteKnowledgeBase.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete knowledge base'**
+  String get aiDeleteKnowledgeBase;
+
+  /// No description provided for @aiDeleteKnowledgeBaseConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\" and everything in it? This cannot be undone.'**
+  String aiDeleteKnowledgeBaseConfirm(String name);
+
+  /// No description provided for @aiKnowledgeBaseDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge base deleted.'**
+  String get aiKnowledgeBaseDeleted;
+
+  /// No description provided for @aiKnowledgeBaseSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge base saved.'**
+  String get aiKnowledgeBaseSaved;
+
+  /// No description provided for @aiSourcesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge'**
+  String get aiSourcesTitle;
+
+  /// No description provided for @aiSourcesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What an answer may be grounded in. Nothing else is used.'**
+  String get aiSourcesHint;
+
+  /// No description provided for @aiAddQa.
+  ///
+  /// In en, this message translates to:
+  /// **'Add question & answer'**
+  String get aiAddQa;
+
+  /// No description provided for @aiAddText.
+  ///
+  /// In en, this message translates to:
+  /// **'Add text'**
+  String get aiAddText;
+
+  /// No description provided for @aiEditQa.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit question & answer'**
+  String get aiEditQa;
+
+  /// No description provided for @aiEditText.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit text'**
+  String get aiEditText;
+
+  /// No description provided for @aiQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Question'**
+  String get aiQuestion;
+
+  /// No description provided for @aiQuestionPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'What is the return period?'**
+  String get aiQuestionPlaceholder;
+
+  /// No description provided for @aiAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer'**
+  String get aiAnswer;
+
+  /// No description provided for @aiAnswerPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Returns are accepted within 14 days with a receipt.'**
+  String get aiAnswerPlaceholder;
+
+  /// No description provided for @aiAnswerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your words are used as written. The AI never rewrites them.'**
+  String get aiAnswerHint;
+
+  /// No description provided for @aiSourceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get aiSourceTitle;
+
+  /// No description provided for @aiSourceTitleOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Title (optional)'**
+  String get aiSourceTitleOptional;
+
+  /// No description provided for @aiSourceTitlePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Shipping policy'**
+  String get aiSourceTitlePlaceholder;
+
+  /// No description provided for @aiContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get aiContent;
+
+  /// No description provided for @aiContentPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Cairo delivery takes 1–2 business days…'**
+  String get aiContentPlaceholder;
+
+  /// No description provided for @aiQuestionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the question.'**
+  String get aiQuestionRequired;
+
+  /// No description provided for @aiAnswerRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the answer.'**
+  String get aiAnswerRequired;
+
+  /// No description provided for @aiTitleRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a title.'**
+  String get aiTitleRequired;
+
+  /// No description provided for @aiContentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the content.'**
+  String get aiContentRequired;
+
+  /// No description provided for @aiSourceSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved. It will be used once indexing finishes.'**
+  String get aiSourceSaved;
+
+  /// No description provided for @aiReindex.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-index'**
+  String get aiReindex;
+
+  /// No description provided for @aiReindexQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-indexing started.'**
+  String get aiReindexQueued;
+
+  /// No description provided for @aiDeleteSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete knowledge'**
+  String get aiDeleteSource;
+
+  /// No description provided for @aiDeleteSourceConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{title}\"? It will stop being used immediately.'**
+  String aiDeleteSourceConfirm(String title);
+
+  /// No description provided for @aiSourceDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge deleted.'**
+  String get aiSourceDeleted;
+
+  /// No description provided for @aiNoSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet. Add a question and answer, or a block of text.'**
+  String get aiNoSources;
+
+  /// No description provided for @aiTypeQa.
+  ///
+  /// In en, this message translates to:
+  /// **'Q&A'**
+  String get aiTypeQa;
+
+  /// No description provided for @aiTypeText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get aiTypeText;
+
+  /// No description provided for @aiChunkCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 part} other{{count} parts}}'**
+  String aiChunkCount(int count);
+
+  /// No description provided for @aiIndexedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Indexed {date}'**
+  String aiIndexedAt(String date);
+
+  /// No description provided for @aiStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting'**
+  String get aiStatusPending;
+
+  /// No description provided for @aiStatusIndexing.
+  ///
+  /// In en, this message translates to:
+  /// **'Indexing…'**
+  String get aiStatusIndexing;
+
+  /// No description provided for @aiStatusReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get aiStatusReady;
+
+  /// No description provided for @aiStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get aiStatusFailed;
+
+  /// No description provided for @aiStatusFailedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This knowledge is not being used. Re-index to try again.'**
+  String get aiStatusFailedHint;
+
+  /// No description provided for @aiPlaygroundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Test your knowledge base'**
+  String get aiPlaygroundTitle;
+
+  /// No description provided for @aiPlaygroundHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask what a customer might ask. The answer comes only from the selected knowledge base.'**
+  String get aiPlaygroundHint;
+
+  /// No description provided for @aiPlaygroundAskingBase.
+  ///
+  /// In en, this message translates to:
+  /// **'Asking: {name}'**
+  String aiPlaygroundAskingBase(String name);
+
+  /// No description provided for @aiAskPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'What is the return period?'**
+  String get aiAskPlaceholder;
+
+  /// No description provided for @aiAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask'**
+  String get aiAsk;
+
+  /// No description provided for @aiAsking.
+  ///
+  /// In en, this message translates to:
+  /// **'Asking…'**
+  String get aiAsking;
+
+  /// No description provided for @aiQuestionEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a question first.'**
+  String get aiQuestionEmpty;
+
+  /// No description provided for @aiQuestionTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the question under {max} characters.'**
+  String aiQuestionTooLong(int max);
+
+  /// No description provided for @aiNoKnowledgeBaseToAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a knowledge base before testing it.'**
+  String get aiNoKnowledgeBaseToAsk;
+
+  /// No description provided for @aiAnswerHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer'**
+  String get aiAnswerHeading;
+
+  /// No description provided for @aiSourcesUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources used'**
+  String get aiSourcesUsed;
+
+  /// No description provided for @aiNoCitations.
+  ///
+  /// In en, this message translates to:
+  /// **'No sources'**
+  String get aiNoCitations;
+
+  /// No description provided for @aiNotInKb.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in the knowledge base'**
+  String get aiNotInKb;
+
+  /// No description provided for @aiNotInKbHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The knowledge base does not support an answer to this. That is the correct result — add the knowledge if a customer would ask it.'**
+  String get aiNotInKbHint;
+
+  /// No description provided for @aiAnswerFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not get an answer'**
+  String get aiAnswerFailed;
+
+  /// No description provided for @aiAnswerFailedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI provider could not answer this time. Try again in a moment.'**
+  String get aiAnswerFailedHint;
+
+  /// No description provided for @aiUnknownAnswerStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'The server returned a result this app doesn\'t recognize ({status}).'**
+  String aiUnknownAnswerStatus(String status);
+
+  /// No description provided for @aiConflictTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Conflicting information in the knowledge base'**
+  String get aiConflictTitle;
+
+  /// No description provided for @aiConflictHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Two or more sources would answer this differently. Correct one of them.'**
+  String get aiConflictHint;
+
+  /// No description provided for @aiConflictSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources that disagree'**
+  String get aiConflictSources;
+
+  /// No description provided for @aiRetrieved.
+  ///
+  /// In en, this message translates to:
+  /// **'What was found ({count})'**
+  String aiRetrieved(int count);
+
+  /// No description provided for @aiRetrievedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Every candidate considered, with how closely it matched.'**
+  String get aiRetrievedHint;
+
+  /// No description provided for @aiScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Match {score}'**
+  String aiScore(String score);
+
+  /// No description provided for @aiStats.
+  ///
+  /// In en, this message translates to:
+  /// **'{ms} ms · {tokens} tokens · {model}'**
+  String aiStats(int ms, int tokens, String model);
+
+  /// No description provided for @aiRetrievalStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrieval {ms} ms'**
+  String aiRetrievalStats(int ms);
+
+  /// No description provided for @aiErrorThrottled.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve asked 30 questions in the last minute, the limit. Wait a moment and try again.'**
+  String get aiErrorThrottled;
+
+  /// No description provided for @aiErrorForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to manage AI knowledge.'**
+  String get aiErrorForbidden;
+
+  /// No description provided for @aiErrorNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This knowledge base no longer exists, or AI isn\'t enabled for your organization.'**
+  String get aiErrorNotFound;
+
+  /// No description provided for @aiConflictsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge conflicts'**
+  String get aiConflictsTitle;
+
+  /// No description provided for @aiConflictsBlurb.
+  ///
+  /// In en, this message translates to:
+  /// **'These answer the same question differently. Automatic replies are blocked until one of each pair is corrected or switched off.'**
+  String get aiConflictsBlurb;
+
+  /// No description provided for @aiAssistTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Agent Assist'**
+  String get aiAssistTitle;
+
+  /// No description provided for @aiAssistHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Lets an agent ask the AI for a draft reply. The agent always decides whether to send it.'**
+  String get aiAssistHint;
+
+  /// No description provided for @aiAssistUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available for this channel yet'**
+  String get aiAssistUnsupported;
+
+  /// No description provided for @aiAssistNoConnections.
+  ///
+  /// In en, this message translates to:
+  /// **'No channels connected.'**
+  String get aiAssistNoConnections;
+
+  /// No description provided for @aiAssistModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'AI mode for {channel}'**
+  String aiAssistModeLabel(String channel);
+
+  /// No description provided for @aiModeOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get aiModeOff;
+
+  /// No description provided for @aiModeSuggest.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest'**
+  String get aiModeSuggest;
+
+  /// No description provided for @aiModeAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get aiModeAuto;
+
+  /// No description provided for @aiModeAutoWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers will receive replies written by the AI. Read the readiness checks before turning this on.'**
+  String get aiModeAutoWarning;
+
+  /// No description provided for @aiModeSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'AI mode updated.'**
+  String get aiModeSaved;
+
+  /// No description provided for @aiBlockedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked by'**
+  String get aiBlockedBy;
+
+  /// No description provided for @aiAutoBlockedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic replies blocked by'**
+  String get aiAutoBlockedBy;
+
+  /// No description provided for @aiWorthKnowing.
+  ///
+  /// In en, this message translates to:
+  /// **'Worth knowing'**
+  String get aiWorthKnowing;
+
+  /// No description provided for @aiWhatIsIndexed.
+  ///
+  /// In en, this message translates to:
+  /// **'{ready} source(s) indexed, {chunks} searchable extract(s)'**
+  String aiWhatIsIndexed(int ready, int chunks);
+
+  /// No description provided for @aiReasonNoKnowledgeBase.
+  ///
+  /// In en, this message translates to:
+  /// **'No knowledge base has been created'**
+  String get aiReasonNoKnowledgeBase;
+
+  /// No description provided for @aiReasonNoReadyChunks.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing has been indexed yet'**
+  String get aiReasonNoReadyChunks;
+
+  /// No description provided for @aiReasonIndexingIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Some sources are still being indexed'**
+  String get aiReasonIndexingIncomplete;
+
+  /// No description provided for @aiReasonIndexingFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Some sources failed to index'**
+  String get aiReasonIndexingFailed;
+
+  /// No description provided for @aiReasonNoProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'No AI provider is configured'**
+  String get aiReasonNoProvider;
+
+  /// No description provided for @aiReasonNoHandoffRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody is available to receive a handed-off conversation'**
+  String get aiReasonNoHandoffRoute;
+
+  /// No description provided for @aiReasonUnsupportedChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'This channel is not available for AI in this release'**
+  String get aiReasonUnsupportedChannel;
+
+  /// No description provided for @aiReasonConnectionInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'This channel is disconnected or archived'**
+  String get aiReasonConnectionInactive;
+
+  /// No description provided for @aiReasonConnectionUnhealthy.
+  ///
+  /// In en, this message translates to:
+  /// **'The platform has reported a problem with this channel'**
+  String get aiReasonConnectionUnhealthy;
+
+  /// No description provided for @aiReasonKbConflicts.
+  ///
+  /// In en, this message translates to:
+  /// **'Two active sources answer the same question differently'**
+  String get aiReasonKbConflicts;
+
+  /// No description provided for @aiReasonOrganizationNotEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is not enabled for this organization'**
+  String get aiReasonOrganizationNotEnabled;
+
+  /// No description provided for @aiReasonOrganizationAiDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is switched off for this organization'**
+  String get aiReasonOrganizationAiDisabled;
+
+  /// No description provided for @aiReasonOrganizationAutoDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic replies are switched off for this organization'**
+  String get aiReasonOrganizationAutoDisabled;
+
+  /// No description provided for @aiUsageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage'**
+  String get aiUsageTitle;
+
+  /// No description provided for @aiUsageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This organization, last 30 days.'**
+  String get aiUsageHint;
+
+  /// No description provided for @aiUsageRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Questions'**
+  String get aiUsageRequests;
+
+  /// No description provided for @aiUsageAnswered.
+  ///
+  /// In en, this message translates to:
+  /// **'Answered'**
+  String get aiUsageAnswered;
+
+  /// No description provided for @aiUsageNotInKb.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in KB'**
+  String get aiUsageNotInKb;
+
+  /// No description provided for @aiUsageTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Tokens'**
+  String get aiUsageTokens;
 }
 
 class _AppLocalizationsDelegate

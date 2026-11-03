@@ -3994,4 +3994,431 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get savedReplyUploadCancelled =>
       'تم إلغاء الرفع. تم حفظ نص الرد؛ اضغط حفظ لرفع الملف مرة أخرى.';
+
+  @override
+  String get tabAiKnowledge => 'الذكاء الاصطناعي وقاعدة المعرفة';
+
+  @override
+  String get aiPilotNotice =>
+      'للاختبار الداخلي فقط. لا يُرسل أي شيء من هذه الصفحة للعملاء — طرح سؤال هنا لا ينشئ محادثة ولا رسالة.';
+
+  @override
+  String get aiNotAvailableTitle => 'المعرفة بالذكاء الاصطناعي غير متاحة';
+
+  @override
+  String get aiNotAvailableMessage =>
+      'مؤسستك ليست ضمن التجربة الخاصة بقاعدة المعرفة، أو لم تعد لديك صلاحية الوصول إليها.';
+
+  @override
+  String get aiKnowledgeBasesTitle => 'قواعد المعرفة';
+
+  @override
+  String get aiKnowledgeBasesHint =>
+      'مجموعة مسماة مما يُسمح للذكاء الاصطناعي بالإجابة منها.';
+
+  @override
+  String get aiNewKnowledgeBase => 'قاعدة معرفة جديدة';
+
+  @override
+  String get aiEditKnowledgeBase => 'تعديل قاعدة المعرفة';
+
+  @override
+  String get aiKnowledgeBaseName => 'الاسم';
+
+  @override
+  String get aiKnowledgeBaseNamePlaceholder => 'سياسات المتجر';
+
+  @override
+  String get aiKnowledgeBaseDescription => 'الوصف';
+
+  @override
+  String get aiKnowledgeBaseDescriptionPlaceholder => 'ما تغطيه هذه المجموعة';
+
+  @override
+  String get aiKnowledgeBaseNameRequired => 'أدخل اسمًا.';
+
+  @override
+  String get aiCreateKnowledgeBase => 'إنشاء';
+
+  @override
+  String get aiNoKnowledgeBases =>
+      'لا توجد قاعدة معرفة بعد. أنشِئ واحدة للبدء.';
+
+  @override
+  String aiKnowledgeBaseReadyCount(int ready, int total) {
+    return '$ready من $total جاهز';
+  }
+
+  @override
+  String get aiActivate => 'تشغيل';
+
+  @override
+  String get aiDeactivate => 'إيقاف';
+
+  @override
+  String get aiInactive => 'موقوفة';
+
+  @override
+  String get aiDeleteKnowledgeBase => 'حذف قاعدة المعرفة';
+
+  @override
+  String aiDeleteKnowledgeBaseConfirm(String name) {
+    return 'حذف \"$name\" وكل ما فيها؟ لا يمكن التراجع.';
+  }
+
+  @override
+  String get aiKnowledgeBaseDeleted => 'تم حذف قاعدة المعرفة.';
+
+  @override
+  String get aiKnowledgeBaseSaved => 'تم حفظ قاعدة المعرفة.';
+
+  @override
+  String get aiSourcesTitle => 'المعرفة';
+
+  @override
+  String get aiSourcesHint => 'ما يُسمح ببناء الإجابة عليه. ولا شيء غيره.';
+
+  @override
+  String get aiAddQa => 'إضافة سؤال وجواب';
+
+  @override
+  String get aiAddText => 'إضافة نص';
+
+  @override
+  String get aiEditQa => 'تعديل السؤال والجواب';
+
+  @override
+  String get aiEditText => 'تعديل النص';
+
+  @override
+  String get aiQuestion => 'السؤال';
+
+  @override
+  String get aiQuestionPlaceholder => 'ما هي مدة الاسترجاع؟';
+
+  @override
+  String get aiAnswer => 'الإجابة';
+
+  @override
+  String get aiAnswerPlaceholder =>
+      'يمكن استرجاع المنتج خلال 14 يومًا مع الفاتورة.';
+
+  @override
+  String get aiAnswerHint =>
+      'تُستخدم كلماتك كما كتبتها. الذكاء الاصطناعي لا يعيد صياغتها أبدًا.';
+
+  @override
+  String get aiSourceTitle => 'العنوان';
+
+  @override
+  String get aiSourceTitleOptional => 'العنوان (اختياري)';
+
+  @override
+  String get aiSourceTitlePlaceholder => 'سياسة التوصيل';
+
+  @override
+  String get aiContent => 'المحتوى';
+
+  @override
+  String get aiContentPlaceholder => 'التوصيل للقاهرة ياخد يوم ليومين…';
+
+  @override
+  String get aiQuestionRequired => 'أدخل السؤال.';
+
+  @override
+  String get aiAnswerRequired => 'أدخل الإجابة.';
+
+  @override
+  String get aiTitleRequired => 'أدخل عنوانًا.';
+
+  @override
+  String get aiContentRequired => 'أدخل المحتوى.';
+
+  @override
+  String get aiSourceSaved => 'تم الحفظ. ستُستخدم بعد انتهاء الفهرسة.';
+
+  @override
+  String get aiReindex => 'إعادة الفهرسة';
+
+  @override
+  String get aiReindexQueued => 'بدأت إعادة الفهرسة.';
+
+  @override
+  String get aiDeleteSource => 'حذف المعرفة';
+
+  @override
+  String aiDeleteSourceConfirm(String title) {
+    return 'حذف \"$title\"؟ ستتوقف عن الاستخدام فورًا.';
+  }
+
+  @override
+  String get aiSourceDeleted => 'تم حذف المعرفة.';
+
+  @override
+  String get aiNoSources => 'لا شيء بعد. أضف سؤالًا وجوابًا، أو نصًا.';
+
+  @override
+  String get aiTypeQa => 'سؤال وجواب';
+
+  @override
+  String get aiTypeText => 'نص';
+
+  @override
+  String aiChunkCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count جزء',
+      many: '$count جزءًا',
+      few: '$count أجزاء',
+      two: 'جزآن',
+      one: 'جزء واحد',
+      zero: 'لا أجزاء',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String aiIndexedAt(String date) {
+    return 'فُهرست $date';
+  }
+
+  @override
+  String get aiStatusPending => 'في الانتظار';
+
+  @override
+  String get aiStatusIndexing => 'جارٍ الفهرسة…';
+
+  @override
+  String get aiStatusReady => 'جاهز';
+
+  @override
+  String get aiStatusFailed => 'فشل';
+
+  @override
+  String get aiStatusFailedHint =>
+      'هذه المعرفة غير مستخدمة. أعد الفهرسة للمحاولة مرة أخرى.';
+
+  @override
+  String get aiPlaygroundTitle => 'اختبر قاعدة المعرفة';
+
+  @override
+  String get aiPlaygroundHint =>
+      'اسأل ما قد يسأله العميل. الإجابة تأتي من قاعدة المعرفة المحددة فقط.';
+
+  @override
+  String aiPlaygroundAskingBase(String name) {
+    return 'السؤال موجّه إلى: $name';
+  }
+
+  @override
+  String get aiAskPlaceholder => 'ما هي مدة الاسترجاع؟';
+
+  @override
+  String get aiAsk => 'اسأل';
+
+  @override
+  String get aiAsking => 'جارٍ السؤال…';
+
+  @override
+  String get aiQuestionEmpty => 'اكتب سؤالًا أولًا.';
+
+  @override
+  String aiQuestionTooLong(int max) {
+    return 'اجعل السؤال أقل من $max حرف.';
+  }
+
+  @override
+  String get aiNoKnowledgeBaseToAsk => 'أنشِئ قاعدة معرفة قبل اختبارها.';
+
+  @override
+  String get aiAnswerHeading => 'الإجابة';
+
+  @override
+  String get aiSourcesUsed => 'المصادر المستخدمة';
+
+  @override
+  String get aiNoCitations => 'لا مصادر';
+
+  @override
+  String get aiNotInKb => 'غير موجود في قاعدة المعرفة';
+
+  @override
+  String get aiNotInKbHint =>
+      'قاعدة المعرفة لا تدعم إجابة عن هذا. وهذا هو الناتج الصحيح — أضف المعرفة إن كان العميل سيسأل عنه.';
+
+  @override
+  String get aiAnswerFailed => 'تعذر الحصول على إجابة';
+
+  @override
+  String get aiAnswerFailedHint =>
+      'تعذر على مزود الذكاء الاصطناعي الإجابة هذه المرة. حاول مرة أخرى بعد قليل.';
+
+  @override
+  String aiUnknownAnswerStatus(String status) {
+    return 'أعاد الخادم نتيجة لا يعرفها التطبيق ($status).';
+  }
+
+  @override
+  String get aiConflictTitle => 'معلومات متعارضة في قاعدة المعرفة';
+
+  @override
+  String get aiConflictHint =>
+      'مصدران أو أكثر يجيبان عن هذا بشكل مختلف. صحّح أحدهما.';
+
+  @override
+  String get aiConflictSources => 'المصادر المتعارضة';
+
+  @override
+  String aiRetrieved(int count) {
+    return 'ما تم إيجاده ($count)';
+  }
+
+  @override
+  String get aiRetrievedHint => 'كل مرشح تمت دراسته، ومدى مطابقته.';
+
+  @override
+  String aiScore(String score) {
+    return 'التطابق $score';
+  }
+
+  @override
+  String aiStats(int ms, int tokens, String model) {
+    return '$ms مللي ثانية · $tokens رمز · $model';
+  }
+
+  @override
+  String aiRetrievalStats(int ms) {
+    return 'الاسترجاع $ms مللي ثانية';
+  }
+
+  @override
+  String get aiErrorThrottled =>
+      'طرحت 30 سؤالًا خلال الدقيقة الأخيرة، وهو الحد المسموح. انتظر قليلًا ثم حاول مرة أخرى.';
+
+  @override
+  String get aiErrorForbidden =>
+      'ليست لديك صلاحية إدارة المعرفة بالذكاء الاصطناعي.';
+
+  @override
+  String get aiErrorNotFound =>
+      'قاعدة المعرفة هذه لم تعد موجودة، أو الذكاء الاصطناعي غير مفعّل لمؤسستك.';
+
+  @override
+  String get aiConflictsTitle => 'تعارضات المعرفة';
+
+  @override
+  String get aiConflictsBlurb =>
+      'هذه المصادر تجيب على نفس السؤال بشكل مختلف. الردود التلقائية متوقفة حتى يتم تصحيح أحد كل زوج أو إغلاقه.';
+
+  @override
+  String get aiAssistTitle => 'مساعد الوكيل بالذكاء الاصطناعي';
+
+  @override
+  String get aiAssistHint =>
+      'يتيح للوكيل طلب مسودة رد. الوكيل هو من يقرر الإرسال دائمًا.';
+
+  @override
+  String get aiAssistUnsupported => 'غير متاح لهذه القناة بعد';
+
+  @override
+  String get aiAssistNoConnections => 'لا توجد قنوات متصلة.';
+
+  @override
+  String aiAssistModeLabel(String channel) {
+    return 'وضع الذكاء الاصطناعي لـ $channel';
+  }
+
+  @override
+  String get aiModeOff => 'معطل';
+
+  @override
+  String get aiModeSuggest => 'اقتراح';
+
+  @override
+  String get aiModeAuto => 'تلقائي';
+
+  @override
+  String get aiModeAutoWarning =>
+      'سيستلم العملاء ردودًا كتبها الذكاء الاصطناعي. اقرأ فحوص الجاهزية قبل التشغيل.';
+
+  @override
+  String get aiModeSaved => 'تم تحديث وضع الذكاء الاصطناعي.';
+
+  @override
+  String get aiBlockedBy => 'متوقف بسبب';
+
+  @override
+  String get aiAutoBlockedBy => 'الردود التلقائية متوقفة بسبب';
+
+  @override
+  String get aiWorthKnowing => 'معلومات مهمة';
+
+  @override
+  String aiWhatIsIndexed(int ready, int chunks) {
+    return '$ready مصدر مفهرس، $chunks مقطع قابل للبحث';
+  }
+
+  @override
+  String get aiReasonNoKnowledgeBase => 'لم يتم إنشاء قاعدة معرفة';
+
+  @override
+  String get aiReasonNoReadyChunks => 'لم تتم فهرسة أي محتوى بعد';
+
+  @override
+  String get aiReasonIndexingIncomplete => 'بعض المصادر قيد الفهرسة';
+
+  @override
+  String get aiReasonIndexingFailed => 'بعض المصادر فشلت فهرستها';
+
+  @override
+  String get aiReasonNoProvider => 'لا يوجد مزود ذكاء اصطناعي مُعد';
+
+  @override
+  String get aiReasonNoHandoffRoute => 'لا يوجد موظف متاح لاستلام محادثة محولة';
+
+  @override
+  String get aiReasonUnsupportedChannel =>
+      'هذه القناة غير متاحة للذكاء الاصطناعي في هذا الإصدار';
+
+  @override
+  String get aiReasonConnectionInactive => 'هذه القناة غير متصلة أو مؤرشفة';
+
+  @override
+  String get aiReasonConnectionUnhealthy =>
+      'أبلغت المنصة عن مشكلة في هذه القناة';
+
+  @override
+  String get aiReasonKbConflicts =>
+      'مصدران نشطان يجيبان على نفس السؤال بشكل مختلف';
+
+  @override
+  String get aiReasonOrganizationNotEnabled =>
+      'الذكاء الاصطناعي غير مُفعّل لهذه المؤسسة';
+
+  @override
+  String get aiReasonOrganizationAiDisabled =>
+      'الذكاء الاصطناعي مغلق لهذه المؤسسة';
+
+  @override
+  String get aiReasonOrganizationAutoDisabled =>
+      'الردود التلقائية مغلقة لهذه المؤسسة';
+
+  @override
+  String get aiUsageTitle => 'الاستخدام';
+
+  @override
+  String get aiUsageHint => 'هذه المؤسسة، آخر 30 يومًا.';
+
+  @override
+  String get aiUsageRequests => 'الأسئلة';
+
+  @override
+  String get aiUsageAnswered => 'أُجيبت';
+
+  @override
+  String get aiUsageNotInKb => 'غير موجودة';
+
+  @override
+  String get aiUsageTokens => 'الرموز';
 }

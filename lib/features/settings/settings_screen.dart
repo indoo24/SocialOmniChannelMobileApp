@@ -35,6 +35,7 @@ import '../../core/widgets/app_drawer.dart';
 import '../../core/widgets/states.dart';
 import '../../core/widgets/user_account_menu.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../ai_knowledge/ai_knowledge_settings_tab.dart';
 import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
 import '../conversations/inbox_controller.dart';
@@ -63,11 +64,16 @@ class SettingsScreen extends ConsumerWidget {
     final canExport = employee.can(Perm.crmExport);
     final canSeeMoreSettings =
         canSeeCustomerFields || canSeeSavedReplies || canExport;
+    // `ai_knowledge.manage` and an organization inside the AI pilot — the
+    // web's rule for its AI & Knowledge tab.
+    final canSeeAiKnowledge = ref.watch(canManageAiKnowledgeProvider);
 
-    // Order is Channels, Routing, Profile, More. Profile sits ahead of More
-    // because every role has it, so it lands at a stable position no matter
-    // which of the permission-gated tabs above are present; More is the
-    // catch-all and reads last.
+    // Order is Channels, Routing, Profile, More, AI. Profile sits ahead of
+    // More because every role has it, so it lands at a stable position no
+    // matter which of the permission-gated tabs above are present; More is
+    // the catch-all. AI & Knowledge is its own tab rather than a section of
+    // More (where the web nests it): it is several screens' worth of content
+    // and would bury Export data under it on a phone.
     final tabs = <(String, Widget)>[
       if (canSeeChannels) (context.l10n.tabChannels, const _ChannelsTab()),
       if (canManageRouting)
@@ -75,6 +81,8 @@ class SettingsScreen extends ConsumerWidget {
       (context.l10n.tabProfile, const ProfileTab()),
       if (canSeeMoreSettings)
         (context.l10n.tabMoreSettings, const MoreSettingsTab()),
+      if (canSeeAiKnowledge)
+        (context.l10n.tabAiKnowledge, const AiKnowledgeSettingsTab()),
     ];
 
     return DefaultTabController(

@@ -72,6 +72,7 @@ class Employee {
     this.channelAvailability = const {},
     this.routingChannelScope = 'ALL',
     this.routingProviders = const [],
+    this.aiKnowledgeEnabled = false,
   });
 
   final int id;
@@ -107,6 +108,12 @@ class Employee {
   /// The providers this employee handles when [routingChannelScope] is
   /// `SELECTED`. Empty when the scope is `ALL`.
   final List<String> routingProviders;
+
+  /// Whether the organization is in the AI knowledge pilot (`/auth/me/`'s
+  /// `ai_knowledge_enabled`). Outside it every knowledge endpoint answers
+  /// 404, so the AI settings are not offered at all — same rule as the web.
+  /// Defaults to false so an older backend never widens access.
+  final bool aiKnowledgeEnabled;
 
   /// Providers that stay coming soon when the server has not said otherwise,
   /// so an older backend or a partial payload can never widen access.
@@ -178,6 +185,7 @@ class Employee {
         fallback: 'ALL',
       ),
       routingProviders: JsonSafe.asStringList(json['routing_providers']),
+      aiKnowledgeEnabled: JsonSafe.asBool(json['ai_knowledge_enabled']),
     );
   }
 
@@ -229,6 +237,7 @@ class Employee {
     channelAvailability: channelAvailability,
     routingChannelScope: routingChannelScope,
     routingProviders: routingProviders,
+    aiKnowledgeEnabled: aiKnowledgeEnabled,
   );
 }
 
@@ -281,4 +290,9 @@ class Perm {
   /// but does not edit them.
   static const savedReplyManage = 'saved_reply.manage';
   static const notificationView = 'notification.view';
+
+  /// Manage knowledge bases and their sources, use the answer playground,
+  /// and set each channel's Agent Assist mode. Only meaningful while the
+  /// organization is in the AI pilot — see `Employee.aiKnowledgeEnabled`.
+  static const aiKnowledgeManage = 'ai_knowledge.manage';
 }

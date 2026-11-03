@@ -3979,4 +3979,435 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get savedReplyUploadCancelled =>
       'Upload cancelled. The reply\'s text was saved; tap Save to upload the file again.';
+
+  @override
+  String get tabAiKnowledge => 'AI & Knowledge';
+
+  @override
+  String get aiPilotNotice =>
+      'Internal testing only. Nothing on this page is sent to customers — asking a question here creates no conversation and no message.';
+
+  @override
+  String get aiNotAvailableTitle => 'AI knowledge isn\'t available';
+
+  @override
+  String get aiNotAvailableMessage =>
+      'Your organization isn\'t in the AI knowledge pilot, or you no longer have access to it.';
+
+  @override
+  String get aiKnowledgeBasesTitle => 'Knowledge bases';
+
+  @override
+  String get aiKnowledgeBasesHint =>
+      'A named collection of what the AI is allowed to answer from.';
+
+  @override
+  String get aiNewKnowledgeBase => 'New knowledge base';
+
+  @override
+  String get aiEditKnowledgeBase => 'Edit knowledge base';
+
+  @override
+  String get aiKnowledgeBaseName => 'Name';
+
+  @override
+  String get aiKnowledgeBaseNamePlaceholder => 'Store policies';
+
+  @override
+  String get aiKnowledgeBaseDescription => 'Description';
+
+  @override
+  String get aiKnowledgeBaseDescriptionPlaceholder =>
+      'What this collection covers';
+
+  @override
+  String get aiKnowledgeBaseNameRequired => 'Enter a name.';
+
+  @override
+  String get aiCreateKnowledgeBase => 'Create';
+
+  @override
+  String get aiNoKnowledgeBases =>
+      'No knowledge base yet. Create one to start adding knowledge.';
+
+  @override
+  String aiKnowledgeBaseReadyCount(int ready, int total) {
+    return '$ready of $total ready';
+  }
+
+  @override
+  String get aiActivate => 'Activate';
+
+  @override
+  String get aiDeactivate => 'Deactivate';
+
+  @override
+  String get aiInactive => 'Inactive';
+
+  @override
+  String get aiDeleteKnowledgeBase => 'Delete knowledge base';
+
+  @override
+  String aiDeleteKnowledgeBaseConfirm(String name) {
+    return 'Delete \"$name\" and everything in it? This cannot be undone.';
+  }
+
+  @override
+  String get aiKnowledgeBaseDeleted => 'Knowledge base deleted.';
+
+  @override
+  String get aiKnowledgeBaseSaved => 'Knowledge base saved.';
+
+  @override
+  String get aiSourcesTitle => 'Knowledge';
+
+  @override
+  String get aiSourcesHint =>
+      'What an answer may be grounded in. Nothing else is used.';
+
+  @override
+  String get aiAddQa => 'Add question & answer';
+
+  @override
+  String get aiAddText => 'Add text';
+
+  @override
+  String get aiEditQa => 'Edit question & answer';
+
+  @override
+  String get aiEditText => 'Edit text';
+
+  @override
+  String get aiQuestion => 'Question';
+
+  @override
+  String get aiQuestionPlaceholder => 'What is the return period?';
+
+  @override
+  String get aiAnswer => 'Answer';
+
+  @override
+  String get aiAnswerPlaceholder =>
+      'Returns are accepted within 14 days with a receipt.';
+
+  @override
+  String get aiAnswerHint =>
+      'Your words are used as written. The AI never rewrites them.';
+
+  @override
+  String get aiSourceTitle => 'Title';
+
+  @override
+  String get aiSourceTitleOptional => 'Title (optional)';
+
+  @override
+  String get aiSourceTitlePlaceholder => 'Shipping policy';
+
+  @override
+  String get aiContent => 'Content';
+
+  @override
+  String get aiContentPlaceholder => 'Cairo delivery takes 1–2 business days…';
+
+  @override
+  String get aiQuestionRequired => 'Enter the question.';
+
+  @override
+  String get aiAnswerRequired => 'Enter the answer.';
+
+  @override
+  String get aiTitleRequired => 'Enter a title.';
+
+  @override
+  String get aiContentRequired => 'Enter the content.';
+
+  @override
+  String get aiSourceSaved => 'Saved. It will be used once indexing finishes.';
+
+  @override
+  String get aiReindex => 'Re-index';
+
+  @override
+  String get aiReindexQueued => 'Re-indexing started.';
+
+  @override
+  String get aiDeleteSource => 'Delete knowledge';
+
+  @override
+  String aiDeleteSourceConfirm(String title) {
+    return 'Delete \"$title\"? It will stop being used immediately.';
+  }
+
+  @override
+  String get aiSourceDeleted => 'Knowledge deleted.';
+
+  @override
+  String get aiNoSources =>
+      'Nothing here yet. Add a question and answer, or a block of text.';
+
+  @override
+  String get aiTypeQa => 'Q&A';
+
+  @override
+  String get aiTypeText => 'Text';
+
+  @override
+  String aiChunkCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count parts',
+      one: '1 part',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String aiIndexedAt(String date) {
+    return 'Indexed $date';
+  }
+
+  @override
+  String get aiStatusPending => 'Waiting';
+
+  @override
+  String get aiStatusIndexing => 'Indexing…';
+
+  @override
+  String get aiStatusReady => 'Ready';
+
+  @override
+  String get aiStatusFailed => 'Failed';
+
+  @override
+  String get aiStatusFailedHint =>
+      'This knowledge is not being used. Re-index to try again.';
+
+  @override
+  String get aiPlaygroundTitle => 'Test your knowledge base';
+
+  @override
+  String get aiPlaygroundHint =>
+      'Ask what a customer might ask. The answer comes only from the selected knowledge base.';
+
+  @override
+  String aiPlaygroundAskingBase(String name) {
+    return 'Asking: $name';
+  }
+
+  @override
+  String get aiAskPlaceholder => 'What is the return period?';
+
+  @override
+  String get aiAsk => 'Ask';
+
+  @override
+  String get aiAsking => 'Asking…';
+
+  @override
+  String get aiQuestionEmpty => 'Type a question first.';
+
+  @override
+  String aiQuestionTooLong(int max) {
+    return 'Keep the question under $max characters.';
+  }
+
+  @override
+  String get aiNoKnowledgeBaseToAsk =>
+      'Create a knowledge base before testing it.';
+
+  @override
+  String get aiAnswerHeading => 'Answer';
+
+  @override
+  String get aiSourcesUsed => 'Sources used';
+
+  @override
+  String get aiNoCitations => 'No sources';
+
+  @override
+  String get aiNotInKb => 'Not in the knowledge base';
+
+  @override
+  String get aiNotInKbHint =>
+      'The knowledge base does not support an answer to this. That is the correct result — add the knowledge if a customer would ask it.';
+
+  @override
+  String get aiAnswerFailed => 'Could not get an answer';
+
+  @override
+  String get aiAnswerFailedHint =>
+      'The AI provider could not answer this time. Try again in a moment.';
+
+  @override
+  String aiUnknownAnswerStatus(String status) {
+    return 'The server returned a result this app doesn\'t recognize ($status).';
+  }
+
+  @override
+  String get aiConflictTitle => 'Conflicting information in the knowledge base';
+
+  @override
+  String get aiConflictHint =>
+      'Two or more sources would answer this differently. Correct one of them.';
+
+  @override
+  String get aiConflictSources => 'Sources that disagree';
+
+  @override
+  String aiRetrieved(int count) {
+    return 'What was found ($count)';
+  }
+
+  @override
+  String get aiRetrievedHint =>
+      'Every candidate considered, with how closely it matched.';
+
+  @override
+  String aiScore(String score) {
+    return 'Match $score';
+  }
+
+  @override
+  String aiStats(int ms, int tokens, String model) {
+    return '$ms ms · $tokens tokens · $model';
+  }
+
+  @override
+  String aiRetrievalStats(int ms) {
+    return 'Retrieval $ms ms';
+  }
+
+  @override
+  String get aiErrorThrottled =>
+      'You\'ve asked 30 questions in the last minute, the limit. Wait a moment and try again.';
+
+  @override
+  String get aiErrorForbidden =>
+      'You don\'t have permission to manage AI knowledge.';
+
+  @override
+  String get aiErrorNotFound =>
+      'This knowledge base no longer exists, or AI isn\'t enabled for your organization.';
+
+  @override
+  String get aiConflictsTitle => 'Knowledge conflicts';
+
+  @override
+  String get aiConflictsBlurb =>
+      'These answer the same question differently. Automatic replies are blocked until one of each pair is corrected or switched off.';
+
+  @override
+  String get aiAssistTitle => 'AI Agent Assist';
+
+  @override
+  String get aiAssistHint =>
+      'Lets an agent ask the AI for a draft reply. The agent always decides whether to send it.';
+
+  @override
+  String get aiAssistUnsupported => 'Not available for this channel yet';
+
+  @override
+  String get aiAssistNoConnections => 'No channels connected.';
+
+  @override
+  String aiAssistModeLabel(String channel) {
+    return 'AI mode for $channel';
+  }
+
+  @override
+  String get aiModeOff => 'Off';
+
+  @override
+  String get aiModeSuggest => 'Suggest';
+
+  @override
+  String get aiModeAuto => 'Automatic';
+
+  @override
+  String get aiModeAutoWarning =>
+      'Customers will receive replies written by the AI. Read the readiness checks before turning this on.';
+
+  @override
+  String get aiModeSaved => 'AI mode updated.';
+
+  @override
+  String get aiBlockedBy => 'Blocked by';
+
+  @override
+  String get aiAutoBlockedBy => 'Automatic replies blocked by';
+
+  @override
+  String get aiWorthKnowing => 'Worth knowing';
+
+  @override
+  String aiWhatIsIndexed(int ready, int chunks) {
+    return '$ready source(s) indexed, $chunks searchable extract(s)';
+  }
+
+  @override
+  String get aiReasonNoKnowledgeBase => 'No knowledge base has been created';
+
+  @override
+  String get aiReasonNoReadyChunks => 'Nothing has been indexed yet';
+
+  @override
+  String get aiReasonIndexingIncomplete =>
+      'Some sources are still being indexed';
+
+  @override
+  String get aiReasonIndexingFailed => 'Some sources failed to index';
+
+  @override
+  String get aiReasonNoProvider => 'No AI provider is configured';
+
+  @override
+  String get aiReasonNoHandoffRoute =>
+      'Nobody is available to receive a handed-off conversation';
+
+  @override
+  String get aiReasonUnsupportedChannel =>
+      'This channel is not available for AI in this release';
+
+  @override
+  String get aiReasonConnectionInactive =>
+      'This channel is disconnected or archived';
+
+  @override
+  String get aiReasonConnectionUnhealthy =>
+      'The platform has reported a problem with this channel';
+
+  @override
+  String get aiReasonKbConflicts =>
+      'Two active sources answer the same question differently';
+
+  @override
+  String get aiReasonOrganizationNotEnabled =>
+      'AI is not enabled for this organization';
+
+  @override
+  String get aiReasonOrganizationAiDisabled =>
+      'AI is switched off for this organization';
+
+  @override
+  String get aiReasonOrganizationAutoDisabled =>
+      'Automatic replies are switched off for this organization';
+
+  @override
+  String get aiUsageTitle => 'Usage';
+
+  @override
+  String get aiUsageHint => 'This organization, last 30 days.';
+
+  @override
+  String get aiUsageRequests => 'Questions';
+
+  @override
+  String get aiUsageAnswered => 'Answered';
+
+  @override
+  String get aiUsageNotInKb => 'Not in KB';
+
+  @override
+  String get aiUsageTokens => 'Tokens';
 }
