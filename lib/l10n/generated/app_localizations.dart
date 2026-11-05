@@ -7746,6 +7746,672 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tokens'**
   String get aiUsageTokens;
+
+  /// Inbox search result: before a matched message this side sent.
+  ///
+  /// In en, this message translates to:
+  /// **'You: '**
+  String get searchMatchYouPrefix;
+
+  /// No description provided for @aiActivityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI activity'**
+  String get aiActivityTitle;
+
+  /// No description provided for @aiActivitySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What the AI handled, declined and used'**
+  String get aiActivitySubtitle;
+
+  /// No description provided for @aiPolicyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI policy'**
+  String get aiPolicyTitle;
+
+  /// No description provided for @aiPolicySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization switches, budgets and each channel\'s limits'**
+  String get aiPolicySubtitle;
+
+  /// No description provided for @aiWindowHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Last hour} other{Last {count} hours}}'**
+  String aiWindowHours(int count);
+
+  /// No description provided for @aiActivityQuiet.
+  ///
+  /// In en, this message translates to:
+  /// **'No AI activity in this window.'**
+  String get aiActivityQuiet;
+
+  /// No description provided for @aiSectionVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume and outcome'**
+  String get aiSectionVolume;
+
+  /// No description provided for @aiSectionRates.
+  ///
+  /// In en, this message translates to:
+  /// **'Rates'**
+  String get aiSectionRates;
+
+  /// No description provided for @aiSectionReasons.
+  ///
+  /// In en, this message translates to:
+  /// **'Why it declined or handed off'**
+  String get aiSectionReasons;
+
+  /// No description provided for @aiSectionSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get aiSectionSuggestions;
+
+  /// No description provided for @aiSectionPerformance.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost and performance'**
+  String get aiSectionPerformance;
+
+  /// No description provided for @aiSectionOperations.
+  ///
+  /// In en, this message translates to:
+  /// **'Operational events'**
+  String get aiSectionOperations;
+
+  /// No description provided for @aiSectionConnections.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels by mode'**
+  String get aiSectionConnections;
+
+  /// No description provided for @aiMetricOpportunities.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages considered'**
+  String get aiMetricOpportunities;
+
+  /// No description provided for @aiMetricSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Replied automatically'**
+  String get aiMetricSent;
+
+  /// No description provided for @aiMetricHandedOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Handed to a person'**
+  String get aiMetricHandedOff;
+
+  /// No description provided for @aiMetricRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'Declined'**
+  String get aiMetricRefused;
+
+  /// No description provided for @aiMetricDuplicates.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicates suppressed'**
+  String get aiMetricDuplicates;
+
+  /// No description provided for @aiMetricCoalesced.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages answered together'**
+  String get aiMetricCoalesced;
+
+  /// No description provided for @aiMetricHandoffRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Handoff rate'**
+  String get aiMetricHandoffRate;
+
+  /// No description provided for @aiMetricSendRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic reply rate'**
+  String get aiMetricSendRate;
+
+  /// No description provided for @aiMetricVerbatimRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent without edits'**
+  String get aiMetricVerbatimRate;
+
+  /// No description provided for @aiMetricVerbatimHint.
+  ///
+  /// In en, this message translates to:
+  /// **'{unchanged} of {total} drafts'**
+  String aiMetricVerbatimHint(int unchanged, int total);
+
+  /// No description provided for @aiMetricSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get aiMetricSuggestions;
+
+  /// No description provided for @aiMetricSuggestionsUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Used'**
+  String get aiMetricSuggestionsUsed;
+
+  /// No description provided for @aiMetricSuggestionsDiscarded.
+  ///
+  /// In en, this message translates to:
+  /// **'Discarded'**
+  String get aiMetricSuggestionsDiscarded;
+
+  /// No description provided for @aiMetricSuggestionsRegenerated.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerated'**
+  String get aiMetricSuggestionsRegenerated;
+
+  /// No description provided for @aiMetricSentUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent unchanged'**
+  String get aiMetricSentUnchanged;
+
+  /// No description provided for @aiMetricSentEdited.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent edited'**
+  String get aiMetricSentEdited;
+
+  /// No description provided for @aiMetricTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Tokens used'**
+  String get aiMetricTokens;
+
+  /// No description provided for @aiMetricRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider requests'**
+  String get aiMetricRequests;
+
+  /// No description provided for @aiMetricAverageDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Average response time'**
+  String get aiMetricAverageDuration;
+
+  /// No description provided for @aiMetricAverageRetrieval.
+  ///
+  /// In en, this message translates to:
+  /// **'Average retrieval time'**
+  String get aiMetricAverageRetrieval;
+
+  /// No description provided for @aiMetricSlowestDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Slowest response'**
+  String get aiMetricSlowestDuration;
+
+  /// No description provided for @aiMetricHumanTakeovers.
+  ///
+  /// In en, this message translates to:
+  /// **'Human takeovers'**
+  String get aiMetricHumanTakeovers;
+
+  /// No description provided for @aiMetricDeliveryFailures.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery failures'**
+  String get aiMetricDeliveryFailures;
+
+  /// No description provided for @aiMetricConversationsPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations paused'**
+  String get aiMetricConversationsPaused;
+
+  /// No description provided for @aiDeclineNotInKb.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in the knowledge base'**
+  String get aiDeclineNotInKb;
+
+  /// No description provided for @aiDeclineConflicts.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources disagree'**
+  String get aiDeclineConflicts;
+
+  /// No description provided for @aiDeclineRestrictedTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Restricted topic'**
+  String get aiDeclineRestrictedTopics;
+
+  /// No description provided for @aiDeclineGroundingTooLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Evidence too weak'**
+  String get aiDeclineGroundingTooLow;
+
+  /// No description provided for @aiDeclineUngroundedNumbers.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported figure'**
+  String get aiDeclineUngroundedNumbers;
+
+  /// No description provided for @aiDeclineCustomerRequestedHuman.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer asked for a person'**
+  String get aiDeclineCustomerRequestedHuman;
+
+  /// No description provided for @aiDeclineOutsideServiceWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply window closed'**
+  String get aiDeclineOutsideServiceWindow;
+
+  /// No description provided for @aiDeclineAttachmentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'A file needs reviewing'**
+  String get aiDeclineAttachmentRequired;
+
+  /// No description provided for @aiDeclineMaxAutoTurns.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic reply limit reached'**
+  String get aiDeclineMaxAutoTurns;
+
+  /// No description provided for @aiDeclineBudgetExhausted.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage limit reached'**
+  String get aiDeclineBudgetExhausted;
+
+  /// No description provided for @aiDeclineProviderUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'AI provider unavailable'**
+  String get aiDeclineProviderUnavailable;
+
+  /// No description provided for @aiDeclineSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending failed'**
+  String get aiDeclineSendFailed;
+
+  /// No description provided for @aiNoDeclines.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing declined or handed off in this window.'**
+  String get aiNoDeclines;
+
+  /// No description provided for @aiUsageInputTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Input tokens'**
+  String get aiUsageInputTokens;
+
+  /// No description provided for @aiUsageOutputTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Output tokens'**
+  String get aiUsageOutputTokens;
+
+  /// No description provided for @aiUsageErrors.
+  ///
+  /// In en, this message translates to:
+  /// **'Errors'**
+  String get aiUsageErrors;
+
+  /// No description provided for @aiUsageByModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Requests by model'**
+  String get aiUsageByModel;
+
+  /// No description provided for @aiUsageNoModels.
+  ///
+  /// In en, this message translates to:
+  /// **'No model was used in this period.'**
+  String get aiUsageNoModels;
+
+  /// No description provided for @aiPolicyOrganizationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization'**
+  String get aiPolicyOrganizationTitle;
+
+  /// No description provided for @aiPolicyAiEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'AI enabled'**
+  String get aiPolicyAiEnabled;
+
+  /// No description provided for @aiPolicyAiEnabledHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Turning this off stops every AI feature for this organization immediately.'**
+  String get aiPolicyAiEnabledHint;
+
+  /// No description provided for @aiPolicyAutoSendEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic replies enabled'**
+  String get aiPolicyAutoSendEnabled;
+
+  /// No description provided for @aiPolicyAutoSendEnabledHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Turning this off stops automatic replies but keeps AI suggestions working — the switch to use during an incident.'**
+  String get aiPolicyAutoSendEnabledHint;
+
+  /// No description provided for @aiPolicyDailyRequestLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily request limit'**
+  String get aiPolicyDailyRequestLimit;
+
+  /// No description provided for @aiPolicyDailyTokenLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily token limit'**
+  String get aiPolicyDailyTokenLimit;
+
+  /// No description provided for @aiPolicyLimitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'0 to {max}. 0 switches the feature off.'**
+  String aiPolicyLimitHint(int max);
+
+  /// No description provided for @aiPolicyLimitInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number from 0 to {max}.'**
+  String aiPolicyLimitInvalid(int max);
+
+  /// No description provided for @aiPolicyRollout.
+  ///
+  /// In en, this message translates to:
+  /// **'Rollout'**
+  String get aiPolicyRollout;
+
+  /// No description provided for @aiPolicyRolloutHint.
+  ///
+  /// In en, this message translates to:
+  /// **'How closely this organization is being watched. It grants nothing — each channel still has to be switched on.'**
+  String get aiPolicyRolloutHint;
+
+  /// No description provided for @aiRolloutInternal.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal'**
+  String get aiRolloutInternal;
+
+  /// No description provided for @aiRolloutPilot.
+  ///
+  /// In en, this message translates to:
+  /// **'Pilot'**
+  String get aiRolloutPilot;
+
+  /// No description provided for @aiRolloutLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Limited'**
+  String get aiRolloutLimited;
+
+  /// No description provided for @aiRolloutGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get aiRolloutGeneral;
+
+  /// No description provided for @aiPolicySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'AI policy saved.'**
+  String get aiPolicySaved;
+
+  /// No description provided for @aiPolicyChannelsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel limits'**
+  String get aiPolicyChannelsTitle;
+
+  /// No description provided for @aiPolicyChannelsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Each channel\'s automatic-reply limits, evidence level and topics.'**
+  String get aiPolicyChannelsHint;
+
+  /// No description provided for @aiPolicyChannelsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No channel supports AI yet.'**
+  String get aiPolicyChannelsNone;
+
+  /// No description provided for @aiUnsavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes?'**
+  String get aiUnsavedTitle;
+
+  /// No description provided for @aiUnsavedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your changes haven\'t been saved.'**
+  String get aiUnsavedBody;
+
+  /// No description provided for @aiUnsavedDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get aiUnsavedDiscard;
+
+  /// No description provided for @aiUnsavedKeepEditing.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep editing'**
+  String get aiUnsavedKeepEditing;
+
+  /// No description provided for @aiChannelConfigUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The server didn\'t send this channel\'s AI settings.'**
+  String get aiChannelConfigUnavailable;
+
+  /// No description provided for @aiChannelMaxTurns.
+  ///
+  /// In en, this message translates to:
+  /// **'Most automatic replies in a session'**
+  String get aiChannelMaxTurns;
+
+  /// No description provided for @aiChannelMaxTurnsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'After this many, the conversation goes to a person. {min} to {max}.'**
+  String aiChannelMaxTurnsHint(int min, int max);
+
+  /// No description provided for @aiChannelSessionIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'New AI session after the customer is quiet for (hours)'**
+  String get aiChannelSessionIdle;
+
+  /// No description provided for @aiChannelSessionIdleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'{min} to {max} hours.'**
+  String aiChannelSessionIdleHint(int min, int max);
+
+  /// No description provided for @aiChannelDailyCap.
+  ///
+  /// In en, this message translates to:
+  /// **'Most automatic replies per day'**
+  String get aiChannelDailyCap;
+
+  /// No description provided for @aiChannelDailyCapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A ceiling for this channel, for cost and incidents. {min} to {max}.'**
+  String aiChannelDailyCapHint(int min, int max);
+
+  /// No description provided for @aiChannelNumberInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number from {min} to {max}.'**
+  String aiChannelNumberInvalid(int min, int max);
+
+  /// No description provided for @aiChannelResume.
+  ///
+  /// In en, this message translates to:
+  /// **'When the AI is allowed back in'**
+  String get aiChannelResume;
+
+  /// No description provided for @aiResumeAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about the latest unanswered message'**
+  String get aiResumeAsk;
+
+  /// No description provided for @aiResumeWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait for the customer\'s next message'**
+  String get aiResumeWait;
+
+  /// No description provided for @aiChannelGrounding.
+  ///
+  /// In en, this message translates to:
+  /// **'Evidence needed for an automatic reply'**
+  String get aiChannelGrounding;
+
+  /// No description provided for @aiGroundingStrict.
+  ///
+  /// In en, this message translates to:
+  /// **'Strict'**
+  String get aiGroundingStrict;
+
+  /// No description provided for @aiGroundingStrictHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers only on a clear match: more handoffs, fewer wrong replies.'**
+  String get aiGroundingStrictHint;
+
+  /// No description provided for @aiGroundingBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced'**
+  String get aiGroundingBalanced;
+
+  /// No description provided for @aiGroundingBalancedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The recommended default, and what the pilot runs on.'**
+  String get aiGroundingBalancedHint;
+
+  /// No description provided for @aiGroundingFlexible.
+  ///
+  /// In en, this message translates to:
+  /// **'Flexible'**
+  String get aiGroundingFlexible;
+
+  /// No description provided for @aiGroundingFlexibleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Accepts weaker matches, as long as a knowledge source is cited.'**
+  String get aiGroundingFlexibleHint;
+
+  /// No description provided for @aiGroundingRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get aiGroundingRecommended;
+
+  /// No description provided for @aiGroundingFloor.
+  ///
+  /// In en, this message translates to:
+  /// **'Current threshold: {floor}. A reply with no supporting source is never sent.'**
+  String aiGroundingFloor(String floor);
+
+  /// No description provided for @aiChannelTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Topics that always go to a person'**
+  String get aiChannelTopics;
+
+  /// No description provided for @aiChannelLockedTopicsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'These are always on and can\'t be switched off. You can add your own below.'**
+  String get aiChannelLockedTopicsHint;
+
+  /// No description provided for @aiChannelAddTopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Add topic'**
+  String get aiChannelAddTopic;
+
+  /// No description provided for @aiChannelTopicPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. warranty'**
+  String get aiChannelTopicPlaceholder;
+
+  /// No description provided for @aiChannelRemoveTopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {topic}'**
+  String aiChannelRemoveTopic(String topic);
+
+  /// No description provided for @aiChannelTopicTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep a topic under {max} characters.'**
+  String aiChannelTopicTooLong(int max);
+
+  /// No description provided for @aiChannelTopicDuplicate.
+  ///
+  /// In en, this message translates to:
+  /// **'That topic is already listed.'**
+  String get aiChannelTopicDuplicate;
+
+  /// No description provided for @aiChannelTooManyTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to {max} topics.'**
+  String aiChannelTooManyTopics(int max);
+
+  /// No description provided for @aiChannelHandoffRules.
+  ///
+  /// In en, this message translates to:
+  /// **'What hands a conversation to a person'**
+  String get aiChannelHandoffRules;
+
+  /// No description provided for @aiHandoffAlwaysOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Always on'**
+  String get aiHandoffAlwaysOn;
+
+  /// No description provided for @aiChannelSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel settings saved.'**
+  String get aiChannelSaved;
+
+  /// No description provided for @aiGroundingShowFloor.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the threshold'**
+  String get aiGroundingShowFloor;
 }
 
 class _AppLocalizationsDelegate

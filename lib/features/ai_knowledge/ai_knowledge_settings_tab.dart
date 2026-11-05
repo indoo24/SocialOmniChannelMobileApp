@@ -13,6 +13,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../app/router.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/models/employee.dart';
@@ -76,6 +79,8 @@ class AiKnowledgeSettingsTab extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: Space.lg),
         children: [
           const _PilotNotice(),
+          const SizedBox(height: Space.md),
+          const _AiScreenLinks(),
           const SizedBox(height: Space.lg),
           basesAsync.when(
             loading: () => const SizedBox(height: 160, child: LoadingState()),
@@ -141,6 +146,57 @@ class _PilotNotice extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The AI section's other screens: activity and policy. This tab is the
+/// overview — knowledge, testing and each channel's mode.
+class _AiScreenLinks extends StatelessWidget {
+  const _AiScreenLinks();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    Widget link(
+      Key key,
+      IconData icon,
+      String title,
+      String subtitle,
+      String route,
+    ) {
+      return Card(
+        key: key,
+        margin: const EdgeInsets.symmetric(horizontal: Space.sm),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+          title: Text(title),
+          subtitle: Text(subtitle),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => context.push(route),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        link(
+          const Key('ai-link-activity'),
+          Icons.insights_outlined,
+          l10n.aiActivityTitle,
+          l10n.aiActivitySubtitle,
+          Routes.aiActivity,
+        ),
+        const SizedBox(height: Space.sm),
+        link(
+          const Key('ai-link-policy'),
+          Icons.policy_outlined,
+          l10n.aiPolicyTitle,
+          l10n.aiPolicySubtitle,
+          Routes.aiPolicy,
+        ),
+      ],
     );
   }
 }

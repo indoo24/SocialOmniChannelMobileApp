@@ -15,6 +15,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/models/ai_operations.dart';
 import '../../core/models/knowledge.dart';
 import '../../core/providers.dart';
 import 'ai_knowledge_repository.dart';
@@ -368,16 +369,25 @@ class AgentSettingsController extends AsyncNotifier<List<AiAgentSetting>> {
   /// Sets [connectionId] to [mode] and shows every connection as the server
   /// answers. Throws on refusal (a 400 for a mode readiness does not allow),
   /// leaving the list as it was.
-  Future<void> setMode(int connectionId, String mode) async {
+  Future<void> setMode(int connectionId, String mode) =>
+      updateSettings(connectionId, {'mode': mode});
+
+  /// Saves [changes] to one connection's AI configuration (only those
+  /// fields) and shows every connection as the server answers. Throws on
+  /// refusal, leaving the list as it was.
+  Future<void> updateSettings(
+    int connectionId,
+    Map<String, Object> changes,
+  ) async {
     final previous = {
       for (final row in state.value ?? const <AiAgentSetting>[])
         row.connectionId: row.readiness,
     };
     final updated = await ref
         .read(aiKnowledgeRepositoryProvider)
-        .setAgentMode(connectionId: connectionId, mode: mode);
+        .updateAgentSetting(connectionId: connectionId, changes: changes);
     if (!ref.mounted) return;
-    // A mode change does not change readiness; keep what was known.
+    // A settings change does not change readiness; keep what was known.
     state = AsyncData([
       for (final row in updated)
         row.readiness != null
@@ -402,3 +412,55 @@ final knowledgeConflictsProvider =
 final aiUsageProvider = FutureProvider.autoDispose<AiUsageSummary>(
   (ref) => ref.watch(aiKnowledgeRepositoryProvider).usage(),
 );
+
+// --------------------------------------------------------------------------- //
+// Activity and policy
+// --------------------------------------------------------------------------- //
+
+/// The AI activity windows offered, in hours — the web's three.
+const aiActivityWindows = [1, 24, 168];
+
+/// The activity window on screen. 24 hours to start, the server's default.
+class AiActivityWindowController extends Notifier<int> {
+  @override
+  int build() => 24;
+
+  void select(int hours) => state = hours;
+}
+
+final aiActivityWindowProvider =
+    NotifierProvider.autoDispose<AiActivityWindowController, int>(
+      AiActivityWindowController.new,
+    );
+
+/// Organization-wide AI activity for one window, by its hours.
+final aiMetricsProvider = FutureProvider.autoDispose.family<AiMetrics, int>(
+  (ref, hours) =>
+      ref.watch(aiKnowledgeRepositoryProvider).metrics(hours: hours),
+);
+
+/// The organization's AI policy, and saving it.
+class AiPolicyController extends AsyncNotifier<AiOrganizationPolicy> {
+  @override
+  Future<AiOrganizationPolicy> build() =>
+      ref.watch(aiKnowledgeRepositoryProvider).policy();
+
+  /// Saves [changes] and shows the policy as the server answers. Throws on
+  /// refusal (400 with the field that was out of range), leaving the policy
+  /// as it was. Nothing is sent when there is nothing to change.
+  Future<void> save(Map<String, Object> changes) async {
+    if (changes.isEmpty) return;
+    final saved = await ref
+        .read(aiKnowledgeRepositoryProvider)
+        .updatePolicy(changes);
+    if (!ref.mounted) return;
+    state = AsyncData(saved);
+    // The organization switches feed every channel's readiness.
+    ref.invalidate(agentSettingsProvider);
+  }
+}
+
+final aiPolicyProvider =
+    AsyncNotifierProvider.autoDispose<AiPolicyController, AiOrganizationPolicy>(
+      AiPolicyController.new,
+    );

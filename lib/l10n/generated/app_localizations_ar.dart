@@ -4421,4 +4421,383 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get aiUsageTokens => 'الرموز';
+
+  @override
+  String get searchMatchYouPrefix => 'أنت: ';
+
+  @override
+  String get aiActivityTitle => 'نشاط الذكاء الاصطناعي';
+
+  @override
+  String get aiActivitySubtitle =>
+      'ما تعامل معه الذكاء الاصطناعي وما امتنع عنه وما استهلكه';
+
+  @override
+  String get aiPolicyTitle => 'سياسة الذكاء الاصطناعي';
+
+  @override
+  String get aiPolicySubtitle =>
+      'مفاتيح المؤسسة والحدود اليومية وإعدادات كل قناة';
+
+  @override
+  String aiWindowHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'آخر $count ساعة',
+      many: 'آخر $count ساعة',
+      few: 'آخر $count ساعات',
+      two: 'آخر ساعتين',
+      one: 'آخر ساعة',
+      zero: 'آخر $count ساعة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get aiActivityQuiet => 'لا يوجد نشاط للذكاء الاصطناعي في هذه الفترة.';
+
+  @override
+  String get aiSectionVolume => 'الحجم والنتيجة';
+
+  @override
+  String get aiSectionRates => 'النسب';
+
+  @override
+  String get aiSectionReasons => 'أسباب الامتناع أو التحويل لموظف';
+
+  @override
+  String get aiSectionSuggestions => 'الاقتراحات';
+
+  @override
+  String get aiSectionPerformance => 'التكلفة والأداء';
+
+  @override
+  String get aiSectionOperations => 'أحداث تشغيلية';
+
+  @override
+  String get aiSectionConnections => 'القنوات حسب الوضع';
+
+  @override
+  String get aiMetricOpportunities => 'الرسائل التي تم النظر فيها';
+
+  @override
+  String get aiMetricSent => 'تم الرد تلقائيًا';
+
+  @override
+  String get aiMetricHandedOff => 'تم تحويلها لموظف';
+
+  @override
+  String get aiMetricRefused => 'تم الامتناع';
+
+  @override
+  String get aiMetricDuplicates => 'النسخ المكررة المستبعدة';
+
+  @override
+  String get aiMetricCoalesced => 'رسائل تم الرد عليها مجتمعة';
+
+  @override
+  String get aiMetricHandoffRate => 'نسبة التحويل';
+
+  @override
+  String get aiMetricSendRate => 'نسبة الرد التلقائي';
+
+  @override
+  String get aiMetricVerbatimRate => 'أُرسلت بدون تعديل';
+
+  @override
+  String aiMetricVerbatimHint(int unchanged, int total) {
+    return '$unchanged من $total مسودة';
+  }
+
+  @override
+  String get aiMetricSuggestions => 'الاقتراحات';
+
+  @override
+  String get aiMetricSuggestionsUsed => 'مستخدمة';
+
+  @override
+  String get aiMetricSuggestionsDiscarded => 'متجاهَلة';
+
+  @override
+  String get aiMetricSuggestionsRegenerated => 'أُعيد إنشاؤها';
+
+  @override
+  String get aiMetricSentUnchanged => 'أُرسلت كما هي';
+
+  @override
+  String get aiMetricSentEdited => 'أُرسلت بعد التعديل';
+
+  @override
+  String get aiMetricTokens => 'الرموز المستخدمة';
+
+  @override
+  String get aiMetricRequests => 'طلبات المزود';
+
+  @override
+  String get aiMetricAverageDuration => 'متوسط زمن الرد';
+
+  @override
+  String get aiMetricAverageRetrieval => 'متوسط زمن الاسترجاع';
+
+  @override
+  String get aiMetricSlowestDuration => 'أبطأ رد';
+
+  @override
+  String get aiMetricHumanTakeovers => 'تولي الموظفين';
+
+  @override
+  String get aiMetricDeliveryFailures => 'فشل التوصيل';
+
+  @override
+  String get aiMetricConversationsPaused => 'محادثات متوقفة';
+
+  @override
+  String get aiDeclineNotInKb => 'غير موجود في قاعدة المعرفة';
+
+  @override
+  String get aiDeclineConflicts => 'مصادر متعارضة';
+
+  @override
+  String get aiDeclineRestrictedTopics => 'موضوع مقيّد';
+
+  @override
+  String get aiDeclineGroundingTooLow => 'الدليل ضعيف';
+
+  @override
+  String get aiDeclineUngroundedNumbers => 'رقم غير مدعوم';
+
+  @override
+  String get aiDeclineCustomerRequestedHuman => 'العميل طلب موظفًا';
+
+  @override
+  String get aiDeclineOutsideServiceWindow => 'انتهت مدة الرد المسموحة';
+
+  @override
+  String get aiDeclineAttachmentRequired => 'ملف يحتاج مراجعة';
+
+  @override
+  String get aiDeclineMaxAutoTurns => 'تم الوصول لحد الردود التلقائية';
+
+  @override
+  String get aiDeclineBudgetExhausted => 'تم الوصول لحد الاستخدام';
+
+  @override
+  String get aiDeclineProviderUnavailable => 'مزود الذكاء الاصطناعي غير متاح';
+
+  @override
+  String get aiDeclineSendFailed => 'فشل الإرسال';
+
+  @override
+  String get aiNoDeclines => 'لم يتم الامتناع أو التحويل في هذه الفترة.';
+
+  @override
+  String get aiUsageInputTokens => 'رموز الإدخال';
+
+  @override
+  String get aiUsageOutputTokens => 'رموز الإخراج';
+
+  @override
+  String get aiUsageErrors => 'الأخطاء';
+
+  @override
+  String get aiUsageByModel => 'الطلبات حسب النموذج';
+
+  @override
+  String get aiUsageNoModels => 'لم يُستخدم أي نموذج في هذه الفترة.';
+
+  @override
+  String get aiPolicyOrganizationTitle => 'المؤسسة';
+
+  @override
+  String get aiPolicyAiEnabled => 'الذكاء الاصطناعي مُفعّل';
+
+  @override
+  String get aiPolicyAiEnabledHint =>
+      'إيقافه يوقف كل ميزات الذكاء الاصطناعي لهذه المؤسسة فورًا.';
+
+  @override
+  String get aiPolicyAutoSendEnabled => 'الردود التلقائية مُفعّلة';
+
+  @override
+  String get aiPolicyAutoSendEnabledHint =>
+      'إيقافه يوقف الردود التلقائية ويترك اقتراحات الذكاء الاصطناعي تعمل — وهو المفتاح المناسب وقت المشاكل.';
+
+  @override
+  String get aiPolicyDailyRequestLimit => 'حد الطلبات اليومي';
+
+  @override
+  String get aiPolicyDailyTokenLimit => 'حد الرموز اليومي';
+
+  @override
+  String aiPolicyLimitHint(int max) {
+    return 'من 0 إلى $max. القيمة 0 توقف الميزة.';
+  }
+
+  @override
+  String aiPolicyLimitInvalid(int max) {
+    return 'أدخل عددًا صحيحًا من 0 إلى $max.';
+  }
+
+  @override
+  String get aiPolicyRollout => 'مرحلة الإطلاق';
+
+  @override
+  String get aiPolicyRolloutHint =>
+      'توضح مدى متابعة هذه المؤسسة. لا تمنح أي صلاحية — لا بد من تشغيل كل قناة على حدة.';
+
+  @override
+  String get aiRolloutInternal => 'داخلي';
+
+  @override
+  String get aiRolloutPilot => 'تجريبي';
+
+  @override
+  String get aiRolloutLimited => 'محدود';
+
+  @override
+  String get aiRolloutGeneral => 'عام';
+
+  @override
+  String get aiPolicySaved => 'تم حفظ سياسة الذكاء الاصطناعي.';
+
+  @override
+  String get aiPolicyChannelsTitle => 'حدود القنوات';
+
+  @override
+  String get aiPolicyChannelsHint =>
+      'حدود الردود التلقائية ومستوى الدليل والمواضيع لكل قناة.';
+
+  @override
+  String get aiPolicyChannelsNone => 'لا توجد قناة تدعم الذكاء الاصطناعي بعد.';
+
+  @override
+  String get aiUnsavedTitle => 'تجاهل التغييرات؟';
+
+  @override
+  String get aiUnsavedBody => 'لم يتم حفظ تغييراتك.';
+
+  @override
+  String get aiUnsavedDiscard => 'تجاهل';
+
+  @override
+  String get aiUnsavedKeepEditing => 'متابعة التعديل';
+
+  @override
+  String get aiChannelConfigUnavailable =>
+      'لم يرسل الخادم إعدادات الذكاء الاصطناعي لهذه القناة.';
+
+  @override
+  String get aiChannelMaxTurns => 'أقصى عدد ردود تلقائية في الجلسة';
+
+  @override
+  String aiChannelMaxTurnsHint(int min, int max) {
+    return 'بعد هذا العدد، تُحوَّل المحادثة إلى موظف. من $min إلى $max.';
+  }
+
+  @override
+  String get aiChannelSessionIdle =>
+      'ابدأ جلسة جديدة بعد توقف العميل لمدة (ساعات)';
+
+  @override
+  String aiChannelSessionIdleHint(int min, int max) {
+    return 'من $min إلى $max ساعة.';
+  }
+
+  @override
+  String get aiChannelDailyCap => 'أقصى عدد ردود تلقائية في اليوم';
+
+  @override
+  String aiChannelDailyCapHint(int min, int max) {
+    return 'حد أعلى لهذه القناة للتحكم في التكلفة والحوادث. من $min إلى $max.';
+  }
+
+  @override
+  String aiChannelNumberInvalid(int min, int max) {
+    return 'أدخل عددًا صحيحًا من $min إلى $max.';
+  }
+
+  @override
+  String get aiChannelResume => 'عند استئناف الذكاء الاصطناعي';
+
+  @override
+  String get aiResumeAsk => 'اسأل عن الرد على آخر رسالة لم يُرد عليها';
+
+  @override
+  String get aiResumeWait => 'انتظر رسالة العميل التالية';
+
+  @override
+  String get aiChannelGrounding => 'مقدار الدليل المطلوب للرد التلقائي';
+
+  @override
+  String get aiGroundingStrict => 'صارم';
+
+  @override
+  String get aiGroundingStrictHint =>
+      'يرد فقط عند التطابق الواضح: تحويلات أكثر للموظفين وأخطاء أقل.';
+
+  @override
+  String get aiGroundingBalanced => 'متوازن';
+
+  @override
+  String get aiGroundingBalancedHint =>
+      'الإعداد الموصى به، وهو ما يعمل عليه البرنامج التجريبي.';
+
+  @override
+  String get aiGroundingFlexible => 'مرن';
+
+  @override
+  String get aiGroundingFlexibleHint =>
+      'يقبل تطابقات أضعف، ما دام يذكر مصدرًا من قاعدة المعرفة.';
+
+  @override
+  String get aiGroundingRecommended => 'موصى به';
+
+  @override
+  String aiGroundingFloor(String floor) {
+    return 'الحد الحالي: $floor. لا يُرسل أي رد بدون مصدر يدعمه.';
+  }
+
+  @override
+  String get aiChannelTopics => 'مواضيع يجب أن يتولاها موظف';
+
+  @override
+  String get aiChannelLockedTopicsHint =>
+      'هذه مفعّلة دائمًا ولا يمكن إيقافها. يمكنك إضافة مواضيعك أدناه.';
+
+  @override
+  String get aiChannelAddTopic => 'إضافة موضوع';
+
+  @override
+  String get aiChannelTopicPlaceholder => 'مثال: الضمان';
+
+  @override
+  String aiChannelRemoveTopic(String topic) {
+    return 'إزالة $topic';
+  }
+
+  @override
+  String aiChannelTopicTooLong(int max) {
+    return 'اجعل الموضوع أقل من $max حرف.';
+  }
+
+  @override
+  String get aiChannelTopicDuplicate => 'هذا الموضوع موجود بالفعل.';
+
+  @override
+  String aiChannelTooManyTopics(int max) {
+    return 'حتى $max موضوعًا.';
+  }
+
+  @override
+  String get aiChannelHandoffRules => 'ما يحوّل المحادثة إلى موظف';
+
+  @override
+  String get aiHandoffAlwaysOn => 'مفعّل دائمًا';
+
+  @override
+  String get aiChannelSaved => 'تم حفظ إعدادات القناة.';
+
+  @override
+  String get aiGroundingShowFloor => 'إظهار حد التطابق';
 }

@@ -9,6 +9,7 @@ library;
 import 'package:flutter/widgets.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/models/ai_operations.dart';
 import '../../core/models/knowledge.dart';
 import '../../l10n/l10n_extensions.dart';
 
@@ -59,3 +60,80 @@ String aiModeLabel(BuildContext context, String mode) => switch (mode) {
   AiAssistMode.off => context.l10n.aiModeOff,
   _ => mode,
 };
+
+/// A handoff rule's `reason` code in words. The rule list and the activity
+/// metrics name the same reasons in two vocabularies (`CONFLICT` there,
+/// `conflicts` here); both map to the same label. An unknown code is shown
+/// as sent.
+String aiHandoffReasonLabel(BuildContext context, String code) {
+  final l10n = context.l10n;
+  return switch (code.toUpperCase()) {
+    'NOT_IN_KB' || 'KB_NOT_READY' => l10n.aiDeclineNotInKb,
+    'CONFLICT' ||
+    'CONFLICTS' ||
+    'CONFLICTING_KNOWLEDGE' => l10n.aiDeclineConflicts,
+    'RESTRICTED_TOPIC' || 'RESTRICTED_TOPICS' => l10n.aiDeclineRestrictedTopics,
+    'GROUNDING_TOO_LOW' => l10n.aiDeclineGroundingTooLow,
+    'UNGROUNDED_NUMBER' ||
+    'UNGROUNDED_NUMBERS' => l10n.aiDeclineUngroundedNumbers,
+    'CUSTOMER_REQUESTED_HUMAN' => l10n.aiDeclineCustomerRequestedHuman,
+    'OUTSIDE_SERVICE_WINDOW' => l10n.aiDeclineOutsideServiceWindow,
+    'ATTACHMENT' || 'ATTACHMENT_REQUIRED' => l10n.aiDeclineAttachmentRequired,
+    'MAX_AUTO_TURNS' => l10n.aiDeclineMaxAutoTurns,
+    'BUDGET_EXHAUSTED' => l10n.aiDeclineBudgetExhausted,
+    'PROVIDER_UNAVAILABLE' ||
+    'PROVIDER_FAILURE' => l10n.aiDeclineProviderUnavailable,
+    'SEND_FAILED' => l10n.aiDeclineSendFailed,
+    _ => code,
+  };
+}
+
+String aiGroundingLabel(BuildContext context, String profile) =>
+    switch (profile) {
+      AiGroundingProfile.strict => context.l10n.aiGroundingStrict,
+      AiGroundingProfile.balanced => context.l10n.aiGroundingBalanced,
+      AiGroundingProfile.flexible => context.l10n.aiGroundingFlexible,
+      _ => profile,
+    };
+
+String aiGroundingHint(BuildContext context, String profile) =>
+    switch (profile) {
+      AiGroundingProfile.strict => context.l10n.aiGroundingStrictHint,
+      AiGroundingProfile.balanced => context.l10n.aiGroundingBalancedHint,
+      AiGroundingProfile.flexible => context.l10n.aiGroundingFlexibleHint,
+      _ => '',
+    };
+
+String aiRolloutLabel(BuildContext context, String state) => switch (state) {
+  AiRolloutState.internal => context.l10n.aiRolloutInternal,
+  AiRolloutState.pilot => context.l10n.aiRolloutPilot,
+  AiRolloutState.limited => context.l10n.aiRolloutLimited,
+  AiRolloutState.general => context.l10n.aiRolloutGeneral,
+  _ => state,
+};
+
+/// A value the server did not send.
+const aiMissingValue = '—';
+
+/// A count as the rest of the app shows numbers (`14539`);
+/// [aiMissingValue] when the server did not send it.
+String aiCount(int? value) => value == null ? aiMissingValue : '$value';
+
+/// A 0–1 rate as a percentage to one decimal, dropping a `.0` — `0%`,
+/// `12.5%` — the web's format.
+String aiPercent(double? rate) {
+  if (rate == null || rate.isNaN) return aiMissingValue;
+  final tenths = (rate * 1000).round() / 10;
+  return tenths == tenths.roundToDouble()
+      ? '${tenths.round()}%'
+      : '${tenths.toStringAsFixed(1)}%';
+}
+
+/// Milliseconds as seconds to one decimal (`0.8s`), the web's format; under
+/// a tenth of a second, in milliseconds (`40 ms`) so a fast retrieval does
+/// not read as nothing.
+String aiDuration(int? milliseconds) {
+  if (milliseconds == null) return aiMissingValue;
+  if (milliseconds < 100) return '$milliseconds ms';
+  return '${(milliseconds / 1000).toStringAsFixed(1)}s';
+}

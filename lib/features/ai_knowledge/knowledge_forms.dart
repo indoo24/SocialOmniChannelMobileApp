@@ -524,3 +524,30 @@ class _FormActions extends StatelessWidget {
     );
   }
 }
+
+/// Asks before leaving a form with unsaved changes. Resolves to true when
+/// the person chose to discard them.
+Future<bool> confirmDiscardChanges(BuildContext context) async {
+  final discard = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      final l10n = dialogContext.l10n;
+      return AlertDialog(
+        title: Text(l10n.aiUnsavedTitle),
+        content: Text(l10n.aiUnsavedBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.aiUnsavedKeepEditing),
+          ),
+          FilledButton(
+            key: const Key('ai-discard-changes'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.aiUnsavedDiscard),
+          ),
+        ],
+      );
+    },
+  );
+  return discard == true;
+}

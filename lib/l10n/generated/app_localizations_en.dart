@@ -4410,4 +4410,378 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiUsageTokens => 'Tokens';
+
+  @override
+  String get searchMatchYouPrefix => 'You: ';
+
+  @override
+  String get aiActivityTitle => 'AI activity';
+
+  @override
+  String get aiActivitySubtitle => 'What the AI handled, declined and used';
+
+  @override
+  String get aiPolicyTitle => 'AI policy';
+
+  @override
+  String get aiPolicySubtitle =>
+      'Organization switches, budgets and each channel\'s limits';
+
+  @override
+  String aiWindowHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Last $count hours',
+      one: 'Last hour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get aiActivityQuiet => 'No AI activity in this window.';
+
+  @override
+  String get aiSectionVolume => 'Volume and outcome';
+
+  @override
+  String get aiSectionRates => 'Rates';
+
+  @override
+  String get aiSectionReasons => 'Why it declined or handed off';
+
+  @override
+  String get aiSectionSuggestions => 'Suggestions';
+
+  @override
+  String get aiSectionPerformance => 'Cost and performance';
+
+  @override
+  String get aiSectionOperations => 'Operational events';
+
+  @override
+  String get aiSectionConnections => 'Channels by mode';
+
+  @override
+  String get aiMetricOpportunities => 'Messages considered';
+
+  @override
+  String get aiMetricSent => 'Replied automatically';
+
+  @override
+  String get aiMetricHandedOff => 'Handed to a person';
+
+  @override
+  String get aiMetricRefused => 'Declined';
+
+  @override
+  String get aiMetricDuplicates => 'Duplicates suppressed';
+
+  @override
+  String get aiMetricCoalesced => 'Messages answered together';
+
+  @override
+  String get aiMetricHandoffRate => 'Handoff rate';
+
+  @override
+  String get aiMetricSendRate => 'Automatic reply rate';
+
+  @override
+  String get aiMetricVerbatimRate => 'Sent without edits';
+
+  @override
+  String aiMetricVerbatimHint(int unchanged, int total) {
+    return '$unchanged of $total drafts';
+  }
+
+  @override
+  String get aiMetricSuggestions => 'Suggestions';
+
+  @override
+  String get aiMetricSuggestionsUsed => 'Used';
+
+  @override
+  String get aiMetricSuggestionsDiscarded => 'Discarded';
+
+  @override
+  String get aiMetricSuggestionsRegenerated => 'Regenerated';
+
+  @override
+  String get aiMetricSentUnchanged => 'Sent unchanged';
+
+  @override
+  String get aiMetricSentEdited => 'Sent edited';
+
+  @override
+  String get aiMetricTokens => 'Tokens used';
+
+  @override
+  String get aiMetricRequests => 'Provider requests';
+
+  @override
+  String get aiMetricAverageDuration => 'Average response time';
+
+  @override
+  String get aiMetricAverageRetrieval => 'Average retrieval time';
+
+  @override
+  String get aiMetricSlowestDuration => 'Slowest response';
+
+  @override
+  String get aiMetricHumanTakeovers => 'Human takeovers';
+
+  @override
+  String get aiMetricDeliveryFailures => 'Delivery failures';
+
+  @override
+  String get aiMetricConversationsPaused => 'Conversations paused';
+
+  @override
+  String get aiDeclineNotInKb => 'Not in the knowledge base';
+
+  @override
+  String get aiDeclineConflicts => 'Sources disagree';
+
+  @override
+  String get aiDeclineRestrictedTopics => 'Restricted topic';
+
+  @override
+  String get aiDeclineGroundingTooLow => 'Evidence too weak';
+
+  @override
+  String get aiDeclineUngroundedNumbers => 'Unsupported figure';
+
+  @override
+  String get aiDeclineCustomerRequestedHuman => 'Customer asked for a person';
+
+  @override
+  String get aiDeclineOutsideServiceWindow => 'Reply window closed';
+
+  @override
+  String get aiDeclineAttachmentRequired => 'A file needs reviewing';
+
+  @override
+  String get aiDeclineMaxAutoTurns => 'Automatic reply limit reached';
+
+  @override
+  String get aiDeclineBudgetExhausted => 'Usage limit reached';
+
+  @override
+  String get aiDeclineProviderUnavailable => 'AI provider unavailable';
+
+  @override
+  String get aiDeclineSendFailed => 'Sending failed';
+
+  @override
+  String get aiNoDeclines => 'Nothing declined or handed off in this window.';
+
+  @override
+  String get aiUsageInputTokens => 'Input tokens';
+
+  @override
+  String get aiUsageOutputTokens => 'Output tokens';
+
+  @override
+  String get aiUsageErrors => 'Errors';
+
+  @override
+  String get aiUsageByModel => 'Requests by model';
+
+  @override
+  String get aiUsageNoModels => 'No model was used in this period.';
+
+  @override
+  String get aiPolicyOrganizationTitle => 'Organization';
+
+  @override
+  String get aiPolicyAiEnabled => 'AI enabled';
+
+  @override
+  String get aiPolicyAiEnabledHint =>
+      'Turning this off stops every AI feature for this organization immediately.';
+
+  @override
+  String get aiPolicyAutoSendEnabled => 'Automatic replies enabled';
+
+  @override
+  String get aiPolicyAutoSendEnabledHint =>
+      'Turning this off stops automatic replies but keeps AI suggestions working — the switch to use during an incident.';
+
+  @override
+  String get aiPolicyDailyRequestLimit => 'Daily request limit';
+
+  @override
+  String get aiPolicyDailyTokenLimit => 'Daily token limit';
+
+  @override
+  String aiPolicyLimitHint(int max) {
+    return '0 to $max. 0 switches the feature off.';
+  }
+
+  @override
+  String aiPolicyLimitInvalid(int max) {
+    return 'Enter a whole number from 0 to $max.';
+  }
+
+  @override
+  String get aiPolicyRollout => 'Rollout';
+
+  @override
+  String get aiPolicyRolloutHint =>
+      'How closely this organization is being watched. It grants nothing — each channel still has to be switched on.';
+
+  @override
+  String get aiRolloutInternal => 'Internal';
+
+  @override
+  String get aiRolloutPilot => 'Pilot';
+
+  @override
+  String get aiRolloutLimited => 'Limited';
+
+  @override
+  String get aiRolloutGeneral => 'General';
+
+  @override
+  String get aiPolicySaved => 'AI policy saved.';
+
+  @override
+  String get aiPolicyChannelsTitle => 'Channel limits';
+
+  @override
+  String get aiPolicyChannelsHint =>
+      'Each channel\'s automatic-reply limits, evidence level and topics.';
+
+  @override
+  String get aiPolicyChannelsNone => 'No channel supports AI yet.';
+
+  @override
+  String get aiUnsavedTitle => 'Discard changes?';
+
+  @override
+  String get aiUnsavedBody => 'Your changes haven\'t been saved.';
+
+  @override
+  String get aiUnsavedDiscard => 'Discard';
+
+  @override
+  String get aiUnsavedKeepEditing => 'Keep editing';
+
+  @override
+  String get aiChannelConfigUnavailable =>
+      'The server didn\'t send this channel\'s AI settings.';
+
+  @override
+  String get aiChannelMaxTurns => 'Most automatic replies in a session';
+
+  @override
+  String aiChannelMaxTurnsHint(int min, int max) {
+    return 'After this many, the conversation goes to a person. $min to $max.';
+  }
+
+  @override
+  String get aiChannelSessionIdle =>
+      'New AI session after the customer is quiet for (hours)';
+
+  @override
+  String aiChannelSessionIdleHint(int min, int max) {
+    return '$min to $max hours.';
+  }
+
+  @override
+  String get aiChannelDailyCap => 'Most automatic replies per day';
+
+  @override
+  String aiChannelDailyCapHint(int min, int max) {
+    return 'A ceiling for this channel, for cost and incidents. $min to $max.';
+  }
+
+  @override
+  String aiChannelNumberInvalid(int min, int max) {
+    return 'Enter a whole number from $min to $max.';
+  }
+
+  @override
+  String get aiChannelResume => 'When the AI is allowed back in';
+
+  @override
+  String get aiResumeAsk => 'Ask about the latest unanswered message';
+
+  @override
+  String get aiResumeWait => 'Wait for the customer\'s next message';
+
+  @override
+  String get aiChannelGrounding => 'Evidence needed for an automatic reply';
+
+  @override
+  String get aiGroundingStrict => 'Strict';
+
+  @override
+  String get aiGroundingStrictHint =>
+      'Answers only on a clear match: more handoffs, fewer wrong replies.';
+
+  @override
+  String get aiGroundingBalanced => 'Balanced';
+
+  @override
+  String get aiGroundingBalancedHint =>
+      'The recommended default, and what the pilot runs on.';
+
+  @override
+  String get aiGroundingFlexible => 'Flexible';
+
+  @override
+  String get aiGroundingFlexibleHint =>
+      'Accepts weaker matches, as long as a knowledge source is cited.';
+
+  @override
+  String get aiGroundingRecommended => 'Recommended';
+
+  @override
+  String aiGroundingFloor(String floor) {
+    return 'Current threshold: $floor. A reply with no supporting source is never sent.';
+  }
+
+  @override
+  String get aiChannelTopics => 'Topics that always go to a person';
+
+  @override
+  String get aiChannelLockedTopicsHint =>
+      'These are always on and can\'t be switched off. You can add your own below.';
+
+  @override
+  String get aiChannelAddTopic => 'Add topic';
+
+  @override
+  String get aiChannelTopicPlaceholder => 'e.g. warranty';
+
+  @override
+  String aiChannelRemoveTopic(String topic) {
+    return 'Remove $topic';
+  }
+
+  @override
+  String aiChannelTopicTooLong(int max) {
+    return 'Keep a topic under $max characters.';
+  }
+
+  @override
+  String get aiChannelTopicDuplicate => 'That topic is already listed.';
+
+  @override
+  String aiChannelTooManyTopics(int max) {
+    return 'Up to $max topics.';
+  }
+
+  @override
+  String get aiChannelHandoffRules => 'What hands a conversation to a person';
+
+  @override
+  String get aiHandoffAlwaysOn => 'Always on';
+
+  @override
+  String get aiChannelSaved => 'Channel settings saved.';
+
+  @override
+  String get aiGroundingShowFloor => 'Show the threshold';
 }

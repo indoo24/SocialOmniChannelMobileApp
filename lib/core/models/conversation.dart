@@ -187,6 +187,7 @@ class Conversation {
     this.attribution,
     this.isPinned = false,
     this.review,
+    this.searchMatch,
   });
 
   final int id;
@@ -259,6 +260,11 @@ class Conversation {
   /// (and when the response does not carry `review` at all).
   final ConversationReview? review;
 
+  /// The message a search matched in, when the server says which — see
+  /// [SearchMatch]. Null on every response that carries no `search_match`,
+  /// which today is all of them.
+  final SearchMatch? searchMatch;
+
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
     id: JsonSafe.asInt(json['id'], fallback: -1),
     customer: CustomerBrief.fromJson(JsonSafe.asMap(json['customer'])),
@@ -321,6 +327,7 @@ class Conversation {
     attribution: _parseAttribution(json['attribution']),
     isPinned: JsonSafe.asBool(json['is_pinned']),
     review: ConversationReview.fromJson(json['review']),
+    searchMatch: SearchMatch.fromJson(json['search_match']),
   );
 
   /// True when the platform's own limits refuse another message right now.
@@ -418,7 +425,61 @@ class Conversation {
     attribution: attribution,
     isPinned: isPinned ?? this.isPinned,
     review: clearReview ? null : (review ?? this.review),
+    // A patch (read state, a delivery tick) does not change what the search
+    // matched.
+    searchMatch: searchMatch,
   );
+}
+
+/// Where a search found a conversation: the matching message, as the server
+/// chose to show it.
+///
+/// **Not in the backend's contract yet.** It is the shape proposed for the
+/// backend's search to return on each conversation row, `search_match`:
+///
+///     {"message_id": 123, "snippet": "…my new number is 0112…",
+///      "direction": "INBOUND", "sender_type": "CUSTOMER",
+///      "created_at": "2026-10-01T09:30:00Z"}
+///
+/// Until the server sends it, every row reads null and the inbox looks
+/// exactly as it does without it. The snippet is the server's — the app never
+/// builds one from messages it happens to have loaded, because those are not
+/// the conversation's history.
+class SearchMatch {
+  const SearchMatch({
+    required this.snippet,
+    this.messageId,
+    this.direction = '',
+    this.senderType = '',
+    this.createdAt,
+  });
+
+  final String snippet;
+  final int? messageId;
+
+  /// `INBOUND` (the customer's) or `OUTBOUND` (this side's).
+  final String direction;
+  final String senderType;
+  final DateTime? createdAt;
+
+  bool get isOutbound => direction.toUpperCase() == 'OUTBOUND';
+
+  /// Null for anything that is not a match with text to show — an absent
+  /// field, `null`, or a shape this app does not know — so a malformed value
+  /// costs the snippet, never the row.
+  static SearchMatch? fromJson(Object? value) {
+    if (value is! Map) return null;
+    final json = JsonSafe.asMap(value);
+    final snippet = JsonSafe.asString(json['snippet']).trim();
+    if (snippet.isEmpty) return null;
+    return SearchMatch(
+      snippet: snippet,
+      messageId: JsonSafe.asIntOrNull(json['message_id']),
+      direction: JsonSafe.asString(json['direction']),
+      senderType: JsonSafe.asString(json['sender_type']),
+      createdAt: _parseDate(json['created_at']),
+    );
+  }
 }
 
 /// Never lets an undocumented, untyped field break conversation loading: a

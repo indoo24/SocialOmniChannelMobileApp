@@ -373,8 +373,65 @@ class AiReadiness {
   );
 }
 
-/// One channel connection and its AI mode. A connection with no stored
-/// setting reads `OFF`.
+/// `GroundingProfileEnum`: how much supporting evidence an automatic reply
+/// needs.
+class AiGroundingProfile {
+  const AiGroundingProfile._();
+  static const strict = 'STRICT';
+  static const balanced = 'BALANCED';
+  static const flexible = 'FLEXIBLE';
+  static const values = [strict, balanced, flexible];
+}
+
+/// `ResumeBehaviourEnum`: what the AI does when it is allowed back into a
+/// conversation.
+class AiResumeBehaviour {
+  const AiResumeBehaviour._();
+  static const ask = 'ASK';
+  static const wait = 'WAIT';
+  static const values = [ask, wait];
+}
+
+/// One reason a conversation is handed to a person.
+///
+/// [locked] rules are always on. The one rule that is not — handing off a
+/// restricted topic — is switched with `handoff_on_restricted_topic`.
+/// The item shape (`reason`, `why`, `locked`, `enabled`) is not spelled out
+/// in the schema (`handoff_rules` is a list of free-form objects); it is the
+/// one the web client reads.
+class AiHandoffRule {
+  const AiHandoffRule({
+    required this.reason,
+    this.why = '',
+    this.locked = true,
+    this.enabled = true,
+  });
+
+  final String reason;
+  final String why;
+  final bool locked;
+  final bool enabled;
+
+  factory AiHandoffRule.fromJson(Map<String, dynamic> json) {
+    final reason = JsonSafe.asString(json['reason']);
+    if (reason.isEmpty) throw const FormatException('handoff rule: reason');
+    return AiHandoffRule(
+      reason: reason,
+      why: JsonSafe.asString(json['why']),
+      // An unreadable flag reads as locked: never offer a switch the server
+      // did not say exists.
+      locked: JsonSafe.asBool(json['locked'], fallback: true),
+      enabled: JsonSafe.asBool(json['enabled'], fallback: true),
+    );
+  }
+}
+
+/// One channel connection, its AI mode, and the limits automatic replies
+/// work within. A connection with no stored setting reads `OFF`.
+///
+/// The limits are null when the server did not send them (an older backend):
+/// the channel settings are then not offered rather than shown with guessed
+/// values.
 class AiAgentSetting {
   const AiAgentSetting({
     required this.connectionId,
@@ -384,7 +441,23 @@ class AiAgentSetting {
     this.mode = AiAssistMode.off,
     this.assistSupported = false,
     this.readiness,
+    this.maxAutoTurns,
+    this.autoSessionIdleHours,
+    this.dailyAutoSendLimit,
+    this.groundingProfile = '',
+    this.groundingFloor,
+    this.resumeBehaviour = '',
+    this.extraRestrictedTopics = const [],
+    this.lockedRestrictedTopics = const [],
+    this.handoffRules = const [],
   });
+
+  /// `AIAgentSettingUpdate`'s bounds. There is no "unlimited".
+  static const maxAutoTurnsRange = (min: 1, max: 50);
+  static const autoSessionIdleHoursRange = (min: 1, max: 72);
+  static const dailyAutoSendLimitRange = (min: 1, max: 1000);
+  static const maxRestrictedTopics = 50;
+  static const maxRestrictedTopicLength = 60;
 
   final int connectionId;
   final String connectionName;
@@ -397,6 +470,42 @@ class AiAgentSetting {
   /// `GET /ai/readiness/`. Null when neither said — then nothing beyond the
   /// current mode and `OFF` is offered.
   final AiReadiness? readiness;
+
+  /// Automatic replies in one session before a person takes over.
+  final int? maxAutoTurns;
+
+  /// Hours of customer silence after which a new AI session starts.
+  final int? autoSessionIdleHours;
+
+  /// Automatic replies this channel may send in a day.
+  final int? dailyAutoSendLimit;
+  final String groundingProfile;
+
+  /// The evidence threshold the profile currently means. Read-only.
+  final double? groundingFloor;
+  final String resumeBehaviour;
+
+  /// Topics this business adds to the always-on ones; editable.
+  final List<String> extraRestrictedTopics;
+
+  /// Built-in safety topics; always on, never editable.
+  final List<String> lockedRestrictedTopics;
+  final List<AiHandoffRule> handoffRules;
+
+  /// Whether the server sent this channel's limits at all.
+  bool get hasChannelConfig =>
+      maxAutoTurns != null &&
+      autoSessionIdleHours != null &&
+      dailyAutoSendLimit != null;
+
+  /// The one switchable handoff rule's state — what
+  /// `handoff_on_restricted_topic` sets. Null when there is no such rule.
+  bool? get handoffOnRestrictedTopic {
+    for (final rule in handoffRules) {
+      if (!rule.locked) return rule.enabled;
+    }
+    return null;
+  }
 
   /// The modes to offer: `OFF` always, the others only when readiness allows
   /// them — or when the connection is already in that mode, so the current
@@ -417,6 +526,15 @@ class AiAgentSetting {
     mode: mode,
     assistSupported: assistSupported,
     readiness: value,
+    maxAutoTurns: maxAutoTurns,
+    autoSessionIdleHours: autoSessionIdleHours,
+    dailyAutoSendLimit: dailyAutoSendLimit,
+    groundingProfile: groundingProfile,
+    groundingFloor: groundingFloor,
+    resumeBehaviour: resumeBehaviour,
+    extraRestrictedTopics: extraRestrictedTopics,
+    lockedRestrictedTopics: lockedRestrictedTopics,
+    handoffRules: handoffRules,
   );
 
   factory AiAgentSetting.fromJson(Map<String, dynamic> json) => AiAgentSetting(
@@ -429,6 +547,22 @@ class AiAgentSetting {
     readiness: json['readiness'] is Map
         ? AiReadiness.fromJson(JsonSafe.asMap(json['readiness']))
         : null,
+    maxAutoTurns: JsonSafe.asIntOrNull(json['max_auto_turns']),
+    autoSessionIdleHours: JsonSafe.asIntOrNull(json['auto_session_idle_hours']),
+    dailyAutoSendLimit: JsonSafe.asIntOrNull(json['daily_auto_send_limit']),
+    groundingProfile: JsonSafe.asString(json['grounding_profile']),
+    groundingFloor: JsonSafe.asDoubleOrNull(json['grounding_floor']),
+    resumeBehaviour: JsonSafe.asString(json['resume_behaviour']),
+    extraRestrictedTopics: JsonSafe.asStringList(
+      json['extra_restricted_topics'],
+    ),
+    lockedRestrictedTopics: JsonSafe.asStringList(
+      json['locked_restricted_topics'],
+    ),
+    handoffRules: JsonSafe.parseList(
+      json['handoff_rules'],
+      AiHandoffRule.fromJson,
+    ),
   );
 }
 

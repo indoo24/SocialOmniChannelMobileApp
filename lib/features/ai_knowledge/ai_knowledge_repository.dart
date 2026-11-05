@@ -11,12 +11,14 @@
 /// * `POST /ai/playground/ask/`
 /// * `GET/PUT /ai/agent-settings/`, `GET /ai/readiness/`,
 ///   `GET /ai/conflicts/`, `GET /ai/usage/`
+/// * `GET /ai/metrics/`, `GET/PUT /ai/policy/`
 ///
 /// All need `ai_knowledge.manage`, and the organization must be in the AI
 /// pilot — outside it every one answers 404.
 library;
 
 import '../../core/api/api_client.dart';
+import '../../core/models/ai_operations.dart';
 import '../../core/models/conversation.dart' show Paginated;
 import '../../core/models/knowledge.dart';
 import '../../core/utils/json_safe.dart';
@@ -202,10 +204,19 @@ class AiKnowledgeRepository {
   Future<List<AiAgentSetting>> setAgentMode({
     required int connectionId,
     required String mode,
+  }) => updateAgentSetting(connectionId: connectionId, changes: {'mode': mode});
+
+  /// Changes some of one connection's AI configuration — only the fields in
+  /// [changes], keyed as `AIAgentSettingUpdate` names them (`max_auto_turns`,
+  /// `extra_restricted_topics`, ...). Answers with every connection after the
+  /// change; out-of-range values are refused with 400.
+  Future<List<AiAgentSetting>> updateAgentSetting({
+    required int connectionId,
+    required Map<String, Object> changes,
   }) async {
     final data = await _api.put<dynamic>(
       '/ai/agent-settings/',
-      body: {'connection_id': connectionId, 'mode': mode},
+      body: {...changes, 'connection_id': connectionId},
     );
     return _withReadiness(JsonSafe.parseList(data, AiAgentSetting.fromJson));
   }
@@ -235,11 +246,46 @@ class AiKnowledgeRepository {
     return JsonSafe.parseList(data, KnowledgeConflict.fromJson);
   }
 
+  /// [days]: the server's default is 30, its maximum 365.
   Future<AiUsageSummary> usage({int days = 30}) async {
     final data = await _api.get<Map<String, dynamic>>(
       '/ai/usage/',
       query: {'days': days},
     );
     return AiUsageSummary.fromJson(data);
+  }
+
+  // -- activity and policy ---------------------------------------------------
+
+  /// The server's ceiling on a metrics window.
+  static const maxMetricsHours = 720;
+
+  /// AI activity over the last [hours] (clamped to 1–720, the server's
+  /// range), for the organization or, with [connectionId], one channel.
+  Future<AiMetrics> metrics({required int hours, int? connectionId}) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/ai/metrics/',
+      query: {
+        'hours': hours.clamp(1, maxMetricsHours),
+        'connection_id': ?connectionId,
+      },
+    );
+    return AiMetrics.fromJson(data);
+  }
+
+  /// The organization's AI policy — the defaults when it was never set.
+  Future<AiOrganizationPolicy> policy() async {
+    final data = await _api.get<Map<String, dynamic>>('/ai/policy/');
+    return AiOrganizationPolicy.fromJson(data);
+  }
+
+  /// Sends only [changes] (every field is optional) and answers with the
+  /// whole policy as saved. Each change is audited server-side.
+  Future<AiOrganizationPolicy> updatePolicy(Map<String, Object> changes) async {
+    final data = await _api.put<Map<String, dynamic>>(
+      '/ai/policy/',
+      body: changes,
+    );
+    return AiOrganizationPolicy.fromJson(data);
   }
 }
