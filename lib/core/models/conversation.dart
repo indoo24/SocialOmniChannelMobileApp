@@ -188,6 +188,8 @@ class Conversation {
     this.isPinned = false,
     this.review,
     this.searchMatch,
+    this.aiAssistMode = '',
+    this.aiState,
   });
 
   final int id;
@@ -265,6 +267,14 @@ class Conversation {
   /// which today is all of them.
   final SearchMatch? searchMatch;
 
+  /// The channel's AI mode for this conversation (`OFF`, `SUGGEST`, `AUTO`).
+  /// Detail responses only; empty on list rows.
+  final String aiAssistMode;
+
+  /// What the AI is doing on this conversation — see [AiConversationState].
+  /// Detail responses only; null on list rows and outside the AI pilot.
+  final AiConversationState? aiState;
+
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
     id: JsonSafe.asInt(json['id'], fallback: -1),
     customer: CustomerBrief.fromJson(JsonSafe.asMap(json['customer'])),
@@ -328,6 +338,8 @@ class Conversation {
     isPinned: JsonSafe.asBool(json['is_pinned']),
     review: ConversationReview.fromJson(json['review']),
     searchMatch: SearchMatch.fromJson(json['search_match']),
+    aiAssistMode: JsonSafe.asString(json['ai_assist_mode']),
+    aiState: AiConversationState.fromJson(json['ai_state']),
   );
 
   /// True when the platform's own limits refuse another message right now.
@@ -428,6 +440,8 @@ class Conversation {
     // A patch (read state, a delivery tick) does not change what the search
     // matched.
     searchMatch: searchMatch,
+    aiAssistMode: aiAssistMode,
+    aiState: aiState,
   );
 }
 
@@ -547,4 +561,104 @@ class Paginated<T> {
     totalPages: JsonSafe.asInt(json['total_pages']),
     rawResultsLength: JsonSafe.asMapList(json['results']).length,
   );
+}
+
+/// What the AI is doing on one conversation (`ConversationDetail.ai_state`):
+/// whether it has replied, whether it is paused and why, whether it can
+/// answer the latest customer message on resume, and which automatic-reply
+/// policy applies here and where that policy comes from.
+///
+/// Every reason is a code — `paused_reason` a `HandoffReason`,
+/// `answer_latest_reason` an answer-latest refusal — which the interface
+/// translates.
+class AiConversationState {
+  const AiConversationState({
+    this.hasReplied = false,
+    this.lastRepliedAt,
+    this.isPaused = false,
+    this.pausedAt,
+    this.pausedReason = '',
+    this.canAnswerLatest = false,
+    this.answerLatestReason = '',
+    this.answerLatestMessageId,
+    this.resumeBehaviour = '',
+    this.autoReplyPolicy = '',
+    this.autoReplyPolicySource = '',
+    this.autoReplyPolicySourceLabel = '',
+    this.conversationOverride = '',
+    this.hasConversationOverride = false,
+  });
+
+  /// The `paused_reason` of a colleague taking the conversation over.
+  static const humanTakeover = 'HUMAN_TAKEOVER';
+
+  /// The `resume_behaviour` under which resuming never answers the waiting
+  /// message: the AI waits for the customer's next one.
+  static const resumeWait = 'WAIT';
+
+  final bool hasReplied;
+  final DateTime? lastRepliedAt;
+  final bool isPaused;
+  final DateTime? pausedAt;
+  final String pausedReason;
+
+  /// Whether resuming may also answer the latest unanswered customer
+  /// message; when not, [answerLatestReason] says why.
+  final bool canAnswerLatest;
+  final String answerLatestReason;
+  final int? answerLatestMessageId;
+  final String resumeBehaviour;
+
+  /// The policy in effect here (`OFF`, `KNOWLEDGE_ONLY`, `ALWAYS_REPLY`).
+  final String autoReplyPolicy;
+  final String autoReplyPolicySource;
+
+  /// The server's own words for where [autoReplyPolicy] comes from; empty
+  /// when it sent none.
+  final String autoReplyPolicySourceLabel;
+
+  /// This conversation's own choice — `INHERIT` when it has none.
+  final String conversationOverride;
+  final bool hasConversationOverride;
+
+  bool get isHumanTakeover => pausedReason == humanTakeover;
+
+  /// "Resume and answer the latest message" is on offer: there is a message
+  /// it may answer, and the channel does not wait for the next one instead.
+  bool get offersAnswerLatest =>
+      canAnswerLatest && resumeBehaviour != resumeWait;
+
+  /// Null for anything that is not an `ai_state` object, so a missing or
+  /// malformed field costs the banner, never the conversation.
+  static AiConversationState? fromJson(Object? value) {
+    if (value is! Map) return null;
+    final json = JsonSafe.asMap(value);
+    return AiConversationState(
+      hasReplied: JsonSafe.asBool(json['has_replied']),
+      lastRepliedAt: _parseDate(json['last_replied_at']),
+      isPaused: JsonSafe.asBool(json['is_paused']),
+      pausedAt: _parseDate(json['paused_at']),
+      pausedReason: JsonSafe.asString(json['paused_reason']),
+      canAnswerLatest: JsonSafe.asBool(json['can_answer_latest']),
+      answerLatestReason: JsonSafe.asString(json['answer_latest_reason']),
+      answerLatestMessageId: JsonSafe.asIntOrNull(
+        json['answer_latest_message_id'],
+      ),
+      resumeBehaviour: JsonSafe.asString(json['resume_behaviour']),
+      autoReplyPolicy: JsonSafe.asString(json['auto_reply_policy']),
+      autoReplyPolicySource: JsonSafe.asString(
+        json['auto_reply_policy_source'],
+      ),
+      autoReplyPolicySourceLabel: JsonSafe.asString(
+        json['auto_reply_policy_source_label'],
+      ),
+      conversationOverride: JsonSafe.asString(
+        json['conversation_override'],
+        fallback: 'INHERIT',
+      ),
+      hasConversationOverride: JsonSafe.asBool(
+        json['has_conversation_override'],
+      ),
+    );
+  }
 }

@@ -31,6 +31,7 @@ import '../saved_replies/saved_reply.dart';
 import '../saved_replies/saved_reply_picker.dart';
 import '../../core/models/template.dart';
 import 'assign_conversation_sheet.dart';
+import 'conversation_ai_banner.dart';
 import 'conversation_review.dart' show ConversationReviewBanner;
 import 'composer_attachment.dart';
 import 'conversation_actions_sheet.dart';
@@ -908,6 +909,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               ConversationReviewBanner(
                 conversationId: widget.conversationId,
                 review: review,
+              ),
+            // Pinned above the thread rather than scrolled with it, so the
+            // AI's state stays in view while reading back.
+            if (state.conversation.aiState case final ai?)
+              ConversationAiBanner(
+                conversationId: widget.conversationId,
+                state: ai,
               ),
             Expanded(
               child: Stack(

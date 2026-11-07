@@ -8856,6 +8856,222 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Conversation #{id}'**
   String aiHistoryConversation(int id);
+
+  /// No description provided for @aiConvoHandled.
+  ///
+  /// In en, this message translates to:
+  /// **'AI answered'**
+  String get aiConvoHandled;
+
+  /// No description provided for @aiConvoPausedHere.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is paused for this conversation'**
+  String get aiConvoPausedHere;
+
+  /// No description provided for @aiConvoPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'AI paused'**
+  String get aiConvoPaused;
+
+  /// No description provided for @aiConvoPausedBecause.
+  ///
+  /// In en, this message translates to:
+  /// **'AI paused — {reason}'**
+  String aiConvoPausedBecause(String reason);
+
+  /// No description provided for @aiConvoResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume AI'**
+  String get aiConvoResume;
+
+  /// No description provided for @aiConvoResumeAndAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume & answer latest'**
+  String get aiConvoResumeAndAnswer;
+
+  /// No description provided for @aiConvoResumed.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI may answer this conversation again'**
+  String get aiConvoResumed;
+
+  /// No description provided for @aiConvoAnswering.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI may answer again, and is answering the latest message.'**
+  String get aiConvoAnswering;
+
+  /// No description provided for @aiConvoPolicyLine.
+  ///
+  /// In en, this message translates to:
+  /// **'AI auto'**
+  String get aiConvoPolicyLine;
+
+  /// No description provided for @aiConvoInheritedFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'inherited from {source}'**
+  String aiConvoInheritedFrom(String source);
+
+  /// No description provided for @aiConvoOverride.
+  ///
+  /// In en, this message translates to:
+  /// **'set for this conversation'**
+  String get aiConvoOverride;
+
+  /// No description provided for @aiConvoSourceOrganization.
+  ///
+  /// In en, this message translates to:
+  /// **'the organization default'**
+  String get aiConvoSourceOrganization;
+
+  /// No description provided for @aiConvoChangePolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Change automatic replies for this conversation'**
+  String get aiConvoChangePolicy;
+
+  /// No description provided for @aiConvoUseDefaultWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Use default ({value})'**
+  String aiConvoUseDefaultWithValue(String value);
+
+  /// No description provided for @aiConvoPolicySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic replies updated for this conversation.'**
+  String get aiConvoPolicySaved;
+
+  /// No description provided for @aiConvoUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'AI isn\'t available for this conversation.'**
+  String get aiConvoUnavailable;
+
+  /// No description provided for @aiAnswerLatestHumanAnswered.
+  ///
+  /// In en, this message translates to:
+  /// **'A colleague has already answered the latest message, so the AI will not reply to it. Resuming lets it answer the next one.'**
+  String get aiAnswerLatestHumanAnswered;
+
+  /// No description provided for @aiAnswerLatestAiAnswered.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI has already answered the latest message.'**
+  String get aiAnswerLatestAiAnswered;
+
+  /// No description provided for @aiAnswerLatestAlreadySent.
+  ///
+  /// In en, this message translates to:
+  /// **'A reply has already gone out for the latest message.'**
+  String get aiAnswerLatestAlreadySent;
+
+  /// No description provided for @aiAnswerLatestNoQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no customer message waiting for an answer.'**
+  String get aiAnswerLatestNoQuestion;
+
+  /// No description provided for @aiAnswerLatestStillRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI is still deciding about this message.'**
+  String get aiAnswerLatestStillRunning;
+
+  /// No description provided for @aiAnswerLatestNotAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'This channel is set to suggestions only, so the AI cannot answer on its own here.'**
+  String get aiAnswerLatestNotAuto;
+
+  /// No description provided for @aiAnswerLatestPolicyRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI is not allowed to answer this message yet — the reason above explains why.'**
+  String get aiAnswerLatestPolicyRefused;
+
+  /// No description provided for @aiHandoffNotInKb.
+  ///
+  /// In en, this message translates to:
+  /// **'the knowledge base could not answer'**
+  String get aiHandoffNotInKb;
+
+  /// No description provided for @aiHandoffConflictingKnowledge.
+  ///
+  /// In en, this message translates to:
+  /// **'two sources disagreed'**
+  String get aiHandoffConflictingKnowledge;
+
+  /// No description provided for @aiHandoffAttachment.
+  ///
+  /// In en, this message translates to:
+  /// **'someone needs to look at a file'**
+  String get aiHandoffAttachment;
+
+  /// No description provided for @aiHandoffCustomerRequestedHuman.
+  ///
+  /// In en, this message translates to:
+  /// **'the customer asked for a person'**
+  String get aiHandoffCustomerRequestedHuman;
+
+  /// No description provided for @aiHandoffRestrictedTopic.
+  ///
+  /// In en, this message translates to:
+  /// **'the topic needs a person'**
+  String get aiHandoffRestrictedTopic;
+
+  /// No description provided for @aiHandoffUngroundedNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'the answer would have carried an unsupported figure'**
+  String get aiHandoffUngroundedNumber;
+
+  /// No description provided for @aiHandoffMaxAutoTurns.
+  ///
+  /// In en, this message translates to:
+  /// **'the automatic reply limit was reached (retired)'**
+  String get aiHandoffMaxAutoTurns;
+
+  /// No description provided for @aiHandoffHumanTakeover.
+  ///
+  /// In en, this message translates to:
+  /// **'a colleague took over'**
+  String get aiHandoffHumanTakeover;
+
+  /// No description provided for @aiHandoffOutsideServiceWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'the reply window has closed'**
+  String get aiHandoffOutsideServiceWindow;
+
+  /// No description provided for @aiHandoffBudgetExhausted.
+  ///
+  /// In en, this message translates to:
+  /// **'the usage limit was reached'**
+  String get aiHandoffBudgetExhausted;
+
+  /// No description provided for @aiHandoffProviderFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'the AI provider could not be reached'**
+  String get aiHandoffProviderFailure;
+
+  /// No description provided for @aiHandoffKbNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'the knowledge base is not ready'**
+  String get aiHandoffKbNotReady;
+
+  /// No description provided for @aiHandoffRepeatedFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'several attempts produced no answer'**
+  String get aiHandoffRepeatedFailure;
 }
 
 class _AppLocalizationsDelegate

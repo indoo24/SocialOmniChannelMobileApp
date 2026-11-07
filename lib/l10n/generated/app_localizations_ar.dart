@@ -5106,4 +5106,125 @@ class AppLocalizationsAr extends AppLocalizations {
   String aiHistoryConversation(int id) {
     return 'محادثة رقم $id';
   }
+
+  @override
+  String get aiConvoHandled => 'رد الذكاء الاصطناعي';
+
+  @override
+  String get aiConvoPausedHere => 'الذكاء الاصطناعي متوقف في هذه المحادثة';
+
+  @override
+  String get aiConvoPaused => 'الذكاء الاصطناعي متوقف';
+
+  @override
+  String aiConvoPausedBecause(String reason) {
+    return 'الذكاء الاصطناعي متوقف — $reason';
+  }
+
+  @override
+  String get aiConvoResume => 'استئناف الذكاء الاصطناعي';
+
+  @override
+  String get aiConvoResumeAndAnswer => 'استئناف والرد على آخر رسالة';
+
+  @override
+  String get aiConvoResumed =>
+      'يمكن للذكاء الاصطناعي الرد على هذه المحادثة مرة أخرى';
+
+  @override
+  String get aiConvoAnswering =>
+      'يمكن للذكاء الاصطناعي الرد مرة أخرى، وهو يرد على آخر رسالة.';
+
+  @override
+  String get aiConvoPolicyLine => 'الرد التلقائي';
+
+  @override
+  String aiConvoInheritedFrom(String source) {
+    return 'موروث من $source';
+  }
+
+  @override
+  String get aiConvoOverride => 'مخصص لهذه المحادثة';
+
+  @override
+  String get aiConvoSourceOrganization => 'الإعداد الافتراضي للمؤسسة';
+
+  @override
+  String get aiConvoChangePolicy => 'تغيير الردود التلقائية لهذه المحادثة';
+
+  @override
+  String aiConvoUseDefaultWithValue(String value) {
+    return 'استخدام الافتراضي ($value)';
+  }
+
+  @override
+  String get aiConvoPolicySaved => 'تم تحديث الردود التلقائية لهذه المحادثة.';
+
+  @override
+  String get aiConvoUnavailable => 'الذكاء الاصطناعي غير متاح لهذه المحادثة.';
+
+  @override
+  String get aiAnswerLatestHumanAnswered =>
+      'رد أحد الموظفين بالفعل على آخر رسالة، لذلك لن يرد الذكاء الاصطناعي عليها. الاستئناف يسمح له بالرد على الرسالة التالية.';
+
+  @override
+  String get aiAnswerLatestAiAnswered =>
+      'رد الذكاء الاصطناعي بالفعل على آخر رسالة.';
+
+  @override
+  String get aiAnswerLatestAlreadySent => 'تم إرسال رد بالفعل على آخر رسالة.';
+
+  @override
+  String get aiAnswerLatestNoQuestion => 'لا توجد رسالة من العميل تنتظر ردًا.';
+
+  @override
+  String get aiAnswerLatestStillRunning =>
+      'الذكاء الاصطناعي ما زال يقرر بشأن هذه الرسالة.';
+
+  @override
+  String get aiAnswerLatestNotAuto =>
+      'هذه القناة مضبوطة على الاقتراحات فقط، لذلك لا يمكن للذكاء الاصطناعي الرد بنفسه هنا.';
+
+  @override
+  String get aiAnswerLatestPolicyRefused =>
+      'غير مسموح للذكاء الاصطناعي بالرد على هذه الرسالة الآن — السبب أعلاه يوضح ذلك.';
+
+  @override
+  String get aiHandoffNotInKb => 'قاعدة المعرفة لم تستطع الإجابة';
+
+  @override
+  String get aiHandoffConflictingKnowledge => 'مصدران متعارضان';
+
+  @override
+  String get aiHandoffAttachment => 'يحتاج أحد للنظر في ملف';
+
+  @override
+  String get aiHandoffCustomerRequestedHuman => 'العميل طلب موظفًا';
+
+  @override
+  String get aiHandoffRestrictedTopic => 'الموضوع يحتاج موظفًا';
+
+  @override
+  String get aiHandoffUngroundedNumber => 'كان الرد سيحتوي رقمًا غير مدعوم';
+
+  @override
+  String get aiHandoffMaxAutoTurns => 'تم الوصول لحد الردود التلقائية (مُلغى)';
+
+  @override
+  String get aiHandoffHumanTakeover => 'تولى زميل المحادثة';
+
+  @override
+  String get aiHandoffOutsideServiceWindow => 'انتهت مدة الرد المسموحة';
+
+  @override
+  String get aiHandoffBudgetExhausted => 'تم الوصول لحد الاستخدام';
+
+  @override
+  String get aiHandoffProviderFailure => 'تعذر الوصول لمزود الذكاء الاصطناعي';
+
+  @override
+  String get aiHandoffKbNotReady => 'قاعدة المعرفة غير جاهزة';
+
+  @override
+  String get aiHandoffRepeatedFailure => 'عدة محاولات لم تنتج إجابة';
 }

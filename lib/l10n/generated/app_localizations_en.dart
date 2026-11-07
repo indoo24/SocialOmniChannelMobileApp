@@ -5077,4 +5077,131 @@ class AppLocalizationsEn extends AppLocalizations {
   String aiHistoryConversation(int id) {
     return 'Conversation #$id';
   }
+
+  @override
+  String get aiConvoHandled => 'AI answered';
+
+  @override
+  String get aiConvoPausedHere => 'AI is paused for this conversation';
+
+  @override
+  String get aiConvoPaused => 'AI paused';
+
+  @override
+  String aiConvoPausedBecause(String reason) {
+    return 'AI paused — $reason';
+  }
+
+  @override
+  String get aiConvoResume => 'Resume AI';
+
+  @override
+  String get aiConvoResumeAndAnswer => 'Resume & answer latest';
+
+  @override
+  String get aiConvoResumed => 'The AI may answer this conversation again';
+
+  @override
+  String get aiConvoAnswering =>
+      'The AI may answer again, and is answering the latest message.';
+
+  @override
+  String get aiConvoPolicyLine => 'AI auto';
+
+  @override
+  String aiConvoInheritedFrom(String source) {
+    return 'inherited from $source';
+  }
+
+  @override
+  String get aiConvoOverride => 'set for this conversation';
+
+  @override
+  String get aiConvoSourceOrganization => 'the organization default';
+
+  @override
+  String get aiConvoChangePolicy =>
+      'Change automatic replies for this conversation';
+
+  @override
+  String aiConvoUseDefaultWithValue(String value) {
+    return 'Use default ($value)';
+  }
+
+  @override
+  String get aiConvoPolicySaved =>
+      'Automatic replies updated for this conversation.';
+
+  @override
+  String get aiConvoUnavailable => 'AI isn\'t available for this conversation.';
+
+  @override
+  String get aiAnswerLatestHumanAnswered =>
+      'A colleague has already answered the latest message, so the AI will not reply to it. Resuming lets it answer the next one.';
+
+  @override
+  String get aiAnswerLatestAiAnswered =>
+      'The AI has already answered the latest message.';
+
+  @override
+  String get aiAnswerLatestAlreadySent =>
+      'A reply has already gone out for the latest message.';
+
+  @override
+  String get aiAnswerLatestNoQuestion =>
+      'There is no customer message waiting for an answer.';
+
+  @override
+  String get aiAnswerLatestStillRunning =>
+      'The AI is still deciding about this message.';
+
+  @override
+  String get aiAnswerLatestNotAuto =>
+      'This channel is set to suggestions only, so the AI cannot answer on its own here.';
+
+  @override
+  String get aiAnswerLatestPolicyRefused =>
+      'The AI is not allowed to answer this message yet — the reason above explains why.';
+
+  @override
+  String get aiHandoffNotInKb => 'the knowledge base could not answer';
+
+  @override
+  String get aiHandoffConflictingKnowledge => 'two sources disagreed';
+
+  @override
+  String get aiHandoffAttachment => 'someone needs to look at a file';
+
+  @override
+  String get aiHandoffCustomerRequestedHuman =>
+      'the customer asked for a person';
+
+  @override
+  String get aiHandoffRestrictedTopic => 'the topic needs a person';
+
+  @override
+  String get aiHandoffUngroundedNumber =>
+      'the answer would have carried an unsupported figure';
+
+  @override
+  String get aiHandoffMaxAutoTurns =>
+      'the automatic reply limit was reached (retired)';
+
+  @override
+  String get aiHandoffHumanTakeover => 'a colleague took over';
+
+  @override
+  String get aiHandoffOutsideServiceWindow => 'the reply window has closed';
+
+  @override
+  String get aiHandoffBudgetExhausted => 'the usage limit was reached';
+
+  @override
+  String get aiHandoffProviderFailure => 'the AI provider could not be reached';
+
+  @override
+  String get aiHandoffKbNotReady => 'the knowledge base is not ready';
+
+  @override
+  String get aiHandoffRepeatedFailure => 'several attempts produced no answer';
 }

@@ -661,6 +661,35 @@ class ConversationRepository {
     return Conversation.fromJson(JsonSafe.asMap(data));
   }
 
+  /// `PATCH /conversations/{id}/ai-policy/` `{policy}` — this conversation's
+  /// automatic-reply override, and nothing above it: the channel and the
+  /// organization keep theirs. `INHERIT` clears the override. Applies from
+  /// the next customer message; nothing already waiting is answered.
+  /// Answers with the conversation.
+  Future<Conversation> setAiPolicy(int conversationId, String policy) async {
+    final data = await _api.patch<dynamic>(
+      '/conversations/$conversationId/ai-policy/',
+      body: {'policy': policy},
+    );
+    return Conversation.fromJson(JsonSafe.asMap(data));
+  }
+
+  /// `POST /conversations/{id}/ai-resume/` — lets the AI answer this
+  /// conversation again. With [answerLatest] (`{"answer_latest": true}`, the
+  /// body the web client sends) it also answers the latest unanswered
+  /// customer message; the server decides whether it may, and answers it at
+  /// most once. Needs `ai_knowledge.manage`. Answers with the conversation.
+  Future<Conversation> resumeAi(
+    int conversationId, {
+    bool answerLatest = false,
+  }) async {
+    final data = await _api.post<dynamic>(
+      '/conversations/$conversationId/ai-resume/',
+      body: answerLatest ? {'answer_latest': true} : <String, dynamic>{},
+    );
+    return Conversation.fromJson(JsonSafe.asMap(data));
+  }
+
   Future<List<InternalNote>> notes(int conversationId) async {
     final data = await _api.get<dynamic>(
       '/conversations/$conversationId/notes/',
