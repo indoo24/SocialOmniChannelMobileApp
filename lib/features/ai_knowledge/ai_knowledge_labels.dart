@@ -11,6 +11,7 @@ import 'package:flutter/widgets.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/ai_operations.dart';
 import '../../core/models/knowledge.dart';
+import '../../core/widgets/badges.dart';
 import '../../l10n/l10n_extensions.dart';
 
 /// What to tell the person about a failed AI call.
@@ -60,6 +61,51 @@ String aiModeLabel(BuildContext context, String mode) => switch (mode) {
   AiAssistMode.off => context.l10n.aiModeOff,
   _ => mode,
 };
+
+/// An automatic-reply policy in words; [AiAutoReplyPolicy.inherit] reads "Use
+/// default". An unknown value is shown as sent.
+String aiReplyPolicyLabel(BuildContext context, String policy) =>
+    switch (policy) {
+      AiAutoReplyPolicy.inherit => context.l10n.aiReplyPolicyUseDefault,
+      AiAutoReplyPolicy.off => context.l10n.aiReplyPolicyOff,
+      AiAutoReplyPolicy.knowledgeOnly =>
+        context.l10n.aiReplyPolicyKnowledgeOnly,
+      AiAutoReplyPolicy.alwaysReply => context.l10n.aiReplyPolicyAlwaysReply,
+      _ => policy,
+    };
+
+String aiReplyPolicyHint(BuildContext context, String policy) =>
+    switch (policy) {
+      AiAutoReplyPolicy.off => context.l10n.aiReplyPolicyOffHint,
+      AiAutoReplyPolicy.knowledgeOnly =>
+        context.l10n.aiReplyPolicyKnowledgeOnlyHint,
+      AiAutoReplyPolicy.alwaysReply =>
+        context.l10n.aiReplyPolicyAlwaysReplyHint,
+      _ => '',
+    };
+
+/// A channel connection's `status` as a label and tone, the same vocabulary
+/// the Channels tab uses. Null for a status with nothing to say beside it.
+(String, BadgeTone)? aiConnectionStatus(BuildContext context, String status) =>
+    switch (status.toUpperCase()) {
+      'CONNECTED' => (context.l10n.channelStatusConnected, BadgeTone.success),
+      'DEGRADED' => (context.l10n.channelStatusDegraded, BadgeTone.warning),
+      'ERROR' => (context.l10n.channelStatusError, BadgeTone.danger),
+      'DISCONNECTED' => (
+        context.l10n.channelStatusDisconnected,
+        BadgeTone.neutral,
+      ),
+      'PENDING' => (context.l10n.channelStatusPending, BadgeTone.neutral),
+      _ => null,
+    };
+
+/// `ReadinessStateEnum` as a label and tone.
+(String, BadgeTone) aiReadinessState(BuildContext context, String state) =>
+    switch (state) {
+      'READY_FOR_AUTO' => (context.l10n.aiReadyForAuto, BadgeTone.success),
+      'READY_FOR_SUGGEST' => (context.l10n.aiReadyForSuggest, BadgeTone.info),
+      _ => (context.l10n.aiNotReady, BadgeTone.neutral),
+    };
 
 /// A handoff rule's `reason` code in words. The rule list and the activity
 /// metrics name the same reasons in two vocabularies (`CONFLICT` there,

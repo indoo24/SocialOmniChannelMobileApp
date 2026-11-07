@@ -102,14 +102,6 @@ class _PlaygroundSectionState extends ConsumerState<PlaygroundSection> {
             color: AppColors.of(context).mutedForeground,
           ),
         ),
-        if (base != null) ...[
-          const SizedBox(height: Space.xs),
-          Text(
-            l10n.aiPlaygroundAskingBase(base.name),
-            key: const Key('playground-base'),
-            style: theme.textTheme.labelMedium,
-          ),
-        ],
         const SizedBox(height: Space.md),
         TextField(
           key: const Key('playground-question'),

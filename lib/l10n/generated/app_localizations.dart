@@ -7021,12 +7021,6 @@ abstract class AppLocalizations {
   /// **'AI & Knowledge'**
   String get tabAiKnowledge;
 
-  /// No description provided for @aiPilotNotice.
-  ///
-  /// In en, this message translates to:
-  /// **'Internal testing only. Nothing on this page is sent to customers — asking a question here creates no conversation and no message.'**
-  String get aiPilotNotice;
-
   /// No description provided for @aiNotAvailableTitle.
   ///
   /// In en, this message translates to:
@@ -7381,12 +7375,6 @@ abstract class AppLocalizations {
   /// **'Ask what a customer might ask. The answer comes only from the selected knowledge base.'**
   String get aiPlaygroundHint;
 
-  /// No description provided for @aiPlaygroundAskingBase.
-  ///
-  /// In en, this message translates to:
-  /// **'Asking: {name}'**
-  String aiPlaygroundAskingBase(String name);
-
   /// No description provided for @aiAskPlaceholder.
   ///
   /// In en, this message translates to:
@@ -7717,12 +7705,6 @@ abstract class AppLocalizations {
   /// **'Usage'**
   String get aiUsageTitle;
 
-  /// No description provided for @aiUsageHint.
-  ///
-  /// In en, this message translates to:
-  /// **'This organization, last 30 days.'**
-  String get aiUsageHint;
-
   /// No description provided for @aiUsageRequests.
   ///
   /// In en, this message translates to:
@@ -7759,12 +7741,6 @@ abstract class AppLocalizations {
   /// **'AI activity'**
   String get aiActivityTitle;
 
-  /// No description provided for @aiActivitySubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'What the AI handled, declined and used'**
-  String get aiActivitySubtitle;
-
   /// No description provided for @aiPolicyTitle.
   ///
   /// In en, this message translates to:
@@ -7774,7 +7750,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiPolicySubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Organization switches, budgets and each channel\'s limits'**
+  /// **'Organization switches, daily budgets and rollout'**
   String get aiPolicySubtitle;
 
   /// No description provided for @aiWindowHours.
@@ -8179,24 +8155,6 @@ abstract class AppLocalizations {
   /// **'AI policy saved.'**
   String get aiPolicySaved;
 
-  /// No description provided for @aiPolicyChannelsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Channel limits'**
-  String get aiPolicyChannelsTitle;
-
-  /// No description provided for @aiPolicyChannelsHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Each channel\'s automatic-reply limits, evidence level and topics.'**
-  String get aiPolicyChannelsHint;
-
-  /// No description provided for @aiPolicyChannelsNone.
-  ///
-  /// In en, this message translates to:
-  /// **'No channel supports AI yet.'**
-  String get aiPolicyChannelsNone;
-
   /// No description provided for @aiUnsavedTitle.
   ///
   /// In en, this message translates to:
@@ -8220,36 +8178,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Keep editing'**
   String get aiUnsavedKeepEditing;
-
-  /// No description provided for @aiChannelConfigUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'The server didn\'t send this channel\'s AI settings.'**
-  String get aiChannelConfigUnavailable;
-
-  /// No description provided for @aiChannelMaxTurns.
-  ///
-  /// In en, this message translates to:
-  /// **'Most automatic replies in a session'**
-  String get aiChannelMaxTurns;
-
-  /// No description provided for @aiChannelMaxTurnsHint.
-  ///
-  /// In en, this message translates to:
-  /// **'After this many, the conversation goes to a person. {min} to {max}.'**
-  String aiChannelMaxTurnsHint(int min, int max);
-
-  /// No description provided for @aiChannelSessionIdle.
-  ///
-  /// In en, this message translates to:
-  /// **'New AI session after the customer is quiet for (hours)'**
-  String get aiChannelSessionIdle;
-
-  /// No description provided for @aiChannelSessionIdleHint.
-  ///
-  /// In en, this message translates to:
-  /// **'{min} to {max} hours.'**
-  String aiChannelSessionIdleHint(int min, int max);
 
   /// No description provided for @aiChannelDailyCap.
   ///
@@ -8412,6 +8340,522 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show the threshold'**
   String get aiGroundingShowFloor;
+
+  /// No description provided for @aiTabOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get aiTabOverview;
+
+  /// No description provided for @aiTabKnowledge.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge Base'**
+  String get aiTabKnowledge;
+
+  /// No description provided for @aiTabAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Agent & Automatic Replies'**
+  String get aiTabAgent;
+
+  /// No description provided for @aiTabPlayground.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Playground'**
+  String get aiTabPlayground;
+
+  /// No description provided for @aiTabActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity & Usage'**
+  String get aiTabActivity;
+
+  /// No description provided for @aiOverviewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What the AI is set to do, what it can answer from, and what it did. Every number here opens the page that changes it.'**
+  String get aiOverviewHint;
+
+  /// No description provided for @aiKnowledgeTabHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What the AI is allowed to answer from. Nothing outside this is used.'**
+  String get aiKnowledgeTabHint;
+
+  /// No description provided for @aiAgentTabHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Which channels may draft a reply, which may send one unattended, and what they do when there is no answer.'**
+  String get aiAgentTabHint;
+
+  /// No description provided for @aiPlaygroundTabHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a question the way a customer would and see exactly what the AI would say, and why.'**
+  String get aiPlaygroundTabHint;
+
+  /// No description provided for @aiActivityTabHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What the AI did, why it declined, and what it cost. Counts and rates only — no message text is kept here.'**
+  String get aiActivityTabHint;
+
+  /// No description provided for @aiStatusHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get aiStatusHeading;
+
+  /// No description provided for @aiStatusOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get aiStatusOn;
+
+  /// No description provided for @aiStatusOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get aiStatusOff;
+
+  /// No description provided for @aiStatusOffHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing drafts and nothing sends while this is off.'**
+  String get aiStatusOffHint;
+
+  /// No description provided for @aiDefaultPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Default automatic reply'**
+  String get aiDefaultPolicy;
+
+  /// No description provided for @aiDefaultPolicyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What a channel does unless it says otherwise.'**
+  String get aiDefaultPolicyHint;
+
+  /// No description provided for @aiChannelsHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get aiChannelsHeading;
+
+  /// No description provided for @aiChannelsAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Replying automatically'**
+  String get aiChannelsAuto;
+
+  /// No description provided for @aiChannelsSuggest.
+  ///
+  /// In en, this message translates to:
+  /// **'Drafting for an agent'**
+  String get aiChannelsSuggest;
+
+  /// No description provided for @aiChannelsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get aiChannelsOff;
+
+  /// No description provided for @aiKnowledgeHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge'**
+  String get aiKnowledgeHeading;
+
+  /// No description provided for @aiKnowledgeReady.
+  ///
+  /// In en, this message translates to:
+  /// **'{ready} of {total} sources ready'**
+  String aiKnowledgeReady(int ready, int total);
+
+  /// No description provided for @aiKnowledgeChunks.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 indexed extract} other{{count} indexed extracts}}'**
+  String aiKnowledgeChunks(int count);
+
+  /// No description provided for @aiKnowledgeBasesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 knowledge base} other{{count} knowledge bases}}'**
+  String aiKnowledgeBasesCount(int count);
+
+  /// No description provided for @aiKnowledgeNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing added yet'**
+  String get aiKnowledgeNone;
+
+  /// No description provided for @aiBehaviourHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 24 hours'**
+  String get aiBehaviourHeading;
+
+  /// No description provided for @aiSentAutomatically.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent automatically'**
+  String get aiSentAutomatically;
+
+  /// No description provided for @aiKbAnswered.
+  ///
+  /// In en, this message translates to:
+  /// **'Answered from knowledge'**
+  String get aiKbAnswered;
+
+  /// No description provided for @aiFallbacks.
+  ///
+  /// In en, this message translates to:
+  /// **'Holding replies'**
+  String get aiFallbacks;
+
+  /// No description provided for @aiFallbackRateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'{rate} of what was sent answered nothing.'**
+  String aiFallbackRateHint(String rate);
+
+  /// No description provided for @aiQuiet.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing yet'**
+  String get aiQuiet;
+
+  /// No description provided for @aiWarningsHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Worth your attention'**
+  String get aiWarningsHeading;
+
+  /// No description provided for @aiNothingToReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing needs your attention.'**
+  String get aiNothingToReport;
+
+  /// No description provided for @aiWarnAiOff.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is switched off for this organization, so nothing below runs.'**
+  String get aiWarnAiOff;
+
+  /// No description provided for @aiWarnNoBase.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no knowledge base, so every question is handed to a person.'**
+  String get aiWarnNoBase;
+
+  /// No description provided for @aiWarnNothingIndexed.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing has finished indexing, so there is nothing to answer from.'**
+  String get aiWarnNothingIndexed;
+
+  /// No description provided for @aiWarnFailedSources.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 source failed to index and is being used for nothing.} other{{count} sources failed to index and are being used for nothing.}}'**
+  String aiWarnFailedSources(int count);
+
+  /// No description provided for @aiWarnConflicts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 pair of sources answers the same question differently.} other{{count} pairs of sources answer the same question differently.}}'**
+  String aiWarnConflicts(int count);
+
+  /// No description provided for @aiWarnAllOff.
+  ///
+  /// In en, this message translates to:
+  /// **'No channel has AI switched on, so these numbers will stay at zero.'**
+  String get aiWarnAllOff;
+
+  /// No description provided for @aiWarnPolicyOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic replies are off by default, so no channel sends unattended.'**
+  String get aiWarnPolicyOff;
+
+  /// No description provided for @aiWarnHighFallbacks.
+  ///
+  /// In en, this message translates to:
+  /// **'{rate} of automatic replies answered nothing. That is a knowledge gap, not a setting.'**
+  String aiWarnHighFallbacks(String rate);
+
+  /// No description provided for @aiWarnChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'{channel}: {reason}'**
+  String aiWarnChannel(String channel, String reason);
+
+  /// No description provided for @aiGoToKnowledge.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Knowledge Base'**
+  String get aiGoToKnowledge;
+
+  /// No description provided for @aiGoToAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Open AI Agent'**
+  String get aiGoToAgent;
+
+  /// No description provided for @aiGoToActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Activity'**
+  String get aiGoToActivity;
+
+  /// No description provided for @aiOrganizationSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization settings'**
+  String get aiOrganizationSettings;
+
+  /// No description provided for @aiAutoRepliesHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic AI replies'**
+  String get aiAutoRepliesHeading;
+
+  /// No description provided for @aiAutoRepliesDefaultHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The default for every channel. A channel or a single conversation can override it.'**
+  String get aiAutoRepliesDefaultHint;
+
+  /// No description provided for @aiReplyPolicyOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get aiReplyPolicyOff;
+
+  /// No description provided for @aiReplyPolicyKnowledgeOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge only'**
+  String get aiReplyPolicyKnowledgeOnly;
+
+  /// No description provided for @aiReplyPolicyAlwaysReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Always reply'**
+  String get aiReplyPolicyAlwaysReply;
+
+  /// No description provided for @aiReplyPolicyOffHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI will not reply automatically. Agents can still use AI Suggest where it is available.'**
+  String get aiReplyPolicyOffHint;
+
+  /// No description provided for @aiReplyPolicyKnowledgeOnlyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply automatically only when the knowledge base reliably supports the answer.'**
+  String get aiReplyPolicyKnowledgeOnlyHint;
+
+  /// No description provided for @aiReplyPolicyAlwaysReplyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply whenever automatic replying is allowed. If the knowledge base cannot answer, send a safe holding message and hand the conversation to the team.'**
+  String get aiReplyPolicyAlwaysReplyHint;
+
+  /// No description provided for @aiFallbackInstructionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'When the knowledge base cannot answer'**
+  String get aiFallbackInstructionsLabel;
+
+  /// No description provided for @aiFallbackInstructionsPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Apologise briefly and tell the customer the team will review their request.'**
+  String get aiFallbackInstructionsPlaceholder;
+
+  /// No description provided for @aiFallbackInstructionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tone and follow-up wording only. The AI will not state a business fact here — no policy, price, period or amount — whatever these instructions ask for.'**
+  String get aiFallbackInstructionsHint;
+
+  /// No description provided for @aiFallbackHandsOffHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A holding message always hands the conversation to a person, so the follow-up it promises actually happens.'**
+  String get aiFallbackHandsOffHint;
+
+  /// No description provided for @aiConnectionPolicyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic replies'**
+  String get aiConnectionPolicyLabel;
+
+  /// No description provided for @aiReplyPolicyUseDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Use default'**
+  String get aiReplyPolicyUseDefault;
+
+  /// No description provided for @aiReplyPolicyInheritedValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Using the organization default: {value}.'**
+  String aiReplyPolicyInheritedValue(String value);
+
+  /// No description provided for @aiReplyPolicyOverridden.
+  ///
+  /// In en, this message translates to:
+  /// **'Overridden for this channel.'**
+  String get aiReplyPolicyOverridden;
+
+  /// No description provided for @aiReplyPolicyInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic replies are inactive because this channel is in {mode} mode.'**
+  String aiReplyPolicyInactive(String mode);
+
+  /// No description provided for @aiCardReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'What it replies with'**
+  String get aiCardReplies;
+
+  /// No description provided for @aiCardAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Limits & safety'**
+  String get aiCardAdvanced;
+
+  /// No description provided for @aiCardAdvancedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'How much evidence an answer needs, restricted topics, and what hands a conversation to a person.'**
+  String get aiCardAdvancedHint;
+
+  /// No description provided for @aiCardEffective.
+  ///
+  /// In en, this message translates to:
+  /// **'In effect: {value}'**
+  String aiCardEffective(String value);
+
+  /// No description provided for @aiReadyForAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready for automatic replies'**
+  String get aiReadyForAuto;
+
+  /// No description provided for @aiReadyForSuggest.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready for suggestions'**
+  String get aiReadyForSuggest;
+
+  /// No description provided for @aiNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Not ready'**
+  String get aiNotReady;
+
+  /// No description provided for @aiHandoffTurnOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on'**
+  String get aiHandoffTurnOn;
+
+  /// No description provided for @aiHandoffTurnOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off'**
+  String get aiHandoffTurnOff;
+
+  /// No description provided for @aiGroundingNever.
+  ///
+  /// In en, this message translates to:
+  /// **'No setting lets the AI state a business fact without a knowledge-base source behind it.'**
+  String get aiGroundingNever;
+
+  /// No description provided for @aiPlaygroundBase.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge base'**
+  String get aiPlaygroundBase;
+
+  /// No description provided for @aiSectionReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'What it replied with'**
+  String get aiSectionReplies;
+
+  /// No description provided for @aiConversationalReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'Greetings & small talk'**
+  String get aiConversationalReplies;
+
+  /// No description provided for @aiConversationalRepliesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No knowledge base, no provider call.'**
+  String get aiConversationalRepliesHint;
+
+  /// No description provided for @aiUsageWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'This organization, last {count} days.'**
+  String aiUsageWindow(int count);
+
+  /// No description provided for @aiUsageDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days'**
+  String aiUsageDays(int count);
+
+  /// No description provided for @aiUsageSince.
+  ///
+  /// In en, this message translates to:
+  /// **'Since {date}'**
+  String aiUsageSince(String date);
+
+  /// No description provided for @aiHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change history'**
+  String get aiHistoryTitle;
+
+  /// No description provided for @aiHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No AI settings have been changed yet.'**
+  String get aiHistoryEmpty;
+
+  /// No description provided for @aiHistoryChangedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'by {who}'**
+  String aiHistoryChangedBy(String who);
+
+  /// No description provided for @aiHistoryChangedBySystem.
+  ///
+  /// In en, this message translates to:
+  /// **'by an operator command'**
+  String get aiHistoryChangedBySystem;
+
+  /// No description provided for @aiHistorySource.
+  ///
+  /// In en, this message translates to:
+  /// **'Source: {source}'**
+  String aiHistorySource(String source);
+
+  /// No description provided for @aiHistoryConversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation #{id}'**
+  String aiHistoryConversation(int id);
 }
 
 class _AppLocalizationsDelegate

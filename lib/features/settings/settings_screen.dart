@@ -35,6 +35,7 @@ import '../../core/widgets/app_drawer.dart';
 import '../../core/widgets/states.dart';
 import '../../core/widgets/user_account_menu.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../ai_knowledge/ai_knowledge_providers.dart';
 import '../ai_knowledge/ai_knowledge_settings_tab.dart';
 import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
@@ -72,8 +73,8 @@ class SettingsScreen extends ConsumerWidget {
     // More because every role has it, so it lands at a stable position no
     // matter which of the permission-gated tabs above are present; More is
     // the catch-all. AI & Knowledge is its own tab rather than a section of
-    // More (where the web nests it): it is several screens' worth of content
-    // and would bury Export data under it on a phone.
+    // More (where the web nests it): it has five tabs of its own, and would
+    // bury Export data under them on a phone.
     final tabs = <(String, Widget)>[
       if (canSeeChannels) (context.l10n.tabChannels, const _ChannelsTab()),
       if (canManageRouting)

@@ -1,10 +1,11 @@
-/// AI activity metrics and the organization's AI policy — `GET /ai/metrics/`
-/// and `GET/PUT /ai/policy/`, shaped after the schema's `AIMetrics` and
-/// `AIOrganizationPolicy`.
+/// AI activity metrics, the organization's AI policy and the configuration
+/// audit — `GET /ai/metrics/`, `GET/PUT /ai/policy/` and `GET /ai/history/`,
+/// shaped after the schema's `AIMetrics`, `AIOrganizationPolicy` and
+/// `AIConfigurationChange`.
 ///
 /// Numbers the server did not send stay null rather than becoming 0: a
 /// dashboard that shows "0 handoffs" for a field it never received is
-/// claiming something nobody measured.
+/// claiming something nobody measured. The dashboard leaves them out.
 library;
 
 import '../utils/json_safe.dart';
@@ -16,6 +17,13 @@ class AiMetrics {
     this.windowHours,
     this.opportunities,
     this.sent,
+    this.kbAnswered,
+    this.fallbacks,
+    this.fallbackRate,
+    this.greetings,
+    this.thanks,
+    this.acknowledgements,
+    this.goodbyes,
     this.handedOff,
     this.refused,
     this.duplicatesSuppressed,
@@ -58,6 +66,17 @@ class AiMetrics {
 
   final int? opportunities;
   final int? sent;
+
+  /// Automatic replies answered from the knowledge base.
+  final int? kbAnswered;
+
+  /// Holding replies: sent when the knowledge base could not answer.
+  final int? fallbacks;
+  final double? fallbackRate;
+  final int? greetings;
+  final int? thanks;
+  final int? acknowledgements;
+  final int? goodbyes;
   final int? handedOff;
   final int? refused;
   final int? duplicatesSuppressed;
@@ -101,6 +120,14 @@ class AiMetrics {
   final int? connectionsSuggest;
   final int? connectionsAuto;
 
+  /// Greetings and small talk together — answered with no knowledge base and
+  /// no provider call. Null when the server reported none of the four.
+  int? get conversationalReplies {
+    final parts = [greetings, thanks, acknowledgements, goodbyes];
+    if (parts.every((p) => p == null)) return null;
+    return parts.fold<int>(0, (sum, p) => sum + (p ?? 0));
+  }
+
   /// Nothing happened in the window: no message considered, no suggestion
   /// asked for, no provider request.
   bool get isQuiet =>
@@ -115,6 +142,13 @@ class AiMetrics {
       windowHours: d('window_hours'),
       opportunities: n('opportunities'),
       sent: n('sent'),
+      kbAnswered: n('kb_answered'),
+      fallbacks: n('fallbacks'),
+      fallbackRate: d('fallback_rate'),
+      greetings: n('greetings'),
+      thanks: n('thanks'),
+      acknowledgements: n('acknowledgements'),
+      goodbyes: n('goodbyes'),
       handedOff: n('handed_off'),
       refused: n('refused'),
       duplicatesSuppressed: n('duplicates_suppressed'),
@@ -166,7 +200,21 @@ class AiRolloutState {
   static const values = [internal, pilot, limited, general];
 }
 
-/// The organization's AI switches, budgets and rollout state.
+/// `AutoReplyPolicyChoiceEnum`: what automatic replies may do. [inherit] is
+/// only a channel's choice — "use the level above"; the organization's
+/// default (`AutoReplyPolicyEnum`) is one of the other three.
+class AiAutoReplyPolicy {
+  const AiAutoReplyPolicy._();
+  static const inherit = 'INHERIT';
+  static const off = 'OFF';
+  static const knowledgeOnly = 'KNOWLEDGE_ONLY';
+  static const alwaysReply = 'ALWAYS_REPLY';
+  static const organizationValues = [off, knowledgeOnly, alwaysReply];
+  static const channelValues = [inherit, off, knowledgeOnly, alwaysReply];
+}
+
+/// The organization's AI switches, budgets, rollout state, and what automatic
+/// replies do by default.
 class AiOrganizationPolicy {
   const AiOrganizationPolicy({
     required this.isAiEnabled,
@@ -174,11 +222,14 @@ class AiOrganizationPolicy {
     required this.dailyRequestLimit,
     required this.dailyTokenLimit,
     required this.rolloutState,
+    this.defaultAutoReplyPolicy = '',
+    this.fallbackInstructions = '',
   });
 
   /// `AIOrganizationPolicyUpdate`'s bounds. 0 disables the feature.
   static const maxDailyRequestLimit = 1000000;
   static const maxDailyTokenLimit = 1000000000;
+  static const maxFallbackInstructionsLength = 2000;
 
   final bool isAiEnabled;
   final bool isAutoSendEnabled;
@@ -186,9 +237,16 @@ class AiOrganizationPolicy {
   final int dailyTokenLimit;
   final String rolloutState;
 
-  /// Every field is required in the response; a body missing one is not a
-  /// policy this app can show, so it fails to parse rather than inventing
-  /// a switch position or a budget.
+  /// One of [AiAutoReplyPolicy.organizationValues]; empty when the server did
+  /// not send it, and then no default is claimed.
+  final String defaultAutoReplyPolicy;
+
+  /// Tone for a holding reply, used only by `ALWAYS_REPLY`.
+  final String fallbackInstructions;
+
+  /// The switches, budgets and rollout state are required in the response; a
+  /// body missing one is not a policy this app can show, so it fails to parse
+  /// rather than inventing a switch position or a budget.
   factory AiOrganizationPolicy.fromJson(Map<String, dynamic> json) {
     bool flag(String key) {
       final value = json[key];
@@ -210,6 +268,10 @@ class AiOrganizationPolicy {
       dailyRequestLimit: limit('daily_request_limit'),
       dailyTokenLimit: limit('daily_token_limit'),
       rolloutState: rollout,
+      defaultAutoReplyPolicy: JsonSafe.asString(
+        json['default_auto_reply_policy'],
+      ),
+      fallbackInstructions: JsonSafe.asString(json['fallback_instructions']),
     );
   }
 
@@ -226,4 +288,46 @@ class AiOrganizationPolicy {
     if (edited.rolloutState != rolloutState)
       'rollout_state': edited.rolloutState,
   };
+}
+
+/// One recorded change to the AI configuration. Append-only; read-only here.
+class AiConfigurationChange {
+  const AiConfigurationChange({
+    required this.setting,
+    this.previousValue = '',
+    this.newValue = '',
+    this.channelConnectionId,
+    this.conversationId,
+    this.actor = '',
+    this.source = '',
+    this.note = '',
+    this.at,
+  });
+
+  final String setting;
+  final String previousValue;
+  final String newValue;
+  final int? channelConnectionId;
+  final int? conversationId;
+
+  /// Who made the change; empty for an operator command.
+  final String actor;
+  final String source;
+  final String note;
+  final DateTime? at;
+
+  factory AiConfigurationChange.fromJson(Map<String, dynamic> json) {
+    final at = JsonSafe.asStringOrNull(json['at']);
+    return AiConfigurationChange(
+      setting: JsonSafe.asString(json['setting']),
+      previousValue: JsonSafe.asString(json['previous_value']),
+      newValue: JsonSafe.asString(json['new_value']),
+      channelConnectionId: JsonSafe.asIntOrNull(json['channel_connection_id']),
+      conversationId: JsonSafe.asIntOrNull(json['conversation_id']),
+      actor: JsonSafe.asString(json['actor']),
+      source: JsonSafe.asString(json['source']),
+      note: JsonSafe.asString(json['note']),
+      at: at == null ? null : DateTime.tryParse(at)?.toLocal(),
+    );
+  }
 }

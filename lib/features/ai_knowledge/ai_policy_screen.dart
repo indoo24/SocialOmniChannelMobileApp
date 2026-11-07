@@ -1,6 +1,7 @@
 /// AI policy — the organization's AI switches, daily budgets and rollout
-/// state (`GET/PUT /ai/policy/`), and the way into each channel's own
-/// limits (`ai_channel_settings_screen.dart`).
+/// state (`GET/PUT /ai/policy/`), opened from the AI section. The default
+/// automatic-reply policy, the other field of that endpoint a person changes,
+/// sits on the AI Agent tab with the channels it applies to.
 ///
 /// Edits are held in the form until Save, which sends only what changed
 /// (every field of the PUT is optional, and each change is audited on its
@@ -10,21 +11,15 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../app/router.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/models/ai_operations.dart';
-import '../../core/models/knowledge.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
-import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
-import 'ai_activity_screen.dart' show AiNotAvailable;
 import 'ai_knowledge_labels.dart';
 import 'ai_knowledge_providers.dart';
-import 'ai_knowledge_settings_tab.dart' show canManageAiKnowledgeProvider;
 import 'ai_metric_widgets.dart';
 import 'knowledge_forms.dart';
 
@@ -89,6 +84,8 @@ class _AiPolicyScreenState extends ConsumerState<AiPolicyScreen> {
       dailyRequestLimit: requests,
       dailyTokenLimit: tokens,
       rolloutState: _rollout,
+      defaultAutoReplyPolicy: _baseline?.defaultAutoReplyPolicy ?? '',
+      fallbackInstructions: _baseline?.fallbackInstructions ?? '',
     );
   }
 
@@ -186,7 +183,6 @@ class _AiPolicyScreenState extends ConsumerState<AiPolicyScreen> {
               ),
         body: RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(agentSettingsProvider);
             if (dirty) return;
             ref.invalidate(aiPolicyProvider);
             final fresh = await ref
@@ -211,8 +207,6 @@ class _AiPolicyScreenState extends ConsumerState<AiPolicyScreen> {
                 )
               else
                 _organizationForm(context),
-              const SizedBox(height: Space.lg),
-              const _ChannelLimitsSection(),
             ],
           ),
         ),
@@ -345,84 +339,6 @@ class _AiPolicyScreenState extends ConsumerState<AiPolicyScreen> {
           ],
         ],
       ),
-    );
-  }
-}
-
-/// Every channel that can use AI, each opening its own limits.
-class _ChannelLimitsSection extends ConsumerWidget {
-  const _ChannelLimitsSection();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final settings = ref.watch(agentSettingsProvider);
-    return AiSectionCard(
-      key: const Key('ai-policy-channels'),
-      title: l10n.aiPolicyChannelsTitle,
-      subtitle: l10n.aiPolicyChannelsHint,
-      icon: Icons.tune,
-      child: settings.when(
-        loading: () => const SizedBox(height: 120, child: LoadingState()),
-        error: (error, _) => ErrorStateView(
-          error: error,
-          onRetry: () => ref.invalidate(agentSettingsProvider),
-        ),
-        data: (rows) {
-          final supported = [
-            for (final row in rows)
-              if (row.assistSupported) row,
-          ];
-          if (supported.isEmpty) {
-            return Text(
-              l10n.aiPolicyChannelsNone,
-              style: Theme.of(context).textTheme.bodySmall,
-            );
-          }
-          return Column(
-            children: [for (final row in supported) _ChannelTile(row: row)],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _ChannelTile extends StatelessWidget {
-  const _ChannelTile({required this.row});
-
-  final AiAgentSetting row;
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = row.provider.toUpperCase();
-    return ListTile(
-      key: Key('ai-policy-channel-${row.connectionId}'),
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(
-        ConversationBadges.providerIcon(provider),
-        color: ConversationBadges.providerGlyphColor(context, provider),
-      ),
-      title: Text(
-        row.connectionName,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(ConversationBadges.providerLabel(context, provider)),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          StatusBadge(
-            label: aiModeLabel(context, row.mode),
-            tone: row.mode == AiAssistMode.auto
-                ? BadgeTone.warning
-                : BadgeTone.neutral,
-            dense: true,
-          ),
-          const Icon(Icons.chevron_right_rounded),
-        ],
-      ),
-      onTap: () => context.push(Routes.aiChannelSettings(row.connectionId)),
     );
   }
 }

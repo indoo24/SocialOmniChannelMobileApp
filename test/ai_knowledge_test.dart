@@ -360,18 +360,29 @@ Widget _harness(
   ),
 );
 
+/// Pumps the AI section and, with [section], opens that tab.
 Future<void> _pumpTab(
   WidgetTester tester,
   _Server server, {
   Employee? employee,
   Locale locale = const Locale('en'),
   Size size = const Size(800, 5000),
+  AiSection? section,
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     _harness(server.client(), employee: employee, locale: locale),
   );
+  await tester.pumpAndSettle();
+  if (section != null) await _open(tester, section);
+}
+
+/// Opens one of the AI section's tabs.
+Future<void> _open(WidgetTester tester, AiSection section) async {
+  ProviderScope.containerOf(
+    tester.element(find.byType(AiKnowledgeSettingsTab)),
+  ).read(aiSectionProvider.notifier).select(section);
   await tester.pumpAndSettle();
 }
 
@@ -567,7 +578,7 @@ void main() {
       tester,
     ) async {
       final server = _Server();
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.playground);
 
       await _ask(tester, 'What is the return period?');
       await tester.pumpAndSettle();
@@ -592,7 +603,7 @@ void main() {
 
     testWidgets('NOT_IN_KB says so and shows no answer', (tester) async {
       final server = _Server(playground: (_) => _json(_notInKb()));
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.playground);
 
       await _ask(tester, 'Do you sell cars?');
       await tester.pumpAndSettle();
@@ -604,7 +615,7 @@ void main() {
 
     testWidgets('ERROR shows the server detail, not an answer', (tester) async {
       final server = _Server(playground: (_) => _json(_providerError()));
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.playground);
 
       await _ask(tester, 'Hours?');
       await tester.pumpAndSettle();
@@ -621,7 +632,7 @@ void main() {
       final server = _Server(
         playground: (_) => _json({..._answered(), 'status': 'SOMETHING_NEW'}),
       );
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.playground);
 
       await _ask(tester, 'Hours?');
       await tester.pumpAndSettle();
@@ -652,7 +663,7 @@ void main() {
         final server = _Server(
           playground: (_) => _error(status, code, 'question: Too long.'),
         );
-        await _pumpTab(tester, server);
+        await _pumpTab(tester, server, section: AiSection.playground);
 
         await _ask(tester, 'Hours?');
         await tester.pumpAndSettle();
@@ -673,7 +684,7 @@ void main() {
           return _json(_answered());
         },
       );
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.playground);
 
       await _ask(tester, 'Hours?');
       await tester.pump();
@@ -698,9 +709,8 @@ void main() {
       tester,
     ) async {
       final server = _Server(bases: []);
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.playground);
 
-      expect(find.byKey(const Key('ai-no-knowledge-bases')), findsOneWidget);
       expect(
         find.text('Create a knowledge base before testing it.'),
         findsOneWidget,
@@ -721,7 +731,7 @@ void main() {
         ],
         sources: {'kb-1': [], 'kb-2': []},
       );
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.playground);
 
       await _ask(tester, 'Hours?');
       await tester.pumpAndSettle();
@@ -733,8 +743,10 @@ void main() {
         'kb-1',
       );
 
+      await _open(tester, AiSection.knowledge);
       await tester.tap(find.byKey(const Key('kb-kb-2-select')));
       await tester.pumpAndSettle();
+      await _open(tester, AiSection.playground);
       expect(find.byKey(const Key('playground-answered')), findsNothing);
 
       await _ask(tester, 'Hours?');
@@ -756,7 +768,7 @@ void main() {
         ],
         sources: {'kb-1': [], 'kb-2': []},
       );
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.knowledge);
 
       expect(find.text('Stage 1 test'), findsWidgets);
       expect(find.text('5 of 5 ready'), findsOneWidget);
@@ -767,7 +779,7 @@ void main() {
 
     testWidgets('creates a base and selects it', (tester) async {
       final server = _Server();
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.knowledge);
 
       await tester.tap(find.byKey(const Key('ai-new-knowledge-base')));
       await tester.pumpAndSettle();
@@ -785,15 +797,19 @@ void main() {
       expect(post.path, '/knowledge-bases/');
       expect(post.data, {'name': 'FAQ'});
       expect(find.byKey(const Key('kb-kb-new')), findsOneWidget);
-      expect(find.byKey(const Key('playground-base')), findsOneWidget);
-      expect(find.text('Asking: FAQ'), findsOneWidget);
+      // The new base is the one the playground asks.
+      await _open(tester, AiSection.playground);
+      expect(
+        find.byKey(const ValueKey('ai-playground-base-kb-new')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('deactivates with PATCH is_active and shows the server state', (
       tester,
     ) async {
       final server = _Server();
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.knowledge);
 
       await tester.tap(find.byKey(const Key('kb-kb-1-toggle')));
       await tester.pumpAndSettle();
@@ -808,7 +824,7 @@ void main() {
 
     testWidgets('delete asks first, then DELETEs', (tester) async {
       final server = _Server();
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.knowledge);
 
       await tester.tap(find.byKey(const Key('kb-kb-1-delete')));
       await tester.pumpAndSettle();
@@ -829,7 +845,7 @@ void main() {
 
     testWidgets('a failed load offers retry, which recovers', (tester) async {
       final server = _Server(basesStatus: 500);
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.knowledge);
 
       expect(find.text('Try again'), findsOneWidget);
       server.basesStatus = null;
@@ -860,7 +876,7 @@ void main() {
           ],
         },
       );
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.knowledge);
 
       expect(find.text('Delivery'), findsOneWidget);
       expect(find.text('3 parts'), findsOneWidget);
@@ -877,14 +893,14 @@ void main() {
     });
 
     testWidgets('empty state when the base has no sources', (tester) async {
-      await _pumpTab(tester, _Server());
+      await _pumpTab(tester, _Server(), section: AiSection.knowledge);
       expect(find.byKey(const Key('ai-no-sources')), findsOneWidget);
     });
 
     testWidgets('adding Q&A posts it to the selected base and follows '
         'indexing until the server says READY', (tester) async {
       final server = _Server();
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.knowledge);
 
       await tester.tap(find.byKey(const Key('ai-add-qa')));
       await tester.pumpAndSettle();
@@ -952,7 +968,7 @@ void main() {
 
     testWidgets('adding text sends title and body', (tester) async {
       final server = _Server();
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.knowledge);
 
       await tester.tap(find.byKey(const Key('ai-add-text')));
       await tester.pumpAndSettle();
@@ -1000,6 +1016,7 @@ void main() {
         addTearDown(() => tester.binding.setSurfaceSize(null));
         await tester.pumpWidget(_harness(client));
         await tester.pumpAndSettle();
+        await _open(tester, AiSection.knowledge);
 
         await tester.tap(find.byKey(const Key('ai-add-text')));
         await tester.pumpAndSettle();
@@ -1022,7 +1039,7 @@ void main() {
           'kb-1': [_source('s-1')],
         },
       );
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.knowledge);
 
       await tester.tap(find.byKey(const Key('source-s-1-edit')));
       await tester.pumpAndSettle();
@@ -1047,7 +1064,7 @@ void main() {
           'kb-1': [_source('s-1')],
         },
       );
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.knowledge);
 
       await tester.tap(find.byKey(const Key('source-s-1-reindex')));
       await _flush(tester);
@@ -1064,7 +1081,7 @@ void main() {
           'kb-1': [_source('s-1')],
         },
       );
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.knowledge);
 
       await tester.tap(find.byKey(const Key('source-s-1-delete')));
       await tester.pumpAndSettle();
@@ -1146,7 +1163,7 @@ void main() {
           readiness(13, suggest: false, blocking: ['UNSUPPORTED_CHANNEL']),
         ],
       );
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.agent);
 
       expect(find.byKey(const Key('assist-13-unsupported')), findsOneWidget);
       expect(find.byKey(const Key('assist-12-AUTO')), findsNothing);
@@ -1179,7 +1196,7 @@ void main() {
         agentSettings: [setting(12)],
         readiness: [readiness(12, auto: true)],
       );
-      await _pumpTab(tester, server);
+      await _pumpTab(tester, server, section: AiSection.agent);
 
       await tester.tap(find.byKey(const Key('assist-12-AUTO')));
       await tester.pumpAndSettle();
@@ -1213,6 +1230,7 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(_harness(client));
       await tester.pumpAndSettle();
+      await _open(tester, AiSection.agent);
 
       await tester.tap(find.byKey(const Key('assist-12-SUGGEST')));
       await tester.pumpAndSettle();
@@ -1228,9 +1246,9 @@ void main() {
   // ------------------------------------------------------------------------ //
   group('usage, conflicts', () {
     testWidgets('shows the 30-day usage numbers', (tester) async {
-      await _pumpTab(tester, _Server());
+      await _pumpTab(tester, _Server(), section: AiSection.activity);
       expect(find.byKey(const Key('ai-section-usage')), findsOneWidget);
-      expect(find.text('19'), findsOneWidget);
+      expect(find.text('19'), findsWidgets);
       expect(find.text('13391'), findsOneWidget);
     });
 
@@ -1245,6 +1263,7 @@ void main() {
             },
           ],
         ),
+        section: AiSection.knowledge,
       );
       expect(find.byKey(const Key('ai-conflicts')), findsOneWidget);
       expect(find.text('Returns A  ↔  Returns B'), findsOneWidget);
@@ -1367,12 +1386,11 @@ void main() {
         server,
         locale: const Locale('ar'),
         size: const Size(320, 6000),
+        section: AiSection.knowledge,
       );
 
       expect(tester.takeException(), isNull);
       expect(find.text('قواعد المعرفة'), findsOneWidget);
-      expect(find.text('اختبر قاعدة المعرفة'), findsOneWidget);
-      expect(find.text('مساعد الوكيل بالذكاء الاصطناعي'), findsOneWidget);
       expect(find.text('1 من 1 جاهز'), findsOneWidget);
       expect(
         Directionality.of(
@@ -1380,6 +1398,14 @@ void main() {
         ),
         TextDirection.rtl,
       );
+
+      await _open(tester, AiSection.agent);
+      expect(tester.takeException(), isNull);
+      expect(find.text('مساعد الوكيل بالذكاء الاصطناعي'), findsOneWidget);
+
+      await _open(tester, AiSection.playground);
+      expect(tester.takeException(), isNull);
+      expect(find.text('اختبر قاعدة المعرفة'), findsOneWidget);
 
       await _ask(tester, 'ما هي مدة الاسترجاع؟');
       await tester.pumpAndSettle();
@@ -1398,6 +1424,7 @@ void main() {
         _Server(),
         locale: const Locale('ar'),
         size: const Size(320, 6000),
+        section: AiSection.playground,
       );
       await _ask(tester, 'Return period?');
       await tester.pumpAndSettle();

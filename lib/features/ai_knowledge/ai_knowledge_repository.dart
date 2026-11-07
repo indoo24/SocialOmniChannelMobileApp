@@ -11,7 +11,7 @@
 /// * `POST /ai/playground/ask/`
 /// * `GET/PUT /ai/agent-settings/`, `GET /ai/readiness/`,
 ///   `GET /ai/conflicts/`, `GET /ai/usage/`
-/// * `GET /ai/metrics/`, `GET/PUT /ai/policy/`
+/// * `GET /ai/metrics/`, `GET/PUT /ai/policy/`, `GET /ai/history/`
 ///
 /// All need `ai_knowledge.manage`, and the organization must be in the AI
 /// pilot — outside it every one answers 404.
@@ -287,5 +287,15 @@ class AiKnowledgeRepository {
       body: changes,
     );
     return AiOrganizationPolicy.fromJson(data);
+  }
+
+  /// The newest configuration changes, up to [limit] (the server's maximum is
+  /// 500). Read-only.
+  Future<List<AiConfigurationChange>> history({int limit = 50}) async {
+    final data = await _api.get<dynamic>(
+      '/ai/history/',
+      query: {'limit': limit},
+    );
+    return JsonSafe.parseList(data, AiConfigurationChange.fromJson);
   }
 }

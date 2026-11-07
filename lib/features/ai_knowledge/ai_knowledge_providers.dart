@@ -1,8 +1,13 @@
-/// State for the AI & Knowledge settings tab.
+/// State for the AI section (Settings → AI & Knowledge).
 ///
 /// Every provider here is `autoDispose`: the data is organization
-/// configuration only that tab shows, so it is read fresh each time the tab
-/// opens and never outlives it (or the session).
+/// configuration only that section shows, so it is read fresh each time the
+/// section opens and never outlives it (or the session). Its five tabs read
+/// the same providers, so moving between them repeats no request.
+///
+/// None retries a failed read by itself (Riverpod's default): the screens
+/// offer Try again, and a refusal should not sit behind a spinner while it
+/// is asked again.
 ///
 /// Mutations wait for the server and show its answer — a source is never
 /// marked ready because a request was accepted. Sources the server is still
@@ -16,13 +21,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/models/ai_operations.dart';
+import '../../core/models/employee.dart';
 import '../../core/models/knowledge.dart';
 import '../../core/providers.dart';
+import '../authentication/auth_controller.dart';
 import 'ai_knowledge_repository.dart';
 
 final aiKnowledgeRepositoryProvider = Provider<AiKnowledgeRepository>(
   (ref) => AiKnowledgeRepository(ref.watch(apiClientProvider)),
 );
+
+/// Whether the AI section is offered to the signed-in employee:
+/// `ai_knowledge.manage`, and an organization inside the AI pilot.
+final canManageAiKnowledgeProvider = Provider<bool>((ref) {
+  final employee = ref.watch(currentEmployeeProvider);
+  return employee != null &&
+      employee.aiKnowledgeEnabled &&
+      employee.can(Perm.aiKnowledgeManage);
+});
+
+Duration? _noRetry(int retryCount, Object error) => null;
+
+/// The AI section's five tabs, in the web's order.
+enum AiSection { overview, knowledge, agent, playground, activity }
+
+/// The tab on screen. A provider so a line on one tab can open another.
+class AiSectionController extends Notifier<AiSection> {
+  @override
+  AiSection build() => AiSection.overview;
+
+  void select(AiSection section) => state = section;
+}
+
+final aiSectionProvider =
+    NotifierProvider.autoDispose<AiSectionController, AiSection>(
+      AiSectionController.new,
+    );
 
 // --------------------------------------------------------------------------- //
 // Knowledge bases
@@ -91,7 +125,7 @@ final knowledgeBasesProvider =
     AsyncNotifierProvider.autoDispose<
       KnowledgeBasesController,
       List<KnowledgeBase>
-    >(KnowledgeBasesController.new);
+    >(KnowledgeBasesController.new, retry: _noRetry);
 
 /// The base the person picked. May name one that no longer exists — read
 /// [selectedKnowledgeBaseProvider] instead, which falls back to the first.
@@ -257,6 +291,7 @@ class KnowledgeSourcesController extends AsyncNotifier<List<KnowledgeSource>> {
 final knowledgeSourcesProvider = AsyncNotifierProvider.autoDispose
     .family<KnowledgeSourcesController, List<KnowledgeSource>, String>(
       KnowledgeSourcesController.new,
+      retry: _noRetry,
     );
 
 // --------------------------------------------------------------------------- //
@@ -387,6 +422,7 @@ class AgentSettingsController extends AsyncNotifier<List<AiAgentSetting>> {
         .read(aiKnowledgeRepositoryProvider)
         .updateAgentSetting(connectionId: connectionId, changes: changes);
     if (!ref.mounted) return;
+    ref.invalidate(aiHistoryProvider);
     // A settings change does not change readiness; keep what was known.
     state = AsyncData([
       for (final row in updated)
@@ -401,17 +437,42 @@ final agentSettingsProvider =
     AsyncNotifierProvider.autoDispose<
       AgentSettingsController,
       List<AiAgentSetting>
-    >(AgentSettingsController.new);
+    >(AgentSettingsController.new, retry: _noRetry);
 
 final knowledgeConflictsProvider =
     FutureProvider.autoDispose<List<KnowledgeConflict>>(
       (ref) => ref.watch(aiKnowledgeRepositoryProvider).conflicts(),
+      retry: _noRetry,
     );
 
-/// The last 30 days — the window the web client shows.
-final aiUsageProvider = FutureProvider.autoDispose<AiUsageSummary>(
-  (ref) => ref.watch(aiKnowledgeRepositoryProvider).usage(),
+/// The usage periods offered, in days. The server's maximum is 365.
+const aiUsageWindows = [7, 30, 90];
+
+/// The usage period on screen. 30 days to start, the server's default.
+class AiUsageWindowController extends Notifier<int> {
+  @override
+  int build() => 30;
+
+  void select(int days) => state = days;
+}
+
+final aiUsageWindowProvider =
+    NotifierProvider.autoDispose<AiUsageWindowController, int>(
+      AiUsageWindowController.new,
+    );
+
+/// Aggregated usage for one period, by its days.
+final aiUsageProvider = FutureProvider.autoDispose.family<AiUsageSummary, int>(
+  (ref, days) => ref.watch(aiKnowledgeRepositoryProvider).usage(days: days),
+  retry: _noRetry,
 );
+
+/// The newest configuration changes. Read only once Change history is opened.
+final aiHistoryProvider =
+    FutureProvider.autoDispose<List<AiConfigurationChange>>(
+      (ref) => ref.watch(aiKnowledgeRepositoryProvider).history(),
+      retry: _noRetry,
+    );
 
 // --------------------------------------------------------------------------- //
 // Activity and policy
@@ -437,6 +498,7 @@ final aiActivityWindowProvider =
 final aiMetricsProvider = FutureProvider.autoDispose.family<AiMetrics, int>(
   (ref, hours) =>
       ref.watch(aiKnowledgeRepositoryProvider).metrics(hours: hours),
+  retry: _noRetry,
 );
 
 /// The organization's AI policy, and saving it.
@@ -455,12 +517,15 @@ class AiPolicyController extends AsyncNotifier<AiOrganizationPolicy> {
         .updatePolicy(changes);
     if (!ref.mounted) return;
     state = AsyncData(saved);
-    // The organization switches feed every channel's readiness.
+    // The organization switches feed every channel's readiness, and its
+    // default is what an inheriting channel's effective policy resolves to.
     ref.invalidate(agentSettingsProvider);
+    ref.invalidate(aiHistoryProvider);
   }
 }
 
 final aiPolicyProvider =
     AsyncNotifierProvider.autoDispose<AiPolicyController, AiOrganizationPolicy>(
       AiPolicyController.new,
+      retry: _noRetry,
     );

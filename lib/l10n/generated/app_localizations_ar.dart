@@ -3999,10 +3999,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get tabAiKnowledge => 'الذكاء الاصطناعي وقاعدة المعرفة';
 
   @override
-  String get aiPilotNotice =>
-      'للاختبار الداخلي فقط. لا يُرسل أي شيء من هذه الصفحة للعملاء — طرح سؤال هنا لا ينشئ محادثة ولا رسالة.';
-
-  @override
   String get aiNotAvailableTitle => 'المعرفة بالذكاء الاصطناعي غير متاحة';
 
   @override
@@ -4207,11 +4203,6 @@ class AppLocalizationsAr extends AppLocalizations {
       'اسأل ما قد يسأله العميل. الإجابة تأتي من قاعدة المعرفة المحددة فقط.';
 
   @override
-  String aiPlaygroundAskingBase(String name) {
-    return 'السؤال موجّه إلى: $name';
-  }
-
-  @override
   String get aiAskPlaceholder => 'ما هي مدة الاسترجاع؟';
 
   @override
@@ -4408,9 +4399,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get aiUsageTitle => 'الاستخدام';
 
   @override
-  String get aiUsageHint => 'هذه المؤسسة، آخر 30 يومًا.';
-
-  @override
   String get aiUsageRequests => 'الأسئلة';
 
   @override
@@ -4429,15 +4417,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get aiActivityTitle => 'نشاط الذكاء الاصطناعي';
 
   @override
-  String get aiActivitySubtitle =>
-      'ما تعامل معه الذكاء الاصطناعي وما امتنع عنه وما استهلكه';
-
-  @override
   String get aiPolicyTitle => 'سياسة الذكاء الاصطناعي';
 
   @override
   String get aiPolicySubtitle =>
-      'مفاتيح المؤسسة والحدود اليومية وإعدادات كل قناة';
+      'مفاتيح المؤسسة والحدود اليومية ومرحلة الإطلاق';
 
   @override
   String aiWindowHours(int count) {
@@ -4662,16 +4646,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get aiPolicySaved => 'تم حفظ سياسة الذكاء الاصطناعي.';
 
   @override
-  String get aiPolicyChannelsTitle => 'حدود القنوات';
-
-  @override
-  String get aiPolicyChannelsHint =>
-      'حدود الردود التلقائية ومستوى الدليل والمواضيع لكل قناة.';
-
-  @override
-  String get aiPolicyChannelsNone => 'لا توجد قناة تدعم الذكاء الاصطناعي بعد.';
-
-  @override
   String get aiUnsavedTitle => 'تجاهل التغييرات؟';
 
   @override
@@ -4682,27 +4656,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get aiUnsavedKeepEditing => 'متابعة التعديل';
-
-  @override
-  String get aiChannelConfigUnavailable =>
-      'لم يرسل الخادم إعدادات الذكاء الاصطناعي لهذه القناة.';
-
-  @override
-  String get aiChannelMaxTurns => 'أقصى عدد ردود تلقائية في الجلسة';
-
-  @override
-  String aiChannelMaxTurnsHint(int min, int max) {
-    return 'بعد هذا العدد، تُحوَّل المحادثة إلى موظف. من $min إلى $max.';
-  }
-
-  @override
-  String get aiChannelSessionIdle =>
-      'ابدأ جلسة جديدة بعد توقف العميل لمدة (ساعات)';
-
-  @override
-  String aiChannelSessionIdleHint(int min, int max) {
-    return 'من $min إلى $max ساعة.';
-  }
 
   @override
   String get aiChannelDailyCap => 'أقصى عدد ردود تلقائية في اليوم';
@@ -4800,4 +4753,357 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get aiGroundingShowFloor => 'إظهار حد التطابق';
+
+  @override
+  String get aiTabOverview => 'نظرة عامة';
+
+  @override
+  String get aiTabKnowledge => 'قاعدة المعرفة';
+
+  @override
+  String get aiTabAgent => 'الوكيل والردود التلقائية';
+
+  @override
+  String get aiTabPlayground => 'اختبار الذكاء الاصطناعي';
+
+  @override
+  String get aiTabActivity => 'النشاط والاستخدام';
+
+  @override
+  String get aiOverviewHint =>
+      'ما المطلوب من الذكاء الاصطناعي، وما يستند إليه في الإجابة، وما فعله فعلًا. وكل رقم هنا يفتح الصفحة التي تغيره.';
+
+  @override
+  String get aiKnowledgeTabHint =>
+      'ما يُسمح للذكاء الاصطناعي بالإجابة منه. ولا يُستخدم شيء خارجه.';
+
+  @override
+  String get aiAgentTabHint =>
+      'أي القنوات يمكنها كتابة مسودة، وأيها يمكنها الإرسال دون متابعة، وما تفعله عندما لا توجد إجابة.';
+
+  @override
+  String get aiPlaygroundTabHint =>
+      'اسأل كما يسأل العميل وانظر ماذا سيقول الذكاء الاصطناعي بالضبط، ولماذا.';
+
+  @override
+  String get aiActivityTabHint =>
+      'ما فعله الذكاء الاصطناعي، ولماذا اعتذر، وكم تكلفة ذلك. أعداد ونسب فقط — لا يُحفظ هنا نص أي رسالة.';
+
+  @override
+  String get aiStatusHeading => 'الحالة';
+
+  @override
+  String get aiStatusOn => 'مُفعّل';
+
+  @override
+  String get aiStatusOff => 'متوقف';
+
+  @override
+  String get aiStatusOffHint =>
+      'لا تتم صياغة أي مسودة ولا إرسال أي رسالة طالما كان متوقفًا.';
+
+  @override
+  String get aiDefaultPolicy => 'الرد التلقائي الافتراضي';
+
+  @override
+  String get aiDefaultPolicyHint => 'ما تفعله القناة ما لم تحدد غير ذلك.';
+
+  @override
+  String get aiChannelsHeading => 'القنوات';
+
+  @override
+  String get aiChannelsAuto => 'ترد تلقائيًا';
+
+  @override
+  String get aiChannelsSuggest => 'تكتب مسودة للموظف';
+
+  @override
+  String get aiChannelsOff => 'متوقفة';
+
+  @override
+  String get aiKnowledgeHeading => 'المعرفة';
+
+  @override
+  String aiKnowledgeReady(int ready, int total) {
+    return '$ready من $total مصدر جاهز';
+  }
+
+  @override
+  String aiKnowledgeChunks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مقتبس مفهرس',
+      many: '$count مقتبسًا مفهرسًا',
+      few: '$count مقتبسات مفهرسة',
+      two: 'مقتبسان مفهرسان',
+      one: 'مقتبس مفهرس واحد',
+      zero: 'لا مقتبسات مفهرسة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String aiKnowledgeBasesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count قاعدة معرفة',
+      many: '$count قاعدة معرفة',
+      few: '$count قواعد معرفة',
+      two: 'قاعدتا معرفة',
+      one: 'قاعدة معرفة واحدة',
+      zero: 'لا قواعد معرفة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get aiKnowledgeNone => 'لم يُضف شيء بعد';
+
+  @override
+  String get aiBehaviourHeading => 'آخر 24 ساعة';
+
+  @override
+  String get aiSentAutomatically => 'أُرسلت تلقائيًا';
+
+  @override
+  String get aiKbAnswered => 'أُجيبت من المعرفة';
+
+  @override
+  String get aiFallbacks => 'ردود انتظار';
+
+  @override
+  String aiFallbackRateHint(String rate) {
+    return '$rate مما أُرسل لم يجب عن شيء.';
+  }
+
+  @override
+  String get aiQuiet => 'لا شيء بعد';
+
+  @override
+  String get aiWarningsHeading => 'يستحق انتباهك';
+
+  @override
+  String get aiNothingToReport => 'لا شيء يستدعي انتباهك.';
+
+  @override
+  String get aiWarnAiOff =>
+      'الذكاء الاصطناعي متوقف لهذه المنشأة، لذا لا يعمل شيء مما بالأسفل.';
+
+  @override
+  String get aiWarnNoBase =>
+      'لا توجد قاعدة معرفة، لذا تُحال كل الأسئلة إلى موظف.';
+
+  @override
+  String get aiWarnNothingIndexed =>
+      'لم تكتمل فهرسة أي مصدر، لذا لا يوجد ما يُجاب منه.';
+
+  @override
+  String aiWarnFailedSources(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'فشلت فهرسة $count مصدر ولا تُستخدم في شيء.',
+      many: 'فشلت فهرسة $count مصدرًا ولا تُستخدم في شيء.',
+      few: 'فشلت فهرسة $count مصادر ولا تُستخدم في شيء.',
+      two: 'فشلت فهرسة مصدرين ولا يُستخدمان في شيء.',
+      one: 'فشلت فهرسة مصدر واحد ولا يُستخدم في شيء.',
+      zero: 'لا مصادر فشلت فهرستها.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String aiWarnConflicts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count زوج من المصادر تجيب عن السؤال نفسه بشكل مختلف.',
+      many: '$count زوجًا من المصادر تجيب عن السؤال نفسه بشكل مختلف.',
+      few: '$count أزواج من المصادر تجيب عن السؤال نفسه بشكل مختلف.',
+      two: 'زوجان من المصادر يجيبان عن السؤال نفسه بشكل مختلف.',
+      one: 'زوج واحد من المصادر يجيب عن السؤال نفسه بشكل مختلف.',
+      zero: 'لا تعارضات.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get aiWarnAllOff =>
+      'لا توجد قناة مُفعّل عليها الذكاء الاصطناعي، لذا ستبقى هذه الأرقام عند الصفر.';
+
+  @override
+  String get aiWarnPolicyOff =>
+      'الردود التلقائية متوقفة افتراضيًا، لذا لا ترسل أي قناة دون متابعة.';
+
+  @override
+  String aiWarnHighFallbacks(String rate) {
+    return '$rate من الردود التلقائية لم تجب عن شيء، وهذا نقص في المعرفة وليس في الإعدادات.';
+  }
+
+  @override
+  String aiWarnChannel(String channel, String reason) {
+    return '$channel: $reason';
+  }
+
+  @override
+  String get aiGoToKnowledge => 'فتح قاعدة المعرفة';
+
+  @override
+  String get aiGoToAgent => 'فتح الوكيل';
+
+  @override
+  String get aiGoToActivity => 'فتح النشاط';
+
+  @override
+  String get aiOrganizationSettings => 'إعدادات المؤسسة';
+
+  @override
+  String get aiAutoRepliesHeading => 'الردود التلقائية للذكاء الاصطناعي';
+
+  @override
+  String get aiAutoRepliesDefaultHint =>
+      'الإعداد الافتراضي لكل القنوات. يمكن لقناة أو محادثة واحدة تجاوزه.';
+
+  @override
+  String get aiReplyPolicyOff => 'إيقاف';
+
+  @override
+  String get aiReplyPolicyKnowledgeOnly => 'من قاعدة المعرفة فقط';
+
+  @override
+  String get aiReplyPolicyAlwaysReply => 'الرد دائمًا';
+
+  @override
+  String get aiReplyPolicyOffHint =>
+      'لن يرد الذكاء الاصطناعي تلقائيًا. يظل بإمكان الموظفين استخدام اقتراحات الذكاء الاصطناعي إذا كانت متاحة.';
+
+  @override
+  String get aiReplyPolicyKnowledgeOnlyHint =>
+      'الرد تلقائيًا فقط عندما تكون الإجابة مدعومة بوضوح من قاعدة المعرفة.';
+
+  @override
+  String get aiReplyPolicyAlwaysReplyHint =>
+      'يرد عندما يكون الرد التلقائي مسموحًا. وإذا لم تتوفر الإجابة في قاعدة المعرفة، يرسل ردًا احتياطيًا آمنًا ويسلّم المحادثة للفريق.';
+
+  @override
+  String get aiFallbackInstructionsLabel =>
+      'عندما لا تستطيع قاعدة المعرفة الإجابة';
+
+  @override
+  String get aiFallbackInstructionsPlaceholder =>
+      'اعتذر باختصار وقل للعميل إن الفريق هيراجع طلبه.';
+
+  @override
+  String get aiFallbackInstructionsHint =>
+      'للأسلوب وصيغة المتابعة فقط. لن يذكر الذكاء الاصطناعي أي معلومة عن العمل هنا — لا سياسة ولا سعر ولا مدة ولا مبلغ — مهما طلبت هذه التعليمات.';
+
+  @override
+  String get aiFallbackHandsOffHint =>
+      'الرد الاحتياطي يسلّم المحادثة لموظف دائمًا، حتى تحدث المتابعة التي وعد بها فعلًا.';
+
+  @override
+  String get aiConnectionPolicyLabel => 'الردود التلقائية';
+
+  @override
+  String get aiReplyPolicyUseDefault => 'استخدام الافتراضي';
+
+  @override
+  String aiReplyPolicyInheritedValue(String value) {
+    return 'يستخدم الإعداد الافتراضي للمؤسسة: $value.';
+  }
+
+  @override
+  String get aiReplyPolicyOverridden => 'مخصص لهذه القناة.';
+
+  @override
+  String aiReplyPolicyInactive(String mode) {
+    return 'الردود التلقائية غير نشطة لأن هذه القناة في وضع $mode.';
+  }
+
+  @override
+  String get aiCardReplies => 'بماذا ترد';
+
+  @override
+  String get aiCardAdvanced => 'الحدود والأمان';
+
+  @override
+  String get aiCardAdvancedHint =>
+      'مقدار الأدلة اللازمة للإجابة، والموضوعات المحظورة، وما يحول المحادثة إلى موظف.';
+
+  @override
+  String aiCardEffective(String value) {
+    return 'المطبّق: $value';
+  }
+
+  @override
+  String get aiReadyForAuto => 'جاهز للردود التلقائية';
+
+  @override
+  String get aiReadyForSuggest => 'جاهز للاقتراحات';
+
+  @override
+  String get aiNotReady => 'غير جاهز';
+
+  @override
+  String get aiHandoffTurnOn => 'تشغيل';
+
+  @override
+  String get aiHandoffTurnOff => 'إيقاف';
+
+  @override
+  String get aiGroundingNever =>
+      'لا يوجد إعداد يسمح للذكاء الاصطناعي بذكر معلومة عن العمل دون مصدر من قاعدة المعرفة.';
+
+  @override
+  String get aiPlaygroundBase => 'قاعدة المعرفة';
+
+  @override
+  String get aiSectionReplies => 'بماذا رد';
+
+  @override
+  String get aiConversationalReplies => 'تحيات ومجاملات';
+
+  @override
+  String get aiConversationalRepliesHint => 'بدون قاعدة معرفة وبدون استهلاك.';
+
+  @override
+  String aiUsageWindow(int count) {
+    return 'هذه المؤسسة، آخر $count يومًا.';
+  }
+
+  @override
+  String aiUsageDays(int count) {
+    return '$count يومًا';
+  }
+
+  @override
+  String aiUsageSince(String date) {
+    return 'منذ $date';
+  }
+
+  @override
+  String get aiHistoryTitle => 'سجل التغييرات';
+
+  @override
+  String get aiHistoryEmpty => 'لم يتم تغيير أي إعدادات للذكاء الاصطناعي بعد.';
+
+  @override
+  String aiHistoryChangedBy(String who) {
+    return 'بواسطة $who';
+  }
+
+  @override
+  String get aiHistoryChangedBySystem => 'بواسطة أمر تشغيلي';
+
+  @override
+  String aiHistorySource(String source) {
+    return 'المصدر: $source';
+  }
+
+  @override
+  String aiHistoryConversation(int id) {
+    return 'محادثة رقم $id';
+  }
 }

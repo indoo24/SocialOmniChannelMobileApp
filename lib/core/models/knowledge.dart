@@ -360,6 +360,7 @@ class AiReadiness {
   /// Sources indexed and searchable extracts, when the server reported them.
   int? get sourcesReady => JsonSafe.asIntOrNull(detail['sources_ready']);
   int? get embeddedChunks => JsonSafe.asIntOrNull(detail['embedded_chunks']);
+  int? get sourcesFailed => JsonSafe.asIntOrNull(detail['sources_failed']);
 
   factory AiReadiness.fromJson(Map<String, dynamic> json) => AiReadiness(
     connectionId: JsonSafe.asInt(json['connection_id'], fallback: -1),
@@ -441,8 +442,10 @@ class AiAgentSetting {
     this.mode = AiAssistMode.off,
     this.assistSupported = false,
     this.readiness,
-    this.maxAutoTurns,
-    this.autoSessionIdleHours,
+    this.autoSupported = false,
+    this.autoReplyPolicy = '',
+    this.effectiveAutoReplyPolicy = '',
+    this.effectiveAutoReplySource = '',
     this.dailyAutoSendLimit,
     this.groundingProfile = '',
     this.groundingFloor,
@@ -453,8 +456,6 @@ class AiAgentSetting {
   });
 
   /// `AIAgentSettingUpdate`'s bounds. There is no "unlimited".
-  static const maxAutoTurnsRange = (min: 1, max: 50);
-  static const autoSessionIdleHoursRange = (min: 1, max: 72);
   static const dailyAutoSendLimitRange = (min: 1, max: 1000);
   static const maxRestrictedTopics = 50;
   static const maxRestrictedTopicLength = 60;
@@ -471,11 +472,19 @@ class AiAgentSetting {
   /// current mode and `OFF` is offered.
   final AiReadiness? readiness;
 
-  /// Automatic replies in one session before a person takes over.
-  final int? maxAutoTurns;
+  /// Whether this channel can send automatic replies at all. Not listed in
+  /// the schema, but the web client reads it; when the server does not send
+  /// it, [assistSupported] answers for it, and the `PUT` remains the
+  /// authority.
+  final bool autoSupported;
 
-  /// Hours of customer silence after which a new AI session starts.
-  final int? autoSessionIdleHours;
+  /// This channel's own choice — `INHERIT`, `OFF`, `KNOWLEDGE_ONLY` or
+  /// `ALWAYS_REPLY`. `INHERIT` follows the organization default.
+  final String autoReplyPolicy;
+
+  /// What actually applies once inheritance is resolved.
+  final String effectiveAutoReplyPolicy;
+  final String effectiveAutoReplySource;
 
   /// Automatic replies this channel may send in a day.
   final int? dailyAutoSendLimit;
@@ -493,10 +502,7 @@ class AiAgentSetting {
   final List<AiHandoffRule> handoffRules;
 
   /// Whether the server sent this channel's limits at all.
-  bool get hasChannelConfig =>
-      maxAutoTurns != null &&
-      autoSessionIdleHours != null &&
-      dailyAutoSendLimit != null;
+  bool get hasChannelConfig => dailyAutoSendLimit != null;
 
   /// The one switchable handoff rule's state — what
   /// `handoff_on_restricted_topic` sets. Null when there is no such rule.
@@ -526,8 +532,10 @@ class AiAgentSetting {
     mode: mode,
     assistSupported: assistSupported,
     readiness: value,
-    maxAutoTurns: maxAutoTurns,
-    autoSessionIdleHours: autoSessionIdleHours,
+    autoSupported: autoSupported,
+    autoReplyPolicy: autoReplyPolicy,
+    effectiveAutoReplyPolicy: effectiveAutoReplyPolicy,
+    effectiveAutoReplySource: effectiveAutoReplySource,
     dailyAutoSendLimit: dailyAutoSendLimit,
     groundingProfile: groundingProfile,
     groundingFloor: groundingFloor,
@@ -547,8 +555,17 @@ class AiAgentSetting {
     readiness: json['readiness'] is Map
         ? AiReadiness.fromJson(JsonSafe.asMap(json['readiness']))
         : null,
-    maxAutoTurns: JsonSafe.asIntOrNull(json['max_auto_turns']),
-    autoSessionIdleHours: JsonSafe.asIntOrNull(json['auto_session_idle_hours']),
+    autoSupported: JsonSafe.asBool(
+      json['auto_supported'],
+      fallback: JsonSafe.asBool(json['assist_supported']),
+    ),
+    autoReplyPolicy: JsonSafe.asString(json['auto_reply_policy']),
+    effectiveAutoReplyPolicy: JsonSafe.asString(
+      json['effective_auto_reply_policy'],
+    ),
+    effectiveAutoReplySource: JsonSafe.asString(
+      json['effective_auto_reply_source'],
+    ),
     dailyAutoSendLimit: JsonSafe.asIntOrNull(json['daily_auto_send_limit']),
     groundingProfile: JsonSafe.asString(json['grounding_profile']),
     groundingFloor: JsonSafe.asDoubleOrNull(json['grounding_floor']),
