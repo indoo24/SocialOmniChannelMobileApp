@@ -119,6 +119,15 @@ class CustomerConversationGroup {
     conversations: List.unmodifiable(conversations.map(update)),
   );
 
+  /// The search match of the newest thread the search found a message in,
+  /// or null when none of them carries one (see [SearchMatch]).
+  SearchMatch? get searchMatch {
+    for (final c in conversations) {
+      if (c.searchMatch != null) return c.searchMatch;
+    }
+    return null;
+  }
+
   /// Latest message activity timestamp across all conversations in this group.
   DateTime? get lastMessageAt => primaryConversation.lastMessageAt;
 
