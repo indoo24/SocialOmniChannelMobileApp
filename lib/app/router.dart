@@ -50,6 +50,9 @@ class Routes {
   static const analytics = '/analytics';
   static const templates = '/templates';
   static const settings = '/settings';
+
+  /// Settings, opened on its Routing tab.
+  static const settingsRouting = '/settings?tab=routing';
   static const notifications = '/notifications';
 
   static String conversation(int id) => '/inbox/$id';
@@ -191,7 +194,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.settings,
-        builder: (context, state) => const SettingsScreen(),
+        builder: (context, state) =>
+            SettingsScreen(initialTab: state.uri.queryParameters['tab']),
         routes: [
           // Checks `ai_knowledge.manage` and the AI pilot itself, so a deep
           // link from a role without them lands on "not available".

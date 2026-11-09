@@ -5204,4 +5204,69 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiHandoffRepeatedFailure => 'several attempts produced no answer';
+
+  @override
+  String get distributionMethodTitle => 'Distribution method';
+
+  @override
+  String get distributionMethodHint =>
+      'How the next conversation is chosen from the employees who are allowed to take it. Eligibility, channel access and responsibility rules are unaffected — this only decides the order among them.';
+
+  @override
+  String get distributionRecentWorkload => 'Recent workload';
+
+  @override
+  String get distributionRecentWorkloadHint =>
+      'Balances new conversations on how many each employee received during the selected period.';
+
+  @override
+  String get distributionRoundRobin => 'Round robin';
+
+  @override
+  String get distributionRoundRobinHint =>
+      'Hands new conversations to each eligible employee in turn. No period is involved, so time passing never resets the order.';
+
+  @override
+  String get distributionSaved => 'Distribution method saved';
+
+  @override
+  String get rotationTitle => 'Rotation order';
+
+  @override
+  String get rotationHint =>
+      'Whose turn is next, oldest first. The period above is not used in this mode.';
+
+  @override
+  String rotationAccount(String name) {
+    return 'Rotation for $name';
+  }
+
+  @override
+  String get rotationNever => 'No turn taken yet';
+
+  @override
+  String get rotationNext => 'Next in turn';
+
+  @override
+  String rotationBehind(int count) {
+    return '$count ahead in turn';
+  }
+
+  @override
+  String rotationReceivedInfo(int count) {
+    return '$count received (not used for ordering)';
+  }
+
+  @override
+  String get rotationEmpty => 'Nobody can receive conversations right now.';
+
+  @override
+  String get dashboardRotationTitle => 'Turn order';
+
+  @override
+  String get dashboardRotationInactive =>
+      'Round robin isn\'t in use: new conversations go by recent workload, so this order doesn\'t decide who gets them.';
+
+  @override
+  String get dashboardOpenRouting => 'Open routing settings';
 }

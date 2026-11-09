@@ -1,5 +1,19 @@
 import '../utils/json_safe.dart';
 
+/// `DistributionModeEnum`: how the allocator picks the next employee among
+/// those allowed to take a conversation.
+class RoutingDistributionMode {
+  const RoutingDistributionMode._();
+
+  /// The fewest conversations received inside `workload_window`.
+  static const recentWorkload = 'RECENT_WORKLOAD';
+
+  /// Each eligible employee in turn; no window involved.
+  static const roundRobin = 'ROUND_ROBIN';
+
+  static const values = [recentWorkload, roundRobin];
+}
+
 /// Conversation routing policy configured for the organization.
 ///
 /// Backs `GET /api/routing/policy/` and `PATCH /api/routing/policy/`.
@@ -14,6 +28,7 @@ class RoutingPolicy {
     this.escalationMaxHops = 3,
     this.strictResponsibility = false,
     this.workloadWindow = '',
+    this.distributionMode = '',
   });
 
   /// Whether automatic assignment of incoming conversations to available agents is active.
@@ -48,6 +63,14 @@ class RoutingPolicy {
   /// `WorkloadWindow` for the documented values.
   final String workloadWindow;
 
+  /// `distribution_mode`, as sent — see [RoutingDistributionMode]. Empty
+  /// when the server did not send it: no method is then claimed, and the
+  /// selector is not shown.
+  final String distributionMode;
+
+  bool get isRoundRobin =>
+      distributionMode == RoutingDistributionMode.roundRobin;
+
   factory RoutingPolicy.fromJson(Map<String, dynamic> json) => RoutingPolicy(
     isEnabled: JsonSafe.asBool(json['is_enabled'], fallback: true),
     maxOpenChatsPerAgent: JsonSafe.asInt(
@@ -73,6 +96,7 @@ class RoutingPolicy {
       fallback: false,
     ),
     workloadWindow: JsonSafe.asString(json['workload_window']),
+    distributionMode: JsonSafe.asString(json['distribution_mode']),
   );
 
   RoutingPolicy copyWith({
@@ -85,6 +109,7 @@ class RoutingPolicy {
     int? escalationMaxHops,
     bool? strictResponsibility,
     String? workloadWindow,
+    String? distributionMode,
   }) => RoutingPolicy(
     isEnabled: isEnabled ?? this.isEnabled,
     maxOpenChatsPerAgent: maxOpenChatsPerAgent ?? this.maxOpenChatsPerAgent,
@@ -97,6 +122,7 @@ class RoutingPolicy {
     strictResponsibility: strictResponsibility ?? this.strictResponsibility,
     escalationMaxHops: escalationMaxHops ?? this.escalationMaxHops,
     workloadWindow: workloadWindow ?? this.workloadWindow,
+    distributionMode: distributionMode ?? this.distributionMode,
   );
 }
 

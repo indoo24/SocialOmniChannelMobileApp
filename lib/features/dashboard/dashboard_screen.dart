@@ -15,6 +15,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/router.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/directory.dart';
+import '../../core/models/employee.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/cache/cached_async_value.dart';
@@ -26,6 +27,7 @@ import '../authentication/auth_controller.dart';
 import '../conversations/inbox_screen.dart';
 import '../directory/directory_providers.dart';
 import '../performance/performance_card.dart';
+import '../settings/distribution_method_card.dart';
 import 'dashboard_cache.dart';
 import 'dashboard_date_filter_sheet.dart';
 import 'dashboard_date_filter_state.dart';
@@ -39,6 +41,7 @@ class DashboardScreen extends ConsumerWidget {
     final employee = ref.watch(currentEmployeeProvider);
     final summary = ref.watch(dashboardProvider);
     final firstName = employee?.fullName.split(' ').first ?? 'there';
+    final canSeeRotation = ref.watch(canProvider(Perm.routingManage));
 
     return SectionScaffold(
       title: context.l10n.dashboardGreeting(firstName),
@@ -53,6 +56,7 @@ class DashboardScreen extends ConsumerWidget {
         ref
           ..invalidate(dashboardProvider)
           ..invalidate(dashboardPerformanceProvider);
+        if (canSeeRotation) ref.invalidate(routingWorkloadProvider);
         await Future.wait([
           ref.read(dashboardProvider.future),
           ref.read(dashboardPerformanceProvider.future),
@@ -178,6 +182,10 @@ class DashboardScreen extends ConsumerWidget {
               ),
               _WorkloadCard(team: data.team!),
             ],
+
+            // The routing order reads `GET /routing/workload/`, which needs
+            // `routing.manage`; nobody else is shown a section they cannot load.
+            if (canSeeRotation) const _RotationOrderSection(),
 
             const SizedBox(height: Space.xl),
             SectionHeading(
@@ -427,6 +435,83 @@ class _RecentActivityCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// "Turn order" — who gets the next conversation under round robin, as the
+/// routing allocator orders it: every employee, in the server's order.
+/// Read-only: no method, period or order can be changed here; the link opens
+/// Settings → Routing, where they can.
+///
+/// The method comes from the same response as the order, so the section can
+/// never show a rotation the server is not using. Under recent workload it
+/// says the order is inactive rather than show one that decides nothing.
+class _RotationOrderSection extends ConsumerWidget {
+  const _RotationOrderSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    void openRouting() => context.go(Routes.settingsRouting);
+    final preview = ref.watch(routingWorkloadProvider).value;
+
+    // A server that does not say which method is deciding: nothing to show
+    // that could be trusted.
+    if (preview != null && preview.distributionMode.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final inactive = preview != null && !preview.isRoundRobin;
+
+    return Column(
+      key: const ValueKey('dashboardRotation'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: Space.xl),
+        SectionHeading(
+          l10n.dashboardRotationTitle,
+          // Flexible: on a narrow phone the link shortens rather than push
+          // the heading off the edge.
+          trailing: Flexible(
+            child: TextButton(
+              key: const ValueKey('dashboardRotationOpenRouting'),
+              onPressed: openRouting,
+              child: Text(
+                l10n.dashboardOpenRouting,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ),
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(Space.md),
+            child: inactive
+                ? Row(
+                    key: const ValueKey('dashboardRotationInactive'),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 18,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: Space.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.dashboardRotationInactive,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  )
+                : const RoutingRotationList(),
+          ),
+        ),
+      ],
     );
   }
 }

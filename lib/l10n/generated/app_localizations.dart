@@ -9072,6 +9072,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'several attempts produced no answer'**
   String get aiHandoffRepeatedFailure;
+
+  /// No description provided for @distributionMethodTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Distribution method'**
+  String get distributionMethodTitle;
+
+  /// No description provided for @distributionMethodHint.
+  ///
+  /// In en, this message translates to:
+  /// **'How the next conversation is chosen from the employees who are allowed to take it. Eligibility, channel access and responsibility rules are unaffected — this only decides the order among them.'**
+  String get distributionMethodHint;
+
+  /// No description provided for @distributionRecentWorkload.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent workload'**
+  String get distributionRecentWorkload;
+
+  /// No description provided for @distributionRecentWorkloadHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Balances new conversations on how many each employee received during the selected period.'**
+  String get distributionRecentWorkloadHint;
+
+  /// No description provided for @distributionRoundRobin.
+  ///
+  /// In en, this message translates to:
+  /// **'Round robin'**
+  String get distributionRoundRobin;
+
+  /// No description provided for @distributionRoundRobinHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hands new conversations to each eligible employee in turn. No period is involved, so time passing never resets the order.'**
+  String get distributionRoundRobinHint;
+
+  /// No description provided for @distributionSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Distribution method saved'**
+  String get distributionSaved;
+
+  /// No description provided for @rotationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotation order'**
+  String get rotationTitle;
+
+  /// No description provided for @rotationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Whose turn is next, oldest first. The period above is not used in this mode.'**
+  String get rotationHint;
+
+  /// No description provided for @rotationAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotation for {name}'**
+  String rotationAccount(String name);
+
+  /// No description provided for @rotationNever.
+  ///
+  /// In en, this message translates to:
+  /// **'No turn taken yet'**
+  String get rotationNever;
+
+  /// No description provided for @rotationNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next in turn'**
+  String get rotationNext;
+
+  /// No description provided for @rotationBehind.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} ahead in turn'**
+  String rotationBehind(int count);
+
+  /// No description provided for @rotationReceivedInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} received (not used for ordering)'**
+  String rotationReceivedInfo(int count);
+
+  /// No description provided for @rotationEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody can receive conversations right now.'**
+  String get rotationEmpty;
+
+  /// No description provided for @dashboardRotationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn order'**
+  String get dashboardRotationTitle;
+
+  /// No description provided for @dashboardRotationInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Round robin isn\'t in use: new conversations go by recent workload, so this order doesn\'t decide who gets them.'**
+  String get dashboardRotationInactive;
+
+  /// No description provided for @dashboardOpenRouting.
+  ///
+  /// In en, this message translates to:
+  /// **'Open routing settings'**
+  String get dashboardOpenRouting;
 }
 
 class _AppLocalizationsDelegate

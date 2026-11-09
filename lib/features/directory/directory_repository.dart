@@ -735,6 +735,7 @@ class DirectoryRepository {
     int? escalationMaxHops,
     bool? strictResponsibility,
     String? workloadWindow,
+    String? distributionMode,
   }) async {
     final body = <String, dynamic>{
       'is_enabled': ?isEnabled,
@@ -745,6 +746,7 @@ class DirectoryRepository {
       'escalation_max_hops': ?escalationMaxHops,
       'strict_responsibility': ?strictResponsibility,
       'workload_window': ?workloadWindow,
+      'distribution_mode': ?distributionMode,
     };
     final data = await _api.patch<Map<String, dynamic>>(
       '/routing/policy/',

@@ -5227,4 +5227,69 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get aiHandoffRepeatedFailure => 'عدة محاولات لم تنتج إجابة';
+
+  @override
+  String get distributionMethodTitle => 'طريقة توزيع المحادثات';
+
+  @override
+  String get distributionMethodHint =>
+      'كيف يتم اختيار المحادثة التالية من بين الموظفين المسموح لهم باستقبالها. لا يؤثر هذا على الأهلية أو صلاحيات القنوات أو قواعد المسؤولية، بل يحدد الترتيب بينهم فقط.';
+
+  @override
+  String get distributionRecentWorkload => 'حسب عبء العمل الأخير';
+
+  @override
+  String get distributionRecentWorkloadHint =>
+      'يوزع المحادثات الجديدة بناءً على عدد المحادثات التي استقبلها كل موظف خلال الفترة المحددة.';
+
+  @override
+  String get distributionRoundRobin => 'بالدور';
+
+  @override
+  String get distributionRoundRobinHint =>
+      'يوزع المحادثات الجديدة بالتتابع بين الموظفين المؤهلين، دون الاعتماد على فترة زمنية، فمرور الوقت لا يعيد الترتيب.';
+
+  @override
+  String get distributionSaved => 'تم حفظ طريقة التوزيع';
+
+  @override
+  String get rotationTitle => 'ترتيب الدور';
+
+  @override
+  String get rotationHint =>
+      'من صاحب الدور التالي، الأقدم أولاً. الفترة المحددة أعلاه لا تُستخدم في هذه الطريقة.';
+
+  @override
+  String rotationAccount(String name) {
+    return 'الدور لحساب $name';
+  }
+
+  @override
+  String get rotationNever => 'لم يأتِ دوره بعد';
+
+  @override
+  String get rotationNext => 'الدور التالي';
+
+  @override
+  String rotationBehind(int count) {
+    return 'يسبقه $count';
+  }
+
+  @override
+  String rotationReceivedInfo(int count) {
+    return 'استقبل $count (لا تُستخدم في الترتيب)';
+  }
+
+  @override
+  String get rotationEmpty => 'لا يوجد من يستطيع استقبال المحادثات الآن.';
+
+  @override
+  String get dashboardRotationTitle => 'ترتيب الأدوار';
+
+  @override
+  String get dashboardRotationInactive =>
+      'التوزيع بالدور غير مفعّل: تُوزّع المحادثات الجديدة حسب عبء العمل الأخير، لذا هذا الترتيب لا يحدد من يستقبلها.';
+
+  @override
+  String get dashboardOpenRouting => 'فتح إعدادات التوجيه';
 }

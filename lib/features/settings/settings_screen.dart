@@ -43,13 +43,22 @@ import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
 import '../messages/conversation_controller.dart';
 import 'channel_connect_sheets.dart';
+import 'distribution_method_card.dart';
 import 'more_settings_tab.dart';
 import 'settings_skeleton.dart';
 import 'workload_window_card.dart';
 import 'appearance_settings.dart';
 
 class SettingsScreen extends ConsumerWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({this.initialTab, super.key});
+
+  /// The tab to open on, by id (`channels`, `routing`, `profile`, `more`,
+  /// `ai`) — from `/settings?tab=`. Unknown, or not offered to this role:
+  /// the first tab.
+  final String? initialTab;
+
+  /// The Routing tab's id, for links that open it.
+  static const routingTab = 'routing';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -75,18 +84,23 @@ class SettingsScreen extends ConsumerWidget {
     // the catch-all. AI & Knowledge is its own tab rather than a section of
     // More (where the web nests it): it has five tabs of its own, and would
     // bury Export data under them on a phone.
-    final tabs = <(String, Widget)>[
-      if (canSeeChannels) (context.l10n.tabChannels, const _ChannelsTab()),
+    final tabs = <(String, String, Widget)>[
+      if (canSeeChannels)
+        ('channels', context.l10n.tabChannels, const _ChannelsTab()),
       if (canManageRouting)
-        (context.l10n.tabAssignment, const _AssignmentTab()),
-      (context.l10n.tabProfile, const ProfileTab()),
+        (routingTab, context.l10n.tabAssignment, const _AssignmentTab()),
+      ('profile', context.l10n.tabProfile, const ProfileTab()),
       if (canSeeMoreSettings)
-        (context.l10n.tabMoreSettings, const MoreSettingsTab()),
+        ('more', context.l10n.tabMoreSettings, const MoreSettingsTab()),
       if (canSeeAiKnowledge)
-        (context.l10n.tabAiKnowledge, const AiKnowledgeSettingsTab()),
+        ('ai', context.l10n.tabAiKnowledge, const AiKnowledgeSettingsTab()),
     ];
+    final initialIndex = tabs.indexWhere((t) => t.$1 == initialTab);
 
     return DefaultTabController(
+      // Keyed so a link to another tab of an open Settings screen opens it.
+      key: ValueKey('settings-tabs-$initialTab'),
+      initialIndex: initialIndex < 0 ? 0 : initialIndex,
       length: tabs.length,
       child: Scaffold(
         drawer: const AppDrawer(),
@@ -100,10 +114,10 @@ class SettingsScreen extends ConsumerWidget {
           bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
-            tabs: [for (final (label, _) in tabs) Tab(text: label)],
+            tabs: [for (final (_, label, _) in tabs) Tab(text: label)],
           ),
         ),
-        body: TabBarView(children: [for (final (_, view) in tabs) view]),
+        body: TabBarView(children: [for (final (_, _, view) in tabs) view]),
       ),
     );
   }
@@ -2254,7 +2268,18 @@ class _AssignmentTabContentState extends State<_AssignmentTabContent> {
       children: [
         _AutoAssignmentCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
-        WorkloadWindowCard(policy: widget.policy),
+        // How the next conversation is chosen, and below it what that method
+        // works from: the period under recent workload, the turn order under
+        // round robin. A server that does not report a method gets the
+        // workload card alone, as before.
+        if (widget.policy.distributionMode.isNotEmpty) ...[
+          DistributionMethodCard(policy: widget.policy),
+          const SizedBox(height: Space.lg),
+        ],
+        if (widget.policy.isRoundRobin)
+          RotationOrderCard(policy: widget.policy)
+        else
+          WorkloadWindowCard(policy: widget.policy),
         const SizedBox(height: Space.lg),
         _ChatCapacityCard(policy: widget.policy),
         const SizedBox(height: Space.lg),

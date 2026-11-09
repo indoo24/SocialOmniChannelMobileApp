@@ -36,7 +36,20 @@ class WorkloadPreview {
     this.windowStart,
     this.windowEnd,
     this.timezone = '',
+    this.distributionMode = '',
+    this.rotationConnections = const [],
   });
+
+  /// Which metric is deciding (`distribution_mode`), as sent. Under
+  /// `ROUND_ROBIN` the window plays no part and each row carries a
+  /// [WorkloadRow.rotation].
+  final String distributionMode;
+
+  /// The connected accounts a rotation was computed for — a rotation is per
+  /// account, and the rows describe the first of these.
+  final List<RotationConnection> rotationConnections;
+
+  bool get isRoundRobin => distributionMode == 'ROUND_ROBIN';
 
   /// The window these figures were computed for (`workload_window`), as
   /// sent — lets the screen tell figures for the selected window apart from
@@ -60,6 +73,13 @@ class WorkloadPreview {
         windowEnd: _date(json['window_end']),
         timezone: JsonSafe.asString(json['timezone']),
         employees: JsonSafe.parseList(json['employees'], WorkloadRow.fromJson),
+        distributionMode: JsonSafe.asString(json['distribution_mode']),
+        rotationConnections: [
+          for (final item in JsonSafe.asObjectList(
+            json['rotation_connections'],
+          ))
+            if (item is Map) RotationConnection.fromJson(JsonSafe.asMap(item)),
+        ],
       );
 
   /// True when no one in the list can currently be given work.
@@ -79,6 +99,7 @@ class WorkloadRow {
     this.availability = '',
     this.capacity = 0,
     this.blockedBy = const [],
+    this.rotation,
   });
 
   final int id;
@@ -103,6 +124,10 @@ class WorkloadRow {
   /// Why they are not routable, as the backend lists it.
   final List<String> blockedBy;
 
+  /// Where this employee stands in the rotation — only under `ROUND_ROBIN`,
+  /// and null for one who has not taken a turn yet.
+  final RotationState? rotation;
+
   factory WorkloadRow.fromJson(Map<String, dynamic> json) => WorkloadRow(
     id: JsonSafe.asInt(json['id'], fallback: -1),
     fullName: JsonSafe.asString(json['full_name']),
@@ -120,7 +145,39 @@ class WorkloadRow {
               : const []))
         if (reason is String) reason,
     ],
+    rotation: json['rotation'] is Map
+        ? RotationState.fromJson(JsonSafe.asMap(json['rotation']))
+        : null,
   );
+}
+
+/// A row's `rotation` block. The schema leaves it free-form; the field read
+/// here, `turns_behind`, is the one the description names and the web reads:
+/// how many colleagues are ahead, `0` being next. Nothing else is assumed.
+class RotationState {
+  const RotationState({this.turnsBehind});
+
+  final int? turnsBehind;
+
+  bool get isNext => turnsBehind == 0;
+
+  factory RotationState.fromJson(Map<String, dynamic> json) =>
+      RotationState(turnsBehind: JsonSafe.asIntOrNull(json['turns_behind']));
+}
+
+/// One of `rotation_connections`: a connected account a rotation is kept
+/// for. Only its `name` is read, as the web does.
+class RotationConnection {
+  const RotationConnection({this.id, this.name = ''});
+
+  final int? id;
+  final String name;
+
+  factory RotationConnection.fromJson(Map<String, dynamic> json) =>
+      RotationConnection(
+        id: JsonSafe.asIntOrNull(json['id']),
+        name: JsonSafe.asString(json['name']),
+      );
 }
 
 DateTime? _date(Object? value) =>
