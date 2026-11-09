@@ -171,6 +171,21 @@ const _dashboard = {
     'pending_review': 0,
     'average_lead_score': 0.0,
   },
+  // The Team workload block the server sends to analytics.view roles. The
+  // Dashboard no longer shows it; the turn order has its place.
+  'team': {
+    'online_agents': 3,
+    'workload': [
+      {
+        'id': 21,
+        'full_name': 'Workload Person',
+        'initials': 'WP',
+        'availability': 'ONLINE',
+        'open_conversations': 7,
+        'unread_conversations': 2,
+      },
+    ],
+  },
   'recent_conversations': <Object>[],
 };
 
@@ -210,8 +225,10 @@ Future<void> _pump(
       ),
       GoRoute(
         path: Routes.settings,
-        builder: (_, state) =>
-            SettingsScreen(initialTab: state.uri.queryParameters['tab']),
+        builder: (_, state) => SettingsScreen(
+          initialTab: state.uri.queryParameters['tab'],
+          initialSection: state.uri.queryParameters['section'],
+        ),
       ),
     ],
   );
@@ -499,7 +516,7 @@ void main() {
       ]);
       expect(_standing(tester, 10), 'Next in turn');
       expect(find.byKey(const ValueKey('rotationMore')), findsNothing);
-      expect(find.text('Open routing settings'), findsOneWidget);
+      expect(find.text('View full order'), findsOneWidget);
       // Read-only: no control that could change routing.
       for (final type in [
         Radio<String>,
@@ -519,19 +536,87 @@ void main() {
       }
     });
 
-    testWidgets('its link opens Routing settings', (tester) async {
+    testWidgets('View full order opens Routing at the turn order', (
+      tester,
+    ) async {
+      // A short phone, so the turn order starts below the fold of Routing.
       final backend = _Backend(mode: 'ROUND_ROBIN');
-      await _pump(tester, backend);
+      await _pump(tester, backend, size: const Size(400, 700));
       await _scrollToRotation(tester);
-      await tester.tap(
-        find.byKey(const ValueKey('dashboardRotationOpenRouting')),
-      );
+      await tester.tap(find.byKey(const ValueKey('dashboardRotationViewAll')));
       await tester.pumpAndSettle();
 
       expect(find.byType(SettingsScreen), findsOneWidget);
+      expect(find.byType(DashboardScreen), findsNothing);
       expect(_rotationCard, findsOneWidget);
-      expect(_methodCard, findsOneWidget);
+      // Scrolled to the card: its top is on screen, near the top.
+      final top = tester.getTopLeft(_rotationCard).dy;
+      expect(top, inInclusiveRange(0, 350));
       expect(backend.patches, isEmpty);
+    });
+
+    testWidgets('a plain Routing link still opens at the top', (tester) async {
+      await _pump(
+        tester,
+        _Backend(mode: 'ROUND_ROBIN'),
+        initialLocation: Routes.settingsRouting,
+        size: const Size(400, 700),
+      );
+      final list = tester.state<ScrollableState>(
+        find
+            .descendant(
+              of: find.byType(SettingsScreen),
+              matching: find.byWidgetPredicate(
+                (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+              ),
+            )
+            .first,
+      );
+      expect(list.position.pixels, 0);
+      expect(_methodCard.hitTestable(), findsOneWidget);
+    });
+
+    testWidgets('Team workload is gone; the turn order is in its place', (
+      tester,
+    ) async {
+      await _pump(tester, _Backend(mode: 'ROUND_ROBIN'));
+      await _scrollToRotation(tester);
+
+      // Neither the heading, the online count nor its rows.
+      expect(find.text('Team workload'), findsNothing);
+      expect(find.text('3 online'), findsNothing);
+      expect(find.text('Workload Person'), findsNothing);
+      expect(find.text('7 open · 2 unread'), findsNothing);
+      // The unrelated sections stay, and the turn order sits between the
+      // statistics and Recent activity, where Team workload was.
+      expect(find.text('Conversations'), findsOneWidget);
+      expect(_dashboardSection, findsOneWidget);
+      final recent = find.text('Recent activity');
+      await tester.scrollUntilVisible(
+        recent,
+        300,
+        scrollable: find
+            .descendant(
+              of: find.byType(DashboardScreen),
+              matching: find.byWidgetPredicate(
+                (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+              ),
+            )
+            .first,
+      );
+      expect(
+        tester.getTopLeft(_dashboardSection).dy,
+        lessThan(tester.getTopLeft(recent).dy),
+      );
+    });
+
+    testWidgets('Team workload stays gone for roles without routing.manage', (
+      tester,
+    ) async {
+      await _pump(tester, _Backend(), me: _admin(routing: false));
+      expect(find.text('Team workload'), findsNothing);
+      expect(find.text('Workload Person'), findsNothing);
+      expect(find.text('Conversations'), findsOneWidget);
     });
 
     testWidgets('recent workload: says the order is inactive, shows none', (
@@ -545,7 +630,10 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const ValueKey('rotationList')), findsNothing);
+      // Routing shows no order to view under this method.
       expect(find.text('Open routing settings'), findsOneWidget);
+      expect(find.text('View full order'), findsNothing);
+      expect(find.text('Team workload'), findsNothing);
     });
 
     testWidgets('without routing.manage: no section and no request', (
@@ -585,6 +673,7 @@ void main() {
     await _scrollToRotation(tester);
     expect(tester.takeException(), isNull);
     expect(find.text('ترتيب الأدوار'), findsOneWidget);
-    expect(find.text('فتح إعدادات التوجيه'), findsOneWidget);
+    expect(find.text('عرض الترتيب بالكامل'), findsOneWidget);
+    expect(find.text('عبء عمل الفريق'), findsNothing);
   });
 }

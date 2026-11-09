@@ -9180,6 +9180,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open routing settings'**
   String get dashboardOpenRouting;
+
+  /// No description provided for @dashboardRotationViewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View full order'**
+  String get dashboardRotationViewAll;
 }
 
 class _AppLocalizationsDelegate

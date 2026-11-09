@@ -2804,5 +2804,6 @@
   "rotationEmpty": "Nobody can receive conversations right now.",
   "dashboardRotationTitle": "Turn order",
   "dashboardRotationInactive": "Round robin isn't in use: new conversations go by recent workload, so this order doesn't decide who gets them.",
-  "dashboardOpenRouting": "Open routing settings"
+  "dashboardOpenRouting": "Open routing settings",
+  "dashboardRotationViewAll": "View full order"
 }
