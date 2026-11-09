@@ -5077,4 +5077,196 @@ class AppLocalizationsEn extends AppLocalizations {
   String aiHistoryConversation(int id) {
     return 'Conversation #$id';
   }
+
+  @override
+  String get aiConvoHandled => 'AI answered';
+
+  @override
+  String get aiConvoPausedHere => 'AI is paused for this conversation';
+
+  @override
+  String get aiConvoPaused => 'AI paused';
+
+  @override
+  String aiConvoPausedBecause(String reason) {
+    return 'AI paused — $reason';
+  }
+
+  @override
+  String get aiConvoResume => 'Resume AI';
+
+  @override
+  String get aiConvoResumeAndAnswer => 'Resume & answer latest';
+
+  @override
+  String get aiConvoResumed => 'The AI may answer this conversation again';
+
+  @override
+  String get aiConvoAnswering =>
+      'The AI may answer again, and is answering the latest message.';
+
+  @override
+  String get aiConvoPolicyLine => 'AI auto';
+
+  @override
+  String aiConvoInheritedFrom(String source) {
+    return 'inherited from $source';
+  }
+
+  @override
+  String get aiConvoOverride => 'set for this conversation';
+
+  @override
+  String get aiConvoSourceOrganization => 'the organization default';
+
+  @override
+  String get aiConvoChangePolicy =>
+      'Change automatic replies for this conversation';
+
+  @override
+  String aiConvoUseDefaultWithValue(String value) {
+    return 'Use default ($value)';
+  }
+
+  @override
+  String get aiConvoPolicySaved =>
+      'Automatic replies updated for this conversation.';
+
+  @override
+  String get aiConvoUnavailable => 'AI isn\'t available for this conversation.';
+
+  @override
+  String get aiAnswerLatestHumanAnswered =>
+      'A colleague has already answered the latest message, so the AI will not reply to it. Resuming lets it answer the next one.';
+
+  @override
+  String get aiAnswerLatestAiAnswered =>
+      'The AI has already answered the latest message.';
+
+  @override
+  String get aiAnswerLatestAlreadySent =>
+      'A reply has already gone out for the latest message.';
+
+  @override
+  String get aiAnswerLatestNoQuestion =>
+      'There is no customer message waiting for an answer.';
+
+  @override
+  String get aiAnswerLatestStillRunning =>
+      'The AI is still deciding about this message.';
+
+  @override
+  String get aiAnswerLatestNotAuto =>
+      'This channel is set to suggestions only, so the AI cannot answer on its own here.';
+
+  @override
+  String get aiAnswerLatestPolicyRefused =>
+      'The AI is not allowed to answer this message yet — the reason above explains why.';
+
+  @override
+  String get aiHandoffNotInKb => 'the knowledge base could not answer';
+
+  @override
+  String get aiHandoffConflictingKnowledge => 'two sources disagreed';
+
+  @override
+  String get aiHandoffAttachment => 'someone needs to look at a file';
+
+  @override
+  String get aiHandoffCustomerRequestedHuman =>
+      'the customer asked for a person';
+
+  @override
+  String get aiHandoffRestrictedTopic => 'the topic needs a person';
+
+  @override
+  String get aiHandoffUngroundedNumber =>
+      'the answer would have carried an unsupported figure';
+
+  @override
+  String get aiHandoffMaxAutoTurns =>
+      'the automatic reply limit was reached (retired)';
+
+  @override
+  String get aiHandoffHumanTakeover => 'a colleague took over';
+
+  @override
+  String get aiHandoffOutsideServiceWindow => 'the reply window has closed';
+
+  @override
+  String get aiHandoffBudgetExhausted => 'the usage limit was reached';
+
+  @override
+  String get aiHandoffProviderFailure => 'the AI provider could not be reached';
+
+  @override
+  String get aiHandoffKbNotReady => 'the knowledge base is not ready';
+
+  @override
+  String get aiHandoffRepeatedFailure => 'several attempts produced no answer';
+
+  @override
+  String get distributionMethodTitle => 'Distribution method';
+
+  @override
+  String get distributionMethodHint =>
+      'How the next conversation is chosen from the employees who are allowed to take it. Eligibility, channel access and responsibility rules are unaffected — this only decides the order among them.';
+
+  @override
+  String get distributionRecentWorkload => 'Recent workload';
+
+  @override
+  String get distributionRecentWorkloadHint =>
+      'Balances new conversations on how many each employee received during the selected period.';
+
+  @override
+  String get distributionRoundRobin => 'Round robin';
+
+  @override
+  String get distributionRoundRobinHint =>
+      'Hands new conversations to each eligible employee in turn. No period is involved, so time passing never resets the order.';
+
+  @override
+  String get distributionSaved => 'Distribution method saved';
+
+  @override
+  String get rotationTitle => 'Rotation order';
+
+  @override
+  String get rotationHint =>
+      'Whose turn is next, oldest first. The period above is not used in this mode.';
+
+  @override
+  String rotationAccount(String name) {
+    return 'Rotation for $name';
+  }
+
+  @override
+  String get rotationNever => 'No turn taken yet';
+
+  @override
+  String get rotationNext => 'Next in turn';
+
+  @override
+  String rotationBehind(int count) {
+    return '$count ahead in turn';
+  }
+
+  @override
+  String rotationReceivedInfo(int count) {
+    return '$count received (not used for ordering)';
+  }
+
+  @override
+  String get rotationEmpty => 'Nobody can receive conversations right now.';
+
+  @override
+  String get dashboardRotationTitle => 'Turn order';
+
+  @override
+  String get dashboardRotationInactive =>
+      'Round robin isn\'t in use: new conversations go by recent workload, so this order doesn\'t decide who gets them.';
+
+  @override
+  String get dashboardOpenRouting => 'Open routing settings';
 }
