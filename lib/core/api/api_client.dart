@@ -354,6 +354,9 @@ class ApiClient {
   Future<T> patch<T>(String path, {Object? body}) =>
       _send<T>(() => _dio.patch<dynamic>(path, data: body));
 
+  Future<T> put<T>(String path, {Object? body}) =>
+      _send<T>(() => _dio.put<dynamic>(path, data: body));
+
   Future<T> delete<T>(String path, {Object? body}) =>
       _send<T>(() => _dio.delete<dynamic>(path, data: body));
 

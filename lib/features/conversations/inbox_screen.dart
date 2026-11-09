@@ -6,11 +6,13 @@
 /// rows, same badges, same terminology, same visibility.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../app/router.dart';
 import '../../core/models/conversation.dart';
@@ -27,6 +29,7 @@ import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../core/widgets/user_account_menu.dart';
 import '../../core/utils/formatting.dart';
+import '../../core/utils/search_highlight.dart';
 import '../../core/utils/text_direction.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'conversation_preview_formatter.dart';
@@ -89,6 +92,17 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   final _scrollController = ScrollController(keepScrollOffset: false);
   final _searchController = TextEditingController();
   bool _searching = false;
+
+  /// How long typing must pause before the query is sent. Pressing Search on
+  /// the keyboard sends it at once.
+  static const searchDebounce = Duration(milliseconds: 400);
+
+  /// Shorter queries are only sent from the keyboard's Search key: one
+  /// character matches most of the inbox and would cost a request per
+  /// keystroke for nothing anyone wants.
+  static const _minLiveSearchLength = 2;
+
+  Timer? _searchDebounce;
   late final InboxController _inbox;
   bool? _reportedAtHead;
 
@@ -106,6 +120,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
       ..removeListener(_onScroll)
       ..dispose();
     _showScrollTop.dispose();
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -171,9 +186,35 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     );
   }
 
+  /// Typing: send the query once typing pauses for [searchDebounce]. Each
+  /// keystroke restarts the wait, so a word typed quickly is one request.
+  /// Emptying the field restores the unsearched inbox the same way.
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    final term = value.trim();
+    if (term.isNotEmpty && term.runes.length < _minLiveSearchLength) return;
+    _searchDebounce = Timer(searchDebounce, () => _applySearch(value));
+  }
+
+  /// Sends [value] as the inbox's search — unless it is already the search
+  /// on screen, so a pause after pressing Search (or retyping the same word)
+  /// sends nothing twice. A newer search replaces the list; an answer to an
+  /// older one that arrives late is dropped by the inbox controller.
+  void _applySearch(String value) {
+    _searchDebounce?.cancel();
+    if (!mounted) return;
+    final filters = ref.read(inboxFiltersProvider);
+    final term = value.trim();
+    if (term == filters.search.trim()) return;
+    ref
+        .read(inboxFiltersProvider.notifier)
+        .update(filters.copyWith(search: term));
+  }
+
   /// Closes the search field and drops the query, showing the unsearched
   /// inbox again.
   void _clearSearch() {
+    _searchDebounce?.cancel();
     setState(() => _searching = false);
     _searchController.clear();
     final filters = ref.read(inboxFiltersProvider);
@@ -213,11 +254,8 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
         title: _searching
             ? _SearchField(
                 controller: _searchController,
-                onSubmitted: (value) {
-                  ref
-                      .read(inboxFiltersProvider.notifier)
-                      .update(filters.copyWith(search: value));
-                },
+                onChanged: _onSearchChanged,
+                onSubmitted: _applySearch,
               )
             : Text(context.l10n.inboxTitle),
         actions: [
@@ -299,6 +337,9 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                   // the controller keeps the server's order for paging and
                   // refreshing.
                   final groups = pinnedFirst(state.groups);
+                  // The search the rows on screen answer — what the list was
+                  // loaded for, not what is being typed.
+                  final searchQuery = filters.search.trim();
 
                   // One extra item after the last group while the next batch
                   // loads or after it failed — not a state of its own, so the
@@ -334,6 +375,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                         return ConversationGroupRow(
                           key: ValueKey('inbox-group-${group.groupKey}'),
                           group: group,
+                          searchQuery: searchQuery,
                           onTap: () => CustomerConversationGroupSheet.show(
                             context,
                             group: group,
@@ -346,6 +388,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                         key: ValueKey('inbox-conversation-${conversation.id}'),
                         conversation: conversation,
                         currentEmployeeId: employee?.id,
+                        searchQuery: searchQuery,
                         onTap: () =>
                             context.push(Routes.conversation(conversation.id)),
                         onLongPress: () => showConversationQuickActions(
@@ -467,11 +510,15 @@ class ConversationGroupRow extends StatelessWidget {
   const ConversationGroupRow({
     required this.group,
     required this.onTap,
+    this.searchQuery = '',
     super.key,
   });
 
   final CustomerConversationGroup group;
   final VoidCallback onTap;
+
+  /// The inbox's active search; empty when it is not searching.
+  final String searchQuery;
 
   @override
   Widget build(BuildContext context) {
@@ -486,8 +533,11 @@ class ConversationGroupRow extends StatelessWidget {
         size: Sizes.rowAvatar,
       ),
       name: group.customer.displayName,
+      phone: group.customer.phone,
       time: group.lastMessageAt,
       preview: formatConversationPreview(context, group: group),
+      searchQuery: searchQuery,
+      searchMatch: group.searchMatch,
       unreadCount: group.isUnread ? group.unreadCount : 0,
       // One of this customer's threads is pinned (each keeps its own pin).
       pinned: group.hasPinned,
@@ -526,11 +576,15 @@ class ConversationRow extends StatelessWidget {
     required this.onTap,
     this.onLongPress,
     this.currentEmployeeId,
+    this.searchQuery = '',
     super.key,
   });
 
   final Conversation conversation;
   final VoidCallback onTap;
+
+  /// The inbox's active search; empty when it is not searching.
+  final String searchQuery;
 
   /// The row's quick actions (pinning); none when null.
   final VoidCallback? onLongPress;
@@ -568,8 +622,11 @@ class ConversationRow extends StatelessWidget {
         size: Sizes.rowAvatar,
       ),
       name: conversation.customer.displayName,
+      phone: conversation.customer.phone,
       time: conversation.lastMessageAt,
       preview: formatConversationPreview(context, conversation: conversation),
+      searchQuery: searchQuery,
+      searchMatch: conversation.searchMatch,
       unreadCount: conversation.hasUnread ? conversation.unreadCount : 0,
       pinned: conversation.isPinned,
       outboundDeliveryStatus: conversation.lastMessageDirection == 'OUTBOUND'
@@ -642,10 +699,24 @@ class _InboxRowLayout extends StatelessWidget {
     required this.unreadCount,
     required this.outboundDeliveryStatus,
     required this.footer,
+    this.phone = '',
+    this.searchQuery = '',
+    this.searchMatch,
   });
 
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+
+  /// The customer's registered phone, shown under the name while searching
+  /// so a match on another number can be told from the customer's own.
+  final String phone;
+
+  /// The inbox's active search; empty when it is not searching.
+  final String searchQuery;
+
+  /// What the search matched, when the server said. Shown — in place of the
+  /// last message, with its own time — only while [searchQuery] is active.
+  final SearchMatch? searchMatch;
 
   /// Shows the pin beside the time.
   final bool pinned;
@@ -668,6 +739,13 @@ class _InboxRowLayout extends StatelessWidget {
     final unread = unreadCount > 0;
     final muted = theme.textTheme.bodySmall?.color;
     final startAlign = ambientStartAlign(context);
+    final searching = searchQuery.isNotEmpty;
+    final match = searching ? searchMatch : null;
+    final highlight = TextStyle(
+      fontWeight: FontWeight.w700,
+      color: theme.colorScheme.primary,
+      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+    );
 
     return InkWell(
       onTap: onTap,
@@ -711,7 +789,7 @@ class _InboxRowLayout extends StatelessWidget {
                       ],
                       const SizedBox(width: Space.sm),
                       Text(
-                        formatRelativeTime(context, time),
+                        formatRelativeTime(context, match?.createdAt ?? time),
                         maxLines: 1,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: unread ? theme.colorScheme.primary : muted,
@@ -722,36 +800,63 @@ class _InboxRowLayout extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: Space.xxs),
-                  Row(
-                    children: [
-                      if (outboundDeliveryStatus != null) ...[
-                        _RowDeliveryIcon(status: outboundDeliveryStatus!),
-                        const SizedBox(width: Space.xs),
-                      ],
-                      Expanded(
-                        child: Text(
-                          preview,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textDirection: textDirectionOf(preview),
-                          textAlign: startAlign,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 13.5,
-                            height: 1.35,
-                            color: unread ? theme.colorScheme.onSurface : muted,
-                            fontWeight: unread
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                          ),
+                  if (searching && phone.isNotEmpty)
+                    Text.rich(
+                      TextSpan(
+                        children: highlightSearchMatches(
+                          phone,
+                          searchQuery,
+                          highlight: highlight,
                         ),
                       ),
-                      if (unread) ...[
-                        const SizedBox(width: Space.sm),
-                        _UnreadPill(count: unreadCount),
+                      key: const ValueKey('inboxRowPhone'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      // A number reads left to right in either language.
+                      textDirection: TextDirection.ltr,
+                      textAlign: startAlign,
+                      style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                    ),
+                  const SizedBox(height: Space.xxs),
+                  if (match != null)
+                    _SearchMatchLine(
+                      match: match,
+                      query: searchQuery,
+                      highlight: highlight,
+                      unreadCount: unreadCount,
+                    )
+                  else
+                    Row(
+                      children: [
+                        if (outboundDeliveryStatus != null) ...[
+                          _RowDeliveryIcon(status: outboundDeliveryStatus!),
+                          const SizedBox(width: Space.xs),
+                        ],
+                        Expanded(
+                          child: Text(
+                            preview,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textDirection: textDirectionOf(preview),
+                            textAlign: startAlign,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontSize: 13.5,
+                              height: 1.35,
+                              color: unread
+                                  ? theme.colorScheme.onSurface
+                                  : muted,
+                              fontWeight: unread
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        if (unread) ...[
+                          const SizedBox(width: Space.sm),
+                          _UnreadPill(count: unreadCount),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
                   const SizedBox(height: Space.sm),
                   footer,
                 ],
@@ -760,6 +865,70 @@ class _InboxRowLayout extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The message a search matched in, in place of a row's last message: the
+/// server's snippet with the query's words marked, prefixed "You:" when this
+/// side sent it. Two lines, since the match is often mid-sentence.
+class _SearchMatchLine extends StatelessWidget {
+  const _SearchMatchLine({
+    required this.match,
+    required this.query,
+    required this.highlight,
+    required this.unreadCount,
+  });
+
+  final SearchMatch match;
+  final String query;
+  final TextStyle highlight;
+  final int unreadCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodySmall?.color;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsetsDirectional.only(top: 2, end: Space.xs),
+          child: Icon(Icons.search_rounded, size: 14, color: muted),
+        ),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              children: [
+                if (match.isOutbound)
+                  TextSpan(
+                    text: context.l10n.searchMatchYouPrefix,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ...highlightSearchMatches(
+                  match.snippet,
+                  query,
+                  highlight: highlight,
+                ),
+              ],
+            ),
+            key: const ValueKey('inboxRowSearchMatch'),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textDirection: textDirectionOf(match.snippet),
+            textAlign: ambientStartAlign(context),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 13.5,
+              height: 1.35,
+              color: muted,
+            ),
+          ),
+        ),
+        if (unreadCount > 0) ...[
+          const SizedBox(width: Space.sm),
+          _UnreadPill(count: unreadCount),
+        ],
+      ],
     );
   }
 }
@@ -970,9 +1139,14 @@ class _FilterButton extends ConsumerWidget {
 }
 
 class _SearchField extends StatelessWidget {
-  const _SearchField({required this.controller, required this.onSubmitted});
+  const _SearchField({
+    required this.controller,
+    required this.onChanged,
+    required this.onSubmitted,
+  });
 
   final TextEditingController controller;
+  final ValueChanged<String> onChanged;
   final ValueChanged<String> onSubmitted;
 
   @override
@@ -981,6 +1155,7 @@ class _SearchField extends StatelessWidget {
       controller: controller,
       autofocus: true,
       textInputAction: TextInputAction.search,
+      onChanged: onChanged,
       onSubmitted: onSubmitted,
       decoration: InputDecoration(
         hintText: context.l10n.searchConversationsHint,

@@ -22,6 +22,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/widgets/section_scaffold.dart';
+import '../features/ai_knowledge/ai_policy_screen.dart';
 import '../features/analytics/analytics_screen.dart';
 import '../features/authentication/auth_controller.dart';
 import '../features/authentication/login_screen.dart';
@@ -49,12 +50,18 @@ class Routes {
   static const analytics = '/analytics';
   static const templates = '/templates';
   static const settings = '/settings';
+
+  /// Settings, opened on its Routing tab.
+  static const settingsRouting = '/settings?tab=routing';
   static const notifications = '/notifications';
 
   static String conversation(int id) => '/inbox/$id';
   static String customer(int conversationId) =>
       '/inbox/$conversationId/customer';
   static String customerProfile(int customerId) => '/customers/$customerId';
+
+  /// The organization's AI switches, opened from Settings' AI section.
+  static const aiPolicy = '/settings/ai-policy';
 }
 
 /// The root navigator's key.
@@ -187,7 +194,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.settings,
-        builder: (context, state) => const SettingsScreen(),
+        builder: (context, state) =>
+            SettingsScreen(initialTab: state.uri.queryParameters['tab']),
+        routes: [
+          // Checks `ai_knowledge.manage` and the AI pilot itself, so a deep
+          // link from a role without them lands on "not available".
+          GoRoute(
+            path: 'ai-policy',
+            builder: (context, state) => const AiPolicyScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: Routes.notifications,

@@ -16,6 +16,8 @@ import '../../core/providers.dart';
 import '../../core/realtime/realtime_bridge.dart';
 import '../../core/realtime/realtime_logger.dart';
 import '../authentication/auth_controller.dart';
+import '../conversations/conversation_repository.dart'
+    show ConversationRepository;
 import '../conversations/inbox_controller.dart';
 import '../templates/templates_providers.dart';
 
@@ -484,6 +486,62 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     await refreshFromServer();
   }
 
+  /// The AI action (policy change or resume) in flight, if any. One at a
+  /// time per conversation: a second tap is not sent, so a resume can never
+  /// be asked twice and answer the same message twice.
+  Future<void>? _aiAction;
+
+  /// Whether an AI action is on its way for this conversation.
+  bool get isAiActionPending => _aiAction != null;
+
+  /// Sets this conversation's automatic-reply policy and shows the server's
+  /// answer. Throws the [ApiException] when refused; nothing on screen
+  /// changes before the server confirms.
+  Future<void> setAiPolicy(String policy) => _runAiAction(
+    (repository) => repository.setAiPolicy(conversationId, policy),
+  );
+
+  /// Lets the AI answer again — and with [answerLatest], answer the waiting
+  /// message too, after which the thread is re-read for the reply.
+  Future<void> resumeAi({bool answerLatest = false}) => _runAiAction(
+    (repository) =>
+        repository.resumeAi(conversationId, answerLatest: answerLatest),
+    refreshMessages: answerLatest,
+  );
+
+  Future<void> _runAiAction(
+    Future<Conversation> Function(ConversationRepository repository) call, {
+    bool refreshMessages = false,
+  }) {
+    final running = _aiAction;
+    if (running != null) return running;
+    final action = () async {
+      final epoch = _readEpoch;
+      try {
+        final updated = await call(ref.read(conversationRepositoryProvider));
+        if (!ref.mounted) return;
+        final current = state.value;
+        if (current != null) {
+          state = AsyncData(
+            current.copyWith(conversation: _sinceExplicitRead(updated, epoch)),
+          );
+        }
+        if (refreshMessages) await refreshFromServer();
+      } on ApiException catch (error) {
+        // A conflict or refusal means the state on screen is out of date
+        // (someone else resumed, the message was answered): show the
+        // server's before the agent decides again.
+        if (ref.mounted &&
+            (error.statusCode == 409 || error.statusCode == 400)) {
+          await _refreshConversationDetail();
+        }
+        rethrow;
+      }
+    }();
+    _aiAction = action;
+    return action.whenComplete(() => _aiAction = null);
+  }
+
   Future<void> _refreshConversationDetail() async {
     try {
       final epoch = _readEpoch;
@@ -647,7 +705,8 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       (m) => m.localId == localId,
       orElse: () => replacement,
     );
-    final effectiveReplacement = (existingPending.attachments.length > 1 &&
+    final effectiveReplacement =
+        (existingPending.attachments.length > 1 &&
             replacement.attachments.length == 1)
         ? replacement.copyWith(attachments: existingPending.attachments)
         : replacement;
@@ -660,8 +719,11 @@ class ConversationController extends AsyncNotifier<ConversationState> {
           : (m.localId ?? m.id);
       mergedMap[key] = isMatch ? effectiveReplacement : m;
     }
-    if (!mergedMap.containsKey(effectiveReplacement.localId ?? effectiveReplacement.id)) {
-      mergedMap[effectiveReplacement.localId ?? effectiveReplacement.id] = effectiveReplacement;
+    if (!mergedMap.containsKey(
+      effectiveReplacement.localId ?? effectiveReplacement.id,
+    )) {
+      mergedMap[effectiveReplacement.localId ?? effectiveReplacement.id] =
+          effectiveReplacement;
     }
 
     // A miss here means the pending row this call was meant to resolve is

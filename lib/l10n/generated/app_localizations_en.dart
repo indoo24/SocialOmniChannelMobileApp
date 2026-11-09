@@ -3979,4 +3979,1294 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get savedReplyUploadCancelled =>
       'Upload cancelled. The reply\'s text was saved; tap Save to upload the file again.';
+
+  @override
+  String get tabAiKnowledge => 'AI & Knowledge';
+
+  @override
+  String get aiNotAvailableTitle => 'AI knowledge isn\'t available';
+
+  @override
+  String get aiNotAvailableMessage =>
+      'Your organization isn\'t in the AI knowledge pilot, or you no longer have access to it.';
+
+  @override
+  String get aiKnowledgeBasesTitle => 'Knowledge bases';
+
+  @override
+  String get aiKnowledgeBasesHint =>
+      'A named collection of what the AI is allowed to answer from.';
+
+  @override
+  String get aiNewKnowledgeBase => 'New knowledge base';
+
+  @override
+  String get aiEditKnowledgeBase => 'Edit knowledge base';
+
+  @override
+  String get aiKnowledgeBaseName => 'Name';
+
+  @override
+  String get aiKnowledgeBaseNamePlaceholder => 'Store policies';
+
+  @override
+  String get aiKnowledgeBaseDescription => 'Description';
+
+  @override
+  String get aiKnowledgeBaseDescriptionPlaceholder =>
+      'What this collection covers';
+
+  @override
+  String get aiKnowledgeBaseNameRequired => 'Enter a name.';
+
+  @override
+  String get aiCreateKnowledgeBase => 'Create';
+
+  @override
+  String get aiNoKnowledgeBases =>
+      'No knowledge base yet. Create one to start adding knowledge.';
+
+  @override
+  String aiKnowledgeBaseReadyCount(int ready, int total) {
+    return '$ready of $total ready';
+  }
+
+  @override
+  String get aiActivate => 'Activate';
+
+  @override
+  String get aiDeactivate => 'Deactivate';
+
+  @override
+  String get aiInactive => 'Inactive';
+
+  @override
+  String get aiDeleteKnowledgeBase => 'Delete knowledge base';
+
+  @override
+  String aiDeleteKnowledgeBaseConfirm(String name) {
+    return 'Delete \"$name\" and everything in it? This cannot be undone.';
+  }
+
+  @override
+  String get aiKnowledgeBaseDeleted => 'Knowledge base deleted.';
+
+  @override
+  String get aiKnowledgeBaseSaved => 'Knowledge base saved.';
+
+  @override
+  String get aiSourcesTitle => 'Knowledge';
+
+  @override
+  String get aiSourcesHint =>
+      'What an answer may be grounded in. Nothing else is used.';
+
+  @override
+  String get aiAddQa => 'Add question & answer';
+
+  @override
+  String get aiAddText => 'Add text';
+
+  @override
+  String get aiEditQa => 'Edit question & answer';
+
+  @override
+  String get aiEditText => 'Edit text';
+
+  @override
+  String get aiQuestion => 'Question';
+
+  @override
+  String get aiQuestionPlaceholder => 'What is the return period?';
+
+  @override
+  String get aiAnswer => 'Answer';
+
+  @override
+  String get aiAnswerPlaceholder =>
+      'Returns are accepted within 14 days with a receipt.';
+
+  @override
+  String get aiAnswerHint =>
+      'Your words are used as written. The AI never rewrites them.';
+
+  @override
+  String get aiSourceTitle => 'Title';
+
+  @override
+  String get aiSourceTitleOptional => 'Title (optional)';
+
+  @override
+  String get aiSourceTitlePlaceholder => 'Shipping policy';
+
+  @override
+  String get aiContent => 'Content';
+
+  @override
+  String get aiContentPlaceholder => 'Cairo delivery takes 1–2 business days…';
+
+  @override
+  String get aiQuestionRequired => 'Enter the question.';
+
+  @override
+  String get aiAnswerRequired => 'Enter the answer.';
+
+  @override
+  String get aiTitleRequired => 'Enter a title.';
+
+  @override
+  String get aiContentRequired => 'Enter the content.';
+
+  @override
+  String get aiSourceSaved => 'Saved. It will be used once indexing finishes.';
+
+  @override
+  String get aiReindex => 'Re-index';
+
+  @override
+  String get aiReindexQueued => 'Re-indexing started.';
+
+  @override
+  String get aiDeleteSource => 'Delete knowledge';
+
+  @override
+  String aiDeleteSourceConfirm(String title) {
+    return 'Delete \"$title\"? It will stop being used immediately.';
+  }
+
+  @override
+  String get aiSourceDeleted => 'Knowledge deleted.';
+
+  @override
+  String get aiNoSources =>
+      'Nothing here yet. Add a question and answer, or a block of text.';
+
+  @override
+  String get aiTypeQa => 'Q&A';
+
+  @override
+  String get aiTypeText => 'Text';
+
+  @override
+  String aiChunkCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count parts',
+      one: '1 part',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String aiIndexedAt(String date) {
+    return 'Indexed $date';
+  }
+
+  @override
+  String get aiStatusPending => 'Waiting';
+
+  @override
+  String get aiStatusIndexing => 'Indexing…';
+
+  @override
+  String get aiStatusReady => 'Ready';
+
+  @override
+  String get aiStatusFailed => 'Failed';
+
+  @override
+  String get aiStatusFailedHint =>
+      'This knowledge is not being used. Re-index to try again.';
+
+  @override
+  String get aiPlaygroundTitle => 'Test your knowledge base';
+
+  @override
+  String get aiPlaygroundHint =>
+      'Ask what a customer might ask. The answer comes only from the selected knowledge base.';
+
+  @override
+  String get aiAskPlaceholder => 'What is the return period?';
+
+  @override
+  String get aiAsk => 'Ask';
+
+  @override
+  String get aiAsking => 'Asking…';
+
+  @override
+  String get aiQuestionEmpty => 'Type a question first.';
+
+  @override
+  String aiQuestionTooLong(int max) {
+    return 'Keep the question under $max characters.';
+  }
+
+  @override
+  String get aiNoKnowledgeBaseToAsk =>
+      'Create a knowledge base before testing it.';
+
+  @override
+  String get aiAnswerHeading => 'Answer';
+
+  @override
+  String get aiSourcesUsed => 'Sources used';
+
+  @override
+  String get aiNoCitations => 'No sources';
+
+  @override
+  String get aiNotInKb => 'Not in the knowledge base';
+
+  @override
+  String get aiNotInKbHint =>
+      'The knowledge base does not support an answer to this. That is the correct result — add the knowledge if a customer would ask it.';
+
+  @override
+  String get aiAnswerFailed => 'Could not get an answer';
+
+  @override
+  String get aiAnswerFailedHint =>
+      'The AI provider could not answer this time. Try again in a moment.';
+
+  @override
+  String aiUnknownAnswerStatus(String status) {
+    return 'The server returned a result this app doesn\'t recognize ($status).';
+  }
+
+  @override
+  String get aiConflictTitle => 'Conflicting information in the knowledge base';
+
+  @override
+  String get aiConflictHint =>
+      'Two or more sources would answer this differently. Correct one of them.';
+
+  @override
+  String get aiConflictSources => 'Sources that disagree';
+
+  @override
+  String aiRetrieved(int count) {
+    return 'What was found ($count)';
+  }
+
+  @override
+  String get aiRetrievedHint =>
+      'Every candidate considered, with how closely it matched.';
+
+  @override
+  String aiScore(String score) {
+    return 'Match $score';
+  }
+
+  @override
+  String aiStats(int ms, int tokens, String model) {
+    return '$ms ms · $tokens tokens · $model';
+  }
+
+  @override
+  String aiRetrievalStats(int ms) {
+    return 'Retrieval $ms ms';
+  }
+
+  @override
+  String get aiErrorThrottled =>
+      'You\'ve asked 30 questions in the last minute, the limit. Wait a moment and try again.';
+
+  @override
+  String get aiErrorForbidden =>
+      'You don\'t have permission to manage AI knowledge.';
+
+  @override
+  String get aiErrorNotFound =>
+      'This knowledge base no longer exists, or AI isn\'t enabled for your organization.';
+
+  @override
+  String get aiConflictsTitle => 'Knowledge conflicts';
+
+  @override
+  String get aiConflictsBlurb =>
+      'These answer the same question differently. Automatic replies are blocked until one of each pair is corrected or switched off.';
+
+  @override
+  String get aiAssistTitle => 'AI Agent Assist';
+
+  @override
+  String get aiAssistHint =>
+      'Lets an agent ask the AI for a draft reply. The agent always decides whether to send it.';
+
+  @override
+  String get aiAssistUnsupported => 'Not available for this channel yet';
+
+  @override
+  String get aiAssistNoConnections => 'No channels connected.';
+
+  @override
+  String aiAssistModeLabel(String channel) {
+    return 'AI mode for $channel';
+  }
+
+  @override
+  String get aiModeOff => 'Off';
+
+  @override
+  String get aiModeSuggest => 'Suggest';
+
+  @override
+  String get aiModeAuto => 'Automatic';
+
+  @override
+  String get aiModeAutoWarning =>
+      'Customers will receive replies written by the AI. Read the readiness checks before turning this on.';
+
+  @override
+  String get aiModeSaved => 'AI mode updated.';
+
+  @override
+  String get aiBlockedBy => 'Blocked by';
+
+  @override
+  String get aiAutoBlockedBy => 'Automatic replies blocked by';
+
+  @override
+  String get aiWorthKnowing => 'Worth knowing';
+
+  @override
+  String aiWhatIsIndexed(int ready, int chunks) {
+    return '$ready source(s) indexed, $chunks searchable extract(s)';
+  }
+
+  @override
+  String get aiReasonNoKnowledgeBase => 'No knowledge base has been created';
+
+  @override
+  String get aiReasonNoReadyChunks => 'Nothing has been indexed yet';
+
+  @override
+  String get aiReasonIndexingIncomplete =>
+      'Some sources are still being indexed';
+
+  @override
+  String get aiReasonIndexingFailed => 'Some sources failed to index';
+
+  @override
+  String get aiReasonNoProvider => 'No AI provider is configured';
+
+  @override
+  String get aiReasonNoHandoffRoute =>
+      'Nobody is available to receive a handed-off conversation';
+
+  @override
+  String get aiReasonUnsupportedChannel =>
+      'This channel is not available for AI in this release';
+
+  @override
+  String get aiReasonConnectionInactive =>
+      'This channel is disconnected or archived';
+
+  @override
+  String get aiReasonConnectionUnhealthy =>
+      'The platform has reported a problem with this channel';
+
+  @override
+  String get aiReasonKbConflicts =>
+      'Two active sources answer the same question differently';
+
+  @override
+  String get aiReasonOrganizationNotEnabled =>
+      'AI is not enabled for this organization';
+
+  @override
+  String get aiReasonOrganizationAiDisabled =>
+      'AI is switched off for this organization';
+
+  @override
+  String get aiReasonOrganizationAutoDisabled =>
+      'Automatic replies are switched off for this organization';
+
+  @override
+  String get aiUsageTitle => 'Usage';
+
+  @override
+  String get aiUsageRequests => 'Questions';
+
+  @override
+  String get aiUsageAnswered => 'Answered';
+
+  @override
+  String get aiUsageNotInKb => 'Not in KB';
+
+  @override
+  String get aiUsageTokens => 'Tokens';
+
+  @override
+  String get searchMatchYouPrefix => 'You: ';
+
+  @override
+  String get aiActivityTitle => 'AI activity';
+
+  @override
+  String get aiPolicyTitle => 'AI policy';
+
+  @override
+  String get aiPolicySubtitle =>
+      'Organization switches, daily budgets and rollout';
+
+  @override
+  String aiWindowHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Last $count hours',
+      one: 'Last hour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get aiActivityQuiet => 'No AI activity in this window.';
+
+  @override
+  String get aiSectionVolume => 'Volume and outcome';
+
+  @override
+  String get aiSectionRates => 'Rates';
+
+  @override
+  String get aiSectionReasons => 'Why it declined or handed off';
+
+  @override
+  String get aiSectionSuggestions => 'Suggestions';
+
+  @override
+  String get aiSectionPerformance => 'Cost and performance';
+
+  @override
+  String get aiSectionOperations => 'Operational events';
+
+  @override
+  String get aiSectionConnections => 'Channels by mode';
+
+  @override
+  String get aiMetricOpportunities => 'Messages considered';
+
+  @override
+  String get aiMetricSent => 'Replied automatically';
+
+  @override
+  String get aiMetricHandedOff => 'Handed to a person';
+
+  @override
+  String get aiMetricRefused => 'Declined';
+
+  @override
+  String get aiMetricDuplicates => 'Duplicates suppressed';
+
+  @override
+  String get aiMetricCoalesced => 'Messages answered together';
+
+  @override
+  String get aiMetricHandoffRate => 'Handoff rate';
+
+  @override
+  String get aiMetricSendRate => 'Automatic reply rate';
+
+  @override
+  String get aiMetricVerbatimRate => 'Sent without edits';
+
+  @override
+  String aiMetricVerbatimHint(int unchanged, int total) {
+    return '$unchanged of $total drafts';
+  }
+
+  @override
+  String get aiMetricSuggestions => 'Suggestions';
+
+  @override
+  String get aiMetricSuggestionsUsed => 'Used';
+
+  @override
+  String get aiMetricSuggestionsDiscarded => 'Discarded';
+
+  @override
+  String get aiMetricSuggestionsRegenerated => 'Regenerated';
+
+  @override
+  String get aiMetricSentUnchanged => 'Sent unchanged';
+
+  @override
+  String get aiMetricSentEdited => 'Sent edited';
+
+  @override
+  String get aiMetricTokens => 'Tokens used';
+
+  @override
+  String get aiMetricRequests => 'Provider requests';
+
+  @override
+  String get aiMetricAverageDuration => 'Average response time';
+
+  @override
+  String get aiMetricAverageRetrieval => 'Average retrieval time';
+
+  @override
+  String get aiMetricSlowestDuration => 'Slowest response';
+
+  @override
+  String get aiMetricHumanTakeovers => 'Human takeovers';
+
+  @override
+  String get aiMetricDeliveryFailures => 'Delivery failures';
+
+  @override
+  String get aiMetricConversationsPaused => 'Conversations paused';
+
+  @override
+  String get aiDeclineNotInKb => 'Not in the knowledge base';
+
+  @override
+  String get aiDeclineConflicts => 'Sources disagree';
+
+  @override
+  String get aiDeclineRestrictedTopics => 'Restricted topic';
+
+  @override
+  String get aiDeclineGroundingTooLow => 'Evidence too weak';
+
+  @override
+  String get aiDeclineUngroundedNumbers => 'Unsupported figure';
+
+  @override
+  String get aiDeclineCustomerRequestedHuman => 'Customer asked for a person';
+
+  @override
+  String get aiDeclineOutsideServiceWindow => 'Reply window closed';
+
+  @override
+  String get aiDeclineAttachmentRequired => 'A file needs reviewing';
+
+  @override
+  String get aiDeclineMaxAutoTurns => 'Automatic reply limit reached';
+
+  @override
+  String get aiDeclineBudgetExhausted => 'Usage limit reached';
+
+  @override
+  String get aiDeclineProviderUnavailable => 'AI provider unavailable';
+
+  @override
+  String get aiDeclineSendFailed => 'Sending failed';
+
+  @override
+  String get aiNoDeclines => 'Nothing declined or handed off in this window.';
+
+  @override
+  String get aiUsageInputTokens => 'Input tokens';
+
+  @override
+  String get aiUsageOutputTokens => 'Output tokens';
+
+  @override
+  String get aiUsageErrors => 'Errors';
+
+  @override
+  String get aiUsageByModel => 'Requests by model';
+
+  @override
+  String get aiUsageNoModels => 'No model was used in this period.';
+
+  @override
+  String get aiPolicyOrganizationTitle => 'Organization';
+
+  @override
+  String get aiPolicyAiEnabled => 'AI enabled';
+
+  @override
+  String get aiPolicyAiEnabledHint =>
+      'Turning this off stops every AI feature for this organization immediately.';
+
+  @override
+  String get aiPolicyAutoSendEnabled => 'Automatic replies enabled';
+
+  @override
+  String get aiPolicyAutoSendEnabledHint =>
+      'Turning this off stops automatic replies but keeps AI suggestions working — the switch to use during an incident.';
+
+  @override
+  String get aiPolicyDailyRequestLimit => 'Daily request limit';
+
+  @override
+  String get aiPolicyDailyTokenLimit => 'Daily token limit';
+
+  @override
+  String aiPolicyLimitHint(int max) {
+    return '0 to $max. 0 switches the feature off.';
+  }
+
+  @override
+  String aiPolicyLimitInvalid(int max) {
+    return 'Enter a whole number from 0 to $max.';
+  }
+
+  @override
+  String get aiPolicyRollout => 'Rollout';
+
+  @override
+  String get aiPolicyRolloutHint =>
+      'How closely this organization is being watched. It grants nothing — each channel still has to be switched on.';
+
+  @override
+  String get aiRolloutInternal => 'Internal';
+
+  @override
+  String get aiRolloutPilot => 'Pilot';
+
+  @override
+  String get aiRolloutLimited => 'Limited';
+
+  @override
+  String get aiRolloutGeneral => 'General';
+
+  @override
+  String get aiPolicySaved => 'AI policy saved.';
+
+  @override
+  String get aiUnsavedTitle => 'Discard changes?';
+
+  @override
+  String get aiUnsavedBody => 'Your changes haven\'t been saved.';
+
+  @override
+  String get aiUnsavedDiscard => 'Discard';
+
+  @override
+  String get aiUnsavedKeepEditing => 'Keep editing';
+
+  @override
+  String get aiChannelDailyCap => 'Most automatic replies per day';
+
+  @override
+  String aiChannelDailyCapHint(int min, int max) {
+    return 'A ceiling for this channel, for cost and incidents. $min to $max.';
+  }
+
+  @override
+  String aiChannelNumberInvalid(int min, int max) {
+    return 'Enter a whole number from $min to $max.';
+  }
+
+  @override
+  String get aiChannelResume => 'When the AI is allowed back in';
+
+  @override
+  String get aiResumeAsk => 'Ask about the latest unanswered message';
+
+  @override
+  String get aiResumeWait => 'Wait for the customer\'s next message';
+
+  @override
+  String get aiChannelGrounding => 'Evidence needed for an automatic reply';
+
+  @override
+  String get aiGroundingStrict => 'Strict';
+
+  @override
+  String get aiGroundingStrictHint =>
+      'Answers only on a clear match: more handoffs, fewer wrong replies.';
+
+  @override
+  String get aiGroundingBalanced => 'Balanced';
+
+  @override
+  String get aiGroundingBalancedHint =>
+      'The recommended default, and what the pilot runs on.';
+
+  @override
+  String get aiGroundingFlexible => 'Flexible';
+
+  @override
+  String get aiGroundingFlexibleHint =>
+      'Accepts weaker matches, as long as a knowledge source is cited.';
+
+  @override
+  String get aiGroundingRecommended => 'Recommended';
+
+  @override
+  String aiGroundingFloor(String floor) {
+    return 'Current threshold: $floor. A reply with no supporting source is never sent.';
+  }
+
+  @override
+  String get aiChannelTopics => 'Topics that always go to a person';
+
+  @override
+  String get aiChannelLockedTopicsHint =>
+      'These are always on and can\'t be switched off. You can add your own below.';
+
+  @override
+  String get aiChannelAddTopic => 'Add topic';
+
+  @override
+  String get aiChannelTopicPlaceholder => 'e.g. warranty';
+
+  @override
+  String aiChannelRemoveTopic(String topic) {
+    return 'Remove $topic';
+  }
+
+  @override
+  String aiChannelTopicTooLong(int max) {
+    return 'Keep a topic under $max characters.';
+  }
+
+  @override
+  String get aiChannelTopicDuplicate => 'That topic is already listed.';
+
+  @override
+  String aiChannelTooManyTopics(int max) {
+    return 'Up to $max topics.';
+  }
+
+  @override
+  String get aiChannelHandoffRules => 'What hands a conversation to a person';
+
+  @override
+  String get aiHandoffAlwaysOn => 'Always on';
+
+  @override
+  String get aiChannelSaved => 'Channel settings saved.';
+
+  @override
+  String get aiGroundingShowFloor => 'Show the threshold';
+
+  @override
+  String get aiTabOverview => 'Overview';
+
+  @override
+  String get aiTabKnowledge => 'Knowledge Base';
+
+  @override
+  String get aiTabAgent => 'AI Agent & Automatic Replies';
+
+  @override
+  String get aiTabPlayground => 'AI Playground';
+
+  @override
+  String get aiTabActivity => 'Activity & Usage';
+
+  @override
+  String get aiOverviewHint =>
+      'What the AI is set to do, what it can answer from, and what it did. Every number here opens the page that changes it.';
+
+  @override
+  String get aiKnowledgeTabHint =>
+      'What the AI is allowed to answer from. Nothing outside this is used.';
+
+  @override
+  String get aiAgentTabHint =>
+      'Which channels may draft a reply, which may send one unattended, and what they do when there is no answer.';
+
+  @override
+  String get aiPlaygroundTabHint =>
+      'Ask a question the way a customer would and see exactly what the AI would say, and why.';
+
+  @override
+  String get aiActivityTabHint =>
+      'What the AI did, why it declined, and what it cost. Counts and rates only — no message text is kept here.';
+
+  @override
+  String get aiStatusHeading => 'Status';
+
+  @override
+  String get aiStatusOn => 'On';
+
+  @override
+  String get aiStatusOff => 'Off';
+
+  @override
+  String get aiStatusOffHint =>
+      'Nothing drafts and nothing sends while this is off.';
+
+  @override
+  String get aiDefaultPolicy => 'Default automatic reply';
+
+  @override
+  String get aiDefaultPolicyHint =>
+      'What a channel does unless it says otherwise.';
+
+  @override
+  String get aiChannelsHeading => 'Channels';
+
+  @override
+  String get aiChannelsAuto => 'Replying automatically';
+
+  @override
+  String get aiChannelsSuggest => 'Drafting for an agent';
+
+  @override
+  String get aiChannelsOff => 'Off';
+
+  @override
+  String get aiKnowledgeHeading => 'Knowledge';
+
+  @override
+  String aiKnowledgeReady(int ready, int total) {
+    return '$ready of $total sources ready';
+  }
+
+  @override
+  String aiKnowledgeChunks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count indexed extracts',
+      one: '1 indexed extract',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String aiKnowledgeBasesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count knowledge bases',
+      one: '1 knowledge base',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get aiKnowledgeNone => 'Nothing added yet';
+
+  @override
+  String get aiBehaviourHeading => 'Last 24 hours';
+
+  @override
+  String get aiSentAutomatically => 'Sent automatically';
+
+  @override
+  String get aiKbAnswered => 'Answered from knowledge';
+
+  @override
+  String get aiFallbacks => 'Holding replies';
+
+  @override
+  String aiFallbackRateHint(String rate) {
+    return '$rate of what was sent answered nothing.';
+  }
+
+  @override
+  String get aiQuiet => 'Nothing yet';
+
+  @override
+  String get aiWarningsHeading => 'Worth your attention';
+
+  @override
+  String get aiNothingToReport => 'Nothing needs your attention.';
+
+  @override
+  String get aiWarnAiOff =>
+      'AI is switched off for this organization, so nothing below runs.';
+
+  @override
+  String get aiWarnNoBase =>
+      'There is no knowledge base, so every question is handed to a person.';
+
+  @override
+  String get aiWarnNothingIndexed =>
+      'Nothing has finished indexing, so there is nothing to answer from.';
+
+  @override
+  String aiWarnFailedSources(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sources failed to index and are being used for nothing.',
+      one: '1 source failed to index and is being used for nothing.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String aiWarnConflicts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pairs of sources answer the same question differently.',
+      one: '1 pair of sources answers the same question differently.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get aiWarnAllOff =>
+      'No channel has AI switched on, so these numbers will stay at zero.';
+
+  @override
+  String get aiWarnPolicyOff =>
+      'Automatic replies are off by default, so no channel sends unattended.';
+
+  @override
+  String aiWarnHighFallbacks(String rate) {
+    return '$rate of automatic replies answered nothing. That is a knowledge gap, not a setting.';
+  }
+
+  @override
+  String aiWarnChannel(String channel, String reason) {
+    return '$channel: $reason';
+  }
+
+  @override
+  String get aiGoToKnowledge => 'Open Knowledge Base';
+
+  @override
+  String get aiGoToAgent => 'Open AI Agent';
+
+  @override
+  String get aiGoToActivity => 'Open Activity';
+
+  @override
+  String get aiOrganizationSettings => 'Organization settings';
+
+  @override
+  String get aiAutoRepliesHeading => 'Automatic AI replies';
+
+  @override
+  String get aiAutoRepliesDefaultHint =>
+      'The default for every channel. A channel or a single conversation can override it.';
+
+  @override
+  String get aiReplyPolicyOff => 'Off';
+
+  @override
+  String get aiReplyPolicyKnowledgeOnly => 'Knowledge only';
+
+  @override
+  String get aiReplyPolicyAlwaysReply => 'Always reply';
+
+  @override
+  String get aiReplyPolicyOffHint =>
+      'The AI will not reply automatically. Agents can still use AI Suggest where it is available.';
+
+  @override
+  String get aiReplyPolicyKnowledgeOnlyHint =>
+      'Reply automatically only when the knowledge base reliably supports the answer.';
+
+  @override
+  String get aiReplyPolicyAlwaysReplyHint =>
+      'Reply whenever automatic replying is allowed. If the knowledge base cannot answer, send a safe holding message and hand the conversation to the team.';
+
+  @override
+  String get aiFallbackInstructionsLabel =>
+      'When the knowledge base cannot answer';
+
+  @override
+  String get aiFallbackInstructionsPlaceholder =>
+      'Apologise briefly and tell the customer the team will review their request.';
+
+  @override
+  String get aiFallbackInstructionsHint =>
+      'Tone and follow-up wording only. The AI will not state a business fact here — no policy, price, period or amount — whatever these instructions ask for.';
+
+  @override
+  String get aiFallbackHandsOffHint =>
+      'A holding message always hands the conversation to a person, so the follow-up it promises actually happens.';
+
+  @override
+  String get aiConnectionPolicyLabel => 'Automatic replies';
+
+  @override
+  String get aiReplyPolicyUseDefault => 'Use default';
+
+  @override
+  String aiReplyPolicyInheritedValue(String value) {
+    return 'Using the organization default: $value.';
+  }
+
+  @override
+  String get aiReplyPolicyOverridden => 'Overridden for this channel.';
+
+  @override
+  String aiReplyPolicyInactive(String mode) {
+    return 'Automatic replies are inactive because this channel is in $mode mode.';
+  }
+
+  @override
+  String get aiCardReplies => 'What it replies with';
+
+  @override
+  String get aiCardAdvanced => 'Limits & safety';
+
+  @override
+  String get aiCardAdvancedHint =>
+      'How much evidence an answer needs, restricted topics, and what hands a conversation to a person.';
+
+  @override
+  String aiCardEffective(String value) {
+    return 'In effect: $value';
+  }
+
+  @override
+  String get aiReadyForAuto => 'Ready for automatic replies';
+
+  @override
+  String get aiReadyForSuggest => 'Ready for suggestions';
+
+  @override
+  String get aiNotReady => 'Not ready';
+
+  @override
+  String get aiHandoffTurnOn => 'Turn on';
+
+  @override
+  String get aiHandoffTurnOff => 'Turn off';
+
+  @override
+  String get aiGroundingNever =>
+      'No setting lets the AI state a business fact without a knowledge-base source behind it.';
+
+  @override
+  String get aiPlaygroundBase => 'Knowledge base';
+
+  @override
+  String get aiSectionReplies => 'What it replied with';
+
+  @override
+  String get aiConversationalReplies => 'Greetings & small talk';
+
+  @override
+  String get aiConversationalRepliesHint =>
+      'No knowledge base, no provider call.';
+
+  @override
+  String aiUsageWindow(int count) {
+    return 'This organization, last $count days.';
+  }
+
+  @override
+  String aiUsageDays(int count) {
+    return '$count days';
+  }
+
+  @override
+  String aiUsageSince(String date) {
+    return 'Since $date';
+  }
+
+  @override
+  String get aiHistoryTitle => 'Change history';
+
+  @override
+  String get aiHistoryEmpty => 'No AI settings have been changed yet.';
+
+  @override
+  String aiHistoryChangedBy(String who) {
+    return 'by $who';
+  }
+
+  @override
+  String get aiHistoryChangedBySystem => 'by an operator command';
+
+  @override
+  String aiHistorySource(String source) {
+    return 'Source: $source';
+  }
+
+  @override
+  String aiHistoryConversation(int id) {
+    return 'Conversation #$id';
+  }
+
+  @override
+  String get aiConvoHandled => 'AI answered';
+
+  @override
+  String get aiConvoPausedHere => 'AI is paused for this conversation';
+
+  @override
+  String get aiConvoPaused => 'AI paused';
+
+  @override
+  String aiConvoPausedBecause(String reason) {
+    return 'AI paused — $reason';
+  }
+
+  @override
+  String get aiConvoResume => 'Resume AI';
+
+  @override
+  String get aiConvoResumeAndAnswer => 'Resume & answer latest';
+
+  @override
+  String get aiConvoResumed => 'The AI may answer this conversation again';
+
+  @override
+  String get aiConvoAnswering =>
+      'The AI may answer again, and is answering the latest message.';
+
+  @override
+  String get aiConvoPolicyLine => 'AI auto';
+
+  @override
+  String aiConvoInheritedFrom(String source) {
+    return 'inherited from $source';
+  }
+
+  @override
+  String get aiConvoOverride => 'set for this conversation';
+
+  @override
+  String get aiConvoSourceOrganization => 'the organization default';
+
+  @override
+  String get aiConvoChangePolicy =>
+      'Change automatic replies for this conversation';
+
+  @override
+  String aiConvoUseDefaultWithValue(String value) {
+    return 'Use default ($value)';
+  }
+
+  @override
+  String get aiConvoPolicySaved =>
+      'Automatic replies updated for this conversation.';
+
+  @override
+  String get aiConvoUnavailable => 'AI isn\'t available for this conversation.';
+
+  @override
+  String get aiAnswerLatestHumanAnswered =>
+      'A colleague has already answered the latest message, so the AI will not reply to it. Resuming lets it answer the next one.';
+
+  @override
+  String get aiAnswerLatestAiAnswered =>
+      'The AI has already answered the latest message.';
+
+  @override
+  String get aiAnswerLatestAlreadySent =>
+      'A reply has already gone out for the latest message.';
+
+  @override
+  String get aiAnswerLatestNoQuestion =>
+      'There is no customer message waiting for an answer.';
+
+  @override
+  String get aiAnswerLatestStillRunning =>
+      'The AI is still deciding about this message.';
+
+  @override
+  String get aiAnswerLatestNotAuto =>
+      'This channel is set to suggestions only, so the AI cannot answer on its own here.';
+
+  @override
+  String get aiAnswerLatestPolicyRefused =>
+      'The AI is not allowed to answer this message yet — the reason above explains why.';
+
+  @override
+  String get aiHandoffNotInKb => 'the knowledge base could not answer';
+
+  @override
+  String get aiHandoffConflictingKnowledge => 'two sources disagreed';
+
+  @override
+  String get aiHandoffAttachment => 'someone needs to look at a file';
+
+  @override
+  String get aiHandoffCustomerRequestedHuman =>
+      'the customer asked for a person';
+
+  @override
+  String get aiHandoffRestrictedTopic => 'the topic needs a person';
+
+  @override
+  String get aiHandoffUngroundedNumber =>
+      'the answer would have carried an unsupported figure';
+
+  @override
+  String get aiHandoffMaxAutoTurns =>
+      'the automatic reply limit was reached (retired)';
+
+  @override
+  String get aiHandoffHumanTakeover => 'a colleague took over';
+
+  @override
+  String get aiHandoffOutsideServiceWindow => 'the reply window has closed';
+
+  @override
+  String get aiHandoffBudgetExhausted => 'the usage limit was reached';
+
+  @override
+  String get aiHandoffProviderFailure => 'the AI provider could not be reached';
+
+  @override
+  String get aiHandoffKbNotReady => 'the knowledge base is not ready';
+
+  @override
+  String get aiHandoffRepeatedFailure => 'several attempts produced no answer';
+
+  @override
+  String get distributionMethodTitle => 'Distribution method';
+
+  @override
+  String get distributionMethodHint =>
+      'How the next conversation is chosen from the employees who are allowed to take it. Eligibility, channel access and responsibility rules are unaffected — this only decides the order among them.';
+
+  @override
+  String get distributionRecentWorkload => 'Recent workload';
+
+  @override
+  String get distributionRecentWorkloadHint =>
+      'Balances new conversations on how many each employee received during the selected period.';
+
+  @override
+  String get distributionRoundRobin => 'Round robin';
+
+  @override
+  String get distributionRoundRobinHint =>
+      'Hands new conversations to each eligible employee in turn. No period is involved, so time passing never resets the order.';
+
+  @override
+  String get distributionSaved => 'Distribution method saved';
+
+  @override
+  String get rotationTitle => 'Rotation order';
+
+  @override
+  String get rotationHint =>
+      'Whose turn is next, oldest first. The period above is not used in this mode.';
+
+  @override
+  String rotationAccount(String name) {
+    return 'Rotation for $name';
+  }
+
+  @override
+  String get rotationNever => 'No turn taken yet';
+
+  @override
+  String get rotationNext => 'Next in turn';
+
+  @override
+  String rotationBehind(int count) {
+    return '$count ahead in turn';
+  }
+
+  @override
+  String rotationReceivedInfo(int count) {
+    return '$count received (not used for ordering)';
+  }
+
+  @override
+  String get rotationEmpty => 'Nobody can receive conversations right now.';
+
+  @override
+  String get dashboardRotationTitle => 'Turn order';
+
+  @override
+  String get dashboardRotationInactive =>
+      'Round robin isn\'t in use: new conversations go by recent workload, so this order doesn\'t decide who gets them.';
+
+  @override
+  String get dashboardOpenRouting => 'Open routing settings';
 }
