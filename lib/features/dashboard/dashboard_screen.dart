@@ -2,10 +2,12 @@
 ///
 /// Every figure is scoped by the backend to what the caller may see, so an
 /// agent's "Open" is their own queue while a supervisor's is the whole
-/// organization. The one exception is the team workload panel, which reports on
-/// *other people* and needs `analytics.view`: the server omits the block
-/// entirely for roles without it, and this screen renders nothing rather than
-/// zeros that would read as "the floor is empty".
+/// organization. The one exception is the turn order, which reports on *other
+/// people* and needs `routing.manage`: it is not shown to roles without it.
+///
+/// The server's `team` block (online agents and each agent's open load) is
+/// still parsed into `DashboardSummary.team` but no longer shown here; the
+/// turn order took its place.
 library;
 
 import 'package:flutter/material.dart';
@@ -14,12 +16,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
 import '../../core/models/conversation.dart';
-import '../../core/models/directory.dart';
 import '../../core/models/employee.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/cache/cached_async_value.dart';
-import '../../core/widgets/avatar.dart';
 import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
@@ -170,20 +170,7 @@ class DashboardScreen extends ConsumerWidget {
             // no permission check.
             const _MyPerformance(),
 
-            // Omitted by the server for roles without analytics.view.
-            if (data.team != null) ...[
-              const SizedBox(height: Space.xl),
-              SectionHeading(
-                context.l10n.teamWorkloadTitle,
-                trailing: Text(
-                  context.l10n.onlineAgentsSuffix(data.team!.onlineAgents),
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ),
-              _WorkloadCard(team: data.team!),
-            ],
-
-            // The routing order reads `GET /routing/workload/`, which needs
+            // In the place Team workload had. The routing order reads `GET /routing/workload/`, which needs
             // `routing.manage`; nobody else is shown a section they cannot load.
             if (canSeeRotation) const _RotationOrderSection(),
 
@@ -324,75 +311,6 @@ class _ReviewCallout extends StatelessWidget {
   }
 }
 
-class _WorkloadCard extends StatelessWidget {
-  const _WorkloadCard({required this.team});
-
-  final TeamMetrics team;
-
-  @override
-  Widget build(BuildContext context) {
-    if (team.workload.isEmpty) {
-      return Card(
-        margin: EdgeInsets.zero,
-        child: Padding(
-          padding: const EdgeInsets.all(Space.xl),
-          child: Center(child: Text(context.l10n.nothingAssignedMessage)),
-        ),
-      );
-    }
-
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Column(
-        children: [
-          for (var i = 0; i < team.workload.length; i++) ...[
-            if (i > 0) const Divider(height: 1, indent: 60),
-            _WorkloadRow(entry: team.workload[i]),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _WorkloadRow extends StatelessWidget {
-  const _WorkloadRow({required this.entry});
-
-  final WorkloadEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: InitialsAvatar(
-        initials: entry.initials,
-        imageUrl: entry.avatarUrl,
-        size: 36,
-      ),
-      title: Text(entry.fullName, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Row(
-        children: [
-          PresenceDot(availability: entry.availability, size: 7),
-          const SizedBox(width: Space.xs),
-          Text(
-            entry.unreadConversations > 0
-                ? context.l10n.openUnreadSummary(
-                    entry.openConversations,
-                    entry.unreadConversations,
-                  )
-                : context.l10n.openSummary(entry.openConversations),
-          ),
-        ],
-      ),
-      trailing: Text(
-        '${entry.openConversations}',
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-}
-
 class _RecentActivityCard extends StatelessWidget {
   const _RecentActivityCard({
     required this.conversations,
@@ -454,7 +372,7 @@ class _RotationOrderSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    void openRouting() => context.go(Routes.settingsRouting);
+    void openRouting() => context.go(Routes.settingsRotation);
     final preview = ref.watch(routingWorkloadProvider).value;
 
     // A server that does not say which method is deciding: nothing to show
@@ -475,10 +393,13 @@ class _RotationOrderSection extends ConsumerWidget {
           // the heading off the edge.
           trailing: Flexible(
             child: TextButton(
-              key: const ValueKey('dashboardRotationOpenRouting'),
+              key: const ValueKey('dashboardRotationViewAll'),
               onPressed: openRouting,
               child: Text(
-                l10n.dashboardOpenRouting,
+                // Under recent workload Routing shows no order to view.
+                inactive
+                    ? l10n.dashboardOpenRouting
+                    : l10n.dashboardRotationViewAll,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

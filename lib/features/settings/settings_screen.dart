@@ -50,15 +50,22 @@ import 'workload_window_card.dart';
 import 'appearance_settings.dart';
 
 class SettingsScreen extends ConsumerWidget {
-  const SettingsScreen({this.initialTab, super.key});
+  const SettingsScreen({this.initialTab, this.initialSection, super.key});
 
   /// The tab to open on, by id (`channels`, `routing`, `profile`, `more`,
   /// `ai`) — from `/settings?tab=`. Unknown, or not offered to this role:
   /// the first tab.
   final String? initialTab;
 
+  /// A section of [initialTab] to scroll to — from `/settings?section=`.
+  /// Only [rotationSection] on the Routing tab is recognised.
+  final String? initialSection;
+
   /// The Routing tab's id, for links that open it.
   static const routingTab = 'routing';
+
+  /// The Routing tab's turn order card, for links that open it.
+  static const rotationSection = 'rotation';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -88,7 +95,13 @@ class SettingsScreen extends ConsumerWidget {
       if (canSeeChannels)
         ('channels', context.l10n.tabChannels, const _ChannelsTab()),
       if (canManageRouting)
-        (routingTab, context.l10n.tabAssignment, const _AssignmentTab()),
+        (
+          routingTab,
+          context.l10n.tabAssignment,
+          _AssignmentTab(
+            initialSection: initialTab == routingTab ? initialSection : null,
+          ),
+        ),
       ('profile', context.l10n.tabProfile, const ProfileTab()),
       if (canSeeMoreSettings)
         ('more', context.l10n.tabMoreSettings, const MoreSettingsTab()),
@@ -99,7 +112,7 @@ class SettingsScreen extends ConsumerWidget {
 
     return DefaultTabController(
       // Keyed so a link to another tab of an open Settings screen opens it.
-      key: ValueKey('settings-tabs-$initialTab'),
+      key: ValueKey('settings-tabs-$initialTab-$initialSection'),
       initialIndex: initialIndex < 0 ? 0 : initialIndex,
       length: tabs.length,
       child: Scaffold(
@@ -2197,7 +2210,9 @@ const _standardIanaTimezones = [
 ];
 
 class _AssignmentTab extends ConsumerStatefulWidget {
-  const _AssignmentTab();
+  const _AssignmentTab({this.initialSection});
+
+  final String? initialSection;
 
   @override
   ConsumerState<_AssignmentTab> createState() => _AssignmentTabState();
@@ -2244,25 +2259,76 @@ class _AssignmentTabState extends ConsumerState<_AssignmentTab> {
           error: error,
           onRetry: () => ref.invalidate(routingPolicyProvider),
         ),
-        data: (policy) => _AssignmentTabContent(policy: policy),
+        data: (policy) => _AssignmentTabContent(
+          policy: policy,
+          initialSection: widget.initialSection,
+        ),
       ),
     );
   }
 }
 
 class _AssignmentTabContent extends StatefulWidget {
-  const _AssignmentTabContent({required this.policy});
+  const _AssignmentTabContent({required this.policy, this.initialSection});
 
   final RoutingPolicy policy;
+  final String? initialSection;
 
   @override
   State<_AssignmentTabContent> createState() => _AssignmentTabContentState();
 }
 
 class _AssignmentTabContentState extends State<_AssignmentTabContent> {
+  final _scroll = ScrollController();
+  final _rotationKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    // Opened from the Dashboard's turn order: bring the same order into view.
+    // Only when round robin is the method — otherwise there is no order here.
+    if (widget.initialSection == SettingsScreen.rotationSection &&
+        widget.policy.isRoundRobin) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _showRotation());
+    }
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// Scrolls the turn order card to the top. The list builds lazily, so on a
+  /// short screen the card may not exist yet: step down until it does.
+  Future<void> _showRotation() async {
+    for (var step = 0; step < 20; step++) {
+      if (!mounted) return;
+      final target = _rotationKey.currentContext;
+      if (target != null && target.mounted) {
+        await Scrollable.ensureVisible(
+          target,
+          duration: const Duration(milliseconds: 250),
+        );
+        return;
+      }
+      if (!_scroll.hasClients) return;
+      final position = _scroll.position;
+      if (position.pixels >= position.maxScrollExtent) return;
+      _scroll.jumpTo(
+        (position.pixels + position.viewportDimension).clamp(
+          0.0,
+          position.maxScrollExtent,
+        ),
+      );
+      await WidgetsBinding.instance.endOfFrame;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
+      controller: _scroll,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(Space.lg),
       children: [
@@ -2277,7 +2343,7 @@ class _AssignmentTabContentState extends State<_AssignmentTabContent> {
           const SizedBox(height: Space.lg),
         ],
         if (widget.policy.isRoundRobin)
-          RotationOrderCard(policy: widget.policy)
+          RotationOrderCard(key: _rotationKey, policy: widget.policy)
         else
           WorkloadWindowCard(policy: widget.policy),
         const SizedBox(height: Space.lg),

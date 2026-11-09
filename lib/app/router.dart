@@ -53,6 +53,9 @@ class Routes {
 
   /// Settings, opened on its Routing tab.
   static const settingsRouting = '/settings?tab=routing';
+
+  /// Settings → Routing, scrolled to the round-robin turn order.
+  static const settingsRotation = '/settings?tab=routing&section=rotation';
   static const notifications = '/notifications';
 
   static String conversation(int id) => '/inbox/$id';
@@ -194,8 +197,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.settings,
-        builder: (context, state) =>
-            SettingsScreen(initialTab: state.uri.queryParameters['tab']),
+        builder: (context, state) => SettingsScreen(
+          initialTab: state.uri.queryParameters['tab'],
+          initialSection: state.uri.queryParameters['section'],
+        ),
         routes: [
           // Checks `ai_knowledge.manage` and the AI pilot itself, so a deep
           // link from a role without them lands on "not available".

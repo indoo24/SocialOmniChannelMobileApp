@@ -1587,5 +1587,6 @@
   "rotationEmpty": "لا يوجد من يستطيع استقبال المحادثات الآن.",
   "dashboardRotationTitle": "ترتيب الأدوار",
   "dashboardRotationInactive": "التوزيع بالدور غير مفعّل: تُوزّع المحادثات الجديدة حسب عبء العمل الأخير، لذا هذا الترتيب لا يحدد من يستقبلها.",
-  "dashboardOpenRouting": "فتح إعدادات التوجيه"
+  "dashboardOpenRouting": "فتح إعدادات التوجيه",
+  "dashboardRotationViewAll": "عرض الترتيب بالكامل"
 }
