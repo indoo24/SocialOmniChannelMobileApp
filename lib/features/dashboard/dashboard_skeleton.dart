@@ -5,7 +5,6 @@
 /// - Conversations section heading and 4 metric cards
 /// - Customer Intelligence section heading and 4 metric cards
 /// - "Your last 14 days" performance card
-/// - Team workload and recent activity cards
 library;
 
 import 'package:flutter/material.dart';
@@ -85,16 +84,6 @@ class DashboardSkeleton extends StatelessWidget {
           ),
           const SizedBox(height: Space.md),
           const _PerformanceCardSkeleton(),
-
-          const SizedBox(height: Space.xl),
-
-          // Team Workload section title
-          const Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: SkeletonText(width: 120, height: 16),
-          ),
-          const SizedBox(height: Space.md),
-          const _WorkloadCardSkeleton(),
 
           const SizedBox(height: Space.xxl),
         ],
@@ -199,55 +188,6 @@ class _PerformanceCardSkeleton extends StatelessWidget {
               SkeletonText(width: 40, height: 12),
             ],
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Placeholder for the team workload card.
-class _WorkloadCardSkeleton extends StatelessWidget {
-  const _WorkloadCardSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SkeletonCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        children: [
-          _WorkloadRowSkeleton(),
-          Divider(height: 1, indent: 60),
-          _WorkloadRowSkeleton(),
-          Divider(height: 1, indent: 60),
-          _WorkloadRowSkeleton(),
-        ],
-      ),
-    );
-  }
-}
-
-class _WorkloadRowSkeleton extends StatelessWidget {
-  const _WorkloadRowSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: Space.lg, vertical: Space.md),
-      child: Row(
-        children: [
-          SkeletonCircle(size: 36),
-          SizedBox(width: Space.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SkeletonText(width: 120, height: 13),
-                SizedBox(height: 6),
-                SkeletonText(width: 80, height: 10),
-              ],
-            ),
-          ),
-          SkeletonBox(width: 24, height: 18, borderRadius: Radii.sm),
         ],
       ),
     );

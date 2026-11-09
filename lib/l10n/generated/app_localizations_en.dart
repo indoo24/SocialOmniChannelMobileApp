@@ -5269,4 +5269,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashboardOpenRouting => 'Open routing settings';
+
+  @override
+  String get dashboardRotationViewAll => 'View full order';
 }

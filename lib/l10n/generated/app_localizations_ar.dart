@@ -5292,4 +5292,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get dashboardOpenRouting => 'فتح إعدادات التوجيه';
+
+  @override
+  String get dashboardRotationViewAll => 'عرض الترتيب بالكامل';
 }
