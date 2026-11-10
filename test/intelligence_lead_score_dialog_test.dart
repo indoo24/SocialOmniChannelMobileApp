@@ -279,10 +279,16 @@ void main() {
     }
   });
 
-  testWidgets('confirming a pending purchase claim does not use its note '
-      'TextEditingController after it is disposed', (tester) async {
+  testWidgets('confirming a pending purchase claim with a note does not use '
+      'its TextEditingController after it is disposed', (tester) async {
+    // The note is no longer in a dialog: "Add note" opens it inline on the
+    // alert, and Confirm purchase sends it. The alert owns the controller
+    // and closes the note field once the decision is saved — the same
+    // use-after-dispose window, now on the field leaving the tree.
+    Object? sent;
     final client = _stubClient((options) {
       if (options.path.contains('confirm-purchase')) {
+        sent = options.data;
         return _json(
           '{"stage": "HOT_LEAD", "purchase_status": "AGENT_CONFIRMED", '
           '"lead_score": 60, "lead_score_auto": 60, '
@@ -303,32 +309,27 @@ void main() {
     await tester.tap(find.text('open intelligence'));
     await tester.pumpAndSettle();
 
-    // Same shape as the lead-score dialog: a note TextField, then a
-    // decision button that pops the dialog immediately.
-    await tester.tap(
-      find.descendant(
-        of: find.byType(FilledButton),
-        matching: find.text('Confirm'),
-      ),
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('addPurchaseNoteButton')),
     );
+    await tester.tap(find.byKey(const ValueKey('addPurchaseNoteButton')));
     await tester.pumpAndSettle();
-
-    expect(find.byType(TextField), findsOneWidget);
-    await tester.enterText(find.byType(TextField), 'Paid via GCash');
-
-    await tester.tap(
-      find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.text('Confirm'),
-      ),
+    await tester.enterText(
+      find.byKey(const ValueKey('purchaseNoteField')),
+      'Paid via GCash',
     );
 
-    // Same reasoning as above: pump frame by frame across the dialog's
-    // exit transition rather than pumpAndSettle() past it.
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('confirmPurchaseButton')),
+    );
+    await tester.tap(find.byKey(const ValueKey('confirmPurchaseButton')));
+
     await _pumpAcrossExitTransition(tester);
     expect(tester.takeException(), isNull);
 
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+    expect(sent, {'confirmed': true, 'note': 'Paid via GCash'});
+    expect(find.byKey(const ValueKey('purchaseNoteField')), findsNothing);
   });
 }

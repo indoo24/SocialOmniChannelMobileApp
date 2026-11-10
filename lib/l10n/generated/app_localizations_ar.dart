@@ -2349,12 +2349,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String showSignalsBehindScore(int count) {
-    return 'عرض الـ $count إشارات وراء هذه الدرجة';
+    return 'إظهار الـ $count إشارات التي وراء هذه الدرجة';
   }
 
   @override
   String hideSignalsBehindScore(int count) {
-    return 'إخفاء الـ $count إشارات وراء هذه الدرجة';
+    return 'إخفاء الـ $count إشارات التي وراء هذه الدرجة';
   }
 
   @override
@@ -5295,4 +5295,93 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get dashboardRotationViewAll => 'عرض الترتيب بالكامل';
+
+  @override
+  String get intelligenceLeadScoreTitle => 'تقييم العميل المحتمل';
+
+  @override
+  String get possiblePurchaseTitle => 'رُصدت عملية شراء محتملة';
+
+  @override
+  String purchaseClaimSaysOrdered(String name) {
+    return '$name يقول إنه أرسل طلبًا. لا يملك Scenario أي وصول إلى سجلات الدفع، لذا هذا غير مؤكَّد.';
+  }
+
+  @override
+  String purchaseClaimSaysPaid(String name) {
+    return '$name يقول إنه دفع. لا يملك Scenario أي وصول إلى سجلات الدفع، لذا هذا غير مؤكَّد.';
+  }
+
+  @override
+  String get theCustomerLabel => 'العميل';
+
+  @override
+  String get confirmPurchaseAction => 'تأكيد الشراء';
+
+  @override
+  String get purchaseNotePlaceholder =>
+      'ملاحظة اختيارية (مثلًا كيف تحققت منها)';
+
+  @override
+  String get confirmingRecordsHint =>
+      'التأكيد يسجّل اسمك ووقت التأكيد. لا يقوم بأي تحصيل ولا يتحقق من أي دفعة.';
+
+  @override
+  String get needsConfirmRightsMessage =>
+      'يجب أن يراجع هذا الادّعاء موظف يملك صلاحية التأكيد.';
+
+  @override
+  String purchaseConfirmedBy(String name) {
+    return 'أكّدها $name.';
+  }
+
+  @override
+  String purchaseConfirmedByOn(String name, String when) {
+    return 'أكّدها $name في $when.';
+  }
+
+  @override
+  String get stageLead => 'عميل محتمل';
+
+  @override
+  String get stageUncertain => 'غير محدد';
+
+  @override
+  String get purchaseStatusIntentDetected => 'نية شراء';
+
+  @override
+  String get purchaseStatusSaysOrdered => 'يقول إنه طلب';
+
+  @override
+  String get purchaseStatusSaysPaid => 'يقول إنه دفع';
+
+  @override
+  String get purchaseStatusAgentConfirmed => 'مؤكدة بواسطة موظف';
+
+  @override
+  String get purchaseStatusCancelled => 'ملغاة';
+
+  @override
+  String get purchaseStatusRefundMentioned => 'طلب استرداد';
+
+  @override
+  String get sentimentPositive => 'إيجابي';
+
+  @override
+  String get sentimentNeutral => 'محايد';
+
+  @override
+  String get sentimentNegative => 'سلبي';
+
+  @override
+  String get sentimentMixed => 'متباين';
+
+  @override
+  String get levelLow => 'منخفض';
+
+  @override
+  String get levelMedium => 'متوسط';
+
+  @override
+  String get levelHigh => 'مرتفع';
 }
