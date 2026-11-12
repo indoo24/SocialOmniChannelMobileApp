@@ -2835,5 +2835,16 @@
   "sentimentMixed": "Mixed",
   "levelLow": "Low",
   "levelMedium": "Medium",
-  "levelHigh": "High"
+  "levelHigh": "High",
+  "needsReplyFilter": "Needs reply",
+  "needsReplyCountSemantics": "{count, plural, one{1 conversation needs a reply} other{{count} conversations need a reply}}",
+  "@needsReplyCountSemantics": {"placeholders": {"count": {"type": "int"}}},
+  "needsReplySortLabel": "Sort",
+  "needsReplyOldestFirst": "Oldest first",
+  "needsReplyNewestFirst": "Newest first",
+  "waitingFor": "Waiting {duration}",
+  "@waitingFor": {"placeholders": {"duration": {"type": "String"}}},
+  "needsReplyEmptyTitle": "Nobody is waiting for a reply",
+  "needsReplyEmptyMessage": "Every customer who wrote has had an answer.",
+  "conversationNoLongerAvailable": "This conversation is no longer available to you."
 }

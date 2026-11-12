@@ -1614,5 +1614,14 @@
   "sentimentMixed": "متباين",
   "levelLow": "منخفض",
   "levelMedium": "متوسط",
-  "levelHigh": "مرتفع"
+  "levelHigh": "مرتفع",
+  "needsReplyFilter": "يحتاج رد",
+  "needsReplyCountSemantics": "{count, plural, zero{لا توجد محادثات تحتاج ردًا} one{محادثة واحدة تحتاج ردًا} two{محادثتان تحتاجان ردًا} few{{count} محادثات تحتاج ردًا} many{{count} محادثة تحتاج ردًا} other{{count} محادثة تحتاج ردًا}}",
+  "needsReplySortLabel": "ترتيب",
+  "needsReplyOldestFirst": "الأقدم أولاً",
+  "needsReplyNewestFirst": "الأحدث أولاً",
+  "waitingFor": "في الانتظار {duration}",
+  "needsReplyEmptyTitle": "لا يوجد عملاء بانتظار الرد",
+  "needsReplyEmptyMessage": "تلقّى كل عميل كتب رسالةً ردًّا.",
+  "conversationNoLongerAvailable": "لم تعد هذه المحادثة متاحة لك."
 }

@@ -5361,4 +5361,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get levelHigh => 'High';
+
+  @override
+  String get needsReplyFilter => 'Needs reply';
+
+  @override
+  String needsReplyCountSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conversations need a reply',
+      one: '1 conversation needs a reply',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get needsReplySortLabel => 'Sort';
+
+  @override
+  String get needsReplyOldestFirst => 'Oldest first';
+
+  @override
+  String get needsReplyNewestFirst => 'Newest first';
+
+  @override
+  String waitingFor(String duration) {
+    return 'Waiting $duration';
+  }
+
+  @override
+  String get needsReplyEmptyTitle => 'Nobody is waiting for a reply';
+
+  @override
+  String get needsReplyEmptyMessage =>
+      'Every customer who wrote has had an answer.';
+
+  @override
+  String get conversationNoLongerAvailable =>
+      'This conversation is no longer available to you.';
 }

@@ -13,6 +13,7 @@ import '../../core/models/conversation.dart';
 import '../../core/models/customer_detail.dart';
 import '../../core/models/customer_fields.dart';
 import '../../core/models/directory.dart';
+import '../../core/models/employee.dart';
 import '../../core/models/performance.dart';
 import '../../core/models/routing_policy.dart';
 import '../../core/models/routing_workload.dart';
@@ -108,8 +109,25 @@ final teamsProvider = FutureProvider<List<Team>>((ref) async {
 
 /// Every account, across all pages: the inbox shows only the accounts listed
 /// here (`eligibleInboxAccounts`), so a list cut short would hide real ones.
+///
+/// The endpoint is chosen from the employee's permissions *before* asking:
+/// `GET /channels/` needs `channel.view`, so anyone without it (an AGENT) is
+/// sent straight to `GET /conversations/channels/`, the list every employee
+/// may read. Asking `/channels/` first and falling back on its 403 put tens
+/// of thousands of refused requests a day on the server.
+///
+/// The permission is *read*, not watched: the inbox depends on this list,
+/// and the auth controller ends a session by invalidating the inbox — a
+/// dependency on the signed-in employee here would make that circular.
+/// Nothing is lost: every sign-in and sign-out invalidates this provider
+/// (`clearSessionScopedState`), so it is rebuilt for whoever is signed in.
 final channelsProvider = FutureProvider<List<ChannelConnection>>((ref) async {
   final repository = ref.watch(directoryRepositoryProvider);
+  final canViewChannels =
+      ref.read(currentEmployeeProvider)?.can(Perm.channelView) ?? false;
+  if (!canViewChannels) {
+    return repository.inboxChannels();
+  }
   final channels = <ChannelConnection>[];
   for (var page = 1; ; page++) {
     final batch = await repository.channels(page: page);

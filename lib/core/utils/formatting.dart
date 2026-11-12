@@ -26,6 +26,25 @@ String formatRelativeTime(BuildContext context, DateTime? value) {
   return DateFormat('d MMM yy', locale).format(value);
 }
 
+/// How long a customer has been waiting since [since]: "<1m", "8m",
+/// "1h 24m", "2d 3h" — the web client's compact form, worked out on the
+/// device from `last_customer_message_at` (the server keeps no ticking
+/// number). A [since] in the future counts as no wait.
+String formatWaitDuration(DateTime since, {DateTime? now}) {
+  final seconds = (now ?? DateTime.now()).difference(since).inSeconds;
+  if (seconds < 60) return '<1m';
+  final minutes = seconds ~/ 60;
+  if (minutes < 60) return '${minutes}m';
+  final hours = minutes ~/ 60;
+  if (hours < 24) {
+    final rest = minutes % 60;
+    return rest == 0 ? '${hours}h' : '${hours}h ${rest}m';
+  }
+  final days = hours ~/ 24;
+  final rest = hours % 24;
+  return rest == 0 ? '${days}d' : '${days}d ${rest}h';
+}
+
 /// Full timestamp for message bubbles and detail rows.
 String formatDateTime(BuildContext context, DateTime? value) => value == null
     ? '—'

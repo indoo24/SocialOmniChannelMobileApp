@@ -9342,6 +9342,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'High'**
   String get levelHigh;
+
+  /// No description provided for @needsReplyFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs reply'**
+  String get needsReplyFilter;
+
+  /// No description provided for @needsReplyCountSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 conversation needs a reply} other{{count} conversations need a reply}}'**
+  String needsReplyCountSemantics(int count);
+
+  /// No description provided for @needsReplySortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get needsReplySortLabel;
+
+  /// No description provided for @needsReplyOldestFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest first'**
+  String get needsReplyOldestFirst;
+
+  /// No description provided for @needsReplyNewestFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get needsReplyNewestFirst;
+
+  /// No description provided for @waitingFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting {duration}'**
+  String waitingFor(String duration);
+
+  /// No description provided for @needsReplyEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody is waiting for a reply'**
+  String get needsReplyEmptyTitle;
+
+  /// No description provided for @needsReplyEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Every customer who wrote has had an answer.'**
+  String get needsReplyEmptyMessage;
+
+  /// No description provided for @conversationNoLongerAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation is no longer available to you.'**
+  String get conversationNoLongerAvailable;
 }
 
 class _AppLocalizationsDelegate

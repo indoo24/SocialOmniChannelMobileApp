@@ -58,6 +58,7 @@ void clearSessionScopedState(Ref ref) {
   ref.invalidate(inboxControllerProvider);
   ref.invalidate(inboxFiltersProvider);
   ref.invalidate(conversationCountsProvider);
+  ref.invalidate(needsReplyCountProvider);
   ref.invalidate(reviewCountProvider);
   ref.invalidate(conversationControllerProvider);
 
@@ -65,6 +66,9 @@ void clearSessionScopedState(Ref ref) {
   // marker the socket subscribes on.
   ref.invalidate(realtimeMessageCacheProvider);
   ref.invalidate(activeConversationProvider);
+  // The next session's first connect is its startup connect, not a
+  // reconnect; and no resync of the previous inbox may still be pending.
+  ref.invalidate(inboxResyncProvider);
 
   // Dashboard/Analytics session caches. These outlive `ref.invalidate` by
   // design — the whole point is that a provider rebuild replays a stored

@@ -130,7 +130,7 @@ Employee _adminEmployee() => Employee(
   role: 'ADMIN',
   roleDisplay: 'Admin',
   availability: 'ONLINE',
-  permissions: const {Perm.teamView, Perm.teamManage},
+  permissions: const {Perm.teamView, Perm.teamManage, Perm.channelView},
   visibilityScope: 'ALL',
   organization: const Organization(id: 1, name: 'Acme Retail'),
 );

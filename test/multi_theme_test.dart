@@ -462,7 +462,8 @@ void main() {
             final pill = tester.widget<Material>(
               find
                   .descendant(
-                    of: find.byKey(const Key('quick_filter_all')),
+                    // Needs reply: the view the inbox opens on.
+                    of: find.byKey(const Key('quick_filter_needs_reply')),
                     matching: find.byType(Material),
                   )
                   .first,

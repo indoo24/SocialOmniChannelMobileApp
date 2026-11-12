@@ -129,6 +129,9 @@ ProviderContainer _container(_Server server, {Employee? me}) {
     overrides: [
       apiClientProvider.overrideWithValue(server.client()),
       currentEmployeeProvider.overrideWith((ref) => ref.watch(_whoProvider)),
+      // The Needs reply badge reads the same counts endpoint; it is not what
+      // these tests measure, so it does not ask here.
+      needsReplyCountProvider.overrideWith((ref) async => null),
     ],
   );
   addTearDown(c.dispose);
@@ -177,9 +180,10 @@ List<String> _tabKeysInOrder(WidgetTester tester, {required bool rtl}) {
 void main() {
   // -------------------------------------------------------------------------
   group('which tabs a capability gets', () {
-    test('with the capability: All, Mine, Need review, Unread, Resolved, '
-        'then Unassigned and Open', () {
+    test('with the capability: Needs reply, All, Mine, Need review, Unread, '
+        'Resolved, then Unassigned and Open', () {
       expect(visibleQuickFilters(canReview: true), [
+        InboxQuickFilter.needsReply,
         InboxQuickFilter.all,
         InboxQuickFilter.mine,
         InboxQuickFilter.needsReview,
@@ -192,6 +196,7 @@ void main() {
 
     test('without it: the same tabs in the same order, Need review gone', () {
       expect(visibleQuickFilters(canReview: false), [
+        InboxQuickFilter.needsReply,
         InboxQuickFilter.all,
         InboxQuickFilter.mine,
         InboxQuickFilter.unread,

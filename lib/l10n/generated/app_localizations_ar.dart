@@ -5384,4 +5384,45 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get levelHigh => 'مرتفع';
+
+  @override
+  String get needsReplyFilter => 'يحتاج رد';
+
+  @override
+  String needsReplyCountSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة تحتاج ردًا',
+      many: '$count محادثة تحتاج ردًا',
+      few: '$count محادثات تحتاج ردًا',
+      two: 'محادثتان تحتاجان ردًا',
+      one: 'محادثة واحدة تحتاج ردًا',
+      zero: 'لا توجد محادثات تحتاج ردًا',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get needsReplySortLabel => 'ترتيب';
+
+  @override
+  String get needsReplyOldestFirst => 'الأقدم أولاً';
+
+  @override
+  String get needsReplyNewestFirst => 'الأحدث أولاً';
+
+  @override
+  String waitingFor(String duration) {
+    return 'في الانتظار $duration';
+  }
+
+  @override
+  String get needsReplyEmptyTitle => 'لا يوجد عملاء بانتظار الرد';
+
+  @override
+  String get needsReplyEmptyMessage => 'تلقّى كل عميل كتب رسالةً ردًّا.';
+
+  @override
+  String get conversationNoLongerAvailable => 'لم تعد هذه المحادثة متاحة لك.';
 }
