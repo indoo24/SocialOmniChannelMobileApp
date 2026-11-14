@@ -20,6 +20,7 @@ import '../../core/models/conversation_group.dart';
 import '../../core/realtime/realtime_bridge.dart';
 import '../../core/realtime/realtime_client.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/app_drawer.dart';
 import '../../core/widgets/avatar.dart';
@@ -283,6 +284,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
         children: [
           const PlatformAccountFilterBar(),
           const InboxQuickFilterBar(),
+          const NeedsReplySortBar(),
           // Separates the controls from the list they act on.
           const Divider(height: 1),
           Expanded(
@@ -376,6 +378,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                           key: ValueKey('inbox-group-${group.groupKey}'),
                           group: group,
                           searchQuery: searchQuery,
+                          showWaiting: filters.needsReply,
                           onTap: () => CustomerConversationGroupSheet.show(
                             context,
                             group: group,
@@ -389,6 +392,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                         conversation: conversation,
                         currentEmployeeId: employee?.id,
                         searchQuery: searchQuery,
+                        showWaiting: filters.needsReply,
                         onTap: () =>
                             context.push(Routes.conversation(conversation.id)),
                         onLongPress: () => showConversationQuickActions(
@@ -511,11 +515,15 @@ class ConversationGroupRow extends StatelessWidget {
     required this.group,
     required this.onTap,
     this.searchQuery = '',
+    this.showWaiting = false,
     super.key,
   });
 
   final CustomerConversationGroup group;
   final VoidCallback onTap;
+
+  /// Shows how long the customer has been waiting (the Needs reply view).
+  final bool showWaiting;
 
   /// The inbox's active search; empty when it is not searching.
   final String searchQuery;
@@ -535,6 +543,9 @@ class ConversationGroupRow extends StatelessWidget {
       name: group.customer.displayName,
       phone: group.customer.phone,
       time: group.lastMessageAt,
+      // The longest wait among this customer's threads — in this view the
+      // server lists only the threads that need a reply.
+      waitingSince: showWaiting ? _longestWait(group) : null,
       preview: formatConversationPreview(context, group: group),
       searchQuery: searchQuery,
       searchMatch: group.searchMatch,
@@ -570,6 +581,20 @@ class ConversationGroupRow extends StatelessWidget {
   }
 }
 
+/// The earliest `last_customer_message_at` among [group]'s threads: how long
+/// the customer has been waiting on the oldest unanswered one. Null when
+/// none carries one.
+DateTime? _longestWait(CustomerConversationGroup group) {
+  DateTime? earliest;
+  for (final c in group.conversations) {
+    final at = c.lastCustomerMessageAt;
+    if (at != null && (earliest == null || at.isBefore(earliest))) {
+      earliest = at;
+    }
+  }
+  return earliest;
+}
+
 class ConversationRow extends StatelessWidget {
   const ConversationRow({
     required this.conversation,
@@ -577,11 +602,15 @@ class ConversationRow extends StatelessWidget {
     this.onLongPress,
     this.currentEmployeeId,
     this.searchQuery = '',
+    this.showWaiting = false,
     super.key,
   });
 
   final Conversation conversation;
   final VoidCallback onTap;
+
+  /// Shows how long the customer has been waiting (the Needs reply view).
+  final bool showWaiting;
 
   /// The inbox's active search; empty when it is not searching.
   final String searchQuery;
@@ -624,6 +653,7 @@ class ConversationRow extends StatelessWidget {
       name: conversation.customer.displayName,
       phone: conversation.customer.phone,
       time: conversation.lastMessageAt,
+      waitingSince: showWaiting ? conversation.lastCustomerMessageAt : null,
       preview: formatConversationPreview(context, conversation: conversation),
       searchQuery: searchQuery,
       searchMatch: conversation.searchMatch,
@@ -702,10 +732,14 @@ class _InboxRowLayout extends StatelessWidget {
     this.phone = '',
     this.searchQuery = '',
     this.searchMatch,
+    this.waitingSince,
   });
 
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+
+  /// When the customer last wrote, for "Waiting 1h 24m"; null shows nothing.
+  final DateTime? waitingSince;
 
   /// The customer's registered phone, shown under the name while searching
   /// so a match on another number can be told from the customer's own.
@@ -817,6 +851,7 @@ class _InboxRowLayout extends StatelessWidget {
                       textAlign: startAlign,
                       style: theme.textTheme.bodySmall?.copyWith(color: muted),
                     ),
+                  if (waitingSince != null) _WaitingLabel(since: waitingSince!),
                   const SizedBox(height: Space.xxs),
                   if (match != null)
                     _SearchMatchLine(
@@ -863,6 +898,54 @@ class _InboxRowLayout extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Waiting 1h 24m" — how long the customer has been waiting for a reply,
+/// worked out here from when they last wrote and kept current while on
+/// screen (re-read once a minute; nothing is asked of the server).
+class _WaitingLabel extends StatefulWidget {
+  const _WaitingLabel({required this.since});
+
+  final DateTime since;
+
+  @override
+  State<_WaitingLabel> createState() => _WaitingLabelState();
+}
+
+class _WaitingLabelState extends State<_WaitingLabel> {
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: Space.xxs),
+      child: Text(
+        context.l10n.waitingFor(formatWaitDuration(widget.since)),
+        key: const ValueKey('inboxRowWaiting'),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: colors.warning,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -1086,6 +1169,17 @@ class InboxEmptyState extends StatelessWidget {
       );
     }
     if (filters.needsMyReview) return const _NoReviewsWaiting();
+    // The default view with nothing else narrowing it: nobody is waiting.
+    if (filters.needsReply &&
+        !filters.hasSheetFilters &&
+        !filters.hasActiveAccountFilter) {
+      return EmptyState(
+        key: const ValueKey('inboxNobodyWaiting'),
+        icon: Icons.mark_chat_read_outlined,
+        title: l10n.needsReplyEmptyTitle,
+        message: l10n.needsReplyEmptyMessage,
+      );
+    }
     if (!filters.isEmpty) {
       return EmptyState(
         key: const ValueKey('inboxNoFilterMatches'),

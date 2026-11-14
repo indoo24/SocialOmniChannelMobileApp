@@ -79,6 +79,25 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     return _fetchAndMergeOnOpen();
   }
 
+  /// The server answered 404 for this conversation: it is not this
+  /// employee's to see any more (reassigned elsewhere, access revoked), or
+  /// it is gone. That answer is authoritative, so the inbox row goes — with
+  /// the counts it was in — and the screen, if open, is told to leave
+  /// (the same one-shot signal `conversation.access_revoked` uses), instead
+  /// of a stale row that 404s every time it is tapped.
+  void _lostAccess() {
+    if (!ref.mounted) return;
+    RealtimeLogger.log(
+      'CONTROLLER',
+      'CONVERSATION_NOT_FOUND',
+      conversationId: conversationId.toString(),
+    );
+    ref.read(inboxControllerProvider.notifier).lostAccess(conversationId);
+    if (ref.read(activeConversationProvider) == conversationId) {
+      ref.read(revokedConversationProvider.notifier).revoke(conversationId);
+    }
+  }
+
   /// Called every time the conversation screen is opened to guarantee a fresh
   /// server refresh and cache merge.
   Future<void> refreshOnOpen() async {
@@ -106,10 +125,16 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     final repository = ref.read(conversationRepositoryProvider);
     final epoch = _readEpoch;
 
-    final results = await Future.wait([
-      repository.detail(conversationId),
-      repository.messages(conversationId),
-    ]);
+    final List<Object> results;
+    try {
+      results = await Future.wait([
+        repository.detail(conversationId),
+        repository.messages(conversationId),
+      ]);
+    } on ApiException catch (error) {
+      if (error.statusCode == 404) _lostAccess();
+      rethrow;
+    }
 
     final conversation = _sinceExplicitRead(results[0] as Conversation, epoch);
     final page = results[1] as Paginated<Message>;
@@ -938,6 +963,13 @@ class ConversationController extends AsyncNotifier<ConversationState> {
           await repository.detail(current.conversation.id),
           epoch,
         );
+      } on ApiException catch (error) {
+        // Gone for this employee (reassigned elsewhere, access revoked):
+        // nothing to refresh — drop it and leave.
+        if (error.statusCode == 404) {
+          _lostAccess();
+          return;
+        }
       } catch (_) {}
       final serverPage = await repository.messages(current.conversation.id);
 
@@ -1202,4 +1234,19 @@ final conversationControllerProvider =
       ConversationController,
       ConversationState,
       int
-    >(ConversationController.new);
+    >(ConversationController.new, retry: conversationRetry);
+
+/// Riverpod retries a failed load by default — up to ten times, backing off.
+/// A 4xx is the server's answer, not a glitch: a 404 means this conversation
+/// is not this employee's to see, and asking again only repeats the 404 (it
+/// once did, several times per tap on a stale row). Those are not retried;
+/// a dropped connection or a 5xx still is, as before.
+Duration? conversationRetry(int retryCount, Object error) {
+  if (error is ApiException &&
+      error.statusCode >= 400 &&
+      error.statusCode < 500) {
+    return null;
+  }
+  if (retryCount >= 10) return null;
+  return Duration(milliseconds: (200 * (1 << retryCount)).clamp(200, 6400));
+}

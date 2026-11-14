@@ -19,6 +19,20 @@ import '../../core/models/message.dart';
 import '../../core/realtime/realtime_logger.dart';
 import '../../core/utils/json_safe.dart';
 
+/// How the Needs reply view is ordered — by when the customer last wrote
+/// (`last_customer_message_at`), never by `last_message_at`. The server sorts
+/// (with an id tiebreak), so pages stay consistent; nothing is re-sorted here.
+enum NeedsReplyOrder {
+  /// Longest-waiting customer first — the default.
+  oldestFirst('last_customer_message_at'),
+  newestFirst('-last_customer_message_at');
+
+  const NeedsReplyOrder(this.ordering);
+
+  /// The `ordering` query value.
+  final String ordering;
+}
+
 /// Inbox filters, matching the query parameters the web inbox sends.
 class ConversationFilters {
   const ConversationFilters({
@@ -29,6 +43,8 @@ class ConversationFilters {
     this.unassigned = false,
     this.unread = false,
     this.needsMyReview = false,
+    this.needsReply = false,
+    this.needsReplyOrder = NeedsReplyOrder.oldestFirst,
     this.search = '',
     this.selectedAccounts = const {},
     this.channelConnections,
@@ -46,6 +62,14 @@ class ConversationFilters {
   /// grouped endpoints apply before paginating (the web inbox's Needs review
   /// filter, counted by `ConversationCounts.review_mine`).
   final bool needsMyReview;
+
+  /// The Needs reply view: conversations where a customer is waiting for a
+  /// human answer — `view=needs_reply`, decided by the server. Not [unread]:
+  /// a conversation can be read and still need a reply, or unread and not.
+  final bool needsReply;
+
+  /// The order of the Needs reply view; sent only with [needsReply].
+  final NeedsReplyOrder needsReplyOrder;
   final String search;
 
   /// Map of uppercase provider (e.g. 'FACEBOOK', 'INSTAGRAM') to selected channel ID.
@@ -81,6 +105,11 @@ class ConversationFilters {
     // There is no separate boolean/`__isnull` param for this — `assigned_to`
     // only accepts a specific employee id.
     if (unassigned) query['view'] = 'unassigned';
+    // A quick filter of its own, so never sent with `view=unassigned`.
+    if (needsReply && !unassigned) {
+      query['view'] = 'needs_reply';
+      query['ordering'] = needsReplyOrder.ordering;
+    }
     if (unread) query['unread'] = true;
     if (needsMyReview) query['review'] = 'mine';
     if (channelConnections != null) {
@@ -99,6 +128,8 @@ class ConversationFilters {
     bool? unassigned,
     bool? unread,
     bool? needsMyReview,
+    bool? needsReply,
+    NeedsReplyOrder? needsReplyOrder,
     String? search,
     Map<String, int?>? selectedAccounts,
     List<int>? channelConnections,
@@ -114,6 +145,8 @@ class ConversationFilters {
     unassigned: unassigned ?? this.unassigned,
     unread: unread ?? this.unread,
     needsMyReview: needsMyReview ?? this.needsMyReview,
+    needsReply: needsReply ?? this.needsReply,
+    needsReplyOrder: needsReplyOrder ?? this.needsReplyOrder,
     search: search ?? this.search,
     selectedAccounts: selectedAccounts ?? this.selectedAccounts,
     channelConnections: clearChannelConnections
@@ -150,6 +183,7 @@ class ConversationFilters {
       !unassigned &&
       !unread &&
       !needsMyReview &&
+      !needsReply &&
       search.trim().isEmpty &&
       !hasActiveAccountFilter;
 
@@ -165,6 +199,8 @@ class ConversationFilters {
           unassigned == other.unassigned &&
           unread == other.unread &&
           needsMyReview == other.needsMyReview &&
+          needsReply == other.needsReply &&
+          needsReplyOrder == other.needsReplyOrder &&
           search == other.search &&
           _mapEquals(selectedAccounts, other.selectedAccounts) &&
           _listEquals(channelConnections, other.channelConnections);
@@ -178,6 +214,8 @@ class ConversationFilters {
     unassigned,
     unread,
     needsMyReview,
+    needsReply,
+    needsReplyOrder,
     search,
     Object.hashAll(
       selectedAccounts.entries.map((e) => Object.hash(e.key, e.value)),
@@ -314,6 +352,21 @@ class ConversationRepository {
       'unassigned': results[2],
       'unread': results[3],
       'open': results[4],
+    };
+  }
+
+  /// `GET /conversations/counts/` — one number per bucket, as the server
+  /// counts them (conversations, not customer groups). Read for
+  /// `needs_reply`, which the web inbox badges the same way. Scoped to one
+  /// account with [channelConnection], as the endpoint allows.
+  Future<Map<String, int>> serverCounts({int? channelConnection}) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/conversations/counts/',
+      query: {'channel_connection': ?channelConnection},
+    );
+    return {
+      for (final entry in data.entries)
+        if (entry.value is num) entry.key: (entry.value as num).toInt(),
     };
   }
 

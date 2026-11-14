@@ -9186,6 +9186,280 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View full order'**
   String get dashboardRotationViewAll;
+
+  /// No description provided for @intelligenceLeadScoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lead score'**
+  String get intelligenceLeadScoreTitle;
+
+  /// No description provided for @possiblePurchaseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Possible purchase detected'**
+  String get possiblePurchaseTitle;
+
+  /// No description provided for @purchaseClaimSaysOrdered.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} says they have placed an order. Scenario has no access to payment records, so this is unverified.'**
+  String purchaseClaimSaysOrdered(String name);
+
+  /// No description provided for @purchaseClaimSaysPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} says they have paid. Scenario has no access to payment records, so this is unverified.'**
+  String purchaseClaimSaysPaid(String name);
+
+  /// No description provided for @theCustomerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'The customer'**
+  String get theCustomerLabel;
+
+  /// No description provided for @confirmPurchaseAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm purchase'**
+  String get confirmPurchaseAction;
+
+  /// No description provided for @purchaseNotePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional note (e.g. how you verified it)'**
+  String get purchaseNotePlaceholder;
+
+  /// No description provided for @confirmingRecordsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirming records your name and the time. It does not charge or verify any payment.'**
+  String get confirmingRecordsHint;
+
+  /// No description provided for @needsConfirmRightsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'An employee with confirmation rights needs to review this claim.'**
+  String get needsConfirmRightsMessage;
+
+  /// No description provided for @purchaseConfirmedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed by {name}.'**
+  String purchaseConfirmedBy(String name);
+
+  /// No description provided for @purchaseConfirmedByOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed by {name} on {when}.'**
+  String purchaseConfirmedByOn(String name, String when);
+
+  /// No description provided for @stageLead.
+  ///
+  /// In en, this message translates to:
+  /// **'Lead'**
+  String get stageLead;
+
+  /// No description provided for @stageUncertain.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncertain'**
+  String get stageUncertain;
+
+  /// No description provided for @purchaseStatusIntentDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'Intent detected'**
+  String get purchaseStatusIntentDetected;
+
+  /// No description provided for @purchaseStatusSaysOrdered.
+  ///
+  /// In en, this message translates to:
+  /// **'Says ordered'**
+  String get purchaseStatusSaysOrdered;
+
+  /// No description provided for @purchaseStatusSaysPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Says paid'**
+  String get purchaseStatusSaysPaid;
+
+  /// No description provided for @purchaseStatusAgentConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed by employee'**
+  String get purchaseStatusAgentConfirmed;
+
+  /// No description provided for @purchaseStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get purchaseStatusCancelled;
+
+  /// No description provided for @purchaseStatusRefundMentioned.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund mentioned'**
+  String get purchaseStatusRefundMentioned;
+
+  /// No description provided for @sentimentPositive.
+  ///
+  /// In en, this message translates to:
+  /// **'Positive'**
+  String get sentimentPositive;
+
+  /// No description provided for @sentimentNeutral.
+  ///
+  /// In en, this message translates to:
+  /// **'Neutral'**
+  String get sentimentNeutral;
+
+  /// No description provided for @sentimentNegative.
+  ///
+  /// In en, this message translates to:
+  /// **'Negative'**
+  String get sentimentNegative;
+
+  /// No description provided for @sentimentMixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed'**
+  String get sentimentMixed;
+
+  /// No description provided for @levelLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get levelLow;
+
+  /// No description provided for @levelMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get levelMedium;
+
+  /// No description provided for @levelHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get levelHigh;
+
+  /// No description provided for @needsReplyFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs reply'**
+  String get needsReplyFilter;
+
+  /// No description provided for @needsReplyCountSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 conversation needs a reply} other{{count} conversations need a reply}}'**
+  String needsReplyCountSemantics(int count);
+
+  /// No description provided for @needsReplySortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get needsReplySortLabel;
+
+  /// No description provided for @needsReplyOldestFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest first'**
+  String get needsReplyOldestFirst;
+
+  /// No description provided for @needsReplyNewestFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get needsReplyNewestFirst;
+
+  /// No description provided for @waitingFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting {duration}'**
+  String waitingFor(String duration);
+
+  /// No description provided for @needsReplyEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody is waiting for a reply'**
+  String get needsReplyEmptyTitle;
+
+  /// No description provided for @needsReplyEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Every customer who wrote has had an answer.'**
+  String get needsReplyEmptyMessage;
+
+  /// No description provided for @conversationNoLongerAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation is no longer available to you.'**
+  String get conversationNoLongerAvailable;
+
+  /// No description provided for @teamWorkloadEmployee.
+  ///
+  /// In en, this message translates to:
+  /// **'Employee'**
+  String get teamWorkloadEmployee;
+
+  /// No description provided for @teamWorkloadReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Received'**
+  String get teamWorkloadReceived;
+
+  /// No description provided for @teamWorkloadRightNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Right now'**
+  String get teamWorkloadRightNow;
+
+  /// No description provided for @teamWorkloadReceivedWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Received window'**
+  String get teamWorkloadReceivedWindow;
+
+  /// No description provided for @teamWorkloadReceivedTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations given to this employee during the selected period, counted once each. Read from the assignment history, so a later reassignment does not change it.'**
+  String get teamWorkloadReceivedTooltip;
+
+  /// No description provided for @teamWorkloadNeedsReplyTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations assigned to them where the customer is waiting for a human reply. This is the backlog as it stands now — the period selector does not change it.'**
+  String get teamWorkloadNeedsReplyTooltip;
+
+  /// No description provided for @teamWorkloadEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing assigned'**
+  String get teamWorkloadEmptyTitle;
+
+  /// No description provided for @teamWorkloadEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations assigned to agents will show up here.'**
+  String get teamWorkloadEmptyHint;
+
+  /// No description provided for @teamWorkloadPeriodFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load Received for this period.'**
+  String get teamWorkloadPeriodFailed;
+
+  /// No description provided for @teamWorkloadRowSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {received} received, {needsReply} waiting for a reply now'**
+  String teamWorkloadRowSemantics(
+    String name,
+    String received,
+    String needsReply,
+  );
 }
 
 class _AppLocalizationsDelegate

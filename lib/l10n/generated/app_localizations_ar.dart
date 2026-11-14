@@ -1148,7 +1148,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get myLast14DaysTitle => 'آخر 14 يومًا';
 
   @override
-  String get teamWorkloadTitle => 'عبء عمل الفريق';
+  String get teamWorkloadTitle => 'حجم عمل الفريق';
 
   @override
   String onlineAgentsSuffix(int count) {
@@ -2349,12 +2349,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String showSignalsBehindScore(int count) {
-    return 'عرض الـ $count إشارات وراء هذه الدرجة';
+    return 'إظهار الـ $count إشارات التي وراء هذه الدرجة';
   }
 
   @override
   String hideSignalsBehindScore(int count) {
-    return 'إخفاء الـ $count إشارات وراء هذه الدرجة';
+    return 'إخفاء الـ $count إشارات التي وراء هذه الدرجة';
   }
 
   @override
@@ -5295,4 +5295,173 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get dashboardRotationViewAll => 'عرض الترتيب بالكامل';
+
+  @override
+  String get intelligenceLeadScoreTitle => 'تقييم العميل المحتمل';
+
+  @override
+  String get possiblePurchaseTitle => 'رُصدت عملية شراء محتملة';
+
+  @override
+  String purchaseClaimSaysOrdered(String name) {
+    return '$name يقول إنه أرسل طلبًا. لا يملك Scenario أي وصول إلى سجلات الدفع، لذا هذا غير مؤكَّد.';
+  }
+
+  @override
+  String purchaseClaimSaysPaid(String name) {
+    return '$name يقول إنه دفع. لا يملك Scenario أي وصول إلى سجلات الدفع، لذا هذا غير مؤكَّد.';
+  }
+
+  @override
+  String get theCustomerLabel => 'العميل';
+
+  @override
+  String get confirmPurchaseAction => 'تأكيد الشراء';
+
+  @override
+  String get purchaseNotePlaceholder =>
+      'ملاحظة اختيارية (مثلًا كيف تحققت منها)';
+
+  @override
+  String get confirmingRecordsHint =>
+      'التأكيد يسجّل اسمك ووقت التأكيد. لا يقوم بأي تحصيل ولا يتحقق من أي دفعة.';
+
+  @override
+  String get needsConfirmRightsMessage =>
+      'يجب أن يراجع هذا الادّعاء موظف يملك صلاحية التأكيد.';
+
+  @override
+  String purchaseConfirmedBy(String name) {
+    return 'أكّدها $name.';
+  }
+
+  @override
+  String purchaseConfirmedByOn(String name, String when) {
+    return 'أكّدها $name في $when.';
+  }
+
+  @override
+  String get stageLead => 'عميل محتمل';
+
+  @override
+  String get stageUncertain => 'غير محدد';
+
+  @override
+  String get purchaseStatusIntentDetected => 'نية شراء';
+
+  @override
+  String get purchaseStatusSaysOrdered => 'يقول إنه طلب';
+
+  @override
+  String get purchaseStatusSaysPaid => 'يقول إنه دفع';
+
+  @override
+  String get purchaseStatusAgentConfirmed => 'مؤكدة بواسطة موظف';
+
+  @override
+  String get purchaseStatusCancelled => 'ملغاة';
+
+  @override
+  String get purchaseStatusRefundMentioned => 'طلب استرداد';
+
+  @override
+  String get sentimentPositive => 'إيجابي';
+
+  @override
+  String get sentimentNeutral => 'محايد';
+
+  @override
+  String get sentimentNegative => 'سلبي';
+
+  @override
+  String get sentimentMixed => 'متباين';
+
+  @override
+  String get levelLow => 'منخفض';
+
+  @override
+  String get levelMedium => 'متوسط';
+
+  @override
+  String get levelHigh => 'مرتفع';
+
+  @override
+  String get needsReplyFilter => 'يحتاج رد';
+
+  @override
+  String needsReplyCountSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة تحتاج ردًا',
+      many: '$count محادثة تحتاج ردًا',
+      few: '$count محادثات تحتاج ردًا',
+      two: 'محادثتان تحتاجان ردًا',
+      one: 'محادثة واحدة تحتاج ردًا',
+      zero: 'لا توجد محادثات تحتاج ردًا',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get needsReplySortLabel => 'ترتيب';
+
+  @override
+  String get needsReplyOldestFirst => 'الأقدم أولاً';
+
+  @override
+  String get needsReplyNewestFirst => 'الأحدث أولاً';
+
+  @override
+  String waitingFor(String duration) {
+    return 'في الانتظار $duration';
+  }
+
+  @override
+  String get needsReplyEmptyTitle => 'لا يوجد عملاء بانتظار الرد';
+
+  @override
+  String get needsReplyEmptyMessage => 'تلقّى كل عميل كتب رسالةً ردًّا.';
+
+  @override
+  String get conversationNoLongerAvailable => 'لم تعد هذه المحادثة متاحة لك.';
+
+  @override
+  String get teamWorkloadEmployee => 'الموظف';
+
+  @override
+  String get teamWorkloadReceived => 'المستلمة';
+
+  @override
+  String get teamWorkloadRightNow => 'الآن';
+
+  @override
+  String get teamWorkloadReceivedWindow => 'نطاق المستلمة';
+
+  @override
+  String get teamWorkloadReceivedTooltip =>
+      'المحادثات التي أُعطيت لهذا الموظف خلال الفترة المحددة، تُحسب مرة واحدة لكل محادثة. تُقرأ من سجل التعيين، لذلك لا تتغير بإعادة التعيين لاحقًا.';
+
+  @override
+  String get teamWorkloadNeedsReplyTooltip =>
+      'المحادثات المعيّنة له والتي ينتظر فيها العميل ردًا بشريًا. هذا هو الوضع الحالي — اختيار الفترة لا يغيّره.';
+
+  @override
+  String get teamWorkloadEmptyTitle => 'لا توجد محادثات مُسندة';
+
+  @override
+  String get teamWorkloadEmptyHint =>
+      'ستظهر هنا المحادثات المسندة إلى الوكلاء.';
+
+  @override
+  String get teamWorkloadPeriodFailed => 'تعذّر تحميل المستلمة لهذه الفترة.';
+
+  @override
+  String teamWorkloadRowSemantics(
+    String name,
+    String received,
+    String needsReply,
+  ) {
+    return '$name: المستلمة $received، يحتاج رد الآن $needsReply';
+  }
 }

@@ -121,8 +121,13 @@ class _Server {
       if (!archived.contains(e.key)) _channel(e.key, _names[e.key]!, e.value),
   ];
 
+  /// Requests to `/channels/` (the `channel.view` list) and to the agent list.
+  int channelsRequests = 0;
+  int agentListRequests = 0;
+
   Future<ResponseBody> _handle(RequestOptions o) async {
     if (o.path == '/channels/') {
+      channelsRequests++;
       if (agent) {
         return ResponseBody.fromString(
           jsonEncode({
@@ -148,6 +153,7 @@ class _Server {
       });
     }
     if (o.path == '/conversations/channels/') {
+      agentListRequests++;
       return _json([
         for (final c in _listed)
           {
@@ -212,11 +218,26 @@ final _me = Employee(
   visibilityScope: 'ALL',
 );
 
-({ProviderContainer c, InboxController inbox}) _open(_Server server) {
+final _agent = Employee(
+  id: 2,
+  email: 'agent@acme.test',
+  fullName: 'Agent',
+  initials: 'AG',
+  role: 'AGENT',
+  roleDisplay: 'Agent',
+  availability: 'ONLINE',
+  permissions: const {Perm.conversationReply},
+  visibilityScope: 'OWN',
+);
+
+({ProviderContainer c, InboxController inbox}) _open(
+  _Server server, {
+  Employee? me,
+}) {
   final c = ProviderContainer(
     overrides: [
       apiClientProvider.overrideWithValue(server.client()),
-      currentEmployeeProvider.overrideWithValue(_me),
+      currentEmployeeProvider.overrideWithValue(me ?? _me),
     ],
   );
   addTearDown(c.dispose);
@@ -428,13 +449,17 @@ void main() {
     });
 
     test('an agent without channel.view is scoped from the agent list '
-        '(a bare array)', () async {
+        '(a bare array), and never asks /channels/', () async {
       final server = _Server()
         ..agent = true
         ..archived.add(3)
         ..status[2] = 'DISCONNECTED';
-      final (:c, inbox: _) = _open(server);
+      final (:c, inbox: _) = _open(server, me: _agent);
       await c.read(inboxControllerProvider.future);
+      // Chosen from the permission before asking: no 403 to fall back on.
+      expect(server.channelsRequests, 0);
+      // One bare array is the whole list: no page 2.
+      expect(server.agentListRequests, 1);
       // The agent list has no status, so a DISCONNECTED account still listed
       // there cannot be told apart; the archived one is left out.
       expect(server.grouped.single['channel_connections'], '1,2');
@@ -445,6 +470,9 @@ void main() {
       final server = _Server()..channelPageSize = 2;
       final (:c, inbox: _) = _open(server);
       await c.read(inboxControllerProvider.future);
+      // channel.view: the full list, never the agent one.
+      expect(server.channelsRequests, 2);
+      expect(server.agentListRequests, 0);
       expect(server.grouped.single['channel_connections'], '1,2,3');
       expect(_byCustomer(c)[7], [11, 12, 13]);
     });
