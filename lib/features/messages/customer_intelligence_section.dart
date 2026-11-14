@@ -1,17 +1,23 @@
-/// Redesigned Customer Intelligence presentation widget for Flutter mobile.
+/// Customer intelligence — the analyzer's read of a conversation, laid out
+/// the way the web client's conversation panel lays it out:
 ///
-/// Matches the target reference design:
-/// - Top header with sparkle icon, title, and refresh icon.
-/// - Subtle disclaimer / info card.
-/// - Lead score card with prominent score / 100, horizontal progress bar,
-///   Edit / Auto / Meta action buttons, score override history, and expandable signals.
-/// - Responsive 2-column attributes grid (Stage, Confidence, Purchase status,
-///   Sentiment, Intent, Urgency).
-/// - Buying signals list with empty state.
-/// - Multiline summary.
-/// - Recommended next action highlighted card.
-/// - Preserved review banners, purchase claims, interested products, objections,
-///   and Meta conversion history.
+/// 1. Header with refresh (optional; the conversation sheet draws its own).
+/// 2. A muted banner: where this came from, and that it is a suggestion.
+/// 3. "Possible purchase detected" while a customer's claim awaits a ruling:
+///    who claims what, the quoted evidence, Confirm purchase / Not yet, an
+///    optional note sent with the decision, and what confirming records.
+/// 4. Lead score: Edit / Auto / Meta, the score out of 100 and its bar.
+/// 5. The signals behind the score, expandable.
+/// 6. A two-column grid: stage, confidence, purchase status, sentiment,
+///    intent, urgency.
+///
+/// Then what the web shows below it — interested products, objections,
+/// buying signals, summary, recommended next action, Meta conversions and
+/// when it was last analysed.
+///
+/// Every value comes from [ConversationIntelligence]; every action is an
+/// existing repository call (`refreshIntelligence`, `setLeadScore`,
+/// `confirmPurchase`, `reportConversion`) behind its existing permission.
 library;
 
 import 'package:flutter/material.dart';
@@ -21,6 +27,7 @@ import '../../core/api/api_exception.dart';
 import '../../core/models/employee.dart';
 import '../../core/models/intelligence.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/widgets/badges.dart';
@@ -29,11 +36,12 @@ import '../authentication/auth_controller.dart';
 import 'conversion_providers.dart';
 import 'intelligence_providers.dart';
 
-/// The full redesigned Customer Intelligence view.
+/// The customer intelligence view for one conversation.
 class CustomerIntelligenceView extends ConsumerStatefulWidget {
   const CustomerIntelligenceView({
     required this.conversationId,
     required this.intelligence,
+    this.customerName,
     this.onChanged,
     this.onMessage,
     this.showHeader = true,
@@ -42,6 +50,10 @@ class CustomerIntelligenceView extends ConsumerStatefulWidget {
 
   final int conversationId;
   final ConversationIntelligence intelligence;
+
+  /// Who the purchase claim is from, for "{name} says they have paid". When
+  /// not known the alert says "The customer".
+  final String? customerName;
   final VoidCallback? onChanged;
   final void Function(String message, {bool isError})? onMessage;
   final bool showHeader;
@@ -51,11 +63,13 @@ class CustomerIntelligenceView extends ConsumerStatefulWidget {
       _CustomerIntelligenceViewState();
 }
 
+/// Which lead-score action is in flight, so only that button spins.
+enum _ScoreBusy { none, edit, auto, meta }
+
 class _CustomerIntelligenceViewState
     extends ConsumerState<CustomerIntelligenceView> {
   bool _analyzing = false;
-  bool _busyScore = false;
-  bool _reportingMeta = false;
+  _ScoreBusy _scoreBusy = _ScoreBusy.none;
   bool _signalsExpanded = false;
 
   void _notifyMessage(String message, {bool isError = false}) {
@@ -96,7 +110,9 @@ class _CustomerIntelligenceViewState
   }
 
   Future<void> _setScore(int? score) async {
-    setState(() => _busyScore = true);
+    setState(
+      () => _scoreBusy = score == null ? _ScoreBusy.auto : _ScoreBusy.edit,
+    );
     try {
       await ref
           .read(conversationRepositoryProvider)
@@ -111,7 +127,7 @@ class _CustomerIntelligenceViewState
     } on ApiException catch (error) {
       _notifyMessage(error.message, isError: true);
     } finally {
-      if (mounted) setState(() => _busyScore = false);
+      if (mounted) setState(() => _scoreBusy = _ScoreBusy.none);
     }
   }
 
@@ -147,13 +163,13 @@ class _CustomerIntelligenceViewState
         ],
       ),
     );
-    // Preserved fix from tests: do not call controller.dispose() synchronously
-    // to avoid throwing during dialog exit transition.
+    // The controller is left to the GC: disposing it here, while the dialog
+    // is still animating out, throws (see intelligence_lead_score_dialog_test).
     if (entered != null) await _setScore(entered);
   }
 
   Future<void> _reportConversion() async {
-    setState(() => _reportingMeta = true);
+    setState(() => _scoreBusy = _ScoreBusy.meta);
     try {
       final result = await ref
           .read(conversationRepositoryProvider)
@@ -164,49 +180,43 @@ class _CustomerIntelligenceViewState
     } on ApiException catch (error) {
       _notifyMessage(error.message, isError: true);
     } finally {
-      if (mounted) setState(() => _reportingMeta = false);
+      if (mounted) setState(() => _scoreBusy = _ScoreBusy.none);
     }
-  }
-
-  Color _scoreColor(int score) {
-    if (score >= 75) return ScenarioColors.danger;
-    if (score >= 50) return const Color(0xFF8B5CF6); // violet
-    if (score >= 20) return const Color(0xFF0284C7); // sky
-    return Colors.blueGrey;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colors = AppColors.of(context);
     final intel = widget.intelligence;
     final canRefresh = ref.watch(
       canProvider(Perm.conversationRefreshIntelligence),
     );
-    final canOverride = ref.watch(canProvider(Perm.intelligenceOverrideScore));
-    final canReportConversion = ref.watch(canProvider(Perm.conversionReport));
 
-    final versionStr = intel.analysisVersion.isNotEmpty
+    final version = intel.analysisVersion.isNotEmpty
         ? intel.analysisVersion
         : context.l10n.intelligenceTheAnalyzer;
 
+    const gap = SizedBox(height: Space.lg);
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 1. TOP HEADER (Optional if wrapped by external header)
+        // 1. Header — the conversation sheet passes showHeader: false and
+        //    draws the same title and refresh in its own section card.
         if (widget.showHeader) ...[
           Row(
             children: [
               Icon(
                 Icons.auto_awesome,
-                size: 18,
+                size: 16,
                 color: theme.colorScheme.primary,
               ),
-              const SizedBox(width: Space.xs),
+              const SizedBox(width: Space.xs + 2),
               Expanded(
                 child: Text(
                   context.l10n.customerIntelligenceSectionTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -229,226 +239,774 @@ class _CustomerIntelligenceViewState
           const SizedBox(height: Space.sm),
         ],
 
-        // 2. DISCLAIMER / INFO CARD
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-            horizontal: Space.sm + 2,
-            vertical: Space.sm,
+        // 2. Where this came from, and that it is a suggestion.
+        _ExtractionBanner(text: context.l10n.intelligenceDisclaimer(version)),
+
+        if (intel.needsHumanReview) ...[
+          const SizedBox(height: Space.md),
+          _ReviewBanner(reason: intel.reviewReason),
+        ],
+
+        // 3. A purchase claim awaiting a ruling.
+        if (intel.isPurchaseClaimPending) ...[
+          const SizedBox(height: Space.md),
+          _PurchaseAlert(
+            conversationId: widget.conversationId,
+            intelligence: intel,
+            customerName: widget.customerName,
+            onChanged: _triggerChanged,
+            onMessage: _notifyMessage,
           ),
-          decoration: BoxDecoration(
-            color: isDark
-                ? theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.4,
-                  )
-                : theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.5,
+        ],
+
+        if (intel.isAgentConfirmed) ...[
+          const SizedBox(height: Space.md),
+          _PurchaseConfirmedCard(intelligence: intel),
+        ],
+
+        gap,
+
+        // 4 & 5. Lead score, its bar, and the signals behind it.
+        _LeadScoreSection(
+          intelligence: intel,
+          busy: _scoreBusy,
+          signalsExpanded: _signalsExpanded,
+          onToggleSignals: () =>
+              setState(() => _signalsExpanded = !_signalsExpanded),
+          onEdit: _editScore,
+          onAuto: () => _setScore(null),
+          onMeta: _reportConversion,
+        ),
+
+        gap,
+
+        // 6. The attributes grid.
+        _InsightsGrid(intelligence: intel),
+
+        // What the web shows below the grid, in its order.
+        if (intel.interestedProducts.isNotEmpty) ...[
+          gap,
+          _SectionLabel(context.l10n.interestedInLabel),
+          Wrap(
+            spacing: Space.xs,
+            runSpacing: Space.xs,
+            children: [
+              for (final p in intel.interestedProducts)
+                StatusBadge(
+                  label: p,
+                  tone: BadgeTone.info,
+                  icon: Icons.sell_outlined,
+                  dense: true,
+                ),
+            ],
+          ),
+        ],
+
+        if (intel.objections.isNotEmpty) ...[
+          gap,
+          _SectionLabel(context.l10n.objectionsLabel),
+          Wrap(
+            spacing: Space.xs,
+            runSpacing: Space.xs,
+            children: [
+              for (final o in intel.objections)
+                StatusBadge(label: o, tone: BadgeTone.danger, dense: true),
+            ],
+          ),
+        ],
+
+        gap,
+        _SectionLabel(context.l10n.buyingSignalsLabel),
+        if (intel.buyingSignals.isNotEmpty)
+          for (final signal in intel.buyingSignals)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2.5),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.north_east,
+                      size: 13,
+                      color: colors.success,
+                    ),
                   ),
-            borderRadius: BorderRadius.circular(Radii.md),
+                  const SizedBox(width: Space.xs + 2),
+                  Expanded(
+                    child: Text(
+                      signal,
+                      style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            )
+        else
+          Text(
+            context.l10n.noBuyingSignalsMessage,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colors.mutedForeground,
+              fontStyle: FontStyle.italic,
+            ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+
+        gap,
+        _SectionLabel(context.l10n.intelligenceSummaryLabel),
+        Text(
+          intel.summary.isNotEmpty ? intel.summary : '—',
+          style: theme.textTheme.bodySmall?.copyWith(height: 1.5),
+        ),
+
+        if (intel.nextBestAction.isNotEmpty) ...[
+          gap,
+          _NextActionCard(text: intel.nextBestAction),
+        ],
+
+        _MetaConversionsSection(conversationId: widget.conversationId),
+
+        if (intel.analyzedAt != null) ...[
+          gap,
+          Text(
+            context.l10n.lastAnalyzedLabel(
+              formatDateTime(context, intel.analyzedAt),
+            ),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colors.mutedForeground,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Shared pieces
+// ---------------------------------------------------------------------------
+
+/// A section heading: small, uppercase (in scripts that have case), muted.
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Space.xs + 2),
+      child: Text(
+        text.toUpperCase(),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+          letterSpacing: 0.6,
+          color: AppColors.of(context).mutedForeground,
+        ),
+      ),
+    );
+  }
+}
+
+/// The muted "Generated from conversation text by … verify before acting"
+/// line.
+class _ExtractionBanner extends StatelessWidget {
+  const _ExtractionBanner({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Container(
+      key: const ValueKey('intelExtractionBanner'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.sm + 2,
+        vertical: Space.sm,
+      ),
+      decoration: BoxDecoration(
+        color: colors.muted,
+        borderRadius: BorderRadius.circular(Radii.md),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1.5),
+            child: Icon(
+              Icons.info_outline,
+              size: 13,
+              color: colors.mutedForeground,
+            ),
+          ),
+          const SizedBox(width: Space.xs + 2),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontSize: 11.5,
+                height: 1.45,
+                color: colors.mutedForeground,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewBanner extends StatelessWidget {
+  const _ReviewBanner({required this.reason});
+
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Container(
+      key: const ValueKey('intelReviewBanner'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.sm + 2,
+        vertical: Space.sm,
+      ),
+      decoration: BoxDecoration(
+        color: colors.warningSurface,
+        borderRadius: BorderRadius.circular(Radii.md),
+        border: Border.all(color: colors.warning.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.flag_outlined, size: 15, color: colors.warning),
+          const SizedBox(width: Space.xs + 2),
+          Expanded(
+            child: Text(
+              reason.isEmpty ? context.l10n.reviewBannerDefaultReason : reason,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 3. Possible purchase detected
+// ---------------------------------------------------------------------------
+
+/// The customer says they ordered or paid, and nobody has ruled on it.
+///
+/// Confirm purchase and Not yet are `POST /confirm-purchase/` with
+/// `confirmed` true or false; "Add note" opens the optional note that goes
+/// with either decision (the web's `confirmationNote`, 255 characters).
+/// Not yet does not delete the claim: the server keeps it on record and
+/// stops asking.
+class _PurchaseAlert extends ConsumerStatefulWidget {
+  const _PurchaseAlert({
+    required this.conversationId,
+    required this.intelligence,
+    required this.customerName,
+    required this.onChanged,
+    required this.onMessage,
+  });
+
+  final int conversationId;
+  final ConversationIntelligence intelligence;
+  final String? customerName;
+  final VoidCallback onChanged;
+  final void Function(String message, {bool isError}) onMessage;
+
+  @override
+  ConsumerState<_PurchaseAlert> createState() => _PurchaseAlertState();
+}
+
+class _PurchaseAlertState extends ConsumerState<_PurchaseAlert> {
+  final _note = TextEditingController();
+  bool _noteOpen = false;
+
+  /// The decision in flight — true confirm, false not yet — or null.
+  bool? _deciding;
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  Future<void> _decide(bool confirmed) async {
+    if (_deciding != null) return;
+    setState(() => _deciding = confirmed);
+    try {
+      await ref
+          .read(conversationRepositoryProvider)
+          .confirmPurchase(
+            widget.conversationId,
+            confirmed: confirmed,
+            note: _note.text.trim(),
+          );
+      if (!mounted) return;
+      ref.invalidate(purchaseConfirmationsProvider(widget.conversationId));
+      widget.onMessage(
+        confirmed
+            ? context.l10n.purchaseConfirmedMessage
+            : context.l10n.purchaseNotConfirmedMessage,
+      );
+      _note.clear();
+      setState(() => _noteOpen = false);
+      // Last: the refetch it starts may take this alert away.
+      widget.onChanged();
+    } on ApiException catch (error) {
+      widget.onMessage(error.message, isError: true);
+    } finally {
+      if (mounted) setState(() => _deciding = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = AppColors.of(context);
+    final intel = widget.intelligence;
+    final canConfirm = ref.watch(canProvider(Perm.conversationConfirmPurchase));
+    // Text on the warning surface: the warning hue taken toward the
+    // foreground, so it reads in light and dark alike.
+    final ink = Color.lerp(colors.warning, colors.foreground, 0.6)!;
+    final small = theme.textTheme.bodySmall?.copyWith(color: ink, height: 1.45);
+
+    final name = (widget.customerName ?? '').trim().isEmpty
+        ? context.l10n.theCustomerLabel
+        : widget.customerName!.trim();
+    final explanation =
+        intel.purchaseStatus.toUpperCase() == 'CUSTOMER_SAYS_PAID'
+        ? context.l10n.purchaseClaimSaysPaid(name)
+        : context.l10n.purchaseClaimSaysOrdered(name);
+    final busy = _deciding != null;
+
+    return Container(
+      key: const ValueKey('purchaseAlert'),
+      padding: const EdgeInsets.all(Space.md),
+      decoration: BoxDecoration(
+        color: colors.warningSurface,
+        borderRadius: BorderRadius.circular(Radii.lg),
+        border: Border.all(color: colors.warning.withValues(alpha: 0.55)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             children: [
               Icon(
-                Icons.info_outline,
-                size: 15,
-                color: theme.colorScheme.onSurfaceVariant,
+                Icons.warning_amber_rounded,
+                size: 17,
+                color: colors.warning,
               ),
               const SizedBox(width: Space.xs + 2),
               Expanded(
                 child: Text(
-                  context.l10n.intelligenceDisclaimer(versionStr),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 11.5,
-                    height: 1.35,
-                    color: theme.colorScheme.onSurfaceVariant,
+                  context.l10n.possiblePurchaseTitle,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: ink,
                   ),
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: Space.md),
-
-        // PRESERVED: Needs human review banner
-        if (intel.needsHumanReview) ...[
-          _ReviewBanner(reason: intel.reviewReason),
-          const SizedBox(height: Space.md),
-        ],
-
-        // PRESERVED: Purchase claim pending ruling
-        if (intel.isPurchaseClaimPending) ...[
-          _PurchaseClaimSection(
-            conversationId: widget.conversationId,
-            intelligence: intel,
-            onChanged: _triggerChanged,
-            onMessage: _notifyMessage,
-          ),
-          const SizedBox(height: Space.md),
-        ],
-
-        // PRESERVED: Agent confirmed purchase alert
-        if (intel.isAgentConfirmed) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(Space.sm),
-            decoration: BoxDecoration(
-              color: ScenarioColors.successSurface,
-              borderRadius: BorderRadius.circular(Radii.md),
-              border: Border.all(
-                color: ScenarioColors.success.withValues(alpha: 0.35),
-              ),
+          if (!canConfirm) ...[
+            const SizedBox(height: Space.xs + 2),
+            Text(
+              context.l10n.needsConfirmRightsMessage,
+              key: const ValueKey('purchaseAlertNoRights'),
+              style: small,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.check_circle_outline,
-                      size: 15,
-                      color: ScenarioColors.success,
+          ] else ...[
+            const SizedBox(height: Space.xs + 2),
+            Text(
+              explanation,
+              key: const ValueKey('purchaseAlertExplanation'),
+              style: small,
+            ),
+            if (intel.purchaseEvidence.isNotEmpty) ...[
+              const SizedBox(height: Space.sm),
+              Container(
+                key: const ValueKey('purchaseAlertQuote'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Space.sm + 2,
+                  vertical: Space.xs + 2,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.warning.withValues(alpha: 0.12),
+                  border: BorderDirectional(
+                    start: BorderSide(color: colors.warning, width: 2),
+                  ),
+                ),
+                child: Text(
+                  '“${intel.purchaseEvidence}”',
+                  style: small?.copyWith(fontStyle: FontStyle.italic),
+                ),
+              ),
+            ],
+            if (_noteOpen) ...[
+              const SizedBox(height: Space.sm + 2),
+              TextField(
+                key: const ValueKey('purchaseNoteField'),
+                controller: _note,
+                autofocus: true,
+                enabled: !busy,
+                maxLength: 255,
+                style: theme.textTheme.bodySmall,
+                decoration: InputDecoration(
+                  isDense: true,
+                  counterText: '',
+                  filled: true,
+                  fillColor: colors.surface,
+                  hintText: context.l10n.purchaseNotePlaceholder,
+                  labelText: context.l10n.noteOptionalLabel,
+                  floatingLabelBehavior: FloatingLabelBehavior.never,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: Space.sm + 2,
+                    vertical: Space.sm + 2,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(Radii.md),
+                    borderSide: BorderSide(
+                      color: colors.warning.withValues(alpha: 0.55),
                     ),
-                    const SizedBox(width: Space.xs),
-                    Text(
-                      context.l10n.confirmedMetric,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: ScenarioColors.success,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(Radii.md),
+                    borderSide: BorderSide(
+                      color: colors.warning.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: Space.sm + 2),
+            // Wraps on a narrow phone rather than squeeze or clip a label.
+            Wrap(
+              spacing: Space.sm,
+              runSpacing: Space.sm,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                FilledButton.icon(
+                  key: const ValueKey('confirmPurchaseButton'),
+                  onPressed: busy ? null : () => _decide(true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colors.success,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(0, 40),
+                    padding: const EdgeInsets.symmetric(horizontal: Space.md),
+                    textStyle: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  icon: _deciding == true
+                      ? const _ButtonSpinner(color: Colors.white)
+                      : const Icon(Icons.check, size: 16),
+                  label: Text(context.l10n.confirmPurchaseAction),
+                ),
+                OutlinedButton.icon(
+                  key: const ValueKey('rejectPurchaseButton'),
+                  onPressed: busy ? null : () => _decide(false),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colors.foreground,
+                    backgroundColor: colors.surface,
+                    minimumSize: const Size(0, 40),
+                    padding: const EdgeInsets.symmetric(horizontal: Space.md),
+                    side: BorderSide(color: colors.border),
+                    textStyle: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  icon: _deciding == false
+                      ? const _ButtonSpinner()
+                      : const Icon(Icons.close, size: 16),
+                  label: Text(context.l10n.notYetButton),
+                ),
+                if (!_noteOpen)
+                  TextButton.icon(
+                    key: const ValueKey('addPurchaseNoteButton'),
+                    onPressed: busy
+                        ? null
+                        : () => setState(() => _noteOpen = true),
+                    style: TextButton.styleFrom(
+                      foregroundColor: ink,
+                      minimumSize: const Size(0, 40),
+                      padding: const EdgeInsets.symmetric(horizontal: Space.sm),
+                      textStyle: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  context.l10n.setByEmployeeLabel(
-                    intel.confirmedByName.isEmpty
-                        ? context.l10n.anEmployeeLabel
-                        : intel.confirmedByName,
+                    icon: const Icon(Icons.edit_note, size: 18),
+                    label: Text(context.l10n.addNoteAction),
                   ),
-                  style: theme.textTheme.bodySmall,
-                ),
-                if (intel.purchaseConfirmationNote.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    '"${intel.purchaseConfirmationNote}"',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
               ],
             ),
-          ),
-          const SizedBox(height: Space.md),
-        ],
-
-        // 3. LEAD SCORE SECTION
-        // Header Row: LEAD SCORE on left, actions on right
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
+            const SizedBox(height: Space.sm),
             Text(
-              context.l10n.leadScoreFieldLabel.toUpperCase(),
+              context.l10n.confirmingRecordsHint,
+              key: const ValueKey('purchaseAlertFootnote'),
               style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.6,
-                color: theme.colorScheme.onSurfaceVariant,
+                color: ink.withValues(alpha: 0.85),
+                height: 1.4,
               ),
             ),
-            const Spacer(),
-            if (_busyScore || _reportingMeta)
-              const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else ...[
-              if (canOverride)
-                _InlineAction(
-                  icon: Icons.edit_outlined,
-                  label: context.l10n.editAction,
-                  tooltip: context.l10n.setScoreByHandTooltip,
-                  onPressed: _editScore,
-                ),
-              if (canOverride && intel.isLeadScoreOverridden) ...[
-                const SizedBox(width: 4),
-                _InlineAction(
-                  icon: Icons.undo_rounded,
-                  label: context.l10n.autoScoreAction,
-                  tooltip: context.l10n.returnToAutoScoreTooltip(
-                    intel.leadScoreAuto,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ButtonSpinner extends StatelessWidget {
+  const _ButtonSpinner({this.color});
+
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 14,
+      height: 14,
+      child: CircularProgressIndicator(strokeWidth: 2, color: color),
+    );
+  }
+}
+
+/// An employee has confirmed the purchase.
+class _PurchaseConfirmedCard extends StatelessWidget {
+  const _PurchaseConfirmedCard({required this.intelligence});
+
+  final ConversationIntelligence intelligence;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = AppColors.of(context);
+    final intel = intelligence;
+    final ink = Color.lerp(colors.success, colors.foreground, 0.55)!;
+    final name = intel.confirmedByName.isEmpty
+        ? context.l10n.anEmployeeLabel
+        : intel.confirmedByName;
+    return Container(
+      key: const ValueKey('purchaseConfirmedCard'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.md,
+        vertical: Space.sm + 2,
+      ),
+      decoration: BoxDecoration(
+        color: colors.successSurface,
+        borderRadius: BorderRadius.circular(Radii.lg),
+        border: Border.all(color: colors.success.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.check_circle_outline, size: 16, color: colors.success),
+              const SizedBox(width: Space.xs + 2),
+              Expanded(
+                child: Text(
+                  context.l10n.purchaseConfirmedMessage,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: ink,
                   ),
-                  onPressed: () => _setScore(null),
                 ),
-              ],
-              if (canReportConversion) ...[
-                const SizedBox(width: 4),
-                _InlineAction(
-                  icon: Icons.near_me_outlined,
-                  label: context.l10n.metaScoreAction,
-                  tooltip: context.l10n.sendStageToMetaTooltip,
-                  onPressed: _reportConversion,
-                ),
-              ],
+              ),
             ],
+          ),
+          const SizedBox(height: Space.xs),
+          Text(
+            intel.purchaseConfirmedAt == null
+                ? context.l10n.purchaseConfirmedBy(name)
+                : context.l10n.purchaseConfirmedByOn(
+                    name,
+                    formatDateTime(context, intel.purchaseConfirmedAt),
+                  ),
+            style: theme.textTheme.bodySmall?.copyWith(color: ink),
+          ),
+          if (intel.purchaseConfirmationNote.isNotEmpty) ...[
+            const SizedBox(height: Space.xs),
+            Text(
+              '“${intel.purchaseConfirmationNote}”',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontStyle: FontStyle.italic,
+                color: ink,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 4 & 5. Lead score
+// ---------------------------------------------------------------------------
+
+class _LeadScoreSection extends ConsumerWidget {
+  const _LeadScoreSection({
+    required this.intelligence,
+    required this.busy,
+    required this.signalsExpanded,
+    required this.onToggleSignals,
+    required this.onEdit,
+    required this.onAuto,
+    required this.onMeta,
+  });
+
+  final ConversationIntelligence intelligence;
+  final _ScoreBusy busy;
+  final bool signalsExpanded;
+  final VoidCallback onToggleSignals;
+  final VoidCallback onEdit;
+  final VoidCallback onAuto;
+  final VoidCallback onMeta;
+
+  /// The web's bands: rose from 75, violet from 50, sky from 20, slate below.
+  static Color scoreColor(int score) {
+    if (score >= 75) return const Color(0xFFE11D48);
+    if (score >= 50) return const Color(0xFF7C3AED);
+    if (score >= 20) return const Color(0xFF0284C7);
+    return const Color(0xFF64748B);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colors = AppColors.of(context);
+    final intel = intelligence;
+    final canOverride = ref.watch(canProvider(Perm.intelligenceOverrideScore));
+    final canReport = ref.watch(canProvider(Perm.conversionReport));
+    final working = busy != _ScoreBusy.none;
+    final score = intel.leadScore.clamp(0, 100);
+    final tint = scoreColor(score);
+
+    return Column(
+      key: const ValueKey('leadScoreSection'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Heading at the start, actions at the end; the actions drop to their
+        // own line when a narrow phone cannot fit both.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          runSpacing: Space.xs,
+          children: [
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: Space.sm),
+              child: Text(
+                context.l10n.intelligenceLeadScoreTitle.toUpperCase(),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                  letterSpacing: 0.6,
+                  color: colors.mutedForeground,
+                ),
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (canOverride)
+                  _ScoreAction(
+                    key: const ValueKey('leadScoreEdit'),
+                    icon: Icons.edit_outlined,
+                    label: context.l10n.editAction,
+                    tooltip: context.l10n.setScoreByHandTooltip,
+                    loading: busy == _ScoreBusy.edit,
+                    onPressed: working ? null : onEdit,
+                  ),
+                if (canOverride && intel.isLeadScoreOverridden)
+                  _ScoreAction(
+                    key: const ValueKey('leadScoreAuto'),
+                    icon: Icons.undo_rounded,
+                    label: context.l10n.autoScoreAction,
+                    tooltip: context.l10n.returnToAutoScoreTooltip(
+                      intel.leadScoreAuto,
+                    ),
+                    loading: busy == _ScoreBusy.auto,
+                    onPressed: working ? null : onAuto,
+                  ),
+                if (canReport)
+                  _ScoreAction(
+                    key: const ValueKey('leadScoreMeta'),
+                    icon: Icons.near_me_outlined,
+                    label: context.l10n.metaScoreAction,
+                    tooltip: context.l10n.sendStageToMetaTooltip,
+                    loading: busy == _ScoreBusy.meta,
+                    onPressed: working ? null : onMeta,
+                  ),
+              ],
+            ),
           ],
         ),
         const SizedBox(height: Space.xs),
 
-        // Prominent Score Display: 20   / 100
+        // The number at the start, "/ 100" at the end, as on the web.
         Row(
+          key: const ValueKey('leadScoreValue'),
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
             Text(
               '${intel.leadScore}',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: _scoreColor(intel.leadScore),
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: tint,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
-            const SizedBox(width: Space.xs),
+            const Spacer(),
             Text(
               '/ 100',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
+                color: colors.mutedForeground,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
-
-        // Horizontal Progress Bar
-        ClipRRect(
-          borderRadius: BorderRadius.circular(Radii.pill),
-          child: LinearProgressIndicator(
-            value: (intel.leadScore / 100.0).clamp(0.0, 1.0),
-            minHeight: 6,
-            backgroundColor: isDark
-                ? theme.colorScheme.surfaceContainerHighest
-                : theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.6,
-                  ),
-            valueColor: AlwaysStoppedAnimation<Color>(
-              _scoreColor(intel.leadScore),
+        const SizedBox(height: Space.xs + 2),
+        Semantics(
+          label: context.l10n.intelligenceLeadScoreTitle,
+          value: '${intel.leadScore} / 100',
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(Radii.pill),
+            child: LinearProgressIndicator(
+              key: const ValueKey('leadScoreBar'),
+              // Never quite empty, so a 0 still shows where the bar starts.
+              value: (score < 2 ? 2 : score) / 100.0,
+              minHeight: 6,
+              backgroundColor: colors.muted,
+              valueColor: AlwaysStoppedAnimation<Color>(tint),
             ),
           ),
         ),
 
-        // Score History / Source (if overridden)
         if (intel.isLeadScoreOverridden) ...[
           const SizedBox(height: Space.xs + 2),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.edit_outlined,
-                size: 13,
-                color: theme.colorScheme.onSurfaceVariant,
+              Padding(
+                padding: const EdgeInsets.only(top: 1.5),
+                child: Icon(
+                  Icons.edit_outlined,
+                  size: 12,
+                  color: colors.mutedForeground,
+                ),
               ),
-              const SizedBox(width: Space.xs),
+              const SizedBox(width: Space.xs + 2),
               Expanded(
                 child: Text(
                   context.l10n.scoreOverriddenDetail(
@@ -463,8 +1021,8 @@ class _CustomerIntelligenceViewState
                   ),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontSize: 11.5,
-                    color: theme.colorScheme.onSurfaceVariant,
-                    height: 1.35,
+                    height: 1.4,
+                    color: colors.mutedForeground,
                   ),
                 ),
               ),
@@ -472,356 +1030,115 @@ class _CustomerIntelligenceViewState
           ),
         ],
 
-        // Expandable signals behind score
         if (intel.leadScoreSignals.isNotEmpty) ...[
-          const SizedBox(height: Space.xs + 2),
-          InkWell(
-            onTap: () => setState(() => _signalsExpanded = !_signalsExpanded),
-            borderRadius: BorderRadius.circular(Radii.sm),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _signalsExpanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    size: 16,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      _signalsExpanded
-                          ? context.l10n.hideSignalsBehindScore(
-                              intel.leadScoreSignals.length,
-                            )
-                          : context.l10n.showSignalsBehindScore(
-                              intel.leadScoreSignals.length,
-                            ),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 12,
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_signalsExpanded)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Column(
-                children: [
-                  for (final signal in intel.leadScoreSignals)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 4),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Space.sm,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.4)
-                            : theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(Radii.sm),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              signal.label,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: Space.xs),
-                          Text(
-                            signal.points >= 0
-                                ? '+${signal.points}'
-                                : '${signal.points}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: signal.points >= 0
-                                  ? ScenarioColors.success
-                                  : ScenarioColors.danger,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-        ],
-
-        const SizedBox(height: Space.lg),
-
-        // 4. INTELLIGENCE ATTRIBUTES (Responsive 2-column layout)
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Left column
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _AttributeItem(
-                    label: context.l10n.stageFieldLabel.toUpperCase(),
-                    valueWidget: _stageBadge(context, intel.stage),
-                  ),
-                  const SizedBox(height: Space.md),
-                  _AttributeItem(
-                    label: context.l10n.purchaseStatusLabel.toUpperCase(),
-                    valueWidget: intel.purchaseStatus.toUpperCase() == 'NONE'
-                        ? Text(
-                            context.l10n.noneValue,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          )
-                        : _purchaseBadge(context, intel.purchaseStatus),
-                  ),
-                  const SizedBox(height: Space.md),
-                  _AttributeItem(
-                    label: context.l10n.intentFieldLabel.toUpperCase(),
-                    valueText: humanizeEnum(intel.intentStrength),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: Space.md),
-            // Right column
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _AttributeItem(
-                    label: context.l10n.confidenceFieldLabel.toUpperCase(),
-                    valueText: '${(intel.confidence * 100).round()}%',
-                  ),
-                  const SizedBox(height: Space.md),
-                  _AttributeItem(
-                    label: context.l10n.sentimentFieldLabel.toUpperCase(),
-                    valueWidget: intel.sentiment.isNotEmpty
-                        ? _sentimentBadge(context, intel.sentiment)
-                        : Text(
-                            '—',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                  ),
-                  const SizedBox(height: Space.md),
-                  _AttributeItem(
-                    label: context.l10n.urgencyFieldLabel.toUpperCase(),
-                    valueText: humanizeEnum(intel.urgency),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: Space.lg),
-
-        // 5. BUYING SIGNALS
-        Text(
-          context.l10n.buyingSignalsLabel.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: Space.xs),
-        if (intel.buyingSignals.isNotEmpty)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final signal in intel.buyingSignals)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2.5),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.north_east,
-                        size: 14,
-                        color: ScenarioColors.success,
-                      ),
-                      const SizedBox(width: Space.xs),
-                      Expanded(
-                        child: Text(
-                          signal,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            height: 1.35,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2.5),
-            child: Text(
-              context.l10n.noBuyingSignalsMessage,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ),
-
-        const SizedBox(height: Space.lg),
-
-        // 6. SUMMARY
-        Text(
-          context.l10n.intelligenceSummaryLabel.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: Space.xs),
-        Text(
-          intel.summary.isNotEmpty ? intel.summary : '—',
-          style: theme.textTheme.bodySmall?.copyWith(height: 1.45),
-        ),
-
-        // 7. RECOMMENDED NEXT ACTION
-        if (intel.nextBestAction.isNotEmpty) ...[
-          const SizedBox(height: Space.lg),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(Space.sm + 2),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(Radii.md),
-              border: Border.all(
-                color: theme.colorScheme.primary.withValues(alpha: 0.22),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          const SizedBox(height: Space.xs),
+          Semantics(
+            button: true,
+            expanded: signalsExpanded,
+            child: InkWell(
+              key: const ValueKey('scoreSignalsToggle'),
+              onTap: onToggleSignals,
+              borderRadius: BorderRadius.circular(Radii.sm),
+              child: ConstrainedBox(
+                // A comfortable tap target for a one-line toggle.
+                constraints: const BoxConstraints(minHeight: 36),
+                child: Row(
                   children: [
-                    Icon(
-                      Icons.auto_awesome,
-                      size: 14,
-                      color: theme.colorScheme.primary,
+                    AnimatedRotation(
+                      turns: signalsExpanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 150),
+                      child: Icon(
+                        Icons.keyboard_arrow_down,
+                        size: 16,
+                        color: colors.mutedForeground,
+                      ),
                     ),
                     const SizedBox(width: Space.xs),
                     Expanded(
                       child: Text(
-                        context.l10n.recommendedNextActionTitle,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: theme.colorScheme.primary,
+                        signalsExpanded
+                            ? context.l10n.hideSignalsBehindScore(
+                                intel.leadScoreSignals.length,
+                              )
+                            : context.l10n.showSignalsBehindScore(
+                                intel.leadScoreSignals.length,
+                              ),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.mutedForeground,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: Space.xs),
-                Text(
-                  intel.nextBestAction,
-                  style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
-                ),
+              ),
+            ),
+          ),
+          if (signalsExpanded)
+            Column(
+              key: const ValueKey('scoreSignalsList'),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final signal in intel.leadScoreSignals)
+                  Container(
+                    key: ValueKey('scoreSignal_${signal.signal}'),
+                    margin: const EdgeInsets.only(bottom: Space.xs),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Space.sm,
+                      vertical: Space.xs + 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.muted.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(Radii.sm),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            signal.label,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ),
+                        const SizedBox(width: Space.sm),
+                        Text(
+                          signal.points > 0
+                              ? '+${signal.points}'
+                              : '${signal.points}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                            color: signal.points >= 0
+                                ? colors.success
+                                : colors.danger,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
-          ),
-        ],
-
-        // PRESERVED: Interested products & Objections chips
-        if (intel.interestedProducts.isNotEmpty) ...[
-          const SizedBox(height: Space.lg),
-          Text(
-            context.l10n.interestedInLabel.toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.6,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: Space.xs),
-          Wrap(
-            spacing: Space.xs,
-            runSpacing: Space.xs,
-            children: [
-              for (final p in intel.interestedProducts)
-                StatusBadge(label: p, dense: true),
-            ],
-          ),
-        ],
-
-        if (intel.objections.isNotEmpty) ...[
-          const SizedBox(height: Space.lg),
-          Text(
-            context.l10n.objectionsLabel.toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.6,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: Space.xs),
-          Wrap(
-            spacing: Space.xs,
-            runSpacing: Space.xs,
-            children: [
-              for (final o in intel.objections)
-                StatusBadge(label: o, tone: BadgeTone.danger, dense: true),
-            ],
-          ),
-        ],
-
-        // PRESERVED: Meta conversions history
-        _MetaConversionsSection(conversationId: widget.conversationId),
-
-        // Timestamp
-        if (intel.analyzedAt != null) ...[
-          const SizedBox(height: Space.lg),
-          Text(
-            context.l10n.lastAnalyzedLabel(
-              formatDateTime(context, intel.analyzedAt),
-            ),
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
         ],
       ],
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// INLINE ACTION BUTTON (Edit, Auto, Meta)
-// ---------------------------------------------------------------------------
-class _InlineAction extends StatelessWidget {
-  const _InlineAction({
+/// Edit / Auto / Meta: compact, but a full-height tap target.
+class _ScoreAction extends StatelessWidget {
+  const _ScoreAction({
     required this.icon,
     required this.label,
     required this.tooltip,
+    required this.loading,
     required this.onPressed,
+    super.key,
   });
 
   final IconData icon;
   final String label;
   final String tooltip;
+  final bool loading;
   final VoidCallback? onPressed;
 
   @override
@@ -829,281 +1146,269 @@ class _InlineAction extends StatelessWidget {
     final theme = Theme.of(context);
     return Tooltip(
       message: tooltip,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(Radii.sm),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 13, color: theme.colorScheme.primary),
-              const SizedBox(width: 3),
-              Text(
-                label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-            ],
+      child: TextButton.icon(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          minimumSize: const Size(0, 36),
+          padding: const EdgeInsets.symmetric(horizontal: Space.sm),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          // No compact density: it would take 8px off the 36px minimum.
+          textStyle: theme.textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.w600,
           ),
         ),
+        icon: loading ? const _ButtonSpinner() : Icon(icon, size: 15),
+        label: Text(label),
       ),
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// ATTRIBUTE ITEM (Label + Value)
+// 6. Attributes grid
 // ---------------------------------------------------------------------------
-class _AttributeItem extends StatelessWidget {
-  const _AttributeItem({required this.label, this.valueText, this.valueWidget})
-    : assert(valueText != null || valueWidget != null);
 
-  final String label;
-  final String? valueText;
-  final Widget? valueWidget;
+/// Stage | Confidence, Purchase status | Sentiment, Intent | Urgency — two
+/// columns, each row as tall as its taller cell so the pairs stay aligned.
+class _InsightsGrid extends StatelessWidget {
+  const _InsightsGrid({required this.intelligence});
+
+  final ConversationIntelligence intelligence;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = AppColors.of(context);
+    final intel = intelligence;
+    final l10n = context.l10n;
+
+    Widget plain(String text) => Text(
+      text,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        fontWeight: FontWeight.w600,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+    );
+    Widget muted(String text) => Text(
+      text,
+      style: theme.textTheme.bodySmall?.copyWith(color: colors.mutedForeground),
+    );
+    Widget badge((String, BadgeTone) value) =>
+        StatusBadge(label: value.$1, tone: value.$2, dense: true);
+
+    final cells = <(String, String, Widget)>[
+      (
+        'stage',
+        l10n.stageFieldLabel,
+        badge(IntelligenceLabels.stage(context, intel.stage)),
+      ),
+      (
+        'confidence',
+        l10n.confidenceFieldLabel,
+        plain('${(intel.confidence * 100).round()}%'),
+      ),
+      (
+        'purchase',
+        l10n.purchaseStatusLabel,
+        intel.purchaseStatus.toUpperCase() == 'NONE'
+            ? muted(l10n.noneValue)
+            : badge(IntelligenceLabels.purchase(context, intel.purchaseStatus)),
+      ),
+      (
+        'sentiment',
+        l10n.sentimentFieldLabel,
+        intel.sentiment.isEmpty
+            ? muted('—')
+            : badge(IntelligenceLabels.sentiment(context, intel.sentiment)),
+      ),
+      (
+        'intent',
+        l10n.intentFieldLabel,
+        plain(IntelligenceLabels.level(context, intel.intentStrength)),
+      ),
+      (
+        'urgency',
+        l10n.urgencyFieldLabel,
+        plain(IntelligenceLabels.level(context, intel.urgency)),
+      ),
+    ];
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
+      key: const ValueKey('insightsGrid'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: 10.5,
-            letterSpacing: 0.5,
-            color: theme.colorScheme.onSurfaceVariant,
+        for (var i = 0; i < cells.length; i += 2) ...[
+          if (i > 0) const SizedBox(height: Space.md),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var j = i; j < i + 2; j++) ...[
+                if (j > i) const SizedBox(width: Space.md),
+                Expanded(
+                  child: _GridCell(
+                    key: ValueKey('insight_${cells[j].$1}'),
+                    label: cells[j].$2,
+                    value: cells[j].$3,
+                  ),
+                ),
+              ],
+            ],
           ),
-        ),
-        const SizedBox(height: 4),
-        if (valueWidget != null)
-          valueWidget!
-        else
-          Text(
-            valueText ?? '—',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
+        ],
       ],
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// PRESERVED SUBSECTIONS: Review Banner & Purchase Claims
-// ---------------------------------------------------------------------------
-class _ReviewBanner extends StatelessWidget {
-  const _ReviewBanner({required this.reason});
+class _GridCell extends StatelessWidget {
+  const _GridCell({required this.label, required this.value, super.key});
 
-  final String reason;
+  final String label;
+  final Widget value;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(Space.sm),
-      decoration: BoxDecoration(
-        color: ScenarioColors.warningSurface,
-        borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(
-          color: ScenarioColors.warning.withValues(alpha: 0.35),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.flag_outlined, size: 16, color: ScenarioColors.warning),
-          const SizedBox(width: Space.xs),
-          Expanded(
-            child: Text(
-              reason.isEmpty ? context.l10n.reviewBannerDefaultReason : reason,
-              style: theme.textTheme.bodySmall,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label.toUpperCase(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            fontSize: 10.5,
+            letterSpacing: 0.5,
+            color: AppColors.of(context).mutedForeground,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: Space.xs),
+        value,
+      ],
     );
   }
 }
 
-class _PurchaseClaimSection extends ConsumerStatefulWidget {
-  const _PurchaseClaimSection({
-    required this.conversationId,
-    required this.intelligence,
-    required this.onChanged,
-    required this.onMessage,
-  });
+/// Localized labels and tones for the analyzer's values — the web's
+/// `enums.stage`, `enums.purchase`, `enums.sentiment` and `enums.level`.
+/// A value the app does not know yet is shown humanized rather than hidden.
+abstract final class IntelligenceLabels {
+  static (String, BadgeTone) stage(BuildContext context, String value) {
+    final upper = value.toUpperCase();
+    final tone = switch (upper) {
+      'LEAD' || 'QUALIFIED_LEAD' => BadgeTone.info,
+      'HOT_LEAD' => BadgeTone.danger,
+      'PURCHASE_INTENT' => BadgeTone.warning,
+      'PURCHASED' || 'AGENT_CONFIRMED' => BadgeTone.success,
+      _ => BadgeTone.neutral,
+    };
+    final label = switch (upper) {
+      'LEAD' => context.l10n.stageLead,
+      'UNCERTAIN' => context.l10n.stageUncertain,
+      // The inbox's own stage names, so a stage reads the same everywhere.
+      _ => ConversationBadges.stage(context, upper).$1,
+    };
+    return (label, tone);
+  }
 
-  final int conversationId;
-  final ConversationIntelligence intelligence;
-  final VoidCallback onChanged;
-  final void Function(String message, {bool isError}) onMessage;
+  static (String, BadgeTone) purchase(BuildContext context, String value) {
+    final l10n = context.l10n;
+    return switch (value.toUpperCase()) {
+      'INTENT_DETECTED' => (l10n.purchaseStatusIntentDetected, BadgeTone.info),
+      'CUSTOMER_SAYS_ORDERED' => (
+        l10n.purchaseStatusSaysOrdered,
+        BadgeTone.warning,
+      ),
+      'CUSTOMER_SAYS_PAID' => (l10n.purchaseStatusSaysPaid, BadgeTone.warning),
+      'AGENT_CONFIRMED' => (
+        l10n.purchaseStatusAgentConfirmed,
+        BadgeTone.success,
+      ),
+      'CANCELLED' => (l10n.purchaseStatusCancelled, BadgeTone.neutral),
+      'REFUND_MENTIONED' => (
+        l10n.purchaseStatusRefundMentioned,
+        BadgeTone.danger,
+      ),
+      'NONE' => (l10n.noneValue, BadgeTone.neutral),
+      _ => (humanizeEnum(value), BadgeTone.neutral),
+    };
+  }
 
-  @override
-  ConsumerState<_PurchaseClaimSection> createState() =>
-      _PurchaseClaimSectionState();
+  static (String, BadgeTone) sentiment(BuildContext context, String value) {
+    final l10n = context.l10n;
+    return switch (value.toLowerCase()) {
+      'positive' => (l10n.sentimentPositive, BadgeTone.success),
+      'neutral' => (l10n.sentimentNeutral, BadgeTone.neutral),
+      'negative' => (l10n.sentimentNegative, BadgeTone.danger),
+      'mixed' => (l10n.sentimentMixed, BadgeTone.warning),
+      _ => (humanizeEnum(value), BadgeTone.neutral),
+    };
+  }
+
+  /// Intent strength and urgency: none / low / medium / high.
+  static String level(BuildContext context, String value) {
+    final l10n = context.l10n;
+    return switch (value.toLowerCase()) {
+      'none' || '' => l10n.noneValue,
+      'low' => l10n.levelLow,
+      'medium' => l10n.levelMedium,
+      'high' => l10n.levelHigh,
+      _ => humanizeEnum(value),
+    };
+  }
 }
 
-class _PurchaseClaimSectionState extends ConsumerState<_PurchaseClaimSection> {
-  bool _busy = false;
+// ---------------------------------------------------------------------------
+// Below the grid
+// ---------------------------------------------------------------------------
 
-  Future<void> _decide(bool confirmed) async {
-    final noteController = TextEditingController();
-    final proceed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          confirmed
-              ? dialogContext.l10n.confirmPurchaseDialogTitle
-              : dialogContext.l10n.rejectPurchaseDialogTitle,
-        ),
-        content: TextField(
-          controller: noteController,
-          decoration: InputDecoration(
-            labelText: dialogContext.l10n.noteOptionalLabel,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(dialogContext.l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(
-              confirmed
-                  ? dialogContext.l10n.confirmAction
-                  : dialogContext.l10n.notYetButton,
-            ),
-          ),
-        ],
-      ),
-    );
-    final note = noteController.text.trim();
-    if (proceed != true) return;
+class _NextActionCard extends StatelessWidget {
+  const _NextActionCard({required this.text});
 
-    setState(() => _busy = true);
-    try {
-      await ref
-          .read(conversationRepositoryProvider)
-          .confirmPurchase(
-            widget.conversationId,
-            confirmed: confirmed,
-            note: note,
-          );
-      widget.onChanged();
-      if (!mounted) return;
-      ref.invalidate(purchaseConfirmationsProvider(widget.conversationId));
-      widget.onMessage(
-        confirmed
-            ? context.l10n.purchaseConfirmedMessage
-            : context.l10n.purchaseNotConfirmedMessage,
-      );
-    } on ApiException catch (error) {
-      widget.onMessage(error.message, isError: true);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
+  final String text;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final intel = widget.intelligence;
-    final canConfirm = ref.watch(canProvider(Perm.conversationConfirmPurchase));
-
+    final primary = theme.colorScheme.primary;
     return Container(
-      padding: const EdgeInsets.all(Space.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.md,
+        vertical: Space.sm + 2,
+      ),
       decoration: BoxDecoration(
-        color: ScenarioColors.warningSurface,
-        borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(
-          color: ScenarioColors.warning.withValues(alpha: 0.35),
-        ),
+        color: primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(Radii.lg),
+        border: Border.all(color: primary.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.shopping_bag_outlined,
-                size: 16,
-                color: ScenarioColors.warning,
-              ),
-              const SizedBox(width: Space.xs),
+              Icon(Icons.auto_awesome, size: 14, color: primary),
+              const SizedBox(width: Space.xs + 2),
               Expanded(
                 child: Text(
-                  context.l10n.unconfirmedPurchaseClaimLabel,
+                  context.l10n.recommendedNextActionTitle,
                   style: theme.textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.w700,
+                    color: primary,
                   ),
                 ),
               ),
             ],
           ),
-          if (intel.purchaseEvidence.isNotEmpty) ...[
-            const SizedBox(height: Space.xs),
-            Container(
-              padding: const EdgeInsets.only(left: Space.sm),
-              decoration: BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: ScenarioColors.warning, width: 2),
-                ),
-              ),
-              child: Text(
-                '"${intel.purchaseEvidence}"',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-          ],
-          if (canConfirm) ...[
-            const SizedBox(height: Space.sm),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: _busy ? null : () => _decide(true),
-                    icon: const Icon(Icons.check, size: 14),
-                    label: Text(context.l10n.confirmAction),
-                    style: FilledButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: Space.sm),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _busy ? null : () => _decide(false),
-                    style: OutlinedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    child: Text(context.l10n.notYetButton),
-                  ),
-                ),
-              ],
-            ),
-          ],
+          const SizedBox(height: Space.xs),
+          Text(text, style: theme.textTheme.bodySmall?.copyWith(height: 1.45)),
         ],
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// PRESERVED: Meta Conversions Section
-// ---------------------------------------------------------------------------
 class _MetaConversionsSection extends ConsumerWidget {
   const _MetaConversionsSection({required this.conversationId});
 
@@ -1117,28 +1422,22 @@ class _MetaConversionsSection extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     final theme = Theme.of(context);
+    final colors = AppColors.of(context);
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: Space.lg),
-        Text(
-          context.l10n.conversionsAction.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: Space.xs),
+        _SectionLabel(context.l10n.conversionsAction),
         for (final conversion in conversions)
           Container(
-            margin: const EdgeInsets.only(bottom: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            margin: const EdgeInsets.only(bottom: Space.xs),
+            padding: const EdgeInsets.symmetric(
+              horizontal: Space.sm,
+              vertical: Space.xs + 1,
+            ),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(
-                alpha: 0.45,
-              ),
+              color: colors.muted.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(Radii.sm),
             ),
             child: Row(
@@ -1148,9 +1447,12 @@ class _MetaConversionsSection extends ConsumerWidget {
                     conversion.eventName.isNotEmpty
                         ? conversion.eventName
                         : humanizeEnum(conversion.sourceStage),
-                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
                   ),
                 ),
+                const SizedBox(width: Space.sm),
                 StatusBadge(
                   label: conversion.status.toLowerCase(),
                   tone: conversion.status.toUpperCase() == 'SENT'
@@ -1164,39 +1466,4 @@ class _MetaConversionsSection extends ConsumerWidget {
       ],
     );
   }
-}
-
-// ---------------------------------------------------------------------------
-// BADGE HELPERS
-// ---------------------------------------------------------------------------
-Widget _stageBadge(BuildContext context, String stage) {
-  final tone = switch (stage.toUpperCase()) {
-    'HOT_LEAD' => BadgeTone.success,
-    'QUALIFIED_LEAD' => BadgeTone.info,
-    'LOST' => BadgeTone.danger,
-    _ => BadgeTone.neutral,
-  };
-  return StatusBadge(label: humanizeEnum(stage), tone: tone, dense: true);
-}
-
-Widget _purchaseBadge(BuildContext context, String status) {
-  final tone = switch (status.toUpperCase()) {
-    'AGENT_CONFIRMED' => BadgeTone.success,
-    'CUSTOMER_SAYS_ORDERED' || 'CUSTOMER_SAYS_PAID' => BadgeTone.warning,
-    'INTENT_DETECTED' => BadgeTone.info,
-    'REFUND_MENTIONED' => BadgeTone.danger,
-    _ => BadgeTone.neutral,
-  };
-  return StatusBadge(label: humanizeEnum(status), tone: tone, dense: true);
-}
-
-Widget _sentimentBadge(BuildContext context, String sentiment) {
-  final s = sentiment.toLowerCase();
-  final tone = switch (s) {
-    'positive' => BadgeTone.success,
-    'negative' => BadgeTone.danger,
-    'mixed' => BadgeTone.warning,
-    _ => BadgeTone.neutral,
-  };
-  return StatusBadge(label: humanizeEnum(sentiment), tone: tone, dense: true);
 }

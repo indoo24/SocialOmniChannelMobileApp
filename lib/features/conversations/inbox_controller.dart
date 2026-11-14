@@ -128,9 +128,11 @@ bool _sameIds(List<int>? a, List<int>? b) {
 }
 
 /// The primary quick filters permanently visible in the Inbox header, in the
-/// order shown: All, Mine, Need review, Unread, Resolved, then Unassigned and
-/// Open. Each is identified by its value, never its position.
+/// order shown: Needs reply (the default view), All, Mine, Need review,
+/// Unread, Resolved, then Unassigned and Open. Each is identified by its
+/// value, never its position.
 enum InboxQuickFilter {
+  needsReply,
   all,
   mine,
   needsReview,
@@ -154,6 +156,9 @@ const _quickFilterStatuses = {'OPEN', 'RESOLVED'};
 
 extension ConversationFiltersQuickFilterX on ConversationFilters {
   InboxQuickFilter get activeQuickFilter {
+    // First: the view itself. An Unread or Mine chosen in the filter sheet
+    // narrows it rather than replacing it.
+    if (needsReply) return InboxQuickFilter.needsReply;
     if (unread) return InboxQuickFilter.unread;
     if (unassigned) return InboxQuickFilter.unassigned;
     if (assignedToMe) return InboxQuickFilter.mine;
@@ -177,9 +182,19 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
   // capabilities is done where the tab is drawn (`InboxQuickFilterBar`), and
   // in [selectQuickFilter] by reading, not watching.
   @override
-  ConversationFilters build() => const ConversationFilters();
+  ConversationFilters build() => defaultInboxFilters;
+
+  /// What the inbox opens on: Needs reply, longest wait first.
+  static const defaultInboxFilters = ConversationFilters(needsReply: true);
 
   void update(ConversationFilters filters) => state = filters;
+
+  /// Oldest first or newest first, for the Needs reply view. A new order is a
+  /// new list: the server sorts, and the inbox starts again at page 1.
+  void setNeedsReplyOrder(NeedsReplyOrder order) {
+    if (!state.needsReply || state.needsReplyOrder == order) return;
+    state = state.copyWith(needsReplyOrder: order);
+  }
 
   /// Exactly one quick filter at a time: choosing one turns the others off,
   /// including a status another quick filter set. A status chosen in the
@@ -201,6 +216,9 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
       unassigned: filter == InboxQuickFilter.unassigned,
       unread: filter == InboxQuickFilter.unread,
       needsMyReview: filter == InboxQuickFilter.needsReview,
+      needsReply: filter == InboxQuickFilter.needsReply,
+      // Choosing Needs reply opens it longest-wait first, as the web does.
+      needsReplyOrder: NeedsReplyOrder.oldestFirst,
       status: status,
       clearStatus: status == null && quickStatus,
     );
@@ -237,7 +255,8 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
     );
   }
 
-  void clear() => state = const ConversationFilters();
+  /// Back to what the inbox opens on.
+  void clear() => state = defaultInboxFilters;
 }
 
 class InboxState {
@@ -708,6 +727,7 @@ class InboxController extends AsyncNotifier<InboxState> {
     try {
       ref.invalidate(channelsProvider);
       ref.invalidate(conversationCountsProvider);
+      ref.invalidate(needsReplyCountProvider);
       final filters = ref.read(inboxFiltersProvider);
       final fresh = await _firstBatch(filters, navigation: ++_navigation);
       if (!ref.mounted || epoch != _epoch) return;
@@ -733,6 +753,7 @@ class InboxController extends AsyncNotifier<InboxState> {
   Future<void> refreshQuietly({bool reset = false}) async {
     ref.invalidate(channelsProvider);
     ref.invalidate(conversationCountsProvider);
+    ref.invalidate(needsReplyCountProvider);
     if (reset) {
       await _resetQuietly();
     } else {
@@ -875,6 +896,126 @@ class InboxController extends AsyncNotifier<InboxState> {
     } on ApiException {
       // Leave the list on screen as it is.
     }
+  }
+
+  // -- authoritative resync ------------------------------------------------
+
+  /// Deepest list [resync] refetches page by page; deeper than this it
+  /// reloads from the top instead.
+  static const maxResyncPages = 5;
+
+  /// Brings the loaded list back to what the server holds now — after the
+  /// socket reconnected or the app came back, when events may have been
+  /// missed.
+  ///
+  /// A head refresh ([_refreshHead]) cannot do that: it only says what is at
+  /// the top, so a row further down that the agent may no longer see (moved
+  /// to someone else, access revoked) would stay. This refetches every page
+  /// the agent has loaded and *replaces* the list with them, so such a row
+  /// goes — and a row merely pushed further down is still found on the page
+  /// it moved to. The agent stays where they are ([InboxState.navigation] is
+  /// kept); only a list deeper than [maxResyncPages] is reloaded from the top.
+  ///
+  /// Nothing on screen changes if a request fails. Nothing happens while the
+  /// list is still loading for the first time: that load is already the
+  /// server's answer.
+  Future<void> resync() async {
+    final current = state.value;
+    if (current == null || state.isLoading) return;
+    if (current.page > maxResyncPages) {
+      await _resetQuietly();
+      return;
+    }
+    _pagelog.refresh(currentPage: current.page, reason: 'resync');
+    final epoch = ++_epoch;
+    _reloads++;
+    try {
+      final pinSeq = _pinSeq;
+      final scoped = scopeToEligibleAccounts(
+        ref.read(inboxFiltersProvider),
+        await _eligibleAccounts(),
+      );
+      var groups = const <CustomerConversationGroup>[];
+      Paginated<CustomerConversationGroup>? last;
+      var page = 0;
+      while (page < current.page) {
+        page++;
+        final result = await _request(scoped, page);
+        if (!ref.mounted || epoch != _epoch) return;
+        groups = appendDeduped(groups, result.results).groups;
+        last = result;
+        if (!result.hasMore || result.results.isEmpty) break;
+      }
+      if (last == null) return;
+      _listFilters = scoped;
+      _barrenBatches = 0;
+      final latest = state.value ?? current;
+      state = AsyncData(
+        latest.copyWith(
+          groups: _withConfirmedPins(groups, pinSeq),
+          page: page,
+          totalPages: _totalPages(last, page),
+          total: last.count,
+          hasMore: last.hasMore && last.results.isNotEmpty,
+          isLoadingMore: false,
+          clearLoadMoreError: true,
+          hasPendingUpdates: false,
+        ),
+      );
+    } on ApiException {
+      // Leave the list as it is; a batch that was loading for it was
+      // dropped when this began.
+      final latest = state.value;
+      if (ref.mounted &&
+          epoch == _epoch &&
+          latest != null &&
+          latest.isLoadingMore) {
+        state = AsyncData(latest.copyWith(isLoadingMore: false));
+      }
+    } finally {
+      _reloads--;
+    }
+  }
+
+  /// Access checks in flight, so a burst of events asks once per row.
+  final _accessChecks = <int>{};
+
+  /// Whether [conversationId] is in the loaded list.
+  bool isLoaded(int conversationId) =>
+      state.value?.groups.any(
+        (g) => g.conversations.any((c) => c.id == conversationId),
+      ) ??
+      false;
+
+  /// Asks the server whether a loaded row is still this employee's to see
+  /// (`GET /conversations/{id}/`), and drops it if not — after a
+  /// `conversation.assigned` moved it, for instance from Unassigned to a
+  /// colleague. A head refresh says nothing about a row further down; the
+  /// detail answer does: 404 is authoritative. Rows not loaded are not asked
+  /// about.
+  Future<void> reconcileAccess(int conversationId) async {
+    if (!isLoaded(conversationId) || !_accessChecks.add(conversationId)) {
+      return;
+    }
+    try {
+      await ref.read(conversationRepositoryProvider).detail(conversationId);
+    } on ApiException catch (error) {
+      if (!ref.mounted) return;
+      if (error.statusCode == 404 || error.statusCode == 403) {
+        lostAccess(conversationId);
+      }
+    } finally {
+      _accessChecks.remove(conversationId);
+    }
+  }
+
+  /// The server says this conversation is gone for this employee (a 404 on
+  /// it, or `conversation.access_revoked`): drop it wherever it is loaded
+  /// and re-read the counts it was part of.
+  void lostAccess(int conversationId) {
+    removeConversation(conversationId);
+    ref.invalidate(conversationCountsProvider);
+    ref.invalidate(needsReplyCountProvider);
   }
 
   // -- local patches --------------------------------------------------------
@@ -1053,6 +1194,28 @@ class InboxController extends AsyncNotifier<InboxState> {
 
 final inboxControllerProvider =
     AsyncNotifierProvider<InboxController, InboxState>(InboxController.new);
+
+/// The Needs reply badge: the server's own `needs_reply` from
+/// `GET /conversations/counts/` — one request, the number the web badges.
+/// Scoped to the account picked when exactly one is (the endpoint takes one).
+/// Null while it cannot be read; the badge then shows nothing.
+final needsReplyCountProvider = FutureProvider<int?>((ref) async {
+  final picked = ref.watch(
+    inboxFiltersProvider.select((f) => f.channelConnections),
+  );
+  try {
+    final counts = await ref
+        .watch(conversationRepositoryProvider)
+        .serverCounts(
+          channelConnection: picked != null && picked.length == 1
+              ? picked.single
+              : null,
+        );
+    return counts['needs_reply'];
+  } on ApiException {
+    return null;
+  }
+});
 
 final conversationCountsProvider = FutureProvider<Map<String, int>>((
   ref,

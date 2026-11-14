@@ -273,18 +273,22 @@ void main() {
                 .isSelected ==
             Tristate.isTrue;
 
-        expect(selected('quick_filter_all'), isTrue);
+        // The inbox opens on Needs reply.
+        expect(selected('quick_filter_needs_reply'), isTrue);
+        expect(selected('quick_filter_all'), isFalse);
         expect(selected('quick_filter_mine'), isFalse);
         // The selected pill carries a check, so it is told apart without
         // relying on its colour.
         expect(
           find.descendant(
-            of: find.byKey(const Key('quick_filter_all')),
+            of: find.byKey(const Key('quick_filter_needs_reply')),
             matching: find.byIcon(Icons.check_rounded),
           ),
           findsOneWidget,
         );
 
+        await tester.ensureVisible(find.byKey(const Key('quick_filter_mine')));
+        await tester.pump();
         await tester.tap(find.byKey(const Key('quick_filter_mine')));
         await tester.pump();
 

@@ -193,7 +193,9 @@ void main() {
         has('FETCH_START', [
           'endpoint=/conversations/grouped/',
           'requestedPage=2',
-          'query={page: 2, channel_connections: 5}',
+          // The default view: Needs reply, longest wait first.
+          'query={page: 2, view: needs_reply, '
+              'ordering: last_customer_message_at, channel_connections: 5}',
         ]),
         isTrue,
       );

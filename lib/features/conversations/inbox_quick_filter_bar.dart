@@ -6,14 +6,18 @@ import '../../core/models/employee.dart';
 import '../../core/theme/tokens.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
+import 'conversation_repository.dart';
 import 'inbox_controller.dart';
 import 'review_count.dart';
 
 /// Horizontally scrollable row of primary Inbox quick filters.
 ///
 /// Prominently displays the primary views, in [InboxQuickFilter]'s order:
-///   [ All ]  [ Mine ]  [ Need review ]  [ Unread ]  [ Resolved ]
-///   [ Unassigned ]  [ Open ]
+///   [ Needs reply ]  [ All ]  [ Mine ]  [ Need review ]  [ Unread ]
+///   [ Resolved ]  [ Unassigned ]  [ Open ]
+///
+/// Needs reply is the view the inbox opens on (the web's default too). It
+/// carries the server's `needs_reply` count ([needsReplyCountProvider]).
 ///
 /// Need review is shown only to employees holding `conversation.review`
 /// (ADMIN and SUPERVISOR today); for everyone else it is not in the bar at
@@ -46,6 +50,7 @@ class InboxQuickFilterBar extends ConsumerWidget {
   }
 
   static String _keyOf(InboxQuickFilter filter) => switch (filter) {
+    InboxQuickFilter.needsReply => 'quick_filter_needs_reply',
     InboxQuickFilter.all => 'quick_filter_all',
     InboxQuickFilter.mine => 'quick_filter_mine',
     InboxQuickFilter.needsReview => 'quick_filter_needs_review',
@@ -58,6 +63,7 @@ class InboxQuickFilterBar extends ConsumerWidget {
   static String _labelOf(BuildContext context, InboxQuickFilter filter) {
     final l10n = context.l10n;
     return switch (filter) {
+      InboxQuickFilter.needsReply => l10n.needsReplyFilter,
       InboxQuickFilter.all => l10n.allFilter,
       InboxQuickFilter.mine => l10n.mineFilter,
       InboxQuickFilter.needsReview => l10n.needsReviewFilter,
@@ -91,6 +97,8 @@ class InboxQuickFilterBar extends ConsumerWidget {
     final reviewCount = canReview && employeeId != null
         ? ref.watch(reviewCountProvider(employeeId)).value
         : null;
+    // The server's own number, the one the web badges; kept while re-read.
+    final needsReplyCount = ref.watch(needsReplyCountProvider).value;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -110,9 +118,22 @@ class InboxQuickFilterBar extends ConsumerWidget {
             _QuickFilterPill(
               key: Key(_keyOf(filter)),
               label: _labelOf(context, filter),
-              badge: filter == InboxQuickFilter.needsReview
-                  ? reviewCount
-                  : null,
+              badge: switch (filter) {
+                InboxQuickFilter.needsReview => reviewCount,
+                InboxQuickFilter.needsReply => needsReplyCount,
+                _ => null,
+              },
+              badgeKey: switch (filter) {
+                InboxQuickFilter.needsReply => const Key(
+                  'needs_reply_count_badge',
+                ),
+                _ => const Key('review_count_badge'),
+              },
+              badgeSemantics: switch (filter) {
+                InboxQuickFilter.needsReply =>
+                  context.l10n.needsReplyCountSemantics,
+                _ => context.l10n.reviewsWaitingForYou,
+              },
               isActive: activeFilter == filter,
               onTap: () => ref
                   .read(inboxFiltersProvider.notifier)
@@ -130,11 +151,19 @@ class _QuickFilterPill extends StatelessWidget {
     required this.label,
     required this.isActive,
     required this.onTap,
+    required this.badgeSemantics,
     this.badge,
+    this.badgeKey,
     super.key,
   });
 
   final String label;
+
+  /// Tells one tab's number from another's.
+  final Key? badgeKey;
+
+  /// How the badge's number is read aloud.
+  final String Function(int count) badgeSemantics;
 
   /// A count shown after the label while it is above zero; null or zero shows
   /// nothing.
@@ -189,7 +218,12 @@ class _QuickFilterPill extends StatelessWidget {
                   ),
                   if (badge != null && badge! > 0) ...[
                     const SizedBox(width: Space.xs + 2),
-                    _CountBadge(count: badge!, onActivePill: isActive),
+                    _CountBadge(
+                      key: badgeKey,
+                      count: badge!,
+                      onActivePill: isActive,
+                      semantics: badgeSemantics(badge!),
+                    ),
                   ],
                 ],
               ),
@@ -205,10 +239,16 @@ class _QuickFilterPill extends StatelessWidget {
 /// reverse on the selected one, so it reads on both. Read aloud as the
 /// sentence the localization gives, not as a bare number.
 class _CountBadge extends StatelessWidget {
-  const _CountBadge({required this.count, required this.onActivePill});
+  const _CountBadge({
+    required this.count,
+    required this.onActivePill,
+    required this.semantics,
+    super.key,
+  });
 
   final int count;
   final bool onActivePill;
+  final String semantics;
 
   /// Beyond this the exact figure stops being useful on a pill.
   static const _cap = 99;
@@ -219,10 +259,9 @@ class _CountBadge extends StatelessWidget {
     final background = onActivePill ? scheme.onPrimary : scheme.primary;
     final foreground = onActivePill ? scheme.primary : scheme.onPrimary;
     return Semantics(
-      label: context.l10n.reviewsWaitingForYou(count),
+      label: semantics,
       excludeSemantics: true,
       child: Container(
-        key: const Key('review_count_badge'),
         // No `alignment`: that would make the badge fill the pill's height.
         constraints: const BoxConstraints(minWidth: 20),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -241,6 +280,58 @@ class _CountBadge extends StatelessWidget {
             height: 1.1,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Oldest first / Newest first, under the quick filters while Needs reply is
+/// the view: `ordering=last_customer_message_at` or its reverse, applied by
+/// the server (pages stay consistent; nothing is re-sorted on the phone).
+/// Nothing is shown for any other view.
+class NeedsReplySortBar extends ConsumerWidget {
+  const NeedsReplySortBar({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final filters = ref.watch(inboxFiltersProvider);
+    if (!filters.needsReply) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+
+    Widget option(NeedsReplyOrder order, String label) {
+      final selected = filters.needsReplyOrder == order;
+      return ChoiceChip(
+        key: Key('needs_reply_order_${order.name}'),
+        label: Text(label),
+        selected: selected,
+        showCheckmark: false,
+        visualDensity: VisualDensity.compact,
+        labelStyle: theme.textTheme.labelMedium?.copyWith(
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        ),
+        onSelected: (_) =>
+            ref.read(inboxFiltersProvider.notifier).setNeedsReplyOrder(order),
+      );
+    }
+
+    return Padding(
+      key: const Key('needs_reply_sort_bar'),
+      padding: const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.sm),
+      child: Wrap(
+        spacing: Space.sm,
+        runSpacing: Space.xs,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            l10n.needsReplySortLabel,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.textTheme.bodySmall?.color,
+            ),
+          ),
+          option(NeedsReplyOrder.oldestFirst, l10n.needsReplyOldestFirst),
+          option(NeedsReplyOrder.newestFirst, l10n.needsReplyNewestFirst),
+        ],
       ),
     );
   }

@@ -331,14 +331,15 @@ void main() {
         );
       }
 
-      // Default active is "All"
+      // Default active is "Needs reply"; All is still offered.
       final container = ProviderScope.containerOf(
         tester.element(find.byType(InboxScreen)),
       );
       expect(
         container.read(inboxFiltersProvider).activeQuickFilter,
-        equals(InboxQuickFilter.all),
+        equals(InboxQuickFilter.needsReply),
       );
+      expect(find.byKey(const Key('quick_filter_all')), findsOneWidget);
     });
 
     testWidgets('8. Selecting each quick filter updates query correctly', (
@@ -351,7 +352,9 @@ void main() {
         tester.element(find.byType(InboxScreen)),
       );
 
-      // Tap Mine
+      // Tap Mine — scrolled into view first: Needs reply now leads the row.
+      await tester.ensureVisible(find.byKey(const Key('quick_filter_mine')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('quick_filter_mine')));
       await tester.pumpAndSettle();
       expect(container.read(inboxFiltersProvider).assignedToMe, isTrue);
@@ -359,6 +362,10 @@ void main() {
       expect(req.uri.queryParameters['assigned_to'], equals('42'));
 
       // Tap Unassigned
+      await tester.ensureVisible(
+        find.byKey(const Key('quick_filter_unassigned')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('quick_filter_unassigned')));
       await tester.pumpAndSettle();
       expect(container.read(inboxFiltersProvider).unassigned, isTrue);
@@ -367,6 +374,8 @@ void main() {
       expect(req.uri.queryParameters['view'], equals('unassigned'));
 
       // Tap Unread
+      await tester.ensureVisible(find.byKey(const Key('quick_filter_unread')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('quick_filter_unread')));
       await tester.pumpAndSettle();
       expect(container.read(inboxFiltersProvider).unread, isTrue);

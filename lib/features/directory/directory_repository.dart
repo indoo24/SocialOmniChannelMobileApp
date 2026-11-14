@@ -205,32 +205,44 @@ class DirectoryRepository {
     return Paginated.fromJson(data, Conversation.fromJson);
   }
 
+  /// `GET /channels/` — the full account records (credentials state, health).
+  /// Requires `channel.view`: call it only for someone who holds it
+  /// (see `channelsProvider`). Never a probe whose 403 picks the endpoint.
   Future<Paginated<ChannelConnection>> channels({int page = 1}) async {
-    try {
-      final data = await _api.get<Map<String, dynamic>>(
-        '/channels/',
+    final data = await _api.get<Map<String, dynamic>>(
+      '/channels/',
+      query: {'page_size': 50, if (page > 1) 'page': page},
+    );
+    return Paginated.fromJson(data, ChannelConnection.fromJson);
+  }
+
+  /// `GET /conversations/channels/` — the accounts any signed-in employee may
+  /// scope the inbox to (`id`, `provider`, `display_name`, `is_active`,
+  /// `is_muted`), for someone without `channel.view`.
+  ///
+  /// The live server answers with a bare array of every account in one
+  /// response; the schema documents a page. Both are read: an array is the
+  /// whole list (no page 2 is asked for), a page is followed through its own
+  /// `next` only.
+  Future<List<ChannelConnection>> inboxChannels() async {
+    final channels = <ChannelConnection>[];
+    for (var page = 1; page <= 20; page++) {
+      final data = await _api.get<dynamic>(
+        '/conversations/channels/',
         query: {'page_size': 50, if (page > 1) 'page': page},
       );
-      return Paginated.fromJson(data, ChannelConnection.fromJson);
-    } on ApiException catch (e) {
-      if (e.statusCode == 403) {
-        final data = await _api.get<dynamic>(
-          '/conversations/channels/',
-          query: {'page_size': 50, if (page > 1) 'page': page},
-        );
-        // The live server answers with a bare array of every account, not
-        // the page `API.md` describes; either is read.
-        if (data is List) {
-          final results = JsonSafe.parseList(data, ChannelConnection.fromJson);
-          return Paginated(results: results, count: results.length);
-        }
-        return Paginated.fromJson(
-          JsonSafe.asMap(data),
-          ChannelConnection.fromJson,
-        );
+      if (data is List) {
+        channels.addAll(JsonSafe.parseList(data, ChannelConnection.fromJson));
+        break;
       }
-      rethrow;
+      final batch = Paginated.fromJson(
+        JsonSafe.asMap(data),
+        ChannelConnection.fromJson,
+      );
+      channels.addAll(batch.results);
+      if (!batch.hasMore || batch.results.isEmpty) break;
     }
+    return channels;
   }
 
   /// Stop showing this channel's conversations without disconnecting it.
@@ -410,10 +422,14 @@ class DirectoryRepository {
     return JsonSafe.parseList(data, ConversationCategory.fromJson);
   }
 
+  /// [teamReceivedPeriod] sets `team_received_period`: the window for
+  /// `team.workload[].received` only — read-only, independent of the page
+  /// period and of every routing setting.
   Future<DashboardSummary> dashboard({
     String? preset,
     String? from,
     String? to,
+    TeamReceivedPeriod? teamReceivedPeriod,
   }) async {
     final query = <String, dynamic>{};
     if (from != null && to != null) {
@@ -422,11 +438,17 @@ class DirectoryRepository {
     } else if (preset != null && preset.isNotEmpty) {
       query['preset'] = preset;
     }
+    if (teamReceivedPeriod != null) {
+      query['team_received_period'] = teamReceivedPeriod.apiValue;
+    }
     final data = await _api.get<Map<String, dynamic>>(
       '/dashboard/',
       query: query.isEmpty ? null : query,
     );
-    return DashboardSummary.fromJson(data);
+    return DashboardSummary.fromJson(
+      data,
+      teamReceivedPeriod: teamReceivedPeriod,
+    );
   }
 
   /// Volume per connected channel. Requires `analytics.view` server-side.

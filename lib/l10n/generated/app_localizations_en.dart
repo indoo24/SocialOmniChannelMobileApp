@@ -5272,4 +5272,172 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashboardRotationViewAll => 'View full order';
+
+  @override
+  String get intelligenceLeadScoreTitle => 'Lead score';
+
+  @override
+  String get possiblePurchaseTitle => 'Possible purchase detected';
+
+  @override
+  String purchaseClaimSaysOrdered(String name) {
+    return '$name says they have placed an order. Scenario has no access to payment records, so this is unverified.';
+  }
+
+  @override
+  String purchaseClaimSaysPaid(String name) {
+    return '$name says they have paid. Scenario has no access to payment records, so this is unverified.';
+  }
+
+  @override
+  String get theCustomerLabel => 'The customer';
+
+  @override
+  String get confirmPurchaseAction => 'Confirm purchase';
+
+  @override
+  String get purchaseNotePlaceholder =>
+      'Optional note (e.g. how you verified it)';
+
+  @override
+  String get confirmingRecordsHint =>
+      'Confirming records your name and the time. It does not charge or verify any payment.';
+
+  @override
+  String get needsConfirmRightsMessage =>
+      'An employee with confirmation rights needs to review this claim.';
+
+  @override
+  String purchaseConfirmedBy(String name) {
+    return 'Confirmed by $name.';
+  }
+
+  @override
+  String purchaseConfirmedByOn(String name, String when) {
+    return 'Confirmed by $name on $when.';
+  }
+
+  @override
+  String get stageLead => 'Lead';
+
+  @override
+  String get stageUncertain => 'Uncertain';
+
+  @override
+  String get purchaseStatusIntentDetected => 'Intent detected';
+
+  @override
+  String get purchaseStatusSaysOrdered => 'Says ordered';
+
+  @override
+  String get purchaseStatusSaysPaid => 'Says paid';
+
+  @override
+  String get purchaseStatusAgentConfirmed => 'Confirmed by employee';
+
+  @override
+  String get purchaseStatusCancelled => 'Cancelled';
+
+  @override
+  String get purchaseStatusRefundMentioned => 'Refund mentioned';
+
+  @override
+  String get sentimentPositive => 'Positive';
+
+  @override
+  String get sentimentNeutral => 'Neutral';
+
+  @override
+  String get sentimentNegative => 'Negative';
+
+  @override
+  String get sentimentMixed => 'Mixed';
+
+  @override
+  String get levelLow => 'Low';
+
+  @override
+  String get levelMedium => 'Medium';
+
+  @override
+  String get levelHigh => 'High';
+
+  @override
+  String get needsReplyFilter => 'Needs reply';
+
+  @override
+  String needsReplyCountSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conversations need a reply',
+      one: '1 conversation needs a reply',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get needsReplySortLabel => 'Sort';
+
+  @override
+  String get needsReplyOldestFirst => 'Oldest first';
+
+  @override
+  String get needsReplyNewestFirst => 'Newest first';
+
+  @override
+  String waitingFor(String duration) {
+    return 'Waiting $duration';
+  }
+
+  @override
+  String get needsReplyEmptyTitle => 'Nobody is waiting for a reply';
+
+  @override
+  String get needsReplyEmptyMessage =>
+      'Every customer who wrote has had an answer.';
+
+  @override
+  String get conversationNoLongerAvailable =>
+      'This conversation is no longer available to you.';
+
+  @override
+  String get teamWorkloadEmployee => 'Employee';
+
+  @override
+  String get teamWorkloadReceived => 'Received';
+
+  @override
+  String get teamWorkloadRightNow => 'Right now';
+
+  @override
+  String get teamWorkloadReceivedWindow => 'Received window';
+
+  @override
+  String get teamWorkloadReceivedTooltip =>
+      'Conversations given to this employee during the selected period, counted once each. Read from the assignment history, so a later reassignment does not change it.';
+
+  @override
+  String get teamWorkloadNeedsReplyTooltip =>
+      'Conversations assigned to them where the customer is waiting for a human reply. This is the backlog as it stands now — the period selector does not change it.';
+
+  @override
+  String get teamWorkloadEmptyTitle => 'Nothing assigned';
+
+  @override
+  String get teamWorkloadEmptyHint =>
+      'Conversations assigned to agents will show up here.';
+
+  @override
+  String get teamWorkloadPeriodFailed =>
+      'Couldn\'t load Received for this period.';
+
+  @override
+  String teamWorkloadRowSemantics(
+    String name,
+    String received,
+    String needsReply,
+  ) {
+    return '$name: $received received, $needsReply waiting for a reply now';
+  }
 }

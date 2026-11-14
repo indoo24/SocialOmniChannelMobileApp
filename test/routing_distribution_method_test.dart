@@ -268,7 +268,6 @@ Future<void> _openRouting(
 final _methodCard = find.byKey(const ValueKey('distributionMethodCard'));
 final _rotationCard = find.byKey(const ValueKey('rotationOrderCard'));
 final _workloadCard = find.byKey(const ValueKey('workloadWindowCard'));
-final _dashboardSection = find.byKey(const ValueKey('dashboardRotation'));
 
 String? _selectedMethod(WidgetTester tester) => tester
     .widget<RadioGroup<String>>(
@@ -297,23 +296,6 @@ List<int> _rowOrder(WidgetTester tester, Finder within) {
     for (final row in rows)
       int.parse((row.key! as ValueKey<String>).value.split('_').last),
   ];
-}
-
-/// The dashboard's own list; the page has other (horizontal) scrollables.
-Future<void> _scrollToRotation(WidgetTester tester) async {
-  await tester.scrollUntilVisible(
-    _dashboardSection,
-    300,
-    scrollable: find
-        .descendant(
-          of: find.byType(DashboardScreen),
-          matching: find.byWidgetPredicate(
-            (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
-          ),
-        )
-        .first,
-  );
-  await tester.pumpAndSettle();
 }
 
 String _standing(WidgetTester tester, int id) => tester
@@ -496,58 +478,20 @@ void main() {
     });
   });
 
-  group('dashboard', () {
-    testWidgets('round robin: every employee in order, the next marked, and '
-        'nothing to change', (tester) async {
-      await _pump(tester, _Backend(mode: 'ROUND_ROBIN'));
-      await _scrollToRotation(tester);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Turn order'), findsOneWidget);
-      // The whole rotation, as the server orders it — not a first few.
-      expect(_rowOrder(tester, _dashboardSection), [
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16,
-      ]);
-      expect(_standing(tester, 10), 'Next in turn');
-      expect(find.byKey(const ValueKey('rotationMore')), findsNothing);
-      expect(find.text('View full order'), findsOneWidget);
-      // Read-only: no control that could change routing.
-      for (final type in [
-        Radio<String>,
-        RadioGroup<String>,
-        Switch,
-        Checkbox,
-        TextField,
-        ChoiceChip,
-        SegmentedButton<String>,
-        ReorderableListView,
-      ]) {
-        expect(
-          find.descendant(of: _dashboardSection, matching: find.byType(type)),
-          findsNothing,
-          reason: '$type',
-        );
-      }
-    });
-
-    testWidgets('View full order opens Routing at the turn order', (
+  group('Routing links', () {
+    testWidgets('the turn-order link opens Routing at the turn order', (
       tester,
     ) async {
       // A short phone, so the turn order starts below the fold of Routing.
       final backend = _Backend(mode: 'ROUND_ROBIN');
-      await _pump(tester, backend, size: const Size(400, 700));
-      await _scrollToRotation(tester);
-      await tester.tap(find.byKey(const ValueKey('dashboardRotationViewAll')));
-      await tester.pumpAndSettle();
+      await _pump(
+        tester,
+        backend,
+        initialLocation: Routes.settingsRotation,
+        size: const Size(400, 700),
+      );
 
       expect(find.byType(SettingsScreen), findsOneWidget);
-      expect(find.byType(DashboardScreen), findsNothing);
       expect(_rotationCard, findsOneWidget);
       // Scrolled to the card: its top is on screen, near the top.
       final top = tester.getTopLeft(_rotationCard).dy;
@@ -575,75 +519,6 @@ void main() {
       expect(list.position.pixels, 0);
       expect(_methodCard.hitTestable(), findsOneWidget);
     });
-
-    testWidgets('Team workload is gone; the turn order is in its place', (
-      tester,
-    ) async {
-      await _pump(tester, _Backend(mode: 'ROUND_ROBIN'));
-      await _scrollToRotation(tester);
-
-      // Neither the heading, the online count nor its rows.
-      expect(find.text('Team workload'), findsNothing);
-      expect(find.text('3 online'), findsNothing);
-      expect(find.text('Workload Person'), findsNothing);
-      expect(find.text('7 open · 2 unread'), findsNothing);
-      // The unrelated sections stay, and the turn order sits between the
-      // statistics and Recent activity, where Team workload was.
-      expect(find.text('Conversations'), findsOneWidget);
-      expect(_dashboardSection, findsOneWidget);
-      final recent = find.text('Recent activity');
-      await tester.scrollUntilVisible(
-        recent,
-        300,
-        scrollable: find
-            .descendant(
-              of: find.byType(DashboardScreen),
-              matching: find.byWidgetPredicate(
-                (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
-              ),
-            )
-            .first,
-      );
-      expect(
-        tester.getTopLeft(_dashboardSection).dy,
-        lessThan(tester.getTopLeft(recent).dy),
-      );
-    });
-
-    testWidgets('Team workload stays gone for roles without routing.manage', (
-      tester,
-    ) async {
-      await _pump(tester, _Backend(), me: _admin(routing: false));
-      expect(find.text('Team workload'), findsNothing);
-      expect(find.text('Workload Person'), findsNothing);
-      expect(find.text('Conversations'), findsOneWidget);
-    });
-
-    testWidgets('recent workload: says the order is inactive, shows none', (
-      tester,
-    ) async {
-      await _pump(tester, _Backend());
-      await _scrollToRotation(tester);
-
-      expect(
-        find.byKey(const ValueKey('dashboardRotationInactive')),
-        findsOneWidget,
-      );
-      expect(find.byKey(const ValueKey('rotationList')), findsNothing);
-      // Routing shows no order to view under this method.
-      expect(find.text('Open routing settings'), findsOneWidget);
-      expect(find.text('View full order'), findsNothing);
-      expect(find.text('Team workload'), findsNothing);
-    });
-
-    testWidgets('without routing.manage: no section and no request', (
-      tester,
-    ) async {
-      final backend = _Backend(mode: 'ROUND_ROBIN');
-      await _pump(tester, backend, me: _admin(routing: false));
-      expect(_dashboardSection, findsNothing);
-      expect(backend.workloadGets, 0);
-    });
   });
 
   testWidgets('Arabic, on a narrow phone: right to left, nothing overflows', (
@@ -663,17 +538,5 @@ void main() {
     expect(_standing(tester, 10), 'الدور التالي');
     expect(_standing(tester, 11), 'يسبقه 1');
     expect(Directionality.of(tester.element(_rotationCard)), TextDirection.rtl);
-
-    await _pump(
-      tester,
-      _Backend(mode: 'ROUND_ROBIN'),
-      locale: const Locale('ar'),
-      size: const Size(320, 2600),
-    );
-    await _scrollToRotation(tester);
-    expect(tester.takeException(), isNull);
-    expect(find.text('ترتيب الأدوار'), findsOneWidget);
-    expect(find.text('عرض الترتيب بالكامل'), findsOneWidget);
-    expect(find.text('عبء عمل الفريق'), findsNothing);
   });
 }

@@ -495,6 +495,22 @@ class IntelligenceMetrics {
   }
 }
 
+/// The window `team.workload[].received` is counted over —
+/// `team_received_period` on `GET /api/dashboard/`. Independent of the
+/// dashboard's own period, and of every routing setting. The backend accepts
+/// exactly these two and answers anything else with a 400.
+enum TeamReceivedPeriod {
+  lastHour('last_1_hour'),
+  last24Hours('last_24_hours');
+
+  const TeamReceivedPeriod(this.apiValue);
+
+  final String apiValue;
+
+  /// The backend's default when none is sent; the web's default too.
+  static const fallback = last24Hours;
+}
+
 class WorkloadEntry {
   const WorkloadEntry({
     required this.id,
@@ -504,15 +520,31 @@ class WorkloadEntry {
     required this.openConversations,
     required this.unreadConversations,
     this.avatarUrl = '',
+    this.received,
+    this.needsReply,
   });
 
   final int id;
   final String fullName;
   final String initials;
   final String availability;
+
+  /// Open conversations in the dashboard period's cohort — not "right now".
   final int openConversations;
+
+  /// Conversations with unread messages, in that same cohort.
   final int unreadConversations;
   final String avatarUrl;
+
+  /// Distinct conversations handed to this employee during
+  /// `team_received_period` (1h or 24h) — the allocator's own measure. Null
+  /// from a server that does not send it: shown as a dash, never as 0.
+  final int? received;
+
+  /// Conversations where the customer spoke more recently than any agent —
+  /// the inbox's Needs-reply predicate. **No window**: the backlog as it
+  /// stands. Not open, assigned or unread. Null when not sent.
+  final int? needsReply;
 
   factory WorkloadEntry.fromJson(Map<String, dynamic> json) => WorkloadEntry(
     id: JsonSafe.asInt(json['id'], fallback: -1),
@@ -522,18 +554,37 @@ class WorkloadEntry {
     openConversations: JsonSafe.asInt(json['open_conversations']),
     unreadConversations: JsonSafe.asInt(json['unread_conversations']),
     avatarUrl: JsonSafe.asString(json['avatar_url']),
+    received: JsonSafe.asIntOrNull(json['received']),
+    needsReply: JsonSafe.asIntOrNull(json['needs_reply']),
   );
 }
 
 class TeamMetrics {
-  const TeamMetrics({required this.onlineAgents, required this.workload});
+  const TeamMetrics({
+    required this.onlineAgents,
+    required this.workload,
+    this.receivedPeriod,
+  });
 
   final int onlineAgents;
+
+  /// Up to ten employees, in the server's order (most waiting on them
+  /// first). Kept as received.
   final List<WorkloadEntry> workload;
 
-  factory TeamMetrics.fromJson(Map<String, dynamic> json) => TeamMetrics(
+  /// The `team_received_period` this block was **requested** with. The
+  /// response does not echo it; the repository records what it asked for,
+  /// so a screen can tell figures for the selected period from figures still
+  /// on screen from the previous one.
+  final TeamReceivedPeriod? receivedPeriod;
+
+  factory TeamMetrics.fromJson(
+    Map<String, dynamic> json, {
+    TeamReceivedPeriod? receivedPeriod,
+  }) => TeamMetrics(
     onlineAgents: JsonSafe.asInt(json['online_agents']),
     workload: JsonSafe.parseList(json['workload'], WorkloadEntry.fromJson),
+    receivedPeriod: receivedPeriod,
   );
 }
 
@@ -586,25 +637,32 @@ class DashboardSummary {
   /// Recent activity conversations from `GET /api/dashboard/`.
   final List<Conversation> recentConversations;
 
-  factory DashboardSummary.fromJson(Map<String, dynamic> json) =>
-      DashboardSummary(
-        conversations: ConversationMetrics.fromJson(
-          JsonSafe.asMap(json['conversations']),
-        ),
-        intelligence: IntelligenceMetrics.fromJson(
-          JsonSafe.asMap(json['intelligence']),
-        ),
-        period: json['period'] is Map
-            ? DashboardPeriod.fromJson(JsonSafe.asMap(json['period']))
-            : null,
-        team: json['team'] is Map
-            ? TeamMetrics.fromJson(JsonSafe.asMap(json['team']))
-            : null,
-        recentConversations: JsonSafe.parseList(
-          json['recent_conversations'],
-          Conversation.fromJson,
-        ),
-      );
+  /// [teamReceivedPeriod] is the `team_received_period` the request
+  /// carried, recorded on [team] (see [TeamMetrics.receivedPeriod]).
+  factory DashboardSummary.fromJson(
+    Map<String, dynamic> json, {
+    TeamReceivedPeriod? teamReceivedPeriod,
+  }) => DashboardSummary(
+    conversations: ConversationMetrics.fromJson(
+      JsonSafe.asMap(json['conversations']),
+    ),
+    intelligence: IntelligenceMetrics.fromJson(
+      JsonSafe.asMap(json['intelligence']),
+    ),
+    period: json['period'] is Map
+        ? DashboardPeriod.fromJson(JsonSafe.asMap(json['period']))
+        : null,
+    team: json['team'] is Map
+        ? TeamMetrics.fromJson(
+            JsonSafe.asMap(json['team']),
+            receivedPeriod: teamReceivedPeriod,
+          )
+        : null,
+    recentConversations: JsonSafe.parseList(
+      json['recent_conversations'],
+      Conversation.fromJson,
+    ),
+  );
 }
 
 class ChannelVolume {

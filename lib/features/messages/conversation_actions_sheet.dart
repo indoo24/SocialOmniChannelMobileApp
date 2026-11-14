@@ -415,6 +415,7 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                 : CustomerIntelligenceView(
                     conversationId: widget.conversationId,
                     intelligence: data,
+                    customerName: conversation?.customer.displayName,
                     showHeader: false,
                     onChanged: () {
                       ref.invalidate(

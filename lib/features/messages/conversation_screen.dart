@@ -7,7 +7,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+
+import '../../app/router.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/models/conversation.dart';
@@ -841,16 +844,24 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       }
     });
 
-    // A realtime `conversation.access_revoked` event for this conversation —
-    // leave rather than keep showing a thread this employee can no longer see.
+    // This conversation is no longer this employee's to see — a realtime
+    // `conversation.access_revoked`, or a 404 when it was loaded — leave,
+    // saying why, rather than keep showing (and re-requesting) a thread that
+    // is gone. Opened from a link with nothing to go back to: the inbox.
     ref.listen<int?>(revokedConversationProvider, (previous, next) {
       if (next != widget.conversationId) return;
       final navigator = Navigator.of(context);
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      final router = GoRouter.maybeOf(context);
+      final message = context.l10n.conversationNoLongerAvailable;
       Future.microtask(() {
         if (!mounted) return;
         ref.read(revokedConversationProvider.notifier).clear();
+        messenger?.showSnackBar(SnackBar(content: Text(message)));
         if (navigator.canPop()) {
           navigator.pop();
+        } else {
+          router?.go(Routes.inbox);
         }
       });
     });

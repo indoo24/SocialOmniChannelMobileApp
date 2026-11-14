@@ -13,6 +13,7 @@ import '../../core/models/conversation.dart';
 import '../../core/models/customer_detail.dart';
 import '../../core/models/customer_fields.dart';
 import '../../core/models/directory.dart';
+import '../../core/models/employee.dart';
 import '../../core/models/performance.dart';
 import '../../core/models/routing_policy.dart';
 import '../../core/models/routing_workload.dart';
@@ -35,20 +36,42 @@ import 'employee_filter_state.dart';
 /// this provider, so the re-run finds no entry and fetches. That keeps "is
 /// this a refresh?" out of the provider, where the two cases are otherwise
 /// indistinguishable.
+///
+/// The request also carries the team table's received period, as the web's
+/// does: one request answers the page and the table, and switching the
+/// period reruns it with the page's numbers kept on screen meanwhile.
 final dashboardProvider = FutureProvider<DashboardSummary>((ref) {
   final filter = ref.watch(dashboardDateFilterProvider);
+  final teamReceived = ref.watch(teamReceivedPeriodProvider);
   final repository = ref.watch(directoryRepositoryProvider);
   final cache = ref.watch(dashboardCacheProvider);
 
   return cache.summary.run(
-    dashboardSummaryKey(filter),
+    dashboardSummaryKey(filter, teamReceived: teamReceived),
     () => repository.dashboard(
       preset: filter.preset?.apiValue,
       from: filter.fromApiString,
       to: filter.toApiString,
+      teamReceivedPeriod: teamReceived,
     ),
   );
 });
+
+/// The Dashboard team table's received period — local view state, sent only
+/// as `team_received_period` on `GET /dashboard/`. Never written anywhere:
+/// the routing policy, its `workload_window` and the distribution are
+/// untouched by it.
+class TeamReceivedPeriodController extends Notifier<TeamReceivedPeriod> {
+  @override
+  TeamReceivedPeriod build() => TeamReceivedPeriod.fallback;
+
+  void select(TeamReceivedPeriod period) => state = period;
+}
+
+final teamReceivedPeriodProvider =
+    NotifierProvider<TeamReceivedPeriodController, TeamReceivedPeriod>(
+      TeamReceivedPeriodController.new,
+    );
 
 /// The organization's routing policy. An `AsyncNotifier` rather than a
 /// `FutureProvider` only so a save can [RoutingPolicyController.confirm] the
@@ -108,8 +131,25 @@ final teamsProvider = FutureProvider<List<Team>>((ref) async {
 
 /// Every account, across all pages: the inbox shows only the accounts listed
 /// here (`eligibleInboxAccounts`), so a list cut short would hide real ones.
+///
+/// The endpoint is chosen from the employee's permissions *before* asking:
+/// `GET /channels/` needs `channel.view`, so anyone without it (an AGENT) is
+/// sent straight to `GET /conversations/channels/`, the list every employee
+/// may read. Asking `/channels/` first and falling back on its 403 put tens
+/// of thousands of refused requests a day on the server.
+///
+/// The permission is *read*, not watched: the inbox depends on this list,
+/// and the auth controller ends a session by invalidating the inbox — a
+/// dependency on the signed-in employee here would make that circular.
+/// Nothing is lost: every sign-in and sign-out invalidates this provider
+/// (`clearSessionScopedState`), so it is rebuilt for whoever is signed in.
 final channelsProvider = FutureProvider<List<ChannelConnection>>((ref) async {
   final repository = ref.watch(directoryRepositoryProvider);
+  final canViewChannels =
+      ref.read(currentEmployeeProvider)?.can(Perm.channelView) ?? false;
+  if (!canViewChannels) {
+    return repository.inboxChannels();
+  }
   final channels = <ChannelConnection>[];
   for (var page = 1; ; page++) {
     final batch = await repository.channels(page: page);

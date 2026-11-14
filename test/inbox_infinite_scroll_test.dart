@@ -871,7 +871,9 @@ void main() {
       final server = GroupedServer([]);
       await pumpInbox(tester, server);
 
-      expect(find.text('No conversations yet'), findsOneWidget);
+      // The default view is Needs reply: nobody waiting.
+      expect(find.byKey(const ValueKey('inboxNobodyWaiting')), findsOneWidget);
+      expect(find.text('Nobody is waiting for a reply'), findsOneWidget);
       expect(find.byKey(const ValueKey('inboxLoadingMore')), findsNothing);
       expect(server.pagesRequested, [1]);
     });

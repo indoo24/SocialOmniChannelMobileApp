@@ -10,6 +10,8 @@
 /// against that would burn battery to duplicate what push notifications do.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -181,6 +183,85 @@ final revokedConversationProvider = NotifierProvider<RevokedConversation, int?>(
   RevokedConversation.new,
 );
 
+/// Coalesces authoritative inbox resyncs ([resyncInbox]).
+///
+/// The same shape as the web client's: the first request in a quiet period
+/// runs at once and opens a [window]; anything asked meanwhile runs once,
+/// when the window closes. A deploy that drops every socket at once, so
+/// eight `connection.ready`s in a second, costs two resyncs, not eight.
+class InboxResync {
+  InboxResync(this._run, {this.window = const Duration(seconds: 1)});
+
+  final void Function() _run;
+  final Duration window;
+
+  Timer? _timer;
+  bool _pending = false;
+  bool _seenReady = false;
+
+  /// Asks for a resync — now, or at the end of the open window.
+  void schedule() {
+    if (_timer == null) {
+      _run();
+      _openWindow();
+      return;
+    }
+    _pending = true;
+  }
+
+  void _openWindow() {
+    _timer = Timer(window, () {
+      _timer = null;
+      if (_pending) {
+        _pending = false;
+        _run();
+        _openWindow();
+      }
+    });
+  }
+
+  /// `connection.ready`. The first of a session is the startup connect, and
+  /// the inbox is already loading the server's answer — nothing to add. Every
+  /// later one follows a dropped socket, and events in between are never
+  /// replayed: resync.
+  void connectionReady() {
+    if (_seenReady) schedule();
+    _seenReady = true;
+  }
+
+  void dispose() {
+    _timer?.cancel();
+    _timer = null;
+    _pending = false;
+  }
+}
+
+final inboxResyncProvider = Provider<InboxResync>((ref) {
+  final resync = InboxResync(() => resyncInbox(ref));
+  ref.onDispose(resync.dispose);
+  return resync;
+});
+
+/// Puts the inbox back on the server's truth after events may have been
+/// missed (socket reconnected, app came back): the loaded list reloaded and
+/// replaced ([InboxController.resync] — which can drop rows the employee no
+/// longer sees), every inbox count re-read, the account list re-read, and
+/// the conversation on screen refetched. Nothing else is touched.
+@visibleForTesting
+void resyncInbox(Ref ref) {
+  ref.invalidate(channelsProvider);
+  ref.invalidate(conversationCountsProvider);
+  ref.invalidate(needsReplyCountProvider);
+  ref.invalidate(reviewCountProvider);
+  ref.read(inboxControllerProvider.notifier).resync();
+  final active = ref.read(activeConversationProvider);
+  if (active != null) {
+    ref
+        .read(conversationControllerProvider(active).notifier)
+        .refreshFromServer();
+  }
+}
+
 class RealtimeBridge extends ConsumerStatefulWidget {
   const RealtimeBridge({required this.child, super.key});
 
@@ -218,16 +299,10 @@ class _RealtimeBridgeState extends ConsumerState<RealtimeBridge>
       case AppLifecycleState.resumed:
         if (isAuthenticated) {
           client.connect();
-          ref.invalidate(channelsProvider);
-          ref.invalidate(reviewCountProvider);
-          // The socket was down; whatever arrived meanwhile is missing.
-          ref.read(inboxControllerProvider.notifier).refreshQuietly();
-          final active = ref.read(activeConversationProvider);
-          if (active != null) {
-            ref
-                .read(conversationControllerProvider(active).notifier)
-                .refreshFromServer();
-          }
+          // The socket was down; whatever arrived meanwhile is missing. The
+          // same resync as a reconnect, through the same coalescer, so the
+          // `connection.ready` that follows does not make it two at once.
+          ref.read(inboxResyncProvider).schedule();
         }
       case AppLifecycleState.paused:
       case AppLifecycleState.detached:
@@ -372,6 +447,18 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
         // The server sends no event of its own for a review, so these are
         // the closest signal; the count is re-read, never adjusted.
         ref.invalidate(reviewCountProvider);
+        // An assignment can take a conversation away from this employee —
+        // Unassigned to a colleague. The head refresh above says nothing about
+        // a row further down the list, so a loaded row is checked with the
+        // server and dropped on a 404. The open one is checked by its own
+        // refetch below.
+        if (event.event == RealtimeEvents.conversationAssigned &&
+            conversationId != null &&
+            conversationId != active) {
+          ref
+              .read(inboxControllerProvider.notifier)
+              .reconcileAccess(conversationId);
+        }
         if (conversationId != null) {
           _refreshConversation(
             ref,
@@ -477,9 +564,12 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
 
       // Sent on every connect, so also after an offline spell or a dropped
       // socket: events in between are never replayed, and a review asked
-      // meanwhile would otherwise go unseen.
+      // meanwhile would otherwise go unseen. After a reconnect the inbox is
+      // resynced too (coalesced); the first connect of a session needs
+      // nothing more — the inbox is loading the server's answer already.
       case RealtimeEvents.connectionReady:
         ref.invalidate(reviewCountProvider);
+        ref.read(inboxResyncProvider).connectionReady();
 
       case RealtimeEvents.presenceChanged:
         break;
@@ -664,9 +754,10 @@ void _handleAccessRevoked(Ref ref, int conversationId, {String? traceId}) {
 
   ref.read(realtimeClientProvider).unsubscribe(conversationId);
   // The row can be anywhere in the loaded list, which a refetch of the top
-  // would not touch: drop it locally, then refresh as before.
+  // would not touch: drop it locally (with the counts it was in), then
+  // refresh as before.
   ref.read(inboxControllerProvider.notifier)
-    ..removeConversation(conversationId)
+    ..lostAccess(conversationId)
     ..refreshQuietly();
 
   final active = ref.read(activeConversationProvider);
