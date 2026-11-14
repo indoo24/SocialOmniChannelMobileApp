@@ -36,20 +36,42 @@ import 'employee_filter_state.dart';
 /// this provider, so the re-run finds no entry and fetches. That keeps "is
 /// this a refresh?" out of the provider, where the two cases are otherwise
 /// indistinguishable.
+///
+/// The request also carries the team table's received period, as the web's
+/// does: one request answers the page and the table, and switching the
+/// period reruns it with the page's numbers kept on screen meanwhile.
 final dashboardProvider = FutureProvider<DashboardSummary>((ref) {
   final filter = ref.watch(dashboardDateFilterProvider);
+  final teamReceived = ref.watch(teamReceivedPeriodProvider);
   final repository = ref.watch(directoryRepositoryProvider);
   final cache = ref.watch(dashboardCacheProvider);
 
   return cache.summary.run(
-    dashboardSummaryKey(filter),
+    dashboardSummaryKey(filter, teamReceived: teamReceived),
     () => repository.dashboard(
       preset: filter.preset?.apiValue,
       from: filter.fromApiString,
       to: filter.toApiString,
+      teamReceivedPeriod: teamReceived,
     ),
   );
 });
+
+/// The Dashboard team table's received period — local view state, sent only
+/// as `team_received_period` on `GET /dashboard/`. Never written anywhere:
+/// the routing policy, its `workload_window` and the distribution are
+/// untouched by it.
+class TeamReceivedPeriodController extends Notifier<TeamReceivedPeriod> {
+  @override
+  TeamReceivedPeriod build() => TeamReceivedPeriod.fallback;
+
+  void select(TeamReceivedPeriod period) => state = period;
+}
+
+final teamReceivedPeriodProvider =
+    NotifierProvider<TeamReceivedPeriodController, TeamReceivedPeriod>(
+      TeamReceivedPeriodController.new,
+    );
 
 /// The organization's routing policy. An `AsyncNotifier` rather than a
 /// `FutureProvider` only so a save can [RoutingPolicyController.confirm] the

@@ -9396,6 +9396,70 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This conversation is no longer available to you.'**
   String get conversationNoLongerAvailable;
+
+  /// No description provided for @teamWorkloadEmployee.
+  ///
+  /// In en, this message translates to:
+  /// **'Employee'**
+  String get teamWorkloadEmployee;
+
+  /// No description provided for @teamWorkloadReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Received'**
+  String get teamWorkloadReceived;
+
+  /// No description provided for @teamWorkloadRightNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Right now'**
+  String get teamWorkloadRightNow;
+
+  /// No description provided for @teamWorkloadReceivedWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Received window'**
+  String get teamWorkloadReceivedWindow;
+
+  /// No description provided for @teamWorkloadReceivedTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations given to this employee during the selected period, counted once each. Read from the assignment history, so a later reassignment does not change it.'**
+  String get teamWorkloadReceivedTooltip;
+
+  /// No description provided for @teamWorkloadNeedsReplyTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations assigned to them where the customer is waiting for a human reply. This is the backlog as it stands now — the period selector does not change it.'**
+  String get teamWorkloadNeedsReplyTooltip;
+
+  /// No description provided for @teamWorkloadEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing assigned'**
+  String get teamWorkloadEmptyTitle;
+
+  /// No description provided for @teamWorkloadEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations assigned to agents will show up here.'**
+  String get teamWorkloadEmptyHint;
+
+  /// No description provided for @teamWorkloadPeriodFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load Received for this period.'**
+  String get teamWorkloadPeriodFailed;
+
+  /// No description provided for @teamWorkloadRowSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {received} received, {needsReply} waiting for a reply now'**
+  String teamWorkloadRowSemantics(
+    String name,
+    String received,
+    String needsReply,
+  );
 }
 
 class _AppLocalizationsDelegate

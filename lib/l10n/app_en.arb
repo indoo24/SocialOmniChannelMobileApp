@@ -2846,5 +2846,16 @@
   "@waitingFor": {"placeholders": {"duration": {"type": "String"}}},
   "needsReplyEmptyTitle": "Nobody is waiting for a reply",
   "needsReplyEmptyMessage": "Every customer who wrote has had an answer.",
-  "conversationNoLongerAvailable": "This conversation is no longer available to you."
+  "conversationNoLongerAvailable": "This conversation is no longer available to you.",
+  "teamWorkloadEmployee": "Employee",
+  "teamWorkloadReceived": "Received",
+  "teamWorkloadRightNow": "Right now",
+  "teamWorkloadReceivedWindow": "Received window",
+  "teamWorkloadReceivedTooltip": "Conversations given to this employee during the selected period, counted once each. Read from the assignment history, so a later reassignment does not change it.",
+  "teamWorkloadNeedsReplyTooltip": "Conversations assigned to them where the customer is waiting for a human reply. This is the backlog as it stands now — the period selector does not change it.",
+  "teamWorkloadEmptyTitle": "Nothing assigned",
+  "teamWorkloadEmptyHint": "Conversations assigned to agents will show up here.",
+  "teamWorkloadPeriodFailed": "Couldn't load Received for this period.",
+  "teamWorkloadRowSemantics": "{name}: {received} received, {needsReply} waiting for a reply now",
+  "@teamWorkloadRowSemantics": {"placeholders": {"name": {"type": "String"}, "received": {"type": "String"}, "needsReply": {"type": "String"}}}
 }

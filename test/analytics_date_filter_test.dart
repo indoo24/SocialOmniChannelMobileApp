@@ -277,7 +277,11 @@ void main() {
       expect(container.read(dashboardDateFilterProvider).preset, preset);
       expect(find.text(label), findsOneWidget);
       final dashReq = requests.firstWhere((r) => r.path == '/dashboard/');
-      expect(dashReq.queryParameters, {'preset': apiValue});
+      expect(dashReq.queryParameters, {
+        'preset': apiValue,
+        // The Team workload table's window, carried by the shared request.
+        'team_received_period': 'last_24_hours',
+      });
     });
   }
 

@@ -1148,7 +1148,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get myLast14DaysTitle => 'آخر 14 يومًا';
 
   @override
-  String get teamWorkloadTitle => 'عبء عمل الفريق';
+  String get teamWorkloadTitle => 'حجم عمل الفريق';
 
   @override
   String onlineAgentsSuffix(int count) {
@@ -5425,4 +5425,43 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get conversationNoLongerAvailable => 'لم تعد هذه المحادثة متاحة لك.';
+
+  @override
+  String get teamWorkloadEmployee => 'الموظف';
+
+  @override
+  String get teamWorkloadReceived => 'المستلمة';
+
+  @override
+  String get teamWorkloadRightNow => 'الآن';
+
+  @override
+  String get teamWorkloadReceivedWindow => 'نطاق المستلمة';
+
+  @override
+  String get teamWorkloadReceivedTooltip =>
+      'المحادثات التي أُعطيت لهذا الموظف خلال الفترة المحددة، تُحسب مرة واحدة لكل محادثة. تُقرأ من سجل التعيين، لذلك لا تتغير بإعادة التعيين لاحقًا.';
+
+  @override
+  String get teamWorkloadNeedsReplyTooltip =>
+      'المحادثات المعيّنة له والتي ينتظر فيها العميل ردًا بشريًا. هذا هو الوضع الحالي — اختيار الفترة لا يغيّره.';
+
+  @override
+  String get teamWorkloadEmptyTitle => 'لا توجد محادثات مُسندة';
+
+  @override
+  String get teamWorkloadEmptyHint =>
+      'ستظهر هنا المحادثات المسندة إلى الوكلاء.';
+
+  @override
+  String get teamWorkloadPeriodFailed => 'تعذّر تحميل المستلمة لهذه الفترة.';
+
+  @override
+  String teamWorkloadRowSemantics(
+    String name,
+    String received,
+    String needsReply,
+  ) {
+    return '$name: المستلمة $received، يحتاج رد الآن $needsReply';
+  }
 }

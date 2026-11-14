@@ -383,7 +383,7 @@
   "reviewNeededDescription": "ادّعى أحد العملاء إتمام عملية شراء. لا تستطيع Scenario التحقق من المدفوعات — راجع سجلاتك وقم بالتأكيد.",
   "checkInboxButton": "تفقّد صندوق الوارد",
   "myLast14DaysTitle": "آخر 14 يومًا",
-  "teamWorkloadTitle": "عبء عمل الفريق",
+  "teamWorkloadTitle": "حجم عمل الفريق",
   "onlineAgentsSuffix": "{count} متصل",
   "nothingAssignedMessage": "لا توجد مهام مُسندة حاليًا.",
   "recentActivityTitle": "النشاط الأخير",
@@ -1623,5 +1623,15 @@
   "waitingFor": "في الانتظار {duration}",
   "needsReplyEmptyTitle": "لا يوجد عملاء بانتظار الرد",
   "needsReplyEmptyMessage": "تلقّى كل عميل كتب رسالةً ردًّا.",
-  "conversationNoLongerAvailable": "لم تعد هذه المحادثة متاحة لك."
+  "conversationNoLongerAvailable": "لم تعد هذه المحادثة متاحة لك.",
+  "teamWorkloadEmployee": "الموظف",
+  "teamWorkloadReceived": "المستلمة",
+  "teamWorkloadRightNow": "الآن",
+  "teamWorkloadReceivedWindow": "نطاق المستلمة",
+  "teamWorkloadReceivedTooltip": "المحادثات التي أُعطيت لهذا الموظف خلال الفترة المحددة، تُحسب مرة واحدة لكل محادثة. تُقرأ من سجل التعيين، لذلك لا تتغير بإعادة التعيين لاحقًا.",
+  "teamWorkloadNeedsReplyTooltip": "المحادثات المعيّنة له والتي ينتظر فيها العميل ردًا بشريًا. هذا هو الوضع الحالي — اختيار الفترة لا يغيّره.",
+  "teamWorkloadEmptyTitle": "لا توجد محادثات مُسندة",
+  "teamWorkloadEmptyHint": "ستظهر هنا المحادثات المسندة إلى الوكلاء.",
+  "teamWorkloadPeriodFailed": "تعذّر تحميل المستلمة لهذه الفترة.",
+  "teamWorkloadRowSemantics": "{name}: المستلمة {received}، يحتاج رد الآن {needsReply}"
 }

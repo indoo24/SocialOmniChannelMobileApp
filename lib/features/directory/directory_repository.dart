@@ -422,10 +422,14 @@ class DirectoryRepository {
     return JsonSafe.parseList(data, ConversationCategory.fromJson);
   }
 
+  /// [teamReceivedPeriod] sets `team_received_period`: the window for
+  /// `team.workload[].received` only — read-only, independent of the page
+  /// period and of every routing setting.
   Future<DashboardSummary> dashboard({
     String? preset,
     String? from,
     String? to,
+    TeamReceivedPeriod? teamReceivedPeriod,
   }) async {
     final query = <String, dynamic>{};
     if (from != null && to != null) {
@@ -434,11 +438,17 @@ class DirectoryRepository {
     } else if (preset != null && preset.isNotEmpty) {
       query['preset'] = preset;
     }
+    if (teamReceivedPeriod != null) {
+      query['team_received_period'] = teamReceivedPeriod.apiValue;
+    }
     final data = await _api.get<Map<String, dynamic>>(
       '/dashboard/',
       query: query.isEmpty ? null : query,
     );
-    return DashboardSummary.fromJson(data);
+    return DashboardSummary.fromJson(
+      data,
+      teamReceivedPeriod: teamReceivedPeriod,
+    );
   }
 
   /// Volume per connected channel. Requires `analytics.view` server-side.

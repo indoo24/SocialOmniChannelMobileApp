@@ -5400,4 +5400,44 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get conversationNoLongerAvailable =>
       'This conversation is no longer available to you.';
+
+  @override
+  String get teamWorkloadEmployee => 'Employee';
+
+  @override
+  String get teamWorkloadReceived => 'Received';
+
+  @override
+  String get teamWorkloadRightNow => 'Right now';
+
+  @override
+  String get teamWorkloadReceivedWindow => 'Received window';
+
+  @override
+  String get teamWorkloadReceivedTooltip =>
+      'Conversations given to this employee during the selected period, counted once each. Read from the assignment history, so a later reassignment does not change it.';
+
+  @override
+  String get teamWorkloadNeedsReplyTooltip =>
+      'Conversations assigned to them where the customer is waiting for a human reply. This is the backlog as it stands now — the period selector does not change it.';
+
+  @override
+  String get teamWorkloadEmptyTitle => 'Nothing assigned';
+
+  @override
+  String get teamWorkloadEmptyHint =>
+      'Conversations assigned to agents will show up here.';
+
+  @override
+  String get teamWorkloadPeriodFailed =>
+      'Couldn\'t load Received for this period.';
+
+  @override
+  String teamWorkloadRowSemantics(
+    String name,
+    String received,
+    String needsReply,
+  ) {
+    return '$name: $received received, $needsReply waiting for a reply now';
+  }
 }

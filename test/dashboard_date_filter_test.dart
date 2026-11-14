@@ -978,7 +978,13 @@ void main() {
           // app sends the name and never device-computed from/to bounds.
           for (final path in ['/dashboard/', '/dashboard/performance/']) {
             final request = requests.firstWhere((r) => r.path == path);
-            expect(request.queryParameters, {'preset': apiValue}, reason: path);
+            expect(request.queryParameters, {
+              'preset': apiValue,
+              // The Team workload table's own window, independent of the
+              // preset; only the summary carries it.
+              if (path == '/dashboard/')
+                'team_received_period': 'last_24_hours',
+            }, reason: path);
           }
 
           // Reopened, the sheet marks it — and only it — as selected.
