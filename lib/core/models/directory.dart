@@ -495,20 +495,25 @@ class IntelligenceMetrics {
   }
 }
 
-/// The window `team.workload[].received` is counted over —
-/// `team_received_period` on `GET /api/dashboard/`. Independent of the
-/// dashboard's own period, and of every routing setting. The backend accepts
+/// The window for the Team workload funnel — `team_window` on
+/// `GET /api/dashboard/`: `received`, `replied` and `sale_completed` all
+/// count the conversations handed over inside it. Independent of the
+/// dashboard's own period and of every routing setting. The backend accepts
 /// exactly these two and answers anything else with a 400.
-enum TeamReceivedPeriod {
-  lastHour('last_1_hour'),
-  last24Hours('last_24_hours');
+enum TeamWindow {
+  /// A rolling sixty minutes ending now.
+  lastHour('last_hour'),
 
-  const TeamReceivedPeriod(this.apiValue);
+  /// Local midnight in the organization's timezone until now — not the last
+  /// 24 hours.
+  today('today');
+
+  const TeamWindow(this.apiValue);
 
   final String apiValue;
 
   /// The backend's default when none is sent; the web's default too.
-  static const fallback = last24Hours;
+  static const fallback = today;
 }
 
 class WorkloadEntry {
@@ -521,7 +526,8 @@ class WorkloadEntry {
     required this.unreadConversations,
     this.avatarUrl = '',
     this.received,
-    this.needsReply,
+    this.replied,
+    this.saleCompleted,
   });
 
   final int id;
@@ -536,15 +542,23 @@ class WorkloadEntry {
   final int unreadConversations;
   final String avatarUrl;
 
-  /// Distinct conversations handed to this employee during
-  /// `team_received_period` (1h or 24h) — the allocator's own measure. Null
-  /// from a server that does not send it: shown as a dash, never as 0.
+  /// The funnel, all over one cohort — the conversations handed to this
+  /// employee during `team_window` — so `replied` and `saleCompleted` can
+  /// never exceed `received`. Null from a server that does not send them:
+  /// shown as a dash, never as 0.
+  ///
+  /// Distinct conversations handed over during the window, from the
+  /// ownership-receipt trail.
   final int? received;
 
-  /// Conversations where the customer spoke more recently than any agent —
-  /// the inbox's Needs-reply predicate. **No window**: the backlog as it
-  /// stands. Not open, assigned or unread. Null when not sent.
-  final int? needsReply;
+  /// Of those, the ones this employee answered themselves (an AI reply, a
+  /// colleague's, a WhatsApp Business App echo or a deleted message does not
+  /// count).
+  final int? replied;
+
+  /// Of those, the ones that ended in a CONFIRMED purchase, credited to
+  /// whoever held the conversation when the sale was recorded.
+  final int? saleCompleted;
 
   factory WorkloadEntry.fromJson(Map<String, dynamic> json) => WorkloadEntry(
     id: JsonSafe.asInt(json['id'], fallback: -1),
@@ -555,7 +569,8 @@ class WorkloadEntry {
     unreadConversations: JsonSafe.asInt(json['unread_conversations']),
     avatarUrl: JsonSafe.asString(json['avatar_url']),
     received: JsonSafe.asIntOrNull(json['received']),
-    needsReply: JsonSafe.asIntOrNull(json['needs_reply']),
+    replied: JsonSafe.asIntOrNull(json['replied']),
+    saleCompleted: JsonSafe.asIntOrNull(json['sale_completed']),
   );
 }
 
@@ -563,28 +578,28 @@ class TeamMetrics {
   const TeamMetrics({
     required this.onlineAgents,
     required this.workload,
-    this.receivedPeriod,
+    this.window,
   });
 
   final int onlineAgents;
 
-  /// Up to ten employees, in the server's order (most waiting on them
-  /// first). Kept as received.
+  /// Every qualifying employee (the server caps it at 100), in the server's
+  /// order — most received first. Kept as received; nothing is trimmed here.
   final List<WorkloadEntry> workload;
 
-  /// The `team_received_period` this block was **requested** with. The
-  /// response does not echo it; the repository records what it asked for,
-  /// so a screen can tell figures for the selected period from figures still
-  /// on screen from the previous one.
-  final TeamReceivedPeriod? receivedPeriod;
+  /// The `team_window` this block was **requested** with. The response does
+  /// not echo it; the repository records what it asked for, so a screen can
+  /// tell figures for the selected window from figures still on screen from
+  /// the previous one.
+  final TeamWindow? window;
 
   factory TeamMetrics.fromJson(
     Map<String, dynamic> json, {
-    TeamReceivedPeriod? receivedPeriod,
+    TeamWindow? window,
   }) => TeamMetrics(
     onlineAgents: JsonSafe.asInt(json['online_agents']),
     workload: JsonSafe.parseList(json['workload'], WorkloadEntry.fromJson),
-    receivedPeriod: receivedPeriod,
+    window: window,
   );
 }
 
@@ -637,11 +652,11 @@ class DashboardSummary {
   /// Recent activity conversations from `GET /api/dashboard/`.
   final List<Conversation> recentConversations;
 
-  /// [teamReceivedPeriod] is the `team_received_period` the request
-  /// carried, recorded on [team] (see [TeamMetrics.receivedPeriod]).
+  /// [teamWindow] is the `team_window` the request carried, recorded on
+  /// [team] (see [TeamMetrics.window]).
   factory DashboardSummary.fromJson(
     Map<String, dynamic> json, {
-    TeamReceivedPeriod? teamReceivedPeriod,
+    TeamWindow? teamWindow,
   }) => DashboardSummary(
     conversations: ConversationMetrics.fromJson(
       JsonSafe.asMap(json['conversations']),
@@ -653,10 +668,7 @@ class DashboardSummary {
         ? DashboardPeriod.fromJson(JsonSafe.asMap(json['period']))
         : null,
     team: json['team'] is Map
-        ? TeamMetrics.fromJson(
-            JsonSafe.asMap(json['team']),
-            receivedPeriod: teamReceivedPeriod,
-          )
+        ? TeamMetrics.fromJson(JsonSafe.asMap(json['team']), window: teamWindow)
         : null,
     recentConversations: JsonSafe.parseList(
       json['recent_conversations'],

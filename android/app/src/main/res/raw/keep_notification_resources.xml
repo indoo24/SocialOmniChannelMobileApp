@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Release builds shrink resources (isShrinkResources = true). The app's own
+  notifications name their small icon by string from Dart
+  ("ic_stat_scenario"), which the shrinker cannot see, so it is listed here.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_scenario,@color/notification_accent" />

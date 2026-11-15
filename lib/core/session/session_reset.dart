@@ -82,7 +82,7 @@ void clearSessionScopedState(Ref ref) {
   // records for the previous agent's visibility scope.
   ref.invalidate(dashboardProvider);
   ref.invalidate(dashboardDateFilterProvider);
-  ref.invalidate(teamReceivedPeriodProvider);
+  ref.invalidate(teamWindowProvider);
   ref.invalidate(dashboardPerformanceProvider);
   ref.invalidate(channelVolumeProvider);
   ref.invalidate(teamsProvider);

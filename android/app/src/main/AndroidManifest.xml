@@ -39,7 +39,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" tools:node="remove"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
-        android:label="scenario omnichannel"
+        android:label="Scenario"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
@@ -84,6 +84,23 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Look of every push the OS draws from an FCM `notification` block
+             (assignments, review requests, and any new_message the backend
+             still sends that way): the monochrome Scenario mark tinted brand
+             blue instead of the full-colour launcher icon (which Android
+             renders as a white square), and a named, localised channel
+             instead of FCM's "Miscellaneous" fallback. The channel itself is
+             created at startup by NotificationChannels (Dart); the id here
+             must stay in sync with NotificationChannels.updatesId. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_scenario" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_accent" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="scenario_updates" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

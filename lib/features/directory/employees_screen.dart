@@ -10,6 +10,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/navigation.dart';
 import '../../app/router.dart';
@@ -23,6 +24,8 @@ import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
+import '../conversations/conversation_repository.dart' show InboxEmployeeFilter;
+import '../conversations/inbox_controller.dart' show inboxFiltersProvider;
 import 'deactivate_employee_dialog.dart';
 import 'directory_providers.dart';
 import 'directory_search_field.dart';
@@ -394,9 +397,11 @@ class _EmployeeRow extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return ListTile(
-      onTap: canManage
-          ? () => showEditEmployeeSheet(context, employee: employee)
-          : null,
+      key: ValueKey('employee-row-${employee.id}'),
+      // A tap opens their inbox, as clicking an employee does on the web.
+      // Editing and deactivating stay in the ⋮ menu, so the two never compete
+      // for the same gesture.
+      onTap: () => openEmployeeInbox(context, ref, employee),
       trailing: canManage
           ? PopupMenuButton<_EmployeeAction>(
               onSelected: (action) => switch (action) {
@@ -494,3 +499,25 @@ class _EmployeeRow extends ConsumerWidget {
 }
 
 enum _EmployeeAction { edit, deactivate }
+
+/// Opens the inbox on [employee]'s conversations — those assigned to them
+/// (`assigned_to=<id>`), as far as the signed-in employee may see them: the
+/// server applies its own visibility rules first, so this never reveals a
+/// conversation the inbox would not otherwise show. Replaces any employee
+/// filter already active.
+///
+/// Goes to the inbox the way the drawer does (`go`, a top-level section),
+/// carrying the filter in the inbox's own filter state rather than the URL,
+/// so opening a conversation and coming back keeps it.
+void openEmployeeInbox(
+  BuildContext context,
+  WidgetRef ref,
+  DirectoryEmployee employee,
+) {
+  ref
+      .read(inboxFiltersProvider.notifier)
+      .showEmployee(
+        InboxEmployeeFilter(id: employee.id, name: employee.fullName),
+      );
+  context.go(Routes.inbox);
+}

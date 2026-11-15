@@ -41,7 +41,7 @@ Two channels, matching the backend's design: the WebSocket (`ws/inbox/`) is prim
 
 ### Deliberately not done
 
-- No `flutter_local_notifications` / custom foreground banners — the socket is the foreground channel per the backend doc; a foreground push just triggers the same refetch the socket would.
+- ~~No `flutter_local_notifications`~~ — superseded: Android now draws and groups customer-message notifications itself once the backend sends them data-only. See `NOTIFICATIONS_GROUPING.md`. The foreground path is still the in-app banner plus the same refetch the socket does.
 - No `package_info_plus` — `app_version` / `device_model` are optional fields on `/devices/register/` and were skipped to avoid an extra dependency for non-required data.
 - No manual reassignment push handling — the backend doc states manual reassignment doesn't push today; nothing to build for it client-side.
 

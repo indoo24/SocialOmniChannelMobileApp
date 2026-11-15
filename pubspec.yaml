@@ -73,6 +73,15 @@ dependencies:
   firebase_core: ^4.13.0
   firebase_messaging: ^16.5.0
 
+  # Android only: draws customer-message notifications itself so they can be
+  # grouped per conversation and collapsed into one summary during a burst
+  # (NOTIFICATIONS_GROUPING.md). A push with an FCM `notification` block is
+  # drawn by the OS before any app code runs and cannot be replaced or
+  # merged; a native notification posted by the app can. firebase_messaging
+  # has no API for posting one. Not initialised on iOS, where the backend's
+  # APNs alert (with `thread-id`) stays the presenter.
+  flutter_local_notifications: ^23.0.2
+
   # Opens a channel-connect OAuth URL (Meta/Instagram/TikTok/WhatsApp
   # Embedded Signup) in the system browser. The redirect completes
   # server-side against `/api/integrations/*/callback/`, so the app never
@@ -110,6 +119,7 @@ dependencies:
   audioplayers: ^6.8.1
   open_filex: ^4.7.0
   flutter_contacts: 2.6.0
+  material_ui: ^1.11.0
 
 dev_dependencies:
   flutter_test:

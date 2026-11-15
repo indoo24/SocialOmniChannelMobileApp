@@ -433,7 +433,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Mona Other'));
+        // Edit is reached from the row's ⋮ menu — a tap on the row itself
+        // opens the employee's inbox (employee_inbox_filter_test.dart).
+        await tester.tap(_managementMenus().last); // Mona Other's row
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Edit'));
         await tester.pumpAndSettle();
 
         expect(find.text('Edit employee'), findsOneWidget);

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Status-bar / notification small icon: the centre mark of the Scenario logo
+  (the outlined speech bubble holding a "…" chat bubble), reduced to a single
+  colour. Android draws a small icon from its alpha channel only and tints it
+  itself, so a full-colour launcher icon renders as a white blob there — this
+  is the shape-only version. Used by the app's own notifications and, through
+  the manifest's FCM default_notification_icon, by pushes the OS draws.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Outer speech bubble, as a ring: outer outline minus an inset hole. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M9,2H15A7,7 0,0 1,22 9V13A7,7 0,0 1,15 20H9.5L5.2,23.2C4.7,23.6 4,23.2 4,22.6V18.4A7,7 0,0 1,2 13V9A7,7 0,0 1,9 2Z
+            M9,4A5,5 0,0 0,4 9V13A5,5 0,0 0,6 16.6V20L9,18H15A5,5 0,0 0,20 13V9A5,5 0,0 0,15 4Z" />
+    <!-- Inner chat bubble with three dots cut out of it. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M9.7,7.5H14.3A2.2,2.2 0,0 1,16.5 9.7V11.3A2.2,2.2 0,0 1,14.3 13.5H11L8.5,15.4V13.5A2.2,2.2 0,0 1,7.5 11.3V9.7A2.2,2.2 0,0 1,9.7 7.5Z
+            M8.95,10.5a0.85,0.85 0,1 0,1.7 0a0.85,0.85 0,1 0,-1.7 0Z
+            M11.15,10.5a0.85,0.85 0,1 0,1.7 0a0.85,0.85 0,1 0,-1.7 0Z
+            M13.35,10.5a0.85,0.85 0,1 0,1.7 0a0.85,0.85 0,1 0,-1.7 0Z" />
+</vector>

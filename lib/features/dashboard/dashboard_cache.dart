@@ -32,18 +32,17 @@ import 'dashboard_date_filter_state.dart';
 /// for a custom range — not the display label, so two ranges that happen to
 /// share a label cannot collide and a custom range keys on its real bounds.
 ///
-/// [teamReceived] is part of the query (`team_received_period`), so each
-/// received period is its own entry: an answer for one period can never be
-/// served for the other.
+/// [teamWindow] is part of the query (`team_window`), so each window is its
+/// own entry: an answer for one window can never be served for the other.
 QueryKey dashboardSummaryKey(
   DashboardDateFilterState filter, {
-  TeamReceivedPeriod teamReceived = TeamReceivedPeriod.fallback,
+  TeamWindow teamWindow = TeamWindow.fallback,
 }) {
   return QueryKey.of('dashboard', {
     'preset': filter.preset?.apiValue,
     'from': filter.fromApiString,
     'to': filter.toApiString,
-    'team_received_period': teamReceived.apiValue,
+    'team_window': teamWindow.apiValue,
   });
 }
 
@@ -75,12 +74,10 @@ class DashboardCache {
   /// the range I am looking at" without the data providers having to tell a
   /// refresh apart from an ordinary filter change. Other ranges stay cached.
   void invalidateFilter(DashboardDateFilterState filter) {
-    // Every received period for this range: a refresh is a refresh of the
-    // range, whichever period the team table shows.
-    for (final teamReceived in TeamReceivedPeriod.values) {
-      summary.invalidate(
-        dashboardSummaryKey(filter, teamReceived: teamReceived),
-      );
+    // Every team window for this range: a refresh is a refresh of the
+    // range, whichever window the team table shows.
+    for (final teamWindow in TeamWindow.values) {
+      summary.invalidate(dashboardSummaryKey(filter, teamWindow: teamWindow));
     }
     performance.invalidate(dashboardPerformanceKey(filter));
   }
