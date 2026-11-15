@@ -519,6 +519,23 @@ class AppLocalizationsAr extends AppLocalizations {
   String get clearFiltersButton => 'مسح الفلاتر';
 
   @override
+  String employeeInboxBanner(String name) {
+    return 'المحادثات الخاصة بـ $name';
+  }
+
+  @override
+  String get employeeInboxClear => 'إزالة فلتر الموظف';
+
+  @override
+  String employeeInboxEmptyTitle(String name) {
+    return 'لا توجد محادثات مُسنَدة إلى $name';
+  }
+
+  @override
+  String get employeeInboxEmptyMessage =>
+      'ستظهر هنا المحادثات المُسنَدة إلى هذا الموظف والتي يمكنك الاطلاع عليها.';
+
+  @override
   String get noMessagesYetPreview => 'لا توجد رسائل بعد';
 
   @override

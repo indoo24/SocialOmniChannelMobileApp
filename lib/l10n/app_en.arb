@@ -261,6 +261,25 @@
     "description": "Button that clears the inbox search query."
   },
   "clearFiltersButton": "Clear filters",
+  "employeeInboxBanner": "Conversations assigned to {name}",
+  "@employeeInboxBanner": {
+    "description": "Inbox banner while it shows only one employee's conversations, opened from the Employees screen.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "employeeInboxClear": "Clear employee filter",
+  "employeeInboxEmptyTitle": "No conversations assigned to {name}",
+  "@employeeInboxEmptyTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "employeeInboxEmptyMessage": "Conversations assigned to this employee that you can see will appear here.",
   "noMessagesYetPreview": "No messages yet",
   "unassignedBadge": "Unassigned",
   "youBadge": "You",

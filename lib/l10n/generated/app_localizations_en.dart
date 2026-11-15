@@ -520,6 +520,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clearFiltersButton => 'Clear filters';
 
   @override
+  String employeeInboxBanner(String name) {
+    return 'Conversations assigned to $name';
+  }
+
+  @override
+  String get employeeInboxClear => 'Clear employee filter';
+
+  @override
+  String employeeInboxEmptyTitle(String name) {
+    return 'No conversations assigned to $name';
+  }
+
+  @override
+  String get employeeInboxEmptyMessage =>
+      'Conversations assigned to this employee that you can see will appear here.';
+
+  @override
   String get noMessagesYetPreview => 'No messages yet';
 
   @override

@@ -20,6 +20,7 @@ import '../../core/widgets/section_scaffold.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
+import '../conversations/inbox_controller.dart' show inboxFiltersProvider;
 import '../conversations/inbox_screen.dart';
 import '../directory/directory_providers.dart';
 import '../performance/performance_card.dart';
@@ -172,7 +173,11 @@ class DashboardScreen extends ConsumerWidget {
             SectionHeading(
               context.l10n.recentActivityTitle,
               trailing: TextButton(
-                onPressed: () => context.go(Routes.inbox),
+                onPressed: () {
+                  // The normal inbox, never an employee's left open earlier.
+                  ref.read(inboxFiltersProvider.notifier).clearEmployee();
+                  context.go(Routes.inbox);
+                },
                 child: Text(context.l10n.openInboxButton),
               ),
             ),

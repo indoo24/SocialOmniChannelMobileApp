@@ -33,12 +33,34 @@ enum NeedsReplyOrder {
   final String ordering;
 }
 
+/// The employee an inbox opened from the Employees screen is scoped to: the
+/// conversations assigned to them (`assigned_to=<id>`), as the web inbox
+/// does when an employee is clicked on its Employees page.
+///
+/// [name] is for the "Conversations assigned to …" banner only; the server is
+/// only ever sent [id].
+class InboxEmployeeFilter {
+  const InboxEmployeeFilter({required this.id, required this.name});
+
+  /// The employee's backend id — `Employee.id` / `DirectoryEmployee.id`.
+  final int id;
+  final String name;
+
+  @override
+  bool operator ==(Object other) =>
+      other is InboxEmployeeFilter && other.id == id && other.name == name;
+
+  @override
+  int get hashCode => Object.hash(id, name);
+}
+
 /// Inbox filters, matching the query parameters the web inbox sends.
 class ConversationFilters {
   const ConversationFilters({
     this.status,
     this.priority,
     this.provider,
+    this.assignedEmployee,
     this.assignedToMe = false,
     this.unassigned = false,
     this.unread = false,
@@ -53,6 +75,13 @@ class ConversationFilters {
   final String? status;
   final String? priority;
   final String? provider;
+
+  /// Only the conversations assigned to this employee — the inbox opened by
+  /// tapping them on the Employees screen. Sent as `assigned_to`, the same
+  /// documented list/grouped filter "Mine" uses with the caller's own id, so
+  /// the server narrows (on top of its own visibility rules) before it
+  /// paginates. Never combined with [assignedToMe] or [unassigned].
+  final InboxEmployeeFilter? assignedEmployee;
   final bool assignedToMe;
   final bool unassigned;
   final bool unread;
@@ -97,7 +126,9 @@ class ConversationFilters {
     if (priority != null) query['priority'] = priority;
     if (provider != null) query['provider'] = provider;
     if (search.trim().isNotEmpty) query['search'] = search.trim();
-    if (assignedToMe && currentEmployeeId != null) {
+    if (assignedEmployee case final employee?) {
+      query['assigned_to'] = employee.id;
+    } else if (assignedToMe && currentEmployeeId != null) {
       query['assigned_to'] = currentEmployeeId;
     }
     // `view` is the backend's named-bucket filter (matches the
@@ -124,6 +155,7 @@ class ConversationFilters {
     String? status,
     String? priority,
     String? provider,
+    InboxEmployeeFilter? assignedEmployee,
     bool? assignedToMe,
     bool? unassigned,
     bool? unread,
@@ -136,11 +168,15 @@ class ConversationFilters {
     bool clearStatus = false,
     bool clearPriority = false,
     bool clearProvider = false,
+    bool clearAssignedEmployee = false,
     bool clearChannelConnections = false,
   }) => ConversationFilters(
     status: clearStatus ? null : (status ?? this.status),
     priority: clearPriority ? null : (priority ?? this.priority),
     provider: clearProvider ? null : (provider ?? this.provider),
+    assignedEmployee: clearAssignedEmployee
+        ? null
+        : (assignedEmployee ?? this.assignedEmployee),
     assignedToMe: assignedToMe ?? this.assignedToMe,
     unassigned: unassigned ?? this.unassigned,
     unread: unread ?? this.unread,
@@ -179,6 +215,7 @@ class ConversationFilters {
       status == null &&
       priority == null &&
       provider == null &&
+      assignedEmployee == null &&
       !assignedToMe &&
       !unassigned &&
       !unread &&
@@ -195,6 +232,7 @@ class ConversationFilters {
           status == other.status &&
           priority == other.priority &&
           provider == other.provider &&
+          assignedEmployee == other.assignedEmployee &&
           assignedToMe == other.assignedToMe &&
           unassigned == other.unassigned &&
           unread == other.unread &&
@@ -210,6 +248,7 @@ class ConversationFilters {
     status,
     priority,
     provider,
+    assignedEmployee,
     assignedToMe,
     unassigned,
     unread,

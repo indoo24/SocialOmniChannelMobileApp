@@ -146,10 +146,26 @@ enum InboxQuickFilter {
 /// `conversation.review`), in order. Need review is for them alone — it is
 /// their own review queue — so for anyone else it is left out of the bar, not
 /// disabled; the others keep their relative order.
-List<InboxQuickFilter> visibleQuickFilters({required bool canReview}) => [
+///
+/// In an employee's inbox ([employeeScoped]) Mine and Unassigned are left out
+/// too: each names whose conversations to show, which the employee filter
+/// already does — "assigned to Ahmed" cannot also be "assigned to me" or
+/// "assigned to nobody".
+List<InboxQuickFilter> visibleQuickFilters({
+  required bool canReview,
+  bool employeeScoped = false,
+}) => [
   for (final filter in InboxQuickFilter.values)
-    if (filter != InboxQuickFilter.needsReview || canReview) filter,
+    if ((filter != InboxQuickFilter.needsReview || canReview) &&
+        !(employeeScoped && _ownershipQuickFilters.contains(filter)))
+      filter,
 ];
+
+/// The quick filters that say whose conversations to show.
+const _ownershipQuickFilters = {
+  InboxQuickFilter.mine,
+  InboxQuickFilter.unassigned,
+};
 
 /// The statuses a quick filter sets, and so clears when another is chosen.
 const _quickFilterStatuses = {'OPEN', 'RESOLVED'};
@@ -221,7 +237,30 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
       needsReplyOrder: NeedsReplyOrder.oldestFirst,
       status: status,
       clearStatus: status == null && quickStatus,
+      // Every other quick filter narrows the employee's inbox and keeps it.
+      // Mine and Unassigned (not offered there — [visibleQuickFilters]) would
+      // contradict it, so choosing one anyway leaves it.
+      clearAssignedEmployee: _ownershipQuickFilters.contains(filter),
     );
+  }
+
+  /// The inbox of one employee, opened from the Employees screen: every
+  /// conversation assigned to them (the All view), nothing else carried over
+  /// — no search, sheet filter or account pick from whatever was on screen
+  /// before. Replaces any employee filter already active, so tapping someone
+  /// else switches to their inbox rather than combining the two.
+  void showEmployee(InboxEmployeeFilter employee) =>
+      state = ConversationFilters(assignedEmployee: employee);
+
+  /// Leaves an employee's inbox for the normal one — the inbox as it opens.
+  /// Does nothing when no employee filter is active, so the agent's own
+  /// choices in the normal inbox are left alone. Called by the banner's
+  /// clear button and by every way into the inbox that is not "this
+  /// employee's conversations" (the drawer's Inbox, the dashboard's Open
+  /// inbox, a notification), so the filter never leaks into those.
+  void clearEmployee() {
+    if (state.assignedEmployee == null) return;
+    state = defaultInboxFilters;
   }
 
   void selectAccount(
@@ -255,8 +294,12 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
     );
   }
 
-  /// Back to what the inbox opens on.
-  void clear() => state = defaultInboxFilters;
+  /// Back to what the inbox opens on — or, in an employee's inbox, to that
+  /// employee's whole inbox: only [clearEmployee] leaves it.
+  void clear() => state = switch (state.assignedEmployee) {
+    final employee? => ConversationFilters(assignedEmployee: employee),
+    null => defaultInboxFilters,
+  };
 }
 
 class InboxState {

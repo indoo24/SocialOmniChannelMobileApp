@@ -467,9 +467,10 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     final route = routeForTapTarget(target);
     if (route == null) return;
     if (target is OpenUnreadInbox) {
-      ref
-          .read(inboxFiltersProvider.notifier)
-          .selectQuickFilter(InboxQuickFilter.unread);
+      // The agent's own unread, not whichever employee's inbox was open.
+      ref.read(inboxFiltersProvider.notifier)
+        ..clearEmployee()
+        ..selectQuickFilter(InboxQuickFilter.unread);
     }
     ref.read(routerProvider).go(route);
   }

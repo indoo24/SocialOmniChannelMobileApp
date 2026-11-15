@@ -94,11 +94,18 @@ class InboxQuickFilterBar extends ConsumerWidget {
     // being read again, so the badge does not blink; it is null when the
     // server could not be asked.
     final employeeId = ref.watch(currentEmployeeProvider.select((e) => e?.id));
-    final reviewCount = canReview && employeeId != null
+    // In an employee's inbox both numbers would count something other than
+    // the list: they are the caller's own review queue and the whole
+    // organization's Needs reply, not this employee's. No badge beats a wrong
+    // one.
+    final employeeScoped = filters.assignedEmployee != null;
+    final reviewCount = canReview && employeeId != null && !employeeScoped
         ? ref.watch(reviewCountProvider(employeeId)).value
         : null;
     // The server's own number, the one the web badges; kept while re-read.
-    final needsReplyCount = ref.watch(needsReplyCountProvider).value;
+    final needsReplyCount = employeeScoped
+        ? null
+        : ref.watch(needsReplyCountProvider).value;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -113,6 +120,7 @@ class InboxQuickFilterBar extends ConsumerWidget {
         children: [
           for (final (index, filter) in visibleQuickFilters(
             canReview: canReview,
+            employeeScoped: employeeScoped,
           ).indexed) ...[
             if (index > 0) const SizedBox(width: Space.sm),
             _QuickFilterPill(

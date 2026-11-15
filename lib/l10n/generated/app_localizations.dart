@@ -1016,6 +1016,30 @@ abstract class AppLocalizations {
   /// **'Clear filters'**
   String get clearFiltersButton;
 
+  /// Inbox banner while it shows only one employee's conversations, opened from the Employees screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations assigned to {name}'**
+  String employeeInboxBanner(String name);
+
+  /// No description provided for @employeeInboxClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear employee filter'**
+  String get employeeInboxClear;
+
+  /// No description provided for @employeeInboxEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations assigned to {name}'**
+  String employeeInboxEmptyTitle(String name);
+
+  /// No description provided for @employeeInboxEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations assigned to this employee that you can see will appear here.'**
+  String get employeeInboxEmptyMessage;
+
   /// No description provided for @noMessagesYetPreview.
   ///
   /// In en, this message translates to:
