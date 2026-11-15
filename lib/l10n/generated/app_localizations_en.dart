@@ -5440,4 +5440,61 @@ class AppLocalizationsEn extends AppLocalizations {
   ) {
     return '$name: $received received, $needsReply waiting for a reply now';
   }
+
+  @override
+  String get notificationChannelMessagesName => 'Customer messages';
+
+  @override
+  String get notificationChannelMessagesDescription =>
+      'New messages from customers in your conversations';
+
+  @override
+  String get notificationChannelUpdatesName => 'Conversation updates';
+
+  @override
+  String get notificationChannelUpdatesDescription =>
+      'Assignments, review requests and other conversation activity';
+
+  @override
+  String notificationNewMessagesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new messages',
+      one: '1 new message',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String notificationFromConversations(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'From $count conversations',
+      one: 'From 1 conversation',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String notificationLatestFrom(String name) {
+    return 'Latest: $name';
+  }
+
+  @override
+  String get notificationNewMessageTitle => 'New message';
+
+  @override
+  String get notificationUnknownCustomer => 'Customer';
+
+  @override
+  String get notificationSelfName => 'You';
+
+  @override
+  String get notificationPreviewsLabel => 'Message previews in notifications';
+
+  @override
+  String get notificationPreviewsHint =>
+      'When off, notifications only say that a new message arrived — no customer name or message text.';
 }

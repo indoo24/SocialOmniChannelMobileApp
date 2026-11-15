@@ -5464,4 +5464,69 @@ class AppLocalizationsAr extends AppLocalizations {
   ) {
     return '$name: المستلمة $received، يحتاج رد الآن $needsReply';
   }
+
+  @override
+  String get notificationChannelMessagesName => 'رسائل العملاء';
+
+  @override
+  String get notificationChannelMessagesDescription =>
+      'الرسائل الجديدة من العملاء في محادثاتك';
+
+  @override
+  String get notificationChannelUpdatesName => 'تحديثات المحادثات';
+
+  @override
+  String get notificationChannelUpdatesDescription =>
+      'الإسناد وطلبات المراجعة ونشاطات المحادثات الأخرى';
+
+  @override
+  String notificationNewMessagesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رسالة جديدة',
+      many: '$count رسالة جديدة',
+      few: '$count رسائل جديدة',
+      two: 'رسالتان جديدتان',
+      one: 'رسالة جديدة واحدة',
+      zero: 'لا رسائل جديدة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String notificationFromConversations(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'من $count محادثة',
+      many: 'من $count محادثة',
+      few: 'من $count محادثات',
+      two: 'من محادثتين',
+      one: 'من محادثة واحدة',
+      zero: 'من دون محادثات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String notificationLatestFrom(String name) {
+    return 'الأحدث: $name';
+  }
+
+  @override
+  String get notificationNewMessageTitle => 'رسالة جديدة';
+
+  @override
+  String get notificationUnknownCustomer => 'عميل';
+
+  @override
+  String get notificationSelfName => 'أنت';
+
+  @override
+  String get notificationPreviewsLabel => 'معاينة الرسائل في الإشعارات';
+
+  @override
+  String get notificationPreviewsHint =>
+      'عند الإيقاف، تُظهر الإشعارات فقط أن رسالة جديدة وصلت — دون اسم العميل أو نص الرسالة.';
 }

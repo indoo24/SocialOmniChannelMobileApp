@@ -119,3 +119,31 @@ Future<void> restoreDisplayPreferences(
     safely(locale.restore),
   ]);
 }
+
+/// Whether notifications may show the customer's name and message text
+/// ("Message previews in notifications"). On by default. Persisted in
+/// [SecureStore] — not only for consistency with the other preferences, but
+/// because the push background isolate reads it from there when it draws a
+/// notification, with no Riverpod scope of its own.
+class NotificationPreviewsController extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    try {
+      return await ref.read(secureStoreProvider).readNotificationPreviews() ??
+          true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    if (state.value == enabled) return;
+    state = AsyncData(enabled);
+    await ref.read(secureStoreProvider).writeNotificationPreviews(enabled);
+  }
+}
+
+final notificationPreviewsProvider =
+    AsyncNotifierProvider<NotificationPreviewsController, bool>(
+      NotificationPreviewsController.new,
+    );

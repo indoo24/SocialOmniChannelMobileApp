@@ -9460,6 +9460,78 @@ abstract class AppLocalizations {
     String received,
     String needsReply,
   );
+
+  /// Android notification channel name (Settings > Apps > Scenario > Notifications) for new customer messages
+  ///
+  /// In en, this message translates to:
+  /// **'Customer messages'**
+  String get notificationChannelMessagesName;
+
+  /// No description provided for @notificationChannelMessagesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'New messages from customers in your conversations'**
+  String get notificationChannelMessagesDescription;
+
+  /// Android notification channel name for assignments, review requests and other non-message pushes
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation updates'**
+  String get notificationChannelUpdatesName;
+
+  /// No description provided for @notificationChannelUpdatesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignments, review requests and other conversation activity'**
+  String get notificationChannelUpdatesDescription;
+
+  /// Title of the grouped notification shown when many conversations receive messages, and the body of a conversation notification when previews are hidden
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 new message} other{{count} new messages}}'**
+  String notificationNewMessagesCount(int count);
+
+  /// Second line of the grouped message notification
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{From 1 conversation} other{From {count} conversations}}'**
+  String notificationFromConversations(int count);
+
+  /// Grouped notification: the customer who sent the newest message
+  ///
+  /// In en, this message translates to:
+  /// **'Latest: {name}'**
+  String notificationLatestFrom(String name);
+
+  /// Generic notification title used when message previews are hidden, and the preview text when a message has no text (e.g. an attachment)
+  ///
+  /// In en, this message translates to:
+  /// **'New message'**
+  String get notificationNewMessageTitle;
+
+  /// Sender name in a notification when the push carried no customer name
+  ///
+  /// In en, this message translates to:
+  /// **'Customer'**
+  String get notificationUnknownCustomer;
+
+  /// The agent's own name in Android's conversation-style notification
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get notificationSelfName;
+
+  /// No description provided for @notificationPreviewsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Message previews in notifications'**
+  String get notificationPreviewsLabel;
+
+  /// No description provided for @notificationPreviewsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When off, notifications only say that a new message arrived — no customer name or message text.'**
+  String get notificationPreviewsHint;
 }
 
 class _AppLocalizationsDelegate

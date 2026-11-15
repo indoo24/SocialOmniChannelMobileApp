@@ -13,39 +13,58 @@
 library;
 
 import 'dart:io';
+import 'dart:ui' show DartPluginRegistrant;
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
 import '../logging/app_log.dart';
+import 'message_notifications.dart';
+import 'push_payload.dart';
 
 /// Registered with `FirebaseMessaging.onBackgroundMessage`, which requires a
 /// top-level (or static) function run in its own isolate.
 ///
-/// Nothing to do here: a payload with a `notification` block — which every
-/// Scenario push carries — is already shown by the OS without app code, and
-/// the app re-fetches real data over REST once it is opened (§4).
+/// Runs when the app is backgrounded or killed (Android; on iOS only for a
+/// `content-available` push, which Scenario does not send).
+///
+/// * A push **with** a `notification` block — every push the backend sends
+///   today — has already been drawn by the OS. Nothing is drawn here, or it
+///   would show twice.
+/// * A **data-only** push naming a conversation is drawn by the app, so
+///   customer messages can be grouped per conversation and collapsed into
+///   one summary during a burst (`NOTIFICATIONS_GROUPING.md`). This path
+///   turns on by itself once the backend sends `new_message` data-only.
 @pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
-
-/// Data keys/values the backend puts on every push, mirroring §4 of the
-/// integration guide.
-class PushDataKeys {
-  const PushDataKeys._();
-  static const type = 'type';
-  static const conversationId = 'conversation_id';
-  static const messageId = 'message_id';
-
-  static const typeNewMessage = 'new_message';
-  static const typeConversationAssigned = 'conversation_assigned';
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  final push = pushPayloadOf(message);
+  if (!shouldDrawLocally(push, isAndroid: drawsNotificationsLocally)) return;
+  // This isolate's plugins: path_provider's Android implementation registers
+  // from Dart, which firebase_messaging's dispatcher does not do itself.
+  // Idempotent.
+  DartPluginRegistrant.ensureInitialized();
+  await MessageNotifications.instance.present(push);
 }
+
+/// A [RemoteMessage], parsed. Shared by the background handler and the
+/// foreground/tap paths so every path reads a push the same way.
+PushPayload pushPayloadOf(RemoteMessage message, {DateTime? receivedAt}) =>
+    PushPayload.parse(
+      data: message.data,
+      notificationTitle: message.notification?.title,
+      notificationBody: message.notification?.body,
+      hasSystemNotification: message.notification != null,
+      deliveryId: message.messageId,
+      fcmSentTime: message.sentTime,
+      receivedAt: receivedAt ?? DateTime.now(),
+    );
 
 class PushService {
   PushService._();
   static final PushService instance = PushService._();
 
-  bool _initialized = false;
+  Future<void>? _initialization;
   bool _available = false;
 
   /// False until Firebase has initialized successfully — e.g. no platform
@@ -57,12 +76,14 @@ class PushService {
 
   static void _log(String message) => AppLog.debug('PushService', message);
 
-  Future<void> ensureInitialized() async {
-    if (_initialized) {
-      _log('ensureInitialized() — already initialized, available: $_available');
-      return;
-    }
-    _initialized = true;
+  /// Safe to call from several places: every caller awaits the same single
+  /// initialization, so one started early in `main()` (so the background
+  /// handler is registered before any push can arrive) is simply joined by
+  /// `PushBridge`'s later call rather than reported as unavailable while it
+  /// is still in flight.
+  Future<void> ensureInitialized() => _initialization ??= _initialize();
+
+  Future<void> _initialize() async {
     _log('ensureInitialized() start');
     try {
       await Firebase.initializeApp();

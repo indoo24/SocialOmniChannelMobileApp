@@ -1633,5 +1633,17 @@
   "teamWorkloadEmptyTitle": "لا توجد محادثات مُسندة",
   "teamWorkloadEmptyHint": "ستظهر هنا المحادثات المسندة إلى الوكلاء.",
   "teamWorkloadPeriodFailed": "تعذّر تحميل المستلمة لهذه الفترة.",
-  "teamWorkloadRowSemantics": "{name}: المستلمة {received}، يحتاج رد الآن {needsReply}"
+  "teamWorkloadRowSemantics": "{name}: المستلمة {received}، يحتاج رد الآن {needsReply}",
+  "notificationChannelMessagesName": "رسائل العملاء",
+  "notificationChannelMessagesDescription": "الرسائل الجديدة من العملاء في محادثاتك",
+  "notificationChannelUpdatesName": "تحديثات المحادثات",
+  "notificationChannelUpdatesDescription": "الإسناد وطلبات المراجعة ونشاطات المحادثات الأخرى",
+  "notificationNewMessagesCount": "{count, plural, zero{لا رسائل جديدة} one{رسالة جديدة واحدة} two{رسالتان جديدتان} few{{count} رسائل جديدة} many{{count} رسالة جديدة} other{{count} رسالة جديدة}}",
+  "notificationFromConversations": "{count, plural, zero{من دون محادثات} one{من محادثة واحدة} two{من محادثتين} few{من {count} محادثات} many{من {count} محادثة} other{من {count} محادثة}}",
+  "notificationLatestFrom": "الأحدث: {name}",
+  "notificationNewMessageTitle": "رسالة جديدة",
+  "notificationUnknownCustomer": "عميل",
+  "notificationSelfName": "أنت",
+  "notificationPreviewsLabel": "معاينة الرسائل في الإشعارات",
+  "notificationPreviewsHint": "عند الإيقاف، تُظهر الإشعارات فقط أن رسالة جديدة وصلت — دون اسم العميل أو نص الرسالة."
 }

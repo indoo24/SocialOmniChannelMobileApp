@@ -8,7 +8,11 @@
 ///   refetch, never a data source (§5's "both fire" note applies to push vs.
 ///   socket too);
 /// * deep-link a notification tap to its conversation, backgrounded or
-///   killed (§4).
+///   killed (§4) — FCM-drawn notifications and, on Android, the app's own
+///   grouped message notifications (`message_notifications.dart`), whose
+///   summary opens the inbox's Unread view instead;
+/// * clear the app's message notifications when the agent opens the app or
+///   signs out, so a burst's counts start again from zero.
 library;
 
 import 'dart:async';
@@ -26,32 +30,22 @@ import '../../features/conversations/review_count.dart';
 import '../../features/messages/conversation_controller.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../api/api_exception.dart';
+import '../preferences/preferences_controller.dart';
 import '../providers.dart';
 import '../realtime/realtime_bridge.dart';
 import '../session/session_epoch.dart';
 import '../theme/app_palette.dart';
 import '../theme/tokens.dart';
+import 'message_notifications.dart';
+import 'notification_content.dart';
+import 'push_payload.dart';
 import 'push_service.dart';
 
-/// A positive conversation id out of a push's data, or null.
-///
-/// A notification is the one input that reaches this app without the user
-/// doing anything, and it is the only path that navigates on its own. It is
-/// still authenticated data — FCM delivers only to tokens registered against
-/// this employee — but the id it names is not proof of anything: it decides
-/// which conversation to *open*, and the backend's `visible_to()` decides
-/// whether that conversation loads. A hostile or malformed id therefore
-/// costs a wasted navigation to a screen that 403s, which is why this
-/// validates the shape and lets the server judge the substance.
-///
-/// Any push type that names a conversation opens it on tap, whatever its
-/// `type`: a review request needs no special case.
-int? conversationIdFromPushData(Map<String, dynamic> data) {
-  final raw = data[PushDataKeys.conversationId];
-  final id = raw is int ? raw : int.tryParse(raw?.toString().trim() ?? '');
-  if (id == null || id <= 0) return null;
-  return id;
-}
+export 'push_payload.dart' show conversationIdFromPushData;
+
+// `conversationIdFromPushData` lives in push_payload.dart (re-exported
+// above). Any push type that names a conversation opens it on tap, whatever
+// its `type`: a review request needs no special case.
 
 /// What a push that arrived while the app was open asks of the app. Decided
 /// from the payload alone, so it can be tested without Firebase.
@@ -89,6 +83,18 @@ ForegroundPushPlan planForegroundPush(Map<String, dynamic> data) {
   );
 }
 
+/// Where a tap on one of the app's own notifications navigates: a
+/// conversation notification to that conversation, the burst summary to the
+/// inbox (shown on its Unread view by the caller). Null for a payload the app
+/// did not write — such a tap only brings the app forward.
+String? routeForTapTarget(NotificationTapTarget? target) => switch (target) {
+  OpenConversation(:final conversationId) => Routes.conversation(
+    conversationId,
+  ),
+  OpenUnreadInbox() => Routes.inbox,
+  null => null,
+};
+
 class PushBridge extends ConsumerStatefulWidget {
   const PushBridge({required this.child, super.key});
 
@@ -102,6 +108,7 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     with WidgetsBindingObserver {
   bool _streamsAttached = false;
   bool _initialMessageChecked = false;
+  bool _localLaunchChecked = false;
 
   /// A foreground push for a conversation other than the one on screen.
   /// Null hides the banner. Set by [_handleForegroundPush], cleared by a tap,
@@ -136,6 +143,7 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setUpLocalNotifications();
       if (ref.read(authControllerProvider).isAuthenticated) {
         _log('initState() — already authenticated, setting up push.');
         _setUpForSignedInAgent();
@@ -143,6 +151,35 @@ class _PushBridgeState extends ConsumerState<PushBridge>
         _log('initState() — not authenticated yet, waiting for login.');
       }
     });
+  }
+
+  /// Android only: the app's own (grouped) message notifications. Independent
+  /// of sign-in — the tap handler must exist before a tap can arrive, and a
+  /// cold-start tap is routed like an FCM one (the router's auth guard keeps
+  /// it as the `next` target if the session has lapsed).
+  Future<void> _setUpLocalNotifications() async {
+    if (!drawsNotificationsLocally) return;
+    await MessageNotifications.instance.initializeForApp(
+      onTap: (response) => _openTapTarget(tapTargetOf(response)),
+      locale: ref.read(localeProvider),
+    );
+    if (!mounted) return;
+
+    if (!_localLaunchChecked) {
+      _localLaunchChecked = true;
+      final launch = await MessageNotifications.instance.launchTapTarget();
+      _log(
+        '_setUpLocalNotifications() — launch tap: '
+        '${launch == null ? 'none' : launch.runtimeType}',
+      );
+      if (mounted && launch != null) _openTapTarget(launch);
+    }
+
+    // Opening the app ends the burst, whether it was opened from a
+    // notification or the launcher.
+    if (ref.read(authControllerProvider).isAuthenticated) {
+      await MessageNotifications.instance.clearAfterAppOpened();
+    }
   }
 
   @override
@@ -161,6 +198,11 @@ class _PushBridgeState extends ConsumerState<PushBridge>
         ref.read(authControllerProvider).isAuthenticated) {
       _log('didChangeAppLifecycleState() — resumed, heartbeating.');
       _heartbeat();
+      // The agent is looking at the app now: the notifications that brought
+      // them here have done their job, and the next burst counts from zero.
+      if (drawsNotificationsLocally) {
+        MessageNotifications.instance.clearAfterAppOpened();
+      }
     }
   }
 
@@ -170,11 +212,26 @@ class _PushBridgeState extends ConsumerState<PushBridge>
       if (next.isAuthenticated && !(previous?.isAuthenticated ?? false)) {
         _log('auth transition -> authenticated, setting up push.');
         _setUpForSignedInAgent();
+      } else if (!next.isAuthenticated &&
+          (previous?.isAuthenticated ?? false) &&
+          drawsNotificationsLocally) {
+        // A signed-out device must not keep showing a customer's messages.
+        _log('auth transition -> signed out, clearing message notifications.');
+        MessageNotifications.instance.clearForSignOut();
       }
     });
+    if (drawsNotificationsLocally) {
+      // Channel names are shown in Android's settings in the app language.
+      ref.listen<Locale>(localeProvider, (previous, next) {
+        if (previous != next) {
+          MessageNotifications.instance.updateChannelLanguage(next);
+        }
+      });
+    }
 
     final message = _bannerMessage;
     final conversationId = _bannerConversationId;
+    final bannerPush = message == null ? null : pushPayloadOf(message);
 
     return Stack(
       children: [
@@ -185,10 +242,12 @@ class _PushBridgeState extends ConsumerState<PushBridge>
             left: 0,
             right: 0,
             child: ForegroundPushBanner(
-              title:
-                  message.notification?.title ??
-                  context.l10n.newActivityBannerTitle,
-              body: message.notification?.body ?? '',
+              // The `notification` block today; the same text in `data` once
+              // the backend sends message pushes data-only.
+              title: (bannerPush?.title.isNotEmpty ?? false)
+                  ? bannerPush!.title
+                  : context.l10n.newActivityBannerTitle,
+              body: bannerPush?.body ?? '',
               onTap: () => _openBannerConversation(conversationId),
               onDismiss: _dismissBanner,
             ),
@@ -351,6 +410,10 @@ class _PushBridgeState extends ConsumerState<PushBridge>
     _log(
       '_handleForegroundPush() — conversationId: $conversationId, refreshing.',
     );
+    if (drawsNotificationsLocally) {
+      // Shown in-app; an FCM retry of it later must not count it again.
+      MessageNotifications.instance.rememberDelivered(pushPayloadOf(message));
+    }
     ref.read(inboxControllerProvider.notifier).refreshQuietly();
     ref.invalidate(conversationCountsProvider);
 
@@ -393,6 +456,22 @@ class _PushBridgeState extends ConsumerState<PushBridge>
   void _openBannerConversation(int conversationId) {
     _dismissBanner();
     ref.read(routerProvider).go(Routes.conversation(conversationId));
+  }
+
+  /// A tap on one of the app's own notifications (Android). A conversation
+  /// notification opens that conversation, exactly like an FCM tap; the
+  /// burst summary stands for several conversations, so it opens the inbox
+  /// on its Unread view rather than picking one of them arbitrarily.
+  void _openTapTarget(NotificationTapTarget? target) {
+    _log('_openTapTarget() — ${target?.runtimeType ?? 'unrecognised payload'}');
+    final route = routeForTapTarget(target);
+    if (route == null) return;
+    if (target is OpenUnreadInbox) {
+      ref
+          .read(inboxFiltersProvider.notifier)
+          .selectQuickFilter(InboxQuickFilter.unread);
+    }
+    ref.read(routerProvider).go(route);
   }
 
   /// The agent tapped a notification (backgrounded or cold-started). Every
