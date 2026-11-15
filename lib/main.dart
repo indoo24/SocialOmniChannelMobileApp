@@ -5,6 +5,7 @@
 /// all decided server-side, and this app renders whatever the API returns.
 library;
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
@@ -15,6 +16,7 @@ import 'app/router.dart';
 import 'core/config/dev_tls_overrides.dart';
 import 'core/logging/client_error_reporter.dart';
 import 'core/notifications/push_bridge.dart';
+import 'core/notifications/push_service.dart';
 import 'core/preferences/preferences_controller.dart';
 import 'core/providers.dart';
 import 'core/realtime/realtime_bridge.dart';
@@ -60,6 +62,12 @@ Future<void> main() async {
   // The cookie jar needs a directory, which needs the platform channels to be
   // up — hence the async main and the override rather than a lazy provider.
   final cookieJar = await buildCookieJar();
+
+  // Registers the FCM background handler on every launch, signed in or not,
+  // as Firebase recommends — a data-only push (which the app draws itself)
+  // reaches no code until it is registered. Not awaited: PushBridge joins
+  // the same in-flight initialization, so launch is not held up by it.
+  unawaited(PushService.instance.ensureInitialized());
 
   runApp(
     ProviderScope(

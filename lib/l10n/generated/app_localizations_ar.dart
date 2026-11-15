@@ -519,6 +519,23 @@ class AppLocalizationsAr extends AppLocalizations {
   String get clearFiltersButton => 'مسح الفلاتر';
 
   @override
+  String employeeInboxBanner(String name) {
+    return 'المحادثات الخاصة بـ $name';
+  }
+
+  @override
+  String get employeeInboxClear => 'إزالة فلتر الموظف';
+
+  @override
+  String employeeInboxEmptyTitle(String name) {
+    return 'لا توجد محادثات مُسنَدة إلى $name';
+  }
+
+  @override
+  String get employeeInboxEmptyMessage =>
+      'ستظهر هنا المحادثات المُسنَدة إلى هذا الموظف والتي يمكنك الاطلاع عليها.';
+
+  @override
   String get noMessagesYetPreview => 'لا توجد رسائل بعد';
 
   @override
@@ -5433,18 +5450,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get teamWorkloadReceived => 'المستلمة';
 
   @override
-  String get teamWorkloadRightNow => 'الآن';
-
-  @override
   String get teamWorkloadReceivedWindow => 'نطاق المستلمة';
-
-  @override
-  String get teamWorkloadReceivedTooltip =>
-      'المحادثات التي أُعطيت لهذا الموظف خلال الفترة المحددة، تُحسب مرة واحدة لكل محادثة. تُقرأ من سجل التعيين، لذلك لا تتغير بإعادة التعيين لاحقًا.';
-
-  @override
-  String get teamWorkloadNeedsReplyTooltip =>
-      'المحادثات المعيّنة له والتي ينتظر فيها العميل ردًا بشريًا. هذا هو الوضع الحالي — اختيار الفترة لا يغيّره.';
 
   @override
   String get teamWorkloadEmptyTitle => 'لا توجد محادثات مُسندة';
@@ -5454,14 +5460,98 @@ class AppLocalizationsAr extends AppLocalizations {
       'ستظهر هنا المحادثات المسندة إلى الوكلاء.';
 
   @override
-  String get teamWorkloadPeriodFailed => 'تعذّر تحميل المستلمة لهذه الفترة.';
+  String get notificationChannelMessagesName => 'رسائل العملاء';
+
+  @override
+  String get notificationChannelMessagesDescription =>
+      'الرسائل الجديدة من العملاء في محادثاتك';
+
+  @override
+  String get notificationChannelUpdatesName => 'تحديثات المحادثات';
+
+  @override
+  String get notificationChannelUpdatesDescription =>
+      'الإسناد وطلبات المراجعة ونشاطات المحادثات الأخرى';
+
+  @override
+  String notificationNewMessagesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رسالة جديدة',
+      many: '$count رسالة جديدة',
+      few: '$count رسائل جديدة',
+      two: 'رسالتان جديدتان',
+      one: 'رسالة جديدة واحدة',
+      zero: 'لا رسائل جديدة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String notificationFromConversations(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'من $count محادثة',
+      many: 'من $count محادثة',
+      few: 'من $count محادثات',
+      two: 'من محادثتين',
+      one: 'من محادثة واحدة',
+      zero: 'من دون محادثات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String notificationLatestFrom(String name) {
+    return 'الأحدث: $name';
+  }
+
+  @override
+  String get notificationNewMessageTitle => 'رسالة جديدة';
+
+  @override
+  String get notificationUnknownCustomer => 'عميل';
+
+  @override
+  String get notificationSelfName => 'أنت';
+
+  @override
+  String get notificationPreviewsLabel => 'معاينة الرسائل في الإشعارات';
+
+  @override
+  String get notificationPreviewsHint =>
+      'عند الإيقاف، تُظهر الإشعارات فقط أن رسالة جديدة وصلت — دون اسم العميل أو نص الرسالة.';
+
+  @override
+  String get teamWorkloadReceivedTooltip =>
+      'المحادثات التي أُسندت إلى هذا الموظف خلال الفترة المحددة، من سجل الإسناد. إعادة الإسناد لاحقًا لا تغيّرها أبدًا.';
+
+  @override
+  String get teamWorkloadReplied => 'تم الرد';
+
+  @override
+  String get teamWorkloadRepliedTooltip =>
+      'من المحادثات التي أُسندت إلى هذا الموظف في الفترة المحددة، كم محادثة ردّ عليها بنفسه. لا يُحتسب الرد الآلي ولا رد زميل آخر ولا رسالة أُرسلت من تطبيق واتساب نفسه.';
+
+  @override
+  String get teamWorkloadSaleCompleted => 'تمت البيعة';
+
+  @override
+  String get teamWorkloadSaleCompletedTooltip =>
+      'من المحادثات التي أُسندت إلى هذا الموظف في الفترة المحددة، كم محادثة انتهت ببيعة مؤكدة. تُحتسب لمن كان يتولى المحادثة وقت تسجيل البيعة، لا لمن ضغط الزر.';
+
+  @override
+  String get teamWorkloadPeriodFailed => 'تعذّر تحميل الأرقام لهذه الفترة.';
 
   @override
   String teamWorkloadRowSemantics(
     String name,
     String received,
-    String needsReply,
+    String replied,
+    String sales,
   ) {
-    return '$name: المستلمة $received، يحتاج رد الآن $needsReply';
+    return '$name: المستلمة $received، تم الرد $replied، تمت البيعة $sales';
   }
 }

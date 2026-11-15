@@ -1016,6 +1016,30 @@ abstract class AppLocalizations {
   /// **'Clear filters'**
   String get clearFiltersButton;
 
+  /// Inbox banner while it shows only one employee's conversations, opened from the Employees screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations assigned to {name}'**
+  String employeeInboxBanner(String name);
+
+  /// No description provided for @employeeInboxClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear employee filter'**
+  String get employeeInboxClear;
+
+  /// No description provided for @employeeInboxEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations assigned to {name}'**
+  String employeeInboxEmptyTitle(String name);
+
+  /// No description provided for @employeeInboxEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations assigned to this employee that you can see will appear here.'**
+  String get employeeInboxEmptyMessage;
+
   /// No description provided for @noMessagesYetPreview.
   ///
   /// In en, this message translates to:
@@ -9409,29 +9433,11 @@ abstract class AppLocalizations {
   /// **'Received'**
   String get teamWorkloadReceived;
 
-  /// No description provided for @teamWorkloadRightNow.
-  ///
-  /// In en, this message translates to:
-  /// **'Right now'**
-  String get teamWorkloadRightNow;
-
   /// No description provided for @teamWorkloadReceivedWindow.
   ///
   /// In en, this message translates to:
   /// **'Received window'**
   String get teamWorkloadReceivedWindow;
-
-  /// No description provided for @teamWorkloadReceivedTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Conversations given to this employee during the selected period, counted once each. Read from the assignment history, so a later reassignment does not change it.'**
-  String get teamWorkloadReceivedTooltip;
-
-  /// No description provided for @teamWorkloadNeedsReplyTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Conversations assigned to them where the customer is waiting for a human reply. This is the backlog as it stands now — the period selector does not change it.'**
-  String get teamWorkloadNeedsReplyTooltip;
 
   /// No description provided for @teamWorkloadEmptyTitle.
   ///
@@ -9445,20 +9451,123 @@ abstract class AppLocalizations {
   /// **'Conversations assigned to agents will show up here.'**
   String get teamWorkloadEmptyHint;
 
+  /// Android notification channel name (Settings > Apps > Scenario > Notifications) for new customer messages
+  ///
+  /// In en, this message translates to:
+  /// **'Customer messages'**
+  String get notificationChannelMessagesName;
+
+  /// No description provided for @notificationChannelMessagesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'New messages from customers in your conversations'**
+  String get notificationChannelMessagesDescription;
+
+  /// Android notification channel name for assignments, review requests and other non-message pushes
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation updates'**
+  String get notificationChannelUpdatesName;
+
+  /// No description provided for @notificationChannelUpdatesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignments, review requests and other conversation activity'**
+  String get notificationChannelUpdatesDescription;
+
+  /// Title of the grouped notification shown when many conversations receive messages, and the body of a conversation notification when previews are hidden
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 new message} other{{count} new messages}}'**
+  String notificationNewMessagesCount(int count);
+
+  /// Second line of the grouped message notification
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{From 1 conversation} other{From {count} conversations}}'**
+  String notificationFromConversations(int count);
+
+  /// Grouped notification: the customer who sent the newest message
+  ///
+  /// In en, this message translates to:
+  /// **'Latest: {name}'**
+  String notificationLatestFrom(String name);
+
+  /// Generic notification title used when message previews are hidden, and the preview text when a message has no text (e.g. an attachment)
+  ///
+  /// In en, this message translates to:
+  /// **'New message'**
+  String get notificationNewMessageTitle;
+
+  /// Sender name in a notification when the push carried no customer name
+  ///
+  /// In en, this message translates to:
+  /// **'Customer'**
+  String get notificationUnknownCustomer;
+
+  /// The agent's own name in Android's conversation-style notification
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get notificationSelfName;
+
+  /// No description provided for @notificationPreviewsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Message previews in notifications'**
+  String get notificationPreviewsLabel;
+
+  /// No description provided for @notificationPreviewsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When off, notifications only say that a new message arrived — no customer name or message text.'**
+  String get notificationPreviewsHint;
+
+  /// No description provided for @teamWorkloadReceivedTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations handed to this employee during the selected window, from the assignment history. A later reassignment never changes it.'**
+  String get teamWorkloadReceivedTooltip;
+
+  /// No description provided for @teamWorkloadReplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Replied'**
+  String get teamWorkloadReplied;
+
+  /// No description provided for @teamWorkloadRepliedTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Of the conversations handed to this employee in the selected window, how many they themselves answered. An automatic reply, a colleague\'s reply, or a message sent from WhatsApp\'s own app does not count.'**
+  String get teamWorkloadRepliedTooltip;
+
+  /// No description provided for @teamWorkloadSaleCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale completed'**
+  String get teamWorkloadSaleCompleted;
+
+  /// No description provided for @teamWorkloadSaleCompletedTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Of the conversations handed to this employee in the selected window, how many ended in a confirmed sale. Credited to whoever was holding the conversation when the sale was recorded, not to whoever pressed the button.'**
+  String get teamWorkloadSaleCompletedTooltip;
+
   /// No description provided for @teamWorkloadPeriodFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load Received for this period.'**
+  /// **'Couldn\'t load the figures for this period.'**
   String get teamWorkloadPeriodFailed;
 
   /// No description provided for @teamWorkloadRowSemantics.
   ///
   /// In en, this message translates to:
-  /// **'{name}: {received} received, {needsReply} waiting for a reply now'**
+  /// **'{name}: {received} received, {replied} replied, {sales} sales'**
   String teamWorkloadRowSemantics(
     String name,
     String received,
-    String needsReply,
+    String replied,
+    String sales,
   );
 }
 

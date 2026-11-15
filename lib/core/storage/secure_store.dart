@@ -28,6 +28,7 @@ class SecureStore {
   static const _keyThemeMode = 'scenario.theme_mode';
   static const _keyLocale = 'scenario.locale';
   static const _keyColorTheme = 'scenario.color_theme';
+  static const _keyNotificationPreviews = 'scenario.notification_previews';
 
   /// Pre-fills the login field on next launch. Not a credential — but it is
   /// still an employee's email, so it lives here rather than in preferences.
@@ -70,6 +71,22 @@ class SecureStore {
       _storage.write(key: _keyColorTheme, value: id);
 
   Future<String?> readColorTheme() => _storage.read(key: _keyColorTheme);
+
+  /// Whether notifications may show the customer's name and message text.
+  /// Device-level like the theme, and read by the push background isolate,
+  /// which has no Riverpod scope — hence stored here rather than only in a
+  /// provider. Null until the agent first changes it (previews on).
+  Future<void> writeNotificationPreviews(bool enabled) => _storage.write(
+    key: _keyNotificationPreviews,
+    value: enabled ? 'on' : 'off',
+  );
+
+  Future<bool?> readNotificationPreviews() async =>
+      switch (await _storage.read(key: _keyNotificationPreviews)) {
+        'on' => true,
+        'off' => false,
+        _ => null,
+      };
 
   /// Clear everything tied to the signed-in employee.
   ///

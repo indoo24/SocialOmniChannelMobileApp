@@ -57,6 +57,14 @@ class AppDrawer extends ConsumerWidget {
                       selected: _isSelected(currentPath, section.path),
                       onTap: () {
                         Navigator.of(context).pop();
+                        // The drawer's Inbox is the normal inbox: an employee
+                        // filter opened from the Employees screen is left
+                        // behind, even when that inbox is already on screen.
+                        if (section.path == '/inbox') {
+                          ref
+                              .read(inboxFiltersProvider.notifier)
+                              .clearEmployee();
+                        }
                         if (!_isSelected(currentPath, section.path)) {
                           context.go(section.path);
                         }

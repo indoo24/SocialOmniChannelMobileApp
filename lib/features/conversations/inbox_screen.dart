@@ -35,7 +35,8 @@ import '../../core/utils/text_direction.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'conversation_preview_formatter.dart';
 import 'conversation_pin.dart';
-import 'conversation_repository.dart' show ConversationFilters;
+import 'conversation_repository.dart'
+    show ConversationFilters, InboxEmployeeFilter;
 import '../authentication/auth_controller.dart';
 import '../notifications/notification_bell_button.dart';
 import 'customer_conversation_group_sheet.dart';
@@ -282,6 +283,12 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
       ),
       body: Column(
         children: [
+          if (filters.assignedEmployee case final employee?)
+            EmployeeInboxBanner(
+              employee: employee,
+              onClear: () =>
+                  ref.read(inboxFiltersProvider.notifier).clearEmployee(),
+            ),
           const PlatformAccountFilterBar(),
           const InboxQuickFilterBar(),
           const NeedsReplySortBar(),
@@ -1169,6 +1176,27 @@ class InboxEmptyState extends StatelessWidget {
       );
     }
     if (filters.needsMyReview) return const _NoReviewsWaiting();
+    // An employee's inbox: say whose, and — if something else narrows it —
+    // offer to widen it back to all of theirs. Leaving their inbox is the
+    // banner's job, not this one's.
+    if (filters.assignedEmployee case final employee?) {
+      final narrowed =
+          filters != ConversationFilters(assignedEmployee: employee);
+      return EmptyState(
+        key: const ValueKey('inboxEmployeeEmpty'),
+        icon: Icons.person_search_outlined,
+        title: l10n.employeeInboxEmptyTitle(employee.name),
+        message: narrowed
+            ? l10n.noFilterMatchesMessage
+            : l10n.employeeInboxEmptyMessage,
+        action: narrowed
+            ? OutlinedButton(
+                onPressed: onClearFilters,
+                child: Text(l10n.clearFiltersButton),
+              )
+            : null,
+      );
+    }
     // The default view with nothing else narrowing it: nobody is waiting.
     if (filters.needsReply &&
         !filters.hasSheetFilters &&
@@ -1196,6 +1224,68 @@ class InboxEmptyState extends StatelessWidget {
       key: const ValueKey('inboxEmpty'),
       title: l10n.noConversationsTitle,
       message: l10n.noConversationsMessage,
+    );
+  }
+}
+
+/// Shown above the inbox while it lists only one employee's conversations
+/// (opened by tapping them on the Employees screen): whose they are, and a
+/// way back to the normal inbox. Stays for as long as the filter does —
+/// across quick filters, search, refreshes and opening a conversation.
+class EmployeeInboxBanner extends StatelessWidget {
+  const EmployeeInboxBanner({
+    required this.employee,
+    required this.onClear,
+    super.key,
+  });
+
+  final InboxEmployeeFilter employee;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final l10n = context.l10n;
+    return Material(
+      key: const Key('employee_inbox_banner'),
+      color: scheme.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(
+          Space.lg,
+          Space.xs,
+          Space.xs,
+          Space.xs,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.person_outline,
+              size: 20,
+              color: scheme.onPrimaryContainer,
+            ),
+            const SizedBox(width: Space.sm),
+            Expanded(
+              child: Text(
+                l10n.employeeInboxBanner(employee.name),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: scheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            IconButton(
+              key: const Key('employee_inbox_clear'),
+              tooltip: l10n.employeeInboxClear,
+              visualDensity: VisualDensity.compact,
+              icon: Icon(Icons.close, color: scheme.onPrimaryContainer),
+              onPressed: onClear,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

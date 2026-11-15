@@ -49,6 +49,10 @@ class _NoopStore implements SecureStore {
   @override
   Future<String?> readColorTheme() async => null;
   @override
+  Future<void> writeNotificationPreviews(bool enabled) async {}
+  @override
+  Future<bool?> readNotificationPreviews() async => null;
+  @override
   Future<void> clearSession() async {}
   @override
   Future<void> wipe() async {}

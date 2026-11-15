@@ -458,7 +458,39 @@ class _PreferencesSection extends ConsumerWidget {
             ),
           ],
         ),
+
+        const SizedBox(height: Space.lg),
+        const _NotificationPreviewsSwitch(),
       ],
+    );
+  }
+}
+
+/// "Message previews in notifications". Off: a notification says only that
+/// a new message arrived — no customer name, no text — on top of whatever the
+/// device's own lock-screen privacy setting already hides. Read by the push
+/// background isolate the next time it draws a notification.
+class _NotificationPreviewsSwitch extends ConsumerWidget {
+  const _NotificationPreviewsSwitch();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final enabled = ref.watch(notificationPreviewsProvider).value ?? true;
+
+    return SwitchListTile.adaptive(
+      contentPadding: EdgeInsets.zero,
+      value: enabled,
+      onChanged: (value) =>
+          ref.read(notificationPreviewsProvider.notifier).setEnabled(value),
+      title: Text(
+        context.l10n.notificationPreviewsLabel,
+        style: theme.textTheme.bodyMedium,
+      ),
+      subtitle: Text(
+        context.l10n.notificationPreviewsHint,
+        style: theme.textTheme.bodySmall,
+      ),
     );
   }
 }

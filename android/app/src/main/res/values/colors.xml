@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#3A2CF0</color>
+    <!-- Accent Android tints the notification small icon and app name with.
+         The launcher icon's brand blue, so a notification reads as Scenario. -->
+    <color name="notification_accent">#3A2CF0</color>
 </resources>

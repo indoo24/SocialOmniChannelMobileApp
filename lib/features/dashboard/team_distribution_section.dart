@@ -7,25 +7,29 @@
 /// so the table is absent for everyone else, as on the web.
 ///
 /// * Header: `team.online_agents`.
-/// * Employee: `id`, `full_name`, `initials`, `avatar_url`.
-/// * Received: `received` — distinct conversations handed to the employee
-///   during `team_received_period` (`last_1_hour` | `last_24_hours`), the
-///   allocator's own measure. Independent of the dashboard's date filter.
-/// * Needs reply (now): `needs_reply` — conversations where the customer
-///   spoke more recently than any agent; the inbox's Needs-reply predicate,
-///   with **no window**. Not `open_conversations` (which follows the page
-///   period) and not `unread_conversations`.
+/// * Employee: `id`, `full_name`, `avatar_url`; initials and tint from the
+///   name, as the web's avatar computes them.
+/// * The funnel, over one cohort — the conversations handed to the employee
+///   during `team_window` (`last_hour` | `today`):
+///   * Received: `received`.
+///   * Replied: `replied` — of those, the ones they answered themselves.
+///   * Sale completed: `sale_completed` — of those, the ones that ended in a
+///     confirmed sale.
 ///
-/// The period selector only changes `team_received_period` on that GET. It
-/// writes nothing: not the routing policy, its `workload_window`, the
-/// distribution method or any assignment.
+/// The window selector only changes `team_window` on that GET. It writes
+/// nothing: not the routing policy, its `workload_window`, the distribution
+/// method or any assignment.
 ///
-/// The response does not echo the received period, so the figures are
-/// matched against the period the request **carried**
-/// ([TeamMetrics.receivedPeriod]). While a switch is in flight, or after it
-/// failed, the Received column never shows the previous period's numbers
-/// under the new label.
+/// The response does not echo the window, so the figures are matched against
+/// the window the request **carried** ([TeamMetrics.window]). While a switch
+/// is in flight, or after it failed, the funnel never shows the previous
+/// window's numbers under the new selection.
+///
+/// Every employee the server returns is listed. The rows scroll inside a
+/// bounded box under a header that stays put, as the web's table does.
 library;
+
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,27 +46,30 @@ import '../directory/directory_providers.dart';
 import 'dashboard_cache.dart';
 import 'dashboard_date_filter_state.dart';
 
+/// The web's `max-h-[min(26rem,60vh)]`.
+double teamTableMaxHeight(double screenHeight) =>
+    math.min(416, screenHeight * 0.6);
+
 class TeamWorkloadSection extends ConsumerWidget {
   const TeamWorkloadSection({required this.team, super.key});
 
-  /// The block on screen — possibly from before a period switch that is
+  /// The block on screen — possibly from before a window switch that is
   /// still loading or has failed.
   final TeamMetrics team;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selected = ref.watch(teamReceivedPeriodProvider);
+    final selected = ref.watch(teamWindowProvider);
     final summary = ref.watch(dashboardProvider);
-    final current = team.receivedPeriod == selected;
-    final _ReceivedState received;
-    if (current) {
-      received = _ReceivedState.shown;
+    final _FunnelState funnel;
+    if (team.window == selected) {
+      funnel = _FunnelState.shown;
     } else if (summary.isLoading) {
-      received = _ReceivedState.pending;
+      funnel = _FunnelState.pending;
     } else if (summary.hasError) {
-      received = _ReceivedState.failed;
+      funnel = _FunnelState.failed;
     } else {
-      received = _ReceivedState.unknown;
+      funnel = _FunnelState.unknown;
     }
     final error = summary.error;
 
@@ -74,7 +81,7 @@ class TeamWorkloadSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _Header(onlineAgents: team.onlineAgents, selected: selected),
-            if (received == _ReceivedState.failed)
+            if (funnel == _FunnelState.failed)
               _PeriodFailed(
                 message: error is ApiException ? error.message : null,
                 onRetry: () {
@@ -87,7 +94,7 @@ class TeamWorkloadSection extends ConsumerWidget {
             if (team.workload.isEmpty)
               const _Empty()
             else
-              _Table(rows: team.workload, period: selected, received: received),
+              _Table(rows: team.workload, funnel: funnel),
           ],
         ),
       ),
@@ -95,18 +102,18 @@ class TeamWorkloadSection extends ConsumerWidget {
   }
 }
 
-/// How the Received column stands against the selected period.
-enum _ReceivedState {
-  /// The figures were requested for the selected period.
+/// How the funnel columns stand against the selected window.
+enum _FunnelState {
+  /// The figures were requested for the selected window.
   shown,
 
-  /// A request for the selected period is in flight.
+  /// A request for the selected window is in flight.
   pending,
 
-  /// The request for the selected period failed.
+  /// The request for the selected window failed.
   failed,
 
-  /// Figures for some other period, with nothing in flight.
+  /// Figures for some other window, with nothing in flight.
   unknown,
 }
 
@@ -131,13 +138,13 @@ class _Frame extends StatelessWidget {
   }
 }
 
-/// Title, then online count and period selector — wrapping under the title
+/// Title, then online count and window toggle — wrapping under the title
 /// when a narrow phone cannot hold them on one line, as the web header does.
 class _Header extends StatelessWidget {
   const _Header({required this.onlineAgents, required this.selected});
 
   final int onlineAgents;
-  final TeamReceivedPeriod selected;
+  final TeamWindow selected;
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +187,7 @@ class _Header extends StatelessWidget {
               ),
               FittedBox(
                 fit: BoxFit.scaleDown,
-                child: _PeriodToggle(selected: selected),
+                child: _WindowToggle(selected: selected),
               ),
             ],
           ),
@@ -190,11 +197,12 @@ class _Header extends StatelessWidget {
   }
 }
 
-/// The web's two-button toggle: the selected period filled.
-class _PeriodToggle extends ConsumerWidget {
-  const _PeriodToggle({required this.selected});
+/// The web's two-button toggle: the selected window filled with the brand
+/// colour.
+class _WindowToggle extends ConsumerWidget {
+  const _WindowToggle({required this.selected});
 
-  final TeamReceivedPeriod selected;
+  final TeamWindow selected;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -215,23 +223,23 @@ class _PeriodToggle extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (final period in TeamReceivedPeriod.values)
+            for (final window in TeamWindow.values)
               Semantics(
                 button: true,
-                selected: period == selected,
+                selected: window == selected,
                 child: Material(
-                  key: ValueKey('teamPeriod_${period.apiValue}'),
-                  color: period == selected
+                  key: ValueKey('teamPeriod_${window.apiValue}'),
+                  color: window == selected
                       ? scheme.primary
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(Radii.sm),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(Radii.sm),
-                    onTap: period == selected
+                    onTap: window == selected
                         ? null
                         : () => ref
-                              .read(teamReceivedPeriodProvider.notifier)
-                              .select(period),
+                              .read(teamWindowProvider.notifier)
+                              .select(window),
                     child: ConstrainedBox(
                       // A comfortable target without a tall toggle.
                       constraints: const BoxConstraints(minHeight: 28),
@@ -243,12 +251,12 @@ class _PeriodToggle extends ConsumerWidget {
                         child: Center(
                           widthFactor: 1,
                           child: Text(
-                            periodLabel(l10n, period),
+                            windowLabel(l10n, window),
                             style: theme.textTheme.labelSmall?.copyWith(
-                              color: period == selected
+                              color: window == selected
                                   ? scheme.onPrimary
                                   : colors.mutedForeground,
-                              fontWeight: period == selected
+                              fontWeight: window == selected
                                   ? FontWeight.w600
                                   : FontWeight.w500,
                             ),
@@ -266,11 +274,11 @@ class _PeriodToggle extends ConsumerWidget {
   }
 }
 
-/// The label for [period], as the web words it.
-String periodLabel(AppLocalizations l10n, TeamReceivedPeriod period) =>
-    switch (period) {
-      TeamReceivedPeriod.lastHour => l10n.workloadWindowLastHour,
-      TeamReceivedPeriod.last24Hours => l10n.workloadWindowLast24Hours,
+/// The label for [window], as the web words it.
+String windowLabel(AppLocalizations l10n, TeamWindow window) =>
+    switch (window) {
+      TeamWindow.lastHour => l10n.workloadWindowLastHour,
+      TeamWindow.today => l10n.dateFilterToday,
     };
 
 class _PeriodFailed extends StatelessWidget {
@@ -341,49 +349,81 @@ class _Empty extends StatelessWidget {
   }
 }
 
-class _Table extends StatelessWidget {
-  const _Table({
-    required this.rows,
-    required this.period,
-    required this.received,
-  });
+/// The header stays put; the rows scroll beneath it inside a box no taller
+/// than the web's. A short list takes only the room it needs.
+class _Table extends StatefulWidget {
+  const _Table({required this.rows, required this.funnel});
 
   final List<WorkloadEntry> rows;
-  final TeamReceivedPeriod period;
-  final _ReceivedState received;
+  final _FunnelState funnel;
+
+  @override
+  State<_Table> createState() => _TableState();
+}
+
+class _TableState extends State<_Table> {
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final maxHeight = teamTableMaxHeight(MediaQuery.sizeOf(context).height);
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Each figure column takes a quarter of the card, within bounds: the
-        // two-line headers fit at 320pt, and a tablet does not stretch them.
-        final figure = (constraints.maxWidth * 0.25).clamp(72.0, 120.0);
-        return Column(
+        // Three figure columns share under half the card, so names stay
+        // readable at 320pt; the Arabic headers wrap to two lines there, and
+        // a tablet does not stretch them.
+        final figure = (constraints.maxWidth * 0.15).clamp(44.0, 104.0);
+        return ConstrainedBox(
           key: const ValueKey('teamTable'),
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _HeaderRow(figure: figure, period: period),
-            // The server's order, kept: most waiting on them first.
-            for (var i = 0; i < rows.length; i++) ...[
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _HeaderRow(figure: figure),
               Divider(height: 1, color: colors.border),
-              _EmployeeRow(row: rows[i], figure: figure, received: received),
+              Flexible(
+                child: Scrollbar(
+                  controller: _scroll,
+                  thumbVisibility: true,
+                  child: ListView.separated(
+                    key: const ValueKey('teamRows'),
+                    controller: _scroll,
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    // The server's order, kept: most received first.
+                    itemCount: widget.rows.length,
+                    separatorBuilder: (_, _) =>
+                        Divider(height: 1, color: colors.border),
+                    itemBuilder: (_, i) => _EmployeeRow(
+                      row: widget.rows[i],
+                      figure: figure,
+                      funnel: widget.funnel,
+                    ),
+                  ),
+                ),
+              ),
             ],
-          ],
+          ),
         );
       },
     );
   }
 }
 
-/// "Employee | Received (period) | Needs reply (now)". The qualifier sits in
-/// a lighter weight after the label, wrapping under it when narrow.
+/// "Employee | Received | Replied | Sale completed", each figure label with
+/// the web's tooltip.
 class _HeaderRow extends StatelessWidget {
-  const _HeaderRow({required this.figure, required this.period});
+  const _HeaderRow({required this.figure});
 
   final double figure;
-  final TeamReceivedPeriod period;
 
   @override
   Widget build(BuildContext context) {
@@ -392,41 +432,26 @@ class _HeaderRow extends StatelessWidget {
     final colors = AppColors.of(context);
     final style = theme.textTheme.labelSmall?.copyWith(
       color: colors.mutedForeground,
-      fontWeight: FontWeight.w600,
-    );
-    final qualifier = style?.copyWith(
-      fontWeight: FontWeight.w400,
-      color: colors.mutedForeground.withValues(alpha: 0.8),
+      fontWeight: FontWeight.w500,
     );
 
-    Widget column(String label, String note, String tooltip, String key) =>
-        SizedBox(
-          width: figure,
-          child: Tooltip(
-            message: tooltip,
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(text: label),
-                  // Non-breaking inside the parentheses: when the column is
-                  // narrow the qualifier moves to its own line whole, never
-                  // split as "(Last 24 / hours)".
-                  TextSpan(
-                    text: ' (${note.replaceAll(' ', ' ')})',
-                    style: qualifier,
-                  ),
-                ],
-              ),
-              key: ValueKey(key),
-              textAlign: TextAlign.end,
-              maxLines: 2,
-              style: style,
-            ),
-          ),
-        );
+    Widget column(String label, String tooltip, String key) => SizedBox(
+      width: figure,
+      child: Tooltip(
+        message: tooltip,
+        child: Text(
+          label,
+          key: ValueKey(key),
+          textAlign: TextAlign.end,
+          maxLines: 2,
+          style: style,
+        ),
+      ),
+    );
 
     return Container(
-      color: colors.muted.withValues(alpha: 0.35),
+      key: const ValueKey('teamHeaderRow'),
+      color: colors.surface,
       padding: const EdgeInsets.symmetric(
         horizontal: Space.md,
         vertical: Space.sm,
@@ -436,16 +461,18 @@ class _HeaderRow extends StatelessWidget {
           Expanded(child: Text(l10n.teamWorkloadEmployee, style: style)),
           column(
             l10n.teamWorkloadReceived,
-            periodLabel(l10n, period),
             l10n.teamWorkloadReceivedTooltip,
             'teamReceivedHeader',
           ),
-          const SizedBox(width: Space.sm),
           column(
-            l10n.needsReplyFilter,
-            l10n.teamWorkloadRightNow,
-            l10n.teamWorkloadNeedsReplyTooltip,
-            'teamNeedsReplyHeader',
+            l10n.teamWorkloadReplied,
+            l10n.teamWorkloadRepliedTooltip,
+            'teamRepliedHeader',
+          ),
+          column(
+            l10n.teamWorkloadSaleCompleted,
+            l10n.teamWorkloadSaleCompletedTooltip,
+            'teamSalesHeader',
           ),
         ],
       ),
@@ -457,49 +484,57 @@ class _EmployeeRow extends StatelessWidget {
   const _EmployeeRow({
     required this.row,
     required this.figure,
-    required this.received,
+    required this.funnel,
   });
 
   final WorkloadEntry row;
   final double figure;
-  final _ReceivedState received;
+  final _FunnelState funnel;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final colors = AppColors.of(context);
-    const tabular = [FontFeature.tabularFigures()];
-    final number = theme.textTheme.bodyMedium?.copyWith(fontFeatures: tabular);
+    final shown = funnel == _FunnelState.shown;
+    int? figureOf(int? value) => shown ? value : null;
+    final received = figureOf(row.received);
+    final replied = figureOf(row.replied);
+    final sales = figureOf(row.saleCompleted);
+    String text(int? value) => value == null ? '—' : '$value';
 
-    final receivedValue = received == _ReceivedState.shown
-        ? row.received
-        : null;
-    final needsReply = row.needsReply;
+    final number = theme.textTheme.bodyMedium?.copyWith(
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
 
-    final Widget receivedCell;
-    if (received == _ReceivedState.pending) {
-      receivedCell = const AppShimmer(
-        key: ValueKey('teamReceivedPending'),
-        child: SkeletonBox(width: 22, height: 12),
-      );
-    } else {
-      receivedCell = Text(
-        receivedValue == null ? '—' : '$receivedValue',
-        key: const ValueKey('teamReceived'),
-        textAlign: TextAlign.end,
-        style: number?.copyWith(
-          color: (receivedValue ?? 0) == 0 ? colors.mutedForeground : null,
-        ),
-      );
-    }
+    Widget cell(int? value, String key, {TextStyle? emphasis}) => SizedBox(
+      width: figure,
+      child: Align(
+        alignment: AlignmentDirectional.centerEnd,
+        child: funnel == _FunnelState.pending
+            ? AppShimmer(
+                key: ValueKey('${key}Pending'),
+                child: const SkeletonBox(width: 22, height: 12),
+              )
+            : Text(
+                text(value),
+                key: ValueKey(key),
+                textAlign: TextAlign.end,
+                // Zero (or unknown) in the muted tone, as on the web.
+                style: (value ?? 0) == 0
+                    ? number?.copyWith(color: colors.mutedForeground)
+                    : (emphasis ?? number),
+              ),
+      ),
+    );
 
     return Semantics(
       container: true,
       label: l10n.teamWorkloadRowSemantics(
         row.fullName,
-        receivedValue == null ? '—' : '$receivedValue',
-        needsReply == null ? '—' : '$needsReply',
+        text(received),
+        text(replied),
+        text(sales),
       ),
       child: ExcludeSemantics(
         child: Padding(
@@ -510,13 +545,7 @@ class _EmployeeRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              InitialsAvatar(
-                initials: row.initials.isNotEmpty
-                    ? row.initials
-                    : initialsOf(row.fullName),
-                imageUrl: row.avatarUrl,
-                size: 28,
-              ),
+              TeamAvatar(name: row.fullName, imageUrl: row.avatarUrl),
               const SizedBox(width: Space.sm),
               Expanded(
                 child: Text(
@@ -528,26 +557,14 @@ class _EmployeeRow extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(
-                width: figure,
-                child: Align(
-                  alignment: AlignmentDirectional.centerEnd,
-                  child: receivedCell,
-                ),
-              ),
-              const SizedBox(width: Space.sm),
-              SizedBox(
-                width: figure,
-                child: Text(
-                  needsReply == null ? '—' : '$needsReply',
-                  key: const ValueKey('teamNeedsReply'),
-                  textAlign: TextAlign.end,
-                  style: (needsReply ?? 0) > 0
-                      ? number?.copyWith(
-                          color: colors.warning,
-                          fontWeight: FontWeight.w700,
-                        )
-                      : number?.copyWith(color: colors.mutedForeground),
+              cell(received, 'teamReceived'),
+              cell(replied, 'teamReplied'),
+              cell(
+                sales,
+                'teamSales',
+                emphasis: number?.copyWith(
+                  color: colors.success,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -558,8 +575,80 @@ class _EmployeeRow extends StatelessWidget {
   }
 }
 
-/// Up to two initials from [name]; `?` when there is no name. Only for a
-/// row the server sent without `initials`.
+/// The web's avatar: the picture when there is one, otherwise the initials
+/// on one of seven tints chosen from the name — so each person keeps the same
+/// colour on the web and here.
+class TeamAvatar extends StatelessWidget {
+  const TeamAvatar({
+    required this.name,
+    this.imageUrl = '',
+    this.size = 32,
+    super.key,
+  });
+
+  final String name;
+  final String imageUrl;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final initials = initialsOf(name);
+    if (imageUrl.isNotEmpty) {
+      return InitialsAvatar(initials: initials, imageUrl: imageUrl, size: size);
+    }
+    final tint = avatarTintFor(name);
+    return Container(
+      key: ValueKey('teamAvatar_${tint.index}'),
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: tint.background, shape: BoxShape.circle),
+      child: Text(
+        initials,
+        style: TextStyle(
+          color: tint.foreground,
+          fontSize: size * 0.375,
+          fontWeight: FontWeight.w600,
+          height: 1,
+        ),
+      ),
+    );
+  }
+}
+
+/// One of the web avatar's tints (Tailwind's 100 background, 700 text).
+class AvatarTint {
+  const AvatarTint(this.index, this.background, this.foreground);
+
+  final int index;
+  final Color background;
+  final Color foreground;
+}
+
+/// The web's palette, in its order: indigo, emerald, amber, rose, sky,
+/// violet, teal.
+const avatarTints = [
+  AvatarTint(0, Color(0xFFE0E7FF), Color(0xFF4338CA)),
+  AvatarTint(1, Color(0xFFD1FAE5), Color(0xFF047857)),
+  AvatarTint(2, Color(0xFFFEF3C7), Color(0xFFB45309)),
+  AvatarTint(3, Color(0xFFFFE4E6), Color(0xFFBE123C)),
+  AvatarTint(4, Color(0xFFE0F2FE), Color(0xFF0369A1)),
+  AvatarTint(5, Color(0xFFEDE9FE), Color(0xFF6D28D9)),
+  AvatarTint(6, Color(0xFFCCFBF1), Color(0xFF0F766E)),
+];
+
+/// The web's tint choice, step for step: a 32-bit `hash * 31 + codeUnit`
+/// over the name's UTF-16 code units, then `|hash| % 7`.
+AvatarTint avatarTintFor(String name) {
+  var hash = 0;
+  for (final unit in name.codeUnits) {
+    hash = ((hash << 5) - hash + unit).toSigned(32);
+  }
+  return avatarTints[hash.abs() % avatarTints.length];
+}
+
+/// The web's initials: the first letter of each of the first two words,
+/// upper-cased; `?` when there is no name.
 @visibleForTesting
 String initialsOf(String name) {
   final parts = name.trim().split(RegExp(r'\s+'))

@@ -520,6 +520,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clearFiltersButton => 'Clear filters';
 
   @override
+  String employeeInboxBanner(String name) {
+    return 'Conversations assigned to $name';
+  }
+
+  @override
+  String get employeeInboxClear => 'Clear employee filter';
+
+  @override
+  String employeeInboxEmptyTitle(String name) {
+    return 'No conversations assigned to $name';
+  }
+
+  @override
+  String get employeeInboxEmptyMessage =>
+      'Conversations assigned to this employee that you can see will appear here.';
+
+  @override
   String get noMessagesYetPreview => 'No messages yet';
 
   @override
@@ -5408,18 +5425,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get teamWorkloadReceived => 'Received';
 
   @override
-  String get teamWorkloadRightNow => 'Right now';
-
-  @override
   String get teamWorkloadReceivedWindow => 'Received window';
-
-  @override
-  String get teamWorkloadReceivedTooltip =>
-      'Conversations given to this employee during the selected period, counted once each. Read from the assignment history, so a later reassignment does not change it.';
-
-  @override
-  String get teamWorkloadNeedsReplyTooltip =>
-      'Conversations assigned to them where the customer is waiting for a human reply. This is the backlog as it stands now — the period selector does not change it.';
 
   @override
   String get teamWorkloadEmptyTitle => 'Nothing assigned';
@@ -5429,15 +5435,91 @@ class AppLocalizationsEn extends AppLocalizations {
       'Conversations assigned to agents will show up here.';
 
   @override
+  String get notificationChannelMessagesName => 'Customer messages';
+
+  @override
+  String get notificationChannelMessagesDescription =>
+      'New messages from customers in your conversations';
+
+  @override
+  String get notificationChannelUpdatesName => 'Conversation updates';
+
+  @override
+  String get notificationChannelUpdatesDescription =>
+      'Assignments, review requests and other conversation activity';
+
+  @override
+  String notificationNewMessagesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new messages',
+      one: '1 new message',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String notificationFromConversations(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'From $count conversations',
+      one: 'From 1 conversation',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String notificationLatestFrom(String name) {
+    return 'Latest: $name';
+  }
+
+  @override
+  String get notificationNewMessageTitle => 'New message';
+
+  @override
+  String get notificationUnknownCustomer => 'Customer';
+
+  @override
+  String get notificationSelfName => 'You';
+
+  @override
+  String get notificationPreviewsLabel => 'Message previews in notifications';
+
+  @override
+  String get notificationPreviewsHint =>
+      'When off, notifications only say that a new message arrived — no customer name or message text.';
+
+  @override
+  String get teamWorkloadReceivedTooltip =>
+      'Conversations handed to this employee during the selected window, from the assignment history. A later reassignment never changes it.';
+
+  @override
+  String get teamWorkloadReplied => 'Replied';
+
+  @override
+  String get teamWorkloadRepliedTooltip =>
+      'Of the conversations handed to this employee in the selected window, how many they themselves answered. An automatic reply, a colleague\'s reply, or a message sent from WhatsApp\'s own app does not count.';
+
+  @override
+  String get teamWorkloadSaleCompleted => 'Sale completed';
+
+  @override
+  String get teamWorkloadSaleCompletedTooltip =>
+      'Of the conversations handed to this employee in the selected window, how many ended in a confirmed sale. Credited to whoever was holding the conversation when the sale was recorded, not to whoever pressed the button.';
+
+  @override
   String get teamWorkloadPeriodFailed =>
-      'Couldn\'t load Received for this period.';
+      'Couldn\'t load the figures for this period.';
 
   @override
   String teamWorkloadRowSemantics(
     String name,
     String received,
-    String needsReply,
+    String replied,
+    String sales,
   ) {
-    return '$name: $received received, $needsReply waiting for a reply now';
+    return '$name: $received received, $replied replied, $sales sales';
   }
 }

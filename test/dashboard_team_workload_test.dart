@@ -1,5 +1,6 @@
-/// Dashboard → Team workload: the web's table, read from the `team` block of
-/// `GET /api/dashboard/` with `team_received_period`.
+/// Dashboard → Team workload: the web's funnel table (Received → Replied →
+/// Sale completed), read from the `team` block of `GET /api/dashboard/` with
+/// `team_window`.
 library;
 
 import 'dart:async';
@@ -27,31 +28,32 @@ import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 // Fake backend
 // ---------------------------------------------------------------------------
 
-/// `received` per `team_received_period`, distinct so a figure shown under
-/// the wrong label is caught. `needs_reply` has no window; `open` and
-/// `unread` follow the page period and must never appear in the table.
-const _received = {
-  'last_1_hour': {31: 2, 32: 0, 33: 1},
-  'last_24_hours': {31: 113, 32: 41, 33: 9},
+/// (received, replied, sale_completed) per `team_window` — distinct per
+/// window so a figure shown under the wrong selection is caught.
+const _funnel = {
+  'today': {31: (543, 150, 0), 32: (493, 170, 1), 33: (9, 0, 0)},
+  'last_hour': {31: (12, 4, 0), 32: (7, 2, 2), 33: (1, 1, 0)},
 };
 
-Map<String, dynamic> _row(
-  int id,
-  String name,
-  String initials,
-  String period, {
-  int needsReply = 0,
-}) => {
-  'id': id,
-  'full_name': name,
-  'initials': initials,
-  'avatar_url': '',
-  'availability': 'ONLINE',
-  'open_conversations': 500 + id,
-  'unread_conversations': 700 + id,
-  'received': _received[period]![id],
-  'needs_reply': needsReply,
-};
+const _names = {31: 'Ahmed Osman', 32: 'Norhan Noor', 33: 'Doha 2'};
+
+Map<String, dynamic> _row(int id, String window) {
+  final (received, replied, sales) =
+      _funnel[window]![id] ?? (100 - id % 90, 0, 0);
+  return {
+    'id': id,
+    'full_name': _names[id] ?? 'Agent $id',
+    'initials': 'XX',
+    'avatar_url': '',
+    'availability': 'ONLINE',
+    // Not part of the funnel: must never appear in the table.
+    'open_conversations': 500 + id,
+    'unread_conversations': 700 + id,
+    'received': received,
+    'replied': replied,
+    'sale_completed': sales,
+  };
+}
 
 class _Backend implements HttpClientAdapter {
   final received = <RequestOptions>[];
@@ -60,18 +62,21 @@ class _Backend implements HttpClientAdapter {
   bool team = true;
   bool emptyTeam = false;
 
-  /// An older server: no `received` / `needs_reply` on the rows.
+  /// Extra employees after the three named ones (a large organization).
+  int extra = 0;
+
+  /// An older server: no `replied` / `sale_completed` on the rows.
   bool legacyRows = false;
 
-  /// `team_received_period` values whose answer fails, or is held back.
-  final failPeriod = <String>{};
-  final holdPeriod = <String, Completer<void>>{};
+  /// `team_window` values whose answer fails, or is held back.
+  final failWindow = <String>{};
+  final holdWindow = <String, Completer<void>>{};
 
   Iterable<RequestOptions> get dashboards =>
       received.where((r) => r.path == '/dashboard/');
 
-  List<Object?> get periods => [
-    for (final r in dashboards) r.queryParameters['team_received_period'],
+  List<Object?> get windows => [
+    for (final r in dashboards) r.queryParameters['team_window'],
   ];
 
   Iterable<RequestOptions> get mutations =>
@@ -88,28 +93,26 @@ class _Backend implements HttpClientAdapter {
   ) async {
     received.add(options);
     if (options.path == '/dashboard/') {
-      final period =
-          options.queryParameters['team_received_period'] as String? ??
-          'last_24_hours';
-      final hold = holdPeriod[period];
+      final window =
+          options.queryParameters['team_window'] as String? ?? 'today';
+      final hold = holdWindow[window];
       if (hold != null) await hold.future;
-      if (failPeriod.contains(period)) {
+      if (failWindow.contains(window)) {
         return _json({
           'error': {'code': 'server_error', 'message': 'Dashboard is down.'},
         }, 500);
       }
+      // The server's order: most received first.
       List<Map<String, dynamic>> rows = [
-        // The server's order: most waiting first — not by name or received.
-        _row(32, 'Nadeen Mostafa', 'NM', period, needsReply: 6),
-        _row(31, 'Gana Nadeen', 'GN', period, needsReply: 2),
-        _row(33, 'Aya Ashraf', 'AA', period),
+        for (final id in [31, 32, 33]) _row(id, window),
+        for (var i = 0; i < extra; i++) _row(100 + i, window),
       ];
       if (legacyRows) {
         rows = [
           for (final r in rows)
             {...r}
-              ..remove('received')
-              ..remove('needs_reply'),
+              ..remove('replied')
+              ..remove('sale_completed'),
         ];
       }
       return _json({
@@ -132,7 +135,7 @@ class _Backend implements HttpClientAdapter {
           'average_lead_score': 0.0,
         },
         'team': team
-            ? {'online_agents': 4, 'workload': emptyTeam ? <Object>[] : rows}
+            ? {'online_agents': 21, 'workload': emptyTeam ? <Object>[] : rows}
             : null,
         'recent_conversations': <Object>[],
       });
@@ -203,16 +206,13 @@ Future<void> _pump(
     ),
   );
   await tester.pumpAndSettle();
-  await _scrollToTeam(tester);
+  if (_section.evaluate().isNotEmpty) {
+    await tester.ensureVisible(_section);
+    await tester.pumpAndSettle();
+  }
 }
 
 final _section = find.byKey(const ValueKey('dashboardTeam'));
-
-Future<void> _scrollToTeam(WidgetTester tester) async {
-  if (_section.evaluate().isEmpty) return;
-  await tester.ensureVisible(_section);
-  await tester.pumpAndSettle();
-}
 
 Finder _inRow(int id, Finder matching) => find.descendant(
   of: find.byKey(ValueKey('teamRow_$id')),
@@ -225,53 +225,28 @@ String _cell(WidgetTester tester, int id, String key) =>
 TextStyle? _cellStyle(WidgetTester tester, int id, String key) =>
     tester.widget<Text>(_inRow(id, find.byKey(ValueKey(key)))).style;
 
-List<int> _order(WidgetTester tester) {
-  final rows = find.descendant(
-    of: _section,
-    matching: find.byWidgetPredicate(
-      (w) =>
-          w.key is ValueKey<String> &&
-          (w.key! as ValueKey<String>).value.startsWith('teamRow_'),
-    ),
-  );
-  final found = [
-    for (final e in rows.evaluate())
-      (
-        id: int.parse(
-          (e.widget.key! as ValueKey<String>).value.split('_').last,
-        ),
-        y: tester.getTopLeft(find.byWidget(e.widget)).dy,
-      ),
-  ]..sort((a, b) => a.y.compareTo(b.y));
-  return [for (final r in found) r.id];
-}
+List<String> _funnelOf(WidgetTester tester, int id) => [
+  for (final key in ['teamReceived', 'teamReplied', 'teamSales'])
+    _cell(tester, id, key),
+];
 
-String _header(WidgetTester tester, String key) => tester
-    .widget<RichText>(
-      find.descendant(
-        of: find.byKey(ValueKey(key)),
-        matching: find.byType(RichText),
-      ),
-    )
-    .text
-    .toPlainText()
-    // The qualifier is glued with non-breaking spaces so it wraps whole.
-    .replaceAll(' ', ' ');
-
-Future<void> _choose(WidgetTester tester, String period) async {
-  await tester.tap(find.byKey(ValueKey('teamPeriod_$period')));
+Future<void> _choose(WidgetTester tester, String window) async {
+  await tester.tap(find.byKey(ValueKey('teamPeriod_$window')));
   await tester.pumpAndSettle();
 }
 
-bool _selected(WidgetTester tester, String period) =>
-    tester.widget<Material>(find.byKey(ValueKey('teamPeriod_$period'))).color !=
+bool _selected(WidgetTester tester, String window) =>
+    tester.widget<Material>(find.byKey(ValueKey('teamPeriod_$window'))).color !=
     Colors.transparent;
+
+String _header(WidgetTester tester, String key) =>
+    tester.widget<Text>(find.byKey(ValueKey(key))).data!;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('header: the web title, online count and a two-period toggle '
-      'on the last 24 hours', (tester) async {
+  testWidgets('header: the web title, online count and a Last hour / Today '
+      'toggle on Today', (tester) async {
     final backend = _Backend();
     await _pump(tester, backend);
 
@@ -279,196 +254,247 @@ void main() {
       find.descendant(of: _section, matching: find.text('Team workload')),
       findsOneWidget,
     );
-    expect(find.text('4 online'), findsOneWidget);
+    // online_agents, from the same response the web reads.
+    expect(find.text('21 online'), findsOneWidget);
     expect(find.text('Last hour'), findsOneWidget);
-    expect(find.text('Last 24 hours'), findsOneWidget);
-    expect(_selected(tester, 'last_24_hours'), isTrue);
-    expect(_selected(tester, 'last_1_hour'), isFalse);
-    // Only the two windows the backend accepts.
-    expect(find.text('Last 7 days'), findsNothing);
-    // Asked for on the page's own request — no request of its own.
-    expect(backend.periods, ['last_24_hours']);
+    expect(
+      find.descendant(of: _section, matching: find.text('Today')),
+      findsOneWidget,
+    );
+    expect(_selected(tester, 'today'), isTrue);
+    expect(_selected(tester, 'last_hour'), isFalse);
+    // On the page's own request — no request of its own.
+    expect(backend.windows, ['today']);
   });
 
-  testWidgets('columns: Employee | Received (period) | Needs reply (now)', (
-    tester,
-  ) async {
+  testWidgets('columns: Employee | Received | Replied | Sale completed — and '
+      'nothing else', (tester) async {
     await _pump(tester, _Backend());
     expect(
       find.descendant(of: _section, matching: find.text('Employee')),
       findsOneWidget,
     );
-    expect(_header(tester, 'teamReceivedHeader'), 'Received (Last 24 hours)');
-    expect(_header(tester, 'teamNeedsReplyHeader'), 'Needs reply (Right now)');
+    expect(_header(tester, 'teamReceivedHeader'), 'Received');
+    expect(_header(tester, 'teamRepliedHeader'), 'Replied');
+    expect(_header(tester, 'teamSalesHeader'), 'Sale completed');
+    expect(find.textContaining('Needs reply'), findsNothing);
+    expect(find.textContaining('Turn '), findsNothing);
   });
 
-  testWidgets('rows: the server order, avatar initials, received and needs '
-      'reply from the backend — never open or unread', (tester) async {
+  testWidgets('rows: the server order and the three backend figures — never '
+      'open or unread', (tester) async {
     await _pump(tester, _Backend());
 
-    expect(_order(tester), [32, 31, 33]);
-    expect(_inRow(31, find.text('GN')), findsOneWidget);
-    expect(_inRow(31, find.text('Gana Nadeen')), findsOneWidget);
-    expect(_cell(tester, 31, 'teamReceived'), '113');
-    expect(_cell(tester, 32, 'teamReceived'), '41');
-    expect(_cell(tester, 31, 'teamNeedsReply'), '2');
-    expect(_cell(tester, 32, 'teamNeedsReply'), '6');
-    expect(_cell(tester, 33, 'teamNeedsReply'), '0');
-    // open_conversations (531) and unread_conversations (731) are not shown.
+    expect(_funnelOf(tester, 31), ['543', '150', '0']);
+    expect(_funnelOf(tester, 32), ['493', '170', '1']);
+    expect(_funnelOf(tester, 33), ['9', '0', '0']);
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('teamRow_31'))).dy,
+      lessThan(tester.getTopLeft(find.byKey(const ValueKey('teamRow_32'))).dy),
+    );
+    // open_conversations (531) and unread_conversations (731) stay out.
     expect(find.text('531'), findsNothing);
     expect(find.text('731'), findsNothing);
   });
 
-  testWidgets('needs reply is amber when someone is waiting, muted at zero', (
-    tester,
-  ) async {
+  testWidgets('a sale is emerald and bold; zeros are muted', (tester) async {
     await _pump(tester, _Backend());
-    final context = tester.element(_section);
-    final colors = AppColors.of(context);
-    expect(_cellStyle(tester, 31, 'teamNeedsReply')?.color, colors.warning);
+    final colors = AppColors.of(tester.element(_section));
+    expect(_cellStyle(tester, 32, 'teamSales')?.color, colors.success);
+    expect(_cellStyle(tester, 32, 'teamSales')?.fontWeight, FontWeight.w600);
+    expect(_cellStyle(tester, 31, 'teamSales')?.color, colors.mutedForeground);
     expect(
-      _cellStyle(tester, 31, 'teamNeedsReply')?.fontWeight,
-      FontWeight.w700,
+      _cellStyle(tester, 33, 'teamReplied')?.color,
+      colors.mutedForeground,
     );
     expect(
-      _cellStyle(tester, 33, 'teamNeedsReply')?.color,
-      colors.mutedForeground,
+      _cellStyle(tester, 31, 'teamReceived')?.color,
+      isNot(colors.success),
     );
   });
 
-  testWidgets('last hour: asked for as team_received_period=last_1_hour; '
-      'received changes, needs reply does not; nothing is written', (
+  testWidgets('avatars: the web\'s initials and tint for each name', (
     tester,
   ) async {
+    await _pump(tester, _Backend());
+    // From the name, not the server's `initials` ("XX").
+    expect(_inRow(31, find.text('AO')), findsOneWidget);
+    expect(_inRow(33, find.text('D2')), findsOneWidget);
+    expect(find.text('XX'), findsNothing);
+    // The web's hash: Ahmed Osman → sky, Norhan Noor → amber, Doha 2 →
+    // violet (as in the web screenshot).
+    expect(
+      _inRow(31, find.byKey(const ValueKey('teamAvatar_4'))),
+      findsOneWidget,
+    );
+    expect(
+      _inRow(32, find.byKey(const ValueKey('teamAvatar_2'))),
+      findsOneWidget,
+    );
+    expect(
+      _inRow(33, find.byKey(const ValueKey('teamAvatar_5'))),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('last hour: team_window=last_hour moves all three figures; '
+      'nothing is written', (tester) async {
     final backend = _Backend();
     await _pump(tester, backend);
 
-    await _choose(tester, 'last_1_hour');
-    expect(backend.periods, ['last_24_hours', 'last_1_hour']);
-    expect(_selected(tester, 'last_1_hour'), isTrue);
-    expect(_header(tester, 'teamReceivedHeader'), 'Received (Last hour)');
-    expect(_cell(tester, 31, 'teamReceived'), '2');
-    expect(_cell(tester, 32, 'teamReceived'), '0');
-    expect(_cell(tester, 33, 'teamReceived'), '1');
-    // The backlog as it stands, whatever the period.
-    expect(_cell(tester, 31, 'teamNeedsReply'), '2');
-    expect(_cell(tester, 32, 'teamNeedsReply'), '6');
-    // A query parameter on a GET: no routing request at all, nothing saved.
+    await _choose(tester, 'last_hour');
+    expect(backend.windows, ['today', 'last_hour']);
+    expect(_selected(tester, 'last_hour'), isTrue);
+    expect(_funnelOf(tester, 31), ['12', '4', '0']);
+    expect(_funnelOf(tester, 32), ['7', '2', '2']);
+    expect(_funnelOf(tester, 33), ['1', '1', '0']);
+    // A query parameter on a GET: no routing request at all, nothing saved,
+    // and the page's own period untouched.
     expect(backend.mutations, isEmpty);
     expect(backend.routing, isEmpty);
-    // The page's own period is unchanged.
     expect(
       backend.dashboards.last.queryParameters['preset'],
       backend.dashboards.first.queryParameters['preset'],
     );
 
-    // Back to 24 hours: served from the session cache, no request.
-    await _choose(tester, 'last_24_hours');
-    expect(backend.periods, ['last_24_hours', 'last_1_hour']);
-    expect(_cell(tester, 31, 'teamReceived'), '113');
-    expect(_cell(tester, 31, 'teamNeedsReply'), '2');
+    // Back to Today: served from the session cache, no request.
+    await _choose(tester, 'today');
+    expect(backend.windows, ['today', 'last_hour']);
+    expect(_funnelOf(tester, 31), ['543', '150', '0']);
   });
 
-  testWidgets('while the new period loads, the old period\'s received is '
-      'never shown under the new label', (tester) async {
+  testWidgets('while the new window loads, the old window\'s figures are '
+      'never shown under it', (tester) async {
     final backend = _Backend();
     final slow = Completer<void>();
-    backend.holdPeriod['last_1_hour'] = slow;
+    backend.holdWindow['last_hour'] = slow;
     await _pump(tester, backend);
 
-    await tester.tap(find.byKey(const ValueKey('teamPeriod_last_1_hour')));
+    await tester.tap(find.byKey(const ValueKey('teamPeriod_last_hour')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(_header(tester, 'teamReceivedHeader'), 'Received (Last hour)');
-    expect(
-      _inRow(31, find.byKey(const ValueKey('teamReceivedPending'))),
-      findsOneWidget,
-    );
-    expect(find.text('113'), findsNothing);
-    // Needs reply has no window: still accurate, still shown.
-    expect(_cell(tester, 32, 'teamNeedsReply'), '6');
+    for (final key in ['teamReceived', 'teamReplied', 'teamSales']) {
+      expect(
+        _inRow(31, find.byKey(ValueKey('${key}Pending'))),
+        findsOneWidget,
+        reason: key,
+      );
+    }
+    expect(find.text('543'), findsNothing);
 
     slow.complete();
     await tester.pumpAndSettle();
-    expect(_cell(tester, 31, 'teamReceived'), '2');
+    expect(_funnelOf(tester, 31), ['12', '4', '0']);
   });
 
-  testWidgets('a slow answer for a period already left never replaces the '
+  testWidgets('a slow answer for a window already left never replaces the '
       'latest one', (tester) async {
     final backend = _Backend();
     final slow = Completer<void>();
-    backend.holdPeriod['last_1_hour'] = slow;
+    backend.holdWindow['last_hour'] = slow;
     await _pump(tester, backend);
 
-    await tester.tap(find.byKey(const ValueKey('teamPeriod_last_1_hour')));
+    await tester.tap(find.byKey(const ValueKey('teamPeriod_last_hour')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.byKey(const ValueKey('teamPeriod_last_24_hours')));
+    await tester.tap(find.byKey(const ValueKey('teamPeriod_today')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(_cell(tester, 31, 'teamReceived'), '113');
+    expect(_funnelOf(tester, 31), ['543', '150', '0']);
 
-    // The last-hour answer arrives after the user went back.
     slow.complete();
     await tester.pumpAndSettle();
-    expect(_selected(tester, 'last_24_hours'), isTrue);
-    expect(_header(tester, 'teamReceivedHeader'), 'Received (Last 24 hours)');
-    expect(_cell(tester, 31, 'teamReceived'), '113');
+    expect(_selected(tester, 'today'), isTrue);
+    expect(_funnelOf(tester, 31), ['543', '150', '0']);
   });
 
-  testWidgets('a failed period: a dash and a retry, never the other '
-      'period\'s figures', (tester) async {
-    final backend = _Backend()..failPeriod.add('last_1_hour');
+  testWidgets('a failed window: dashes and a retry, never the other '
+      'window\'s figures', (tester) async {
+    final backend = _Backend()..failWindow.add('last_hour');
     await _pump(tester, backend);
 
-    await _choose(tester, 'last_1_hour');
+    await _choose(tester, 'last_hour');
     expect(find.byKey(const ValueKey('teamPeriodError')), findsOneWidget);
-    expect(_cell(tester, 31, 'teamReceived'), '—');
-    expect(find.text('113'), findsNothing);
-    expect(_cell(tester, 32, 'teamNeedsReply'), '6');
+    expect(_funnelOf(tester, 31), ['—', '—', '—']);
+    expect(find.text('543'), findsNothing);
 
-    backend.failPeriod.clear();
+    backend.failWindow.clear();
     await tester.tap(find.byKey(const ValueKey('teamRetry')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('teamPeriodError')), findsNothing);
-    expect(_cell(tester, 31, 'teamReceived'), '2');
+    expect(_funnelOf(tester, 31), ['12', '4', '0']);
   });
 
-  testWidgets('pull to refresh asks again for the period on screen', (
+  testWidgets('pull to refresh asks again for the window on screen', (
     tester,
   ) async {
     final backend = _Backend();
     await _pump(tester, backend);
-    await _choose(tester, 'last_1_hour');
+    await _choose(tester, 'last_hour');
 
     final refresh = tester.state<RefreshIndicatorState>(
       find.byType(RefreshIndicator),
     );
     unawaited(refresh.show());
     await tester.pumpAndSettle();
-    expect(backend.periods, ['last_24_hours', 'last_1_hour', 'last_1_hour']);
-    expect(_selected(tester, 'last_1_hour'), isTrue);
-    expect(_cell(tester, 31, 'teamReceived'), '2');
+    expect(backend.windows, ['today', 'last_hour', 'last_hour']);
+    expect(_selected(tester, 'last_hour'), isTrue);
+  });
+
+  testWidgets('every employee is listed; the rows scroll under a header that '
+      'stays put, and the last one can be reached', (tester) async {
+    // 3 + 57 = 60 employees: far more than the table's height.
+    final backend = _Backend()..extra = 57;
+    await _pump(tester, backend, size: const Size(400, 900));
+
+    final table = find.byKey(const ValueKey('teamTable'));
+    expect(
+      tester.getSize(table).height,
+      lessThanOrEqualTo(teamTableMaxHeight(900) + 0.5),
+    );
+    final headerTop = tester
+        .getTopLeft(find.byKey(const ValueKey('teamHeaderRow')))
+        .dy;
+    final rows = find.byKey(const ValueKey('teamRows'));
+    expect(find.text('Agent 156'), findsNothing);
+
+    // Scroll the table itself to its end.
+    final list = tester.state<ScrollableState>(
+      find.descendant(of: rows, matching: find.byType(Scrollable)),
+    );
+    list.position.jumpTo(list.position.maxScrollExtent);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Agent 156'), findsOneWidget);
+    final lastRow = tester.getRect(find.byKey(const ValueKey('teamRow_156')));
+    expect(lastRow.bottom, lessThanOrEqualTo(tester.getRect(table).bottom + 1));
+    // The header did not move with the rows.
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('teamHeaderRow'))).dy,
+      headerTop,
+    );
+    expect(find.text('Received'), findsOneWidget);
+  });
+
+  testWidgets('a short list takes only the room it needs', (tester) async {
+    await _pump(tester, _Backend(), size: const Size(400, 900));
+    final table = tester.getSize(find.byKey(const ValueKey('teamTable')));
+    expect(table.height, lessThan(teamTableMaxHeight(900)));
   });
 
   testWidgets('an older server without the new fields shows dashes, not '
       'zeros', (tester) async {
     await _pump(tester, _Backend()..legacyRows = true);
-    expect(_cell(tester, 31, 'teamReceived'), '—');
-    expect(_cell(tester, 31, 'teamNeedsReply'), '—');
+    expect(_funnelOf(tester, 31), ['543', '—', '—']);
   });
 
   testWidgets('empty: the web\'s "Nothing assigned"', (tester) async {
     await _pump(tester, _Backend()..emptyTeam = true);
     expect(find.byKey(const ValueKey('teamEmpty')), findsOneWidget);
     expect(find.text('Nothing assigned'), findsOneWidget);
-    expect(
-      find.text('Conversations assigned to agents will show up here.'),
-      findsOneWidget,
-    );
     expect(find.byKey(const ValueKey('teamTable')), findsNothing);
     // The header and toggle stay.
-    expect(find.text('4 online'), findsOneWidget);
+    expect(find.text('21 online'), findsOneWidget);
   });
 
   testWidgets('no team block (no analytics.view): no table, no extra '
@@ -480,25 +506,13 @@ void main() {
     expect(backend.routing, isEmpty);
   });
 
-  testWidgets('no round-robin decoration: the table is a workload overview', (
-    tester,
-  ) async {
-    await _pump(tester, _Backend());
-    expect(find.byKey(const ValueKey('teamTurn')), findsNothing);
-    expect(find.textContaining('Turn '), findsNothing);
-    expect(
-      find.byKey(const ValueKey('dashboardRotationViewAll')),
-      findsNothing,
-    );
-    expect(find.text('Team performance & distribution'), findsNothing);
-  });
-
   for (final (name, locale) in [
     ('English', const Locale('en')),
     ('Arabic', const Locale('ar')),
   ]) {
-    testWidgets('$name on a 320pt phone: nothing overflows, numbers aligned '
-        'and whole', (tester) async {
+    testWidgets('$name on a 320pt phone: nothing overflows, numbers aligned', (
+      tester,
+    ) async {
       await _pump(
         tester,
         _Backend(),
@@ -506,25 +520,21 @@ void main() {
         size: const Size(320, 2400),
       );
       expect(tester.takeException(), isNull);
-      // Each column's figures share one vertical edge.
       final rtl = locale.languageCode == 'ar';
       double edge(int id, String key) {
         final rect = tester.getRect(_inRow(id, find.byKey(ValueKey(key))));
         return rtl ? rect.left : rect.right;
       }
 
-      for (final key in ['teamReceived', 'teamNeedsReply']) {
-        expect(edge(31, key), moreOrLessEquals(edge(32, key)));
-        expect(edge(32, key), moreOrLessEquals(edge(33, key)));
+      for (final key in ['teamReceived', 'teamReplied', 'teamSales']) {
+        expect(edge(31, key), moreOrLessEquals(edge(32, key)), reason: key);
+        expect(edge(32, key), moreOrLessEquals(edge(33, key)), reason: key);
       }
-      // Inside the card, not clipped.
       final card = tester.getRect(_section);
-      for (final id in [31, 32, 33]) {
-        final r = tester.getRect(
-          _inRow(id, find.byKey(const ValueKey('teamReceived'))),
-        );
-        expect(r.left, greaterThanOrEqualTo(card.left));
-        expect(r.right, lessThanOrEqualTo(card.right));
+      for (final key in ['teamReceived', 'teamReplied', 'teamSales']) {
+        final r = tester.getRect(_inRow(31, find.byKey(ValueKey(key))));
+        expect(r.left, greaterThanOrEqualTo(card.left), reason: key);
+        expect(r.right, lessThanOrEqualTo(card.right), reason: key);
       }
     });
   }
@@ -533,33 +543,54 @@ void main() {
     await _pump(tester, _Backend(), locale: const Locale('ar'));
 
     expect(find.text('حجم عمل الفريق'), findsOneWidget);
-    expect(find.text('4 متصل'), findsOneWidget);
+    expect(find.text('21 متصل'), findsOneWidget);
     expect(find.text('آخر ساعة'), findsOneWidget);
-    expect(find.text('آخر 24 ساعة'), findsOneWidget);
+    expect(
+      find.descendant(of: _section, matching: find.text('اليوم')),
+      findsOneWidget,
+    );
     expect(find.text('الموظف'), findsOneWidget);
-    expect(_header(tester, 'teamReceivedHeader'), 'المستلمة (آخر 24 ساعة)');
-    expect(_header(tester, 'teamNeedsReplyHeader'), 'يحتاج رد (الآن)');
+    expect(_header(tester, 'teamReceivedHeader'), 'المستلمة');
+    expect(_header(tester, 'teamRepliedHeader'), 'تم الرد');
+    expect(_header(tester, 'teamSalesHeader'), 'تمت البيعة');
     expect(Directionality.of(tester.element(_section)), TextDirection.rtl);
 
-    // Employee on the right, then Received, then Needs reply on the left.
+    // Right to left: name, then Received, Replied, Sale completed.
     final row = find.byKey(const ValueKey('teamRow_31'));
     double x(Finder f) =>
         tester.getCenter(find.descendant(of: row, matching: f)).dx;
-    final name = x(find.text('Gana Nadeen'));
-    final receivedX = x(find.byKey(const ValueKey('teamReceived')));
-    final needsX = x(find.byKey(const ValueKey('teamNeedsReply')));
-    expect(name, greaterThan(receivedX));
-    expect(receivedX, greaterThan(needsX));
-
-    await _choose(tester, 'last_1_hour');
-    expect(_header(tester, 'teamReceivedHeader'), 'المستلمة (آخر ساعة)');
-    expect(_cell(tester, 31, 'teamReceived'), '2');
+    final name = x(find.text('Ahmed Osman'));
+    final received = x(find.byKey(const ValueKey('teamReceived')));
+    final replied = x(find.byKey(const ValueKey('teamReplied')));
+    final sales = x(find.byKey(const ValueKey('teamSales')));
+    expect(name, greaterThan(received));
+    expect(received, greaterThan(replied));
+    expect(replied, greaterThan(sales));
   });
 
-  test('initials fall back to the name when the server sends none', () {
-    expect(initialsOf('Gana Nadeen'), 'GN');
-    expect(initialsOf('  maha  '), 'M');
-    expect(initialsOf('سارة أحمد علي'), 'سأ');
-    expect(initialsOf(''), '?');
+  group('the web\'s avatar rules', () {
+    test('initials: first letter of the first two words', () {
+      expect(initialsOf('Gana Nadeen'), 'GN');
+      expect(initialsOf('Doha 2'), 'D2');
+      expect(initialsOf('  maha  '), 'M');
+      expect(initialsOf('سارة أحمد علي'), 'سأ');
+      expect(initialsOf(''), '?');
+    });
+
+    test('tints match the web for the names in its screenshot', () {
+      // Expected values computed with the web's own JS hash.
+      const expected = {
+        'Ahmed Osman': 4, // sky
+        'Esraa Hekayatha': 4, // sky
+        'Zaynab Hekayatha': 1, // emerald
+        'Norhan Noor': 2, // amber
+        'Menna Nadeen': 4, // sky
+        'Gana Nadeen': 3, // rose
+        'Doha 2': 5, // violet
+      };
+      expected.forEach((name, index) {
+        expect(avatarTintFor(name).index, index, reason: name);
+      });
+    });
   });
 }
