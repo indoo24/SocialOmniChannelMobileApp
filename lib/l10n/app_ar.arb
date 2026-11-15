@@ -1630,14 +1630,9 @@
   "conversationNoLongerAvailable": "لم تعد هذه المحادثة متاحة لك.",
   "teamWorkloadEmployee": "الموظف",
   "teamWorkloadReceived": "المستلمة",
-  "teamWorkloadRightNow": "الآن",
   "teamWorkloadReceivedWindow": "نطاق المستلمة",
-  "teamWorkloadReceivedTooltip": "المحادثات التي أُعطيت لهذا الموظف خلال الفترة المحددة، تُحسب مرة واحدة لكل محادثة. تُقرأ من سجل التعيين، لذلك لا تتغير بإعادة التعيين لاحقًا.",
-  "teamWorkloadNeedsReplyTooltip": "المحادثات المعيّنة له والتي ينتظر فيها العميل ردًا بشريًا. هذا هو الوضع الحالي — اختيار الفترة لا يغيّره.",
   "teamWorkloadEmptyTitle": "لا توجد محادثات مُسندة",
   "teamWorkloadEmptyHint": "ستظهر هنا المحادثات المسندة إلى الوكلاء.",
-  "teamWorkloadPeriodFailed": "تعذّر تحميل المستلمة لهذه الفترة.",
-  "teamWorkloadRowSemantics": "{name}: المستلمة {received}، يحتاج رد الآن {needsReply}",
   "notificationChannelMessagesName": "رسائل العملاء",
   "notificationChannelMessagesDescription": "الرسائل الجديدة من العملاء في محادثاتك",
   "notificationChannelUpdatesName": "تحديثات المحادثات",
@@ -1649,5 +1644,12 @@
   "notificationUnknownCustomer": "عميل",
   "notificationSelfName": "أنت",
   "notificationPreviewsLabel": "معاينة الرسائل في الإشعارات",
-  "notificationPreviewsHint": "عند الإيقاف، تُظهر الإشعارات فقط أن رسالة جديدة وصلت — دون اسم العميل أو نص الرسالة."
+  "notificationPreviewsHint": "عند الإيقاف، تُظهر الإشعارات فقط أن رسالة جديدة وصلت — دون اسم العميل أو نص الرسالة.",
+  "teamWorkloadReceivedTooltip": "المحادثات التي أُسندت إلى هذا الموظف خلال الفترة المحددة، من سجل الإسناد. إعادة الإسناد لاحقًا لا تغيّرها أبدًا.",
+  "teamWorkloadReplied": "تم الرد",
+  "teamWorkloadRepliedTooltip": "من المحادثات التي أُسندت إلى هذا الموظف في الفترة المحددة، كم محادثة ردّ عليها بنفسه. لا يُحتسب الرد الآلي ولا رد زميل آخر ولا رسالة أُرسلت من تطبيق واتساب نفسه.",
+  "teamWorkloadSaleCompleted": "تمت البيعة",
+  "teamWorkloadSaleCompletedTooltip": "من المحادثات التي أُسندت إلى هذا الموظف في الفترة المحددة، كم محادثة انتهت ببيعة مؤكدة. تُحتسب لمن كان يتولى المحادثة وقت تسجيل البيعة، لا لمن ضغط الزر.",
+  "teamWorkloadPeriodFailed": "تعذّر تحميل الأرقام لهذه الفترة.",
+  "teamWorkloadRowSemantics": "{name}: المستلمة {received}، تم الرد {replied}، تمت البيعة {sales}"
 }

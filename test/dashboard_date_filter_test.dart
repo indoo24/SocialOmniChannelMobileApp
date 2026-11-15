@@ -584,7 +584,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(DashboardDateFilterButton), findsOneWidget);
-      expect(find.text('Today'), findsOneWidget);
+      // Scoped to the filter: the Team workload toggle has a "Today" too.
+      expect(
+        find.descendant(
+          of: find.byType(DashboardDateFilterButton),
+          matching: find.text('Today'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
@@ -606,7 +613,21 @@ void main() {
         await tester.pumpAndSettle();
 
         // Check presets exist
-        expect(find.text('Today'), findsNWidgets(2)); // Button + Sheet
+        // Button + Sheet (the Team workload toggle's "Today" aside).
+        expect(
+          find.descendant(
+            of: find.byType(DashboardDateFilterButton),
+            matching: find.text('Today'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byType(BottomSheet),
+            matching: find.text('Today'),
+          ),
+          findsOneWidget,
+        );
         expect(find.text('Last 7 days'), findsOneWidget);
         expect(find.text('Last 30 days'), findsOneWidget);
         expect(find.text('This month'), findsOneWidget);
@@ -706,7 +727,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Sheet closed, button still shows Today
-      expect(find.text('Today'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(DashboardDateFilterButton),
+          matching: find.text('Today'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
@@ -982,8 +1009,7 @@ void main() {
               'preset': apiValue,
               // The Team workload table's own window, independent of the
               // preset; only the summary carries it.
-              if (path == '/dashboard/')
-                'team_received_period': 'last_24_hours',
+              if (path == '/dashboard/') 'team_window': 'today',
             }, reason: path);
           }
 
@@ -1206,7 +1232,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('اليوم'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(DashboardDateFilterButton),
+          matching: find.text('اليوم'),
+        ),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
 
       // Open sheet in Arabic
@@ -1232,7 +1264,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Today'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(DashboardDateFilterButton),
+          matching: find.text('Today'),
+        ),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     });
 

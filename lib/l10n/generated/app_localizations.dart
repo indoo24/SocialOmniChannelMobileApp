@@ -9433,29 +9433,11 @@ abstract class AppLocalizations {
   /// **'Received'**
   String get teamWorkloadReceived;
 
-  /// No description provided for @teamWorkloadRightNow.
-  ///
-  /// In en, this message translates to:
-  /// **'Right now'**
-  String get teamWorkloadRightNow;
-
   /// No description provided for @teamWorkloadReceivedWindow.
   ///
   /// In en, this message translates to:
   /// **'Received window'**
   String get teamWorkloadReceivedWindow;
-
-  /// No description provided for @teamWorkloadReceivedTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Conversations given to this employee during the selected period, counted once each. Read from the assignment history, so a later reassignment does not change it.'**
-  String get teamWorkloadReceivedTooltip;
-
-  /// No description provided for @teamWorkloadNeedsReplyTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Conversations assigned to them where the customer is waiting for a human reply. This is the backlog as it stands now — the period selector does not change it.'**
-  String get teamWorkloadNeedsReplyTooltip;
 
   /// No description provided for @teamWorkloadEmptyTitle.
   ///
@@ -9468,22 +9450,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Conversations assigned to agents will show up here.'**
   String get teamWorkloadEmptyHint;
-
-  /// No description provided for @teamWorkloadPeriodFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load Received for this period.'**
-  String get teamWorkloadPeriodFailed;
-
-  /// No description provided for @teamWorkloadRowSemantics.
-  ///
-  /// In en, this message translates to:
-  /// **'{name}: {received} received, {needsReply} waiting for a reply now'**
-  String teamWorkloadRowSemantics(
-    String name,
-    String received,
-    String needsReply,
-  );
 
   /// Android notification channel name (Settings > Apps > Scenario > Notifications) for new customer messages
   ///
@@ -9556,6 +9522,53 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When off, notifications only say that a new message arrived — no customer name or message text.'**
   String get notificationPreviewsHint;
+
+  /// No description provided for @teamWorkloadReceivedTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations handed to this employee during the selected window, from the assignment history. A later reassignment never changes it.'**
+  String get teamWorkloadReceivedTooltip;
+
+  /// No description provided for @teamWorkloadReplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Replied'**
+  String get teamWorkloadReplied;
+
+  /// No description provided for @teamWorkloadRepliedTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Of the conversations handed to this employee in the selected window, how many they themselves answered. An automatic reply, a colleague\'s reply, or a message sent from WhatsApp\'s own app does not count.'**
+  String get teamWorkloadRepliedTooltip;
+
+  /// No description provided for @teamWorkloadSaleCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale completed'**
+  String get teamWorkloadSaleCompleted;
+
+  /// No description provided for @teamWorkloadSaleCompletedTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Of the conversations handed to this employee in the selected window, how many ended in a confirmed sale. Credited to whoever was holding the conversation when the sale was recorded, not to whoever pressed the button.'**
+  String get teamWorkloadSaleCompletedTooltip;
+
+  /// No description provided for @teamWorkloadPeriodFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the figures for this period.'**
+  String get teamWorkloadPeriodFailed;
+
+  /// No description provided for @teamWorkloadRowSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {received} received, {replied} replied, {sales} sales'**
+  String teamWorkloadRowSemantics(
+    String name,
+    String received,
+    String replied,
+    String sales,
+  );
 }
 
 class _AppLocalizationsDelegate
