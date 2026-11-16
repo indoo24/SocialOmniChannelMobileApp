@@ -411,20 +411,23 @@ void main() {
       await tester.pumpWidget(createInboxApp());
       await tester.pumpAndSettle();
 
-      // Facebook, Instagram, WhatsApp all have 2 accounts -> 3 selector buttons
-      final buttons = find.byType(PlatformAccountSelectorButton);
-      expect(buttons, findsNWidgets(3));
+      // Facebook, Instagram, WhatsApp all have 2 accounts: one Accounts
+      // control covers the three
+      final buttons = find.byKey(const Key('inbox_account_filter'));
+      expect(buttons, findsOneWidget);
 
-      // Tap Instagram selector (button 1)
-      await tester.tap(buttons.at(1));
+      await tester.tap(buttons);
       await tester.pumpAndSettle();
 
-      // Options popup shows accounts and 'All accounts'
+      // Options popup shows accounts and an 'All accounts' per platform
       expect(find.text('Mohamed'), findsOneWidget);
       expect(find.text('Yousef Qandeel'), findsOneWidget);
       expect(
-        find.widgetWithText(PopupMenuItem<int>, 'All accounts'),
-        findsOneWidget,
+        find.widgetWithText(
+          PopupMenuItem<({String provider, int? id})>,
+          'All accounts',
+        ),
+        findsNWidgets(3),
       );
 
       // Select Yousef Qandeel (account 4)
@@ -455,8 +458,8 @@ void main() {
       );
 
       // 1. Select Instagram account (Yousef Qandeel = 4)
-      final buttons = find.byType(PlatformAccountSelectorButton);
-      await tester.tap(buttons.at(1));
+      final buttons = find.byKey(const Key('inbox_account_filter'));
+      await tester.tap(buttons);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Yousef Qandeel'));
       await tester.pumpAndSettle();
@@ -526,8 +529,8 @@ void main() {
       expect(req.uri.queryParameters['page'], equals('1'));
 
       // Change account -> resets to page 1
-      final buttons = find.byType(PlatformAccountSelectorButton);
-      await tester.tap(buttons.at(0));
+      final buttons = find.byKey(const Key('inbox_account_filter'));
+      await tester.tap(buttons);
       await tester.pumpAndSettle();
       await tester.tap(find.text('IndoTech'));
       await tester.pumpAndSettle();
@@ -548,7 +551,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.byType(PlatformAccountFilterBar), findsOneWidget);
+      expect(find.byType(InboxChannelAccountFilters), findsOneWidget);
       expect(find.byType(InboxQuickFilterBar), findsOneWidget);
     });
 

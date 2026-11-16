@@ -941,7 +941,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchConversationsHint.
   ///
   /// In en, this message translates to:
-  /// **'Search conversations'**
+  /// **'Search conversations...'**
   String get searchConversationsHint;
 
   /// Tooltip and screen-reader label of the floating button in the inbox that scrolls the list back to the first conversation
@@ -1015,6 +1015,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear filters'**
   String get clearFiltersButton;
+
+  /// No description provided for @channelsAndAccountsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels & accounts'**
+  String get channelsAndAccountsTitle;
+
+  /// No description provided for @allChannelsFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'All channels'**
+  String get allChannelsFilter;
+
+  /// No description provided for @channelFilterTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by channel'**
+  String get channelFilterTooltip;
+
+  /// No description provided for @accountFilterTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by account'**
+  String get accountFilterTooltip;
+
+  /// No description provided for @accountsSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 account} other{{count} accounts}}'**
+  String accountsSelectedCount(int count);
+
+  /// No description provided for @unreadMessagesSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 unread message} other{{count} unread messages}}'**
+  String unreadMessagesSemantics(int count);
+
+  /// No description provided for @assignedToSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned to {name}'**
+  String assignedToSemantics(String name);
 
   /// Inbox banner while it shows only one employee's conversations, opened from the Employees screen.
   ///
@@ -6349,6 +6391,12 @@ abstract class AppLocalizations {
   /// **'Conversation resolved'**
   String get conversationResolvedSnackbar;
 
+  /// No description provided for @resolveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve'**
+  String get resolveAction;
+
   /// Snack bar action that reverses the last action.
   ///
   /// In en, this message translates to:
@@ -9241,6 +9289,18 @@ abstract class AppLocalizations {
   /// **'The customer'**
   String get theCustomerLabel;
 
+  /// No description provided for @markSoldTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold'**
+  String get markSoldTooltip;
+
+  /// No description provided for @confirmPurchaseForbiddenMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to confirm purchases.'**
+  String get confirmPurchaseForbiddenMessage;
+
   /// No description provided for @confirmPurchaseAction.
   ///
   /// In en, this message translates to:
@@ -9379,10 +9439,16 @@ abstract class AppLocalizations {
   /// **'{count, plural, one{1 conversation needs a reply} other{{count} conversations need a reply}}'**
   String needsReplyCountSemantics(int count);
 
+  /// No description provided for @tabCountSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 conversation} other{{count} conversations}}'**
+  String tabCountSemantics(int count);
+
   /// No description provided for @needsReplySortLabel.
   ///
   /// In en, this message translates to:
-  /// **'Sort'**
+  /// **'Sort conversations'**
   String get needsReplySortLabel;
 
   /// No description provided for @needsReplyOldestFirst.

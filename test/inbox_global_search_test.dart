@@ -70,9 +70,11 @@ List<String?> _searchesSent(GroupedServer server) => [
   for (final u in server.listRequests) u.queryParameters['search'],
 ];
 
+/// The search bar is always on screen under the quick filters — nothing to
+/// open. Checks it is there (and the app bar no longer has a search icon).
 Future<void> _openSearch(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('Search'));
-  await tester.pump();
+  expect(find.byKey(const Key('inbox_search_field')), findsOneWidget);
+  expect(find.byTooltip('Search'), findsNothing);
 }
 
 Future<void> _type(WidgetTester tester, String text) =>
@@ -272,11 +274,16 @@ void main() {
       await _type(tester, 'customer 1');
       await tester.pump(_debounce);
       await settle(tester);
-      await tester.tap(find.byTooltip('Close search'));
+      await tester.tap(find.byKey(const Key('inbox_search_clear')));
       await settle(tester);
       expect(find.text('Customer 3'), findsOneWidget);
-      expect(find.byType(TextField), findsNothing);
-      // Closing cancels a pending pause: nothing is sent after it.
+      // The bar stays, empty, and its clear button goes with the text.
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        isEmpty,
+      );
+      expect(find.byKey(const Key('inbox_search_clear')), findsNothing);
+      // Clearing cancels a pending pause: nothing is sent after it.
       final sent = _searchesSent(server).length;
       await tester.pump(_debounce * 2);
       await settle(tester);
@@ -510,8 +517,6 @@ void main() {
       size: const Size(320, 700),
       locale: const Locale('ar'),
     );
-    await tester.tap(find.byIcon(Icons.search));
-    await tester.pump();
     await _type(tester, 'طنطا');
     await tester.pump(_debounce);
     await settle(tester);

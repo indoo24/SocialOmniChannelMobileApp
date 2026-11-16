@@ -477,7 +477,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get inboxTitle => 'صندوق الوارد';
 
   @override
-  String get searchConversationsHint => 'البحث في المحادثات';
+  String get searchConversationsHint => 'ابحث في المحادثات...';
 
   @override
   String get inboxScrollToTop => 'العودة إلى الأعلى';
@@ -517,6 +517,53 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get clearFiltersButton => 'مسح الفلاتر';
+
+  @override
+  String get channelsAndAccountsTitle => 'القنوات والحسابات';
+
+  @override
+  String get allChannelsFilter => 'كل القنوات';
+
+  @override
+  String get channelFilterTooltip => 'تصفية حسب القناة';
+
+  @override
+  String get accountFilterTooltip => 'تصفية حسب الحساب';
+
+  @override
+  String accountsSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count حساب',
+      many: '$count حسابًا',
+      few: '$count حسابات',
+      two: 'حسابان',
+      one: 'حساب واحد',
+      zero: 'لا حسابات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String unreadMessagesSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رسالة غير مقروءة',
+      many: '$count رسالة غير مقروءة',
+      few: '$count رسائل غير مقروءة',
+      two: 'رسالتان غير مقروءتين',
+      one: 'رسالة واحدة غير مقروءة',
+      zero: 'لا رسائل غير مقروءة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String assignedToSemantics(String name) {
+    return 'مُسنَدة إلى $name';
+  }
 
   @override
   String employeeInboxBanner(String name) {
@@ -3599,6 +3646,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get conversationResolvedSnackbar => 'تم حل المحادثة';
 
   @override
+  String get resolveAction => 'تم الحل';
+
+  @override
   String get undoAction => 'تراجع';
 
   @override
@@ -5333,6 +5383,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get theCustomerLabel => 'العميل';
 
   @override
+  String get markSoldTooltip => 'تم البيع';
+
+  @override
+  String get confirmPurchaseForbiddenMessage =>
+      'ليست لديك صلاحية تأكيد عمليات الشراء.';
+
+  @override
   String get confirmPurchaseAction => 'تأكيد الشراء';
 
   @override
@@ -5421,7 +5478,22 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get needsReplySortLabel => 'ترتيب';
+  String tabCountSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة',
+      many: '$count محادثة',
+      few: '$count محادثات',
+      two: 'محادثتان',
+      one: 'محادثة واحدة',
+      zero: 'لا توجد محادثات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get needsReplySortLabel => 'ترتيب المحادثات';
 
   @override
   String get needsReplyOldestFirst => 'الأقدم أولاً';

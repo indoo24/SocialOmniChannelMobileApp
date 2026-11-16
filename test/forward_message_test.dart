@@ -358,7 +358,7 @@ Widget _app(
     currentEmployeeProvider.overrideWithValue(_employee),
     forwardAttachmentFetcherProvider.overrideWithValue(fetcher.call),
     inboxControllerProvider.overrideWith(_FakeInbox.new),
-    conversationCountsProvider.overrideWith((ref) async => {}),
+    conversationCountsProvider.overrideWithBuild((ref, _) async => {}),
     channelsProvider.overrideWith(
       (ref) async => [
         ChannelConnection.fromJson(const {

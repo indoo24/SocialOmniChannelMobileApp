@@ -35,6 +35,8 @@ import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations_ar.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations_en.dart';
 
+import 'support/quick_filters.dart';
+
 // ---------------------------------------------------------------------------
 // Employees, with the capabilities each role really holds.
 // ---------------------------------------------------------------------------
@@ -129,9 +131,9 @@ ProviderContainer _container(_Server server, {Employee? me}) {
     overrides: [
       apiClientProvider.overrideWithValue(server.client()),
       currentEmployeeProvider.overrideWith((ref) => ref.watch(_whoProvider)),
-      // The Needs reply badge reads the same counts endpoint; it is not what
-      // these tests measure, so it does not ask here.
-      needsReplyCountProvider.overrideWith((ref) async => null),
+      // The tabs' counts read the same endpoint; they are not what these
+      // tests measure, so they do not ask here.
+      conversationCountsProvider.overrideWithBuild((ref, _) async => const {}),
     ],
   );
   addTearDown(c.dispose);
@@ -479,11 +481,7 @@ void main() {
         c.read(inboxFiltersProvider).activeQuickFilter,
         InboxQuickFilter.all,
       );
-      final all = find.descendant(
-        of: find.byKey(const Key('quick_filter_all')),
-        matching: find.byIcon(Icons.check_rounded),
-      );
-      expect(all, findsOneWidget);
+      expect(isQuickFilterSelected(tester, 'quick_filter_all'), isTrue);
     });
 
     test('the other tabs ask the server exactly what they did before, for an '

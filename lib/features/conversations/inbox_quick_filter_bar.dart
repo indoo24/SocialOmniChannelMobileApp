@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/employee.dart';
-
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
@@ -12,40 +12,92 @@ import 'review_count.dart';
 
 /// Horizontally scrollable row of primary Inbox quick filters.
 ///
-/// Prominently displays the primary views, in [InboxQuickFilter]'s order:
-///   [ Needs reply ]  [ All ]  [ Mine ]  [ Need review ]  [ Unread ]
-///   [ Resolved ]  [ Unassigned ]  [ Open ]
+/// The primary views, in [InboxQuickFilter]'s order:
+///   [ Needs reply 15 ]  [ All 53966 ]  [ Mine 4 ]  [ Need review 2 ]
+///   [ Unread ]  [ Resolved ]  [ Unassigned ]  [ Open ]
 ///
-/// Needs reply is the view the inbox opens on (the web's default too). It
-/// carries the server's `needs_reply` count ([needsReplyCountProvider]).
+/// Needs reply is the view the inbox opens on (the web's default too).
 ///
 /// Need review is shown only to employees holding `conversation.review`
 /// (ADMIN and SUPERVISOR today); for everyone else it is not in the bar at
 /// all ([visibleQuickFilters]), and the rest keep their order.
 ///
-/// The web's five (`jn = ["all", "mine", "unassigned", "unread", "open"]`
-/// in `inbox.js`) plus Need review and Resolved, and the same behaviour:
-///  - Active item renders filled with the primary colour and a check.
-///  - Inactive items render outlined on the page.
-///  - A label, and no count — except Need review, which carries how many
-///    conversations a colleague asked this employee to review (the server's
-///    `review_mine`, see [reviewCountProvider]), while there are any.
+/// Compact pills as on the web inbox (`rounded-full px-2.5 py-1 text-xs`):
+///  - the active one solid in the primary colour, its label bold;
+///  - the rest on the light neutral surface, no border;
+///  - each followed by its number while it is above zero — exactly the
+///    web's: one `GET /conversations/counts/` ([conversationCountsProvider]),
+///    the bucket named after the tab, shown in full (the web does not
+///    abbreviate). Need review shows `review_mine` ([reviewCountProvider]).
+///  - the bar never waits for them: until the first answer for the accounts
+///    on screen arrives each pill holds a small empty badge in the number's
+///    place — never a 0 — and a failed read shows no number at all. Numbers
+///    already known stay up while they are read again.
+///  - in an employee's inbox Mine and Unassigned are left out and no number
+///    is shown: every count is the caller's whole inbox, not the employee's.
+///
+/// One row that scrolls sideways, never wraps; the selected pill is scrolled
+/// into view whenever the selection changes, however it changed.
 ///
 /// Each pill is keyed by its filter (`quick_filter_<name>`), never its
 /// position, so selection follows the filter wherever it sits.
-class InboxQuickFilterBar extends ConsumerWidget {
+class InboxQuickFilterBar extends ConsumerStatefulWidget {
   const InboxQuickFilterBar({super.key});
+
+  /// The bucket of `GET /conversations/counts/` that counts what [filter]
+  /// lists; null for Need review, whose number is `review_mine` (read by
+  /// [reviewCountProvider]).
+  static String? countKeyOf(InboxQuickFilter filter) => switch (filter) {
+    InboxQuickFilter.needsReply => 'needs_reply',
+    InboxQuickFilter.all => 'all',
+    InboxQuickFilter.mine => 'mine',
+    InboxQuickFilter.unread => 'unread',
+    InboxQuickFilter.resolved => 'resolved',
+    InboxQuickFilter.unassigned => 'unassigned',
+    InboxQuickFilter.open => 'open',
+    InboxQuickFilter.needsReview => null,
+  };
+
+  @override
+  ConsumerState<InboxQuickFilterBar> createState() =>
+      _InboxQuickFilterBarState();
+}
+
+class _InboxQuickFilterBarState extends ConsumerState<InboxQuickFilterBar> {
+  /// One per pill, to scroll the selected one into view.
+  final _pillKeys = {
+    for (final filter in InboxQuickFilter.values) filter: GlobalKey(),
+  };
+
+  InboxQuickFilter? _shownActive;
 
   /// Back to All, once the frame is built (a provider may not change while
   /// the tree is). Re-checks first: it may have been put right meanwhile.
-  static void _leaveNeedsReview(WidgetRef ref) {
+  void _leaveNeedsReview() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!ref.context.mounted) return;
+      if (!mounted) return;
       if (ref.read(canProvider(Perm.conversationReview))) return;
       if (!ref.read(inboxFiltersProvider).needsMyReview) return;
       ref
           .read(inboxFiltersProvider.notifier)
           .selectQuickFilter(InboxQuickFilter.all);
+    });
+  }
+
+  /// Brings [filter]'s pill fully into view once it is laid out — a tap on
+  /// a half-hidden pill, a notification choosing Unread, a reset to Needs
+  /// reply all land on a visible selection.
+  void _reveal(InboxQuickFilter filter) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final pill = _pillKeys[filter]?.currentContext;
+      if (!mounted || pill == null) return;
+      Scrollable.ensureVisible(
+        pill,
+        alignment: 0.5,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
     });
   }
 
@@ -74,10 +126,32 @@ class InboxQuickFilterBar extends ConsumerWidget {
     };
   }
 
+  /// The two counts with a sentence of their own keep it; the rest are read
+  /// as "N conversations".
+  static String Function(int) _semanticsOf(
+    BuildContext context,
+    InboxQuickFilter filter,
+  ) => switch (filter) {
+    InboxQuickFilter.needsReply => context.l10n.needsReplyCountSemantics,
+    InboxQuickFilter.needsReview => context.l10n.reviewsWaitingForYou,
+    _ => context.l10n.tabCountSemantics,
+  };
+
+  /// Kept as they were for the two tabs that always had a number.
+  static Key _badgeKeyOf(InboxQuickFilter filter) => switch (filter) {
+    InboxQuickFilter.needsReply => const Key('needs_reply_count_badge'),
+    InboxQuickFilter.needsReview => const Key('review_count_badge'),
+    _ => Key('${_keyOf(filter)}_count'),
+  };
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final filters = ref.watch(inboxFiltersProvider);
     final activeFilter = filters.activeQuickFilter;
+    if (activeFilter != _shownActive) {
+      _shownActive = activeFilter;
+      _reveal(activeFilter);
+    }
     final canReview = ref.watch(canProvider(Perm.conversationReview));
     // Need review belongs to whoever holds `conversation.review`. If that stops
     // being true while the tab is selected (a role changed, another employee
@@ -86,32 +160,56 @@ class InboxQuickFilterBar extends ConsumerWidget {
     // now as well as on a change, for a role that changed while this screen
     // was away.
     ref.listen(canProvider(Perm.conversationReview), (_, can) {
-      if (!can) _leaveNeedsReview(ref);
+      if (!can) _leaveNeedsReview();
     });
-    if (!canReview && filters.needsMyReview) _leaveNeedsReview(ref);
-    // Only someone with a Need review tab is ever counted for: nothing is
-    // asked on an agent's behalf. `.value` keeps the last number while it is
-    // being read again, so the badge does not blink; it is null when the
-    // server could not be asked.
-    final employeeId = ref.watch(currentEmployeeProvider.select((e) => e?.id));
-    // In an employee's inbox both numbers would count something other than
-    // the list: they are the caller's own review queue and the whole
-    // organization's Needs reply, not this employee's. No badge beats a wrong
-    // one.
+    if (!canReview && filters.needsMyReview) _leaveNeedsReview();
+
+    // In an employee's inbox every number would count something other than
+    // the list — the caller's whole inbox, the caller's own review queue —
+    // not this employee's. No badge beats a wrong one.
     final employeeScoped = filters.assignedEmployee != null;
-    final reviewCount = canReview && employeeId != null && !employeeScoped
-        ? ref.watch(reviewCountProvider(employeeId)).value
-        : null;
-    // The server's own number, the one the web badges; kept while re-read.
-    final needsReplyCount = employeeScoped
+    // The numbers for the accounts on screen — kept up while they are read
+    // again, so the badges do not blink — or null while they are first read
+    // and when they could not be. A placeholder holds their place only until
+    // the first answer or failure: retries after a failure do not make it
+    // blink in and out.
+    final countsState = employeeScoped
         ? null
-        : ref.watch(needsReplyCountProvider).value;
+        : ref.watch(conversationCountsProvider);
+    final counts = countsState == null ? null : shownInboxCounts(countsState);
+    final countsLoading =
+        countsState != null &&
+        counts == null &&
+        countsState.isLoading &&
+        !countsState.hasError;
+    // Only someone with a Need review tab is ever counted for: nothing is
+    // asked on an agent's behalf.
+    final employeeId = ref.watch(currentEmployeeProvider.select((e) => e?.id));
+    final reviewState = canReview && employeeId != null && !employeeScoped
+        ? ref.watch(reviewCountProvider(employeeId))
+        : null;
+    final reviewCount = reviewState?.value;
+    final reviewLoading =
+        reviewState != null &&
+        !reviewState.hasValue &&
+        reviewState.isLoading &&
+        !reviewState.hasError;
+
+    int? countOf(InboxQuickFilter filter) {
+      final key = InboxQuickFilterBar.countKeyOf(filter);
+      return key == null ? reviewCount : counts?[key];
+    }
+
+    bool loadingOf(InboxQuickFilter filter) =>
+        InboxQuickFilterBar.countKeyOf(filter) == null
+        ? reviewLoading
+        : countsLoading;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(
         Space.lg,
-        Space.xs,
+        Space.xxs,
         Space.lg,
         Space.sm,
       ),
@@ -122,30 +220,22 @@ class InboxQuickFilterBar extends ConsumerWidget {
             canReview: canReview,
             employeeScoped: employeeScoped,
           ).indexed) ...[
-            if (index > 0) const SizedBox(width: Space.sm),
-            _QuickFilterPill(
-              key: Key(_keyOf(filter)),
-              label: _labelOf(context, filter),
-              badge: switch (filter) {
-                InboxQuickFilter.needsReview => reviewCount,
-                InboxQuickFilter.needsReply => needsReplyCount,
-                _ => null,
-              },
-              badgeKey: switch (filter) {
-                InboxQuickFilter.needsReply => const Key(
-                  'needs_reply_count_badge',
-                ),
-                _ => const Key('review_count_badge'),
-              },
-              badgeSemantics: switch (filter) {
-                InboxQuickFilter.needsReply =>
-                  context.l10n.needsReplyCountSemantics,
-                _ => context.l10n.reviewsWaitingForYou,
-              },
-              isActive: activeFilter == filter,
-              onTap: () => ref
-                  .read(inboxFiltersProvider.notifier)
-                  .selectQuickFilter(filter),
+            if (index > 0) const SizedBox(width: Space.xs + 2),
+            KeyedSubtree(
+              key: _pillKeys[filter],
+              child: _QuickFilterPill(
+                key: Key(_keyOf(filter)),
+                label: _labelOf(context, filter),
+                badge: countOf(filter),
+                badgeLoading: loadingOf(filter),
+                badgeKey: _badgeKeyOf(filter),
+                placeholderKey: Key('${_keyOf(filter)}_count_loading'),
+                badgeSemantics: _semanticsOf(context, filter),
+                isActive: activeFilter == filter,
+                onTap: () => ref
+                    .read(inboxFiltersProvider.notifier)
+                    .selectQuickFilter(filter),
+              ),
             ),
           ],
         ],
@@ -161,21 +251,33 @@ class _QuickFilterPill extends StatelessWidget {
     required this.onTap,
     required this.badgeSemantics,
     this.badge,
+    this.badgeLoading = false,
     this.badgeKey,
+    this.placeholderKey,
     super.key,
   });
+
+  /// Every pill is this tall, with or without a number — the shared pill
+  /// height, well under the 44 the tabs used to take.
+  static const height = Sizes.pill;
 
   final String label;
 
   /// Tells one tab's number from another's.
   final Key? badgeKey;
 
+  /// Tells one tab's placeholder from another's.
+  final Key? placeholderKey;
+
   /// How the badge's number is read aloud.
   final String Function(int count) badgeSemantics;
 
   /// A count shown after the label while it is above zero; null or zero shows
-  /// nothing.
+  /// nothing (as on the web).
   final int? badge;
+
+  /// The number is still being read: a small empty badge holds its place.
+  final bool badgeLoading;
   final bool isActive;
   final VoidCallback onTap;
 
@@ -183,45 +285,40 @@ class _QuickFilterPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final colors = AppColors.of(context);
 
-    // Selected = filled brand colour with a check; unselected = outlined on
-    // the page. The check means the state never rests on colour alone.
-    final foreground = isActive ? scheme.onPrimary : scheme.onSurface;
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(Radii.pill),
-      side: isActive
-          ? BorderSide.none
-          : BorderSide(color: scheme.outlineVariant),
-    );
+    // Selected = solid brand colour with light, bold text; unselected = the
+    // light neutral surface with muted text. The fill, the text colour and
+    // the weight all change, so the state never rests on hue alone — and
+    // the pill reports itself `selected`.
+    final foreground = isActive ? scheme.onPrimary : colors.mutedForeground;
+    const shape = StadiumBorder();
 
     return Semantics(
       button: true,
       selected: isActive,
       child: Material(
-        color: isActive ? scheme.primary : scheme.surface,
+        color: isActive ? scheme.primary : colors.muted,
         shape: shape,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
+          customBorder: shape,
           onTap: onTap,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: Sizes.pill),
+          child: SizedBox(
+            height: height,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Space.md + 2),
+              padding: const EdgeInsets.symmetric(horizontal: Space.md),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (isActive) ...[
-                    Icon(Icons.check_rounded, size: 16, color: foreground),
-                    const SizedBox(width: Space.xs),
-                  ],
                   Text(
                     label,
                     maxLines: 1,
                     style: theme.textTheme.labelLarge?.copyWith(
-                      color: foreground,
+                      color: isActive ? foreground : scheme.onSurface,
                       fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                       fontSize: 13,
-                      height: 1.2,
+                      height: 1.1,
                     ),
                   ),
                   if (badge != null && badge! > 0) ...[
@@ -231,6 +328,12 @@ class _QuickFilterPill extends StatelessWidget {
                       count: badge!,
                       onActivePill: isActive,
                       semantics: badgeSemantics(badge!),
+                    ),
+                  ] else if (badgeLoading) ...[
+                    const SizedBox(width: Space.xs + 2),
+                    _CountPlaceholder(
+                      key: placeholderKey,
+                      onActivePill: isActive,
                     ),
                   ],
                 ],
@@ -243,9 +346,11 @@ class _QuickFilterPill extends StatelessWidget {
   }
 }
 
-/// The number after a tab's label: the brand colour on an unselected tab, the
-/// reverse on the selected one, so it reads on both. Read aloud as the
-/// sentence the localization gives, not as a bare number.
+/// The number after a tab's label, in full as the web shows it: a light
+/// wash of the pill's own text colour behind tabular figures — white on the
+/// selected pill's purple, a faint grey on the others — so it never adds
+/// height or competes with the label. Read aloud as the sentence the
+/// localization gives, not as a bare number.
 class _CountBadge extends StatelessWidget {
   const _CountBadge({
     required this.count,
@@ -258,34 +363,40 @@ class _CountBadge extends StatelessWidget {
   final bool onActivePill;
   final String semantics;
 
-  /// Beyond this the exact figure stops being useful on a pill.
-  static const _cap = 99;
+  static const _height = 18.0;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final background = onActivePill ? scheme.onPrimary : scheme.primary;
-    final foreground = onActivePill ? scheme.primary : scheme.onPrimary;
+    final colors = AppColors.of(context);
+    final ink = onActivePill ? scheme.onPrimary : colors.mutedForeground;
+    final background = onActivePill
+        ? scheme.onPrimary.withValues(alpha: 0.22)
+        : colors.foreground.withValues(alpha: 0.07);
     return Semantics(
       label: semantics,
       excludeSemantics: true,
       child: Container(
-        // No `alignment`: that would make the badge fill the pill's height.
-        constraints: const BoxConstraints(minWidth: 20),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        height: _height,
+        constraints: const BoxConstraints(minWidth: _height),
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(Radii.pill),
         ),
         child: Text(
-          count > _cap ? '$_cap+' : '$count',
+          '$count',
           maxLines: 1,
           textAlign: TextAlign.center,
+          // The digits the web shows, in either language.
+          textDirection: TextDirection.ltr,
           style: TextStyle(
-            color: foreground,
+            color: ink,
             fontSize: 11,
             fontWeight: FontWeight.w700,
-            height: 1.1,
+            height: 1.0,
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
       ),
@@ -293,52 +404,155 @@ class _CountBadge extends StatelessWidget {
   }
 }
 
-/// Oldest first / Newest first, under the quick filters while Needs reply is
-/// the view: `ordering=last_customer_message_at` or its reverse, applied by
-/// the server (pages stay consistent; nothing is re-sorted on the phone).
-/// Nothing is shown for any other view.
+/// Where a tab's number will be while it is first read: the badge's own
+/// shape and wash, empty — no digit, so nothing that could pass for a count —
+/// as wide as a two-digit number, so most numbers land without moving the
+/// row. Still, not animated: the bar settles, and nothing is announced.
+class _CountPlaceholder extends StatelessWidget {
+  const _CountPlaceholder({required this.onActivePill, super.key});
+
+  final bool onActivePill;
+
+  static const width = 22.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final colors = AppColors.of(context);
+    return ExcludeSemantics(
+      child: Container(
+        width: width,
+        height: _CountBadge._height,
+        decoration: BoxDecoration(
+          color: onActivePill
+              ? scheme.onPrimary.withValues(alpha: 0.22)
+              : colors.foreground.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(Radii.pill),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Sort conversations" with the order in a compact dropdown at the row's
+/// end (the left in Arabic), under the search bar while Needs reply is the
+/// view: Oldest first / Newest first, sent as
+/// `ordering=last_customer_message_at` or its reverse and applied by the
+/// server (pages stay consistent; nothing is re-sorted on the phone).
+/// Nothing is shown for any other view — none of them has an order to pick.
 class NeedsReplySortBar extends ConsumerWidget {
   const NeedsReplySortBar({super.key});
+
+  static String _labelOf(BuildContext context, NeedsReplyOrder order) =>
+      switch (order) {
+        NeedsReplyOrder.oldestFirst => context.l10n.needsReplyOldestFirst,
+        NeedsReplyOrder.newestFirst => context.l10n.needsReplyNewestFirst,
+      };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filters = ref.watch(inboxFiltersProvider);
     if (!filters.needsReply) return const SizedBox.shrink();
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final l10n = context.l10n;
-
-    Widget option(NeedsReplyOrder order, String label) {
-      final selected = filters.needsReplyOrder == order;
-      return ChoiceChip(
-        key: Key('needs_reply_order_${order.name}'),
-        label: Text(label),
-        selected: selected,
-        showCheckmark: false,
-        visualDensity: VisualDensity.compact,
-        labelStyle: theme.textTheme.labelMedium?.copyWith(
-          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-        ),
-        onSelected: (_) =>
-            ref.read(inboxFiltersProvider.notifier).setNeedsReplyOrder(order),
-      );
-    }
+    final current = filters.needsReplyOrder;
 
     return Padding(
       key: const Key('needs_reply_sort_bar'),
       padding: const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.sm),
-      child: Wrap(
-        spacing: Space.sm,
-        runSpacing: Space.xs,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      child: Row(
         children: [
-          Text(
-            l10n.needsReplySortLabel,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.textTheme.bodySmall?.color,
+          Icon(
+            Icons.swap_vert_rounded,
+            size: Sizes.iconMd,
+            color: theme.textTheme.bodySmall?.color,
+          ),
+          const SizedBox(width: Space.xs),
+          Expanded(
+            child: Text(
+              l10n.needsReplySortLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: theme.textTheme.bodySmall?.color,
+              ),
             ),
           ),
-          option(NeedsReplyOrder.oldestFirst, l10n.needsReplyOldestFirst),
-          option(NeedsReplyOrder.newestFirst, l10n.needsReplyNewestFirst),
+          const SizedBox(width: Space.sm),
+          PopupMenuButton<NeedsReplyOrder>(
+            key: const Key('needs_reply_order_menu'),
+            tooltip: l10n.needsReplySortLabel,
+            initialValue: current,
+            position: PopupMenuPosition.under,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(Radii.lg),
+            ),
+            onSelected: (order) => ref
+                .read(inboxFiltersProvider.notifier)
+                .setNeedsReplyOrder(order),
+            itemBuilder: (context) => [
+              for (final order in NeedsReplyOrder.values)
+                PopupMenuItem(
+                  key: Key('needs_reply_order_${order.name}'),
+                  value: order,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _labelOf(context, order),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: order == current
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: order == current ? scheme.primary : null,
+                          ),
+                        ),
+                      ),
+                      if (order == current)
+                        Icon(
+                          Icons.check_rounded,
+                          size: 18,
+                          color: scheme.primary,
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+            child: Container(
+              constraints: const BoxConstraints(minHeight: Sizes.pill),
+              padding: const EdgeInsets.symmetric(horizontal: Space.md),
+              decoration: BoxDecoration(
+                color: AppColors.of(context).muted,
+                borderRadius: BorderRadius.circular(Radii.pill),
+                border: Border.all(color: scheme.outlineVariant),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 160),
+                    child: Text(
+                      _labelOf(context, current),
+                      key: const Key('needs_reply_order_current'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: Space.xs),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: Sizes.iconMd,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
