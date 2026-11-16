@@ -224,7 +224,7 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             inboxControllerProvider.overrideWith(() => inboxController),
-            conversationCountsProvider.overrideWith((ref) async => {}),
+            conversationCountsProvider.overrideWithBuild((ref, _) async => {}),
             conversationControllerProvider(
               1,
             ).overrideWith(() => conversationController),
@@ -286,7 +286,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           inboxControllerProvider.overrideWith(() => inboxController),
-          conversationCountsProvider.overrideWith((ref) async => {}),
+          conversationCountsProvider.overrideWithBuild((ref, _) async => {}),
           conversationControllerProvider(
             1,
           ).overrideWith(() => conversationController),

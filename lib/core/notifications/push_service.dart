@@ -29,22 +29,35 @@ import 'push_payload.dart';
 /// Runs when the app is backgrounded or killed (Android; on iOS only for a
 /// `content-available` push, which Scenario does not send).
 ///
-/// * A push **with** a `notification` block — every push the backend sends
-///   today — has already been drawn by the OS. Nothing is drawn here, or it
-///   would show twice.
 /// * A **data-only** push naming a conversation is drawn by the app, so
 ///   customer messages can be grouped per conversation and collapsed into
-///   one summary during a burst (`NOTIFICATIONS_GROUPING.md`). This path
-///   turns on by itself once the backend sends `new_message` data-only.
+///   one summary during a burst (`NOTIFICATIONS_GROUPING.md`).
+/// * A customer message **with** a `notification` block has already been
+///   drawn by the OS as its own notification; the app folds it into the
+///   conversation's notification and removes the OS copy
+///   ([LocalDraw.adoptSystemCopy]).
+/// * Any other push with a block is left to the OS.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   final push = pushPayloadOf(message);
-  if (!shouldDrawLocally(push, isAndroid: drawsNotificationsLocally)) return;
+  final mode = localDrawFor(push, isAndroid: drawsNotificationsLocally);
+  // Keys only, never values (same rule as the foreground handler). Debug
+  // builds only. Answers "did the data-only payload arrive, and who drew it?"
+  AppLog.debug(
+    'PushService',
+    'background push — type: ${push.type}, '
+        'conversation: ${push.conversationId}, '
+        'message: ${push.messageId}, '
+        'notificationBlock: ${push.hasSystemNotification}, '
+        'dataKeys: ${message.data.keys.join(',')}, '
+        'handling: ${mode.name}',
+  );
+  if (mode == LocalDraw.none) return;
   // This isolate's plugins: path_provider's Android implementation registers
   // from Dart, which firebase_messaging's dispatcher does not do itself.
   // Idempotent.
   DartPluginRegistrant.ensureInitialized();
-  await MessageNotifications.instance.present(push);
+  await MessageNotifications.instance.present(push, mode: mode);
 }
 
 /// A [RemoteMessage], parsed. Shared by the background handler and the

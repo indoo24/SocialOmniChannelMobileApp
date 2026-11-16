@@ -23,7 +23,16 @@ const _statuses = [
   'CLOSED',
 ];
 const _priorities = ['URGENT', 'HIGH', 'NORMAL', 'LOW'];
-const _providers = ['WHATSAPP', 'FACEBOOK', 'INSTAGRAM', 'TIKTOK', 'MOCK'];
+
+/// The platforms the inbox can be narrowed to (`provider`), here and in the
+/// inbox's All channels dropdown.
+const inboxChannelProviders = [
+  'WHATSAPP',
+  'FACEBOOK',
+  'INSTAGRAM',
+  'TIKTOK',
+  'MOCK',
+];
 
 Future<void> showInboxFiltersSheet(BuildContext context, WidgetRef ref) {
   return showModalBottomSheet<void>(
@@ -46,7 +55,7 @@ class _FiltersSheet extends ConsumerWidget {
     // filter they can pick. Same answer the Channels screen reads.
     final employee = ref.watch(currentEmployeeProvider);
     final providers = [
-      for (final provider in _providers)
+      for (final provider in inboxChannelProviders)
         if (!(employee?.isChannelComingSoon(provider) ?? provider == 'TIKTOK'))
           provider,
     ];

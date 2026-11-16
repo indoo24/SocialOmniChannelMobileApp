@@ -39,6 +39,7 @@ import 'package:scenario_mobile/features/messages/conversation_screen.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
 import 'support/grouped_server.dart' show Json, convoJson, groupJson;
+import 'support/quick_filters.dart';
 
 // ---------------------------------------------------------------------------
 // Fake server
@@ -386,11 +387,14 @@ void main() {
       () async {
         final server = _Server(_rows(3));
         final c = _container(server);
-        c.listen(needsReplyCountProvider, (_, _) {});
+        c.listen(conversationCountsProvider, (_, _) {});
         await c.read(inboxControllerProvider.future);
         _apply(c, RealtimeEvents.connectionReady); // startup
         await _settle();
-        expect(await c.read(needsReplyCountProvider.future), 12);
+        expect(
+          (await c.read(conversationCountsProvider.future))['needs_reply'],
+          12,
+        );
         final lists = server.lists.length;
 
         // Missed while the socket was down: a new conversation, and the count.
@@ -401,7 +405,10 @@ void main() {
 
         expect(server.lists.length, lists + 1);
         expect(_loadedIds(c), contains(99));
-        expect(await c.read(needsReplyCountProvider.future), 13);
+        expect(
+          (await c.read(conversationCountsProvider.future))['needs_reply'],
+          13,
+        );
       },
     );
 
@@ -546,7 +553,7 @@ void main() {
       await c.read(inboxControllerProvider.future);
       expect(_loadedIds(c), contains(2));
       final counts = server.hits('/api/conversations/counts/');
-      c.listen(needsReplyCountProvider, (_, _) {});
+      c.listen(conversationCountsProvider, (_, _) {});
 
       server.gone.add(2);
       c.read(activeConversationProvider.notifier).opened(2);
@@ -701,11 +708,7 @@ void main() {
       ]);
       await _pumpInbox(tester, server);
 
-      final active = find.descendant(
-        of: find.byKey(const Key('quick_filter_needs_reply')),
-        matching: find.byIcon(Icons.check_rounded),
-      );
-      expect(active, findsOneWidget);
+      expect(isQuickFilterSelected(tester, 'quick_filter_needs_reply'), isTrue);
       expect(find.byKey(const Key('quick_filter_all')), findsOneWidget);
       expect(
         find.descendant(
@@ -715,8 +718,10 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const Key('needs_reply_sort_bar')), findsOneWidget);
+      // The order in force shows in the dropdown; the other is in its menu.
+      expect(find.text('Sort conversations'), findsOneWidget);
       expect(find.text('Oldest first'), findsOneWidget);
-      expect(find.text('Newest first'), findsOneWidget);
+      expect(find.text('Newest first'), findsNothing);
 
       Finder waiting(int id) => find.descendant(
         of: find.byKey(ValueKey('inbox-conversation-$id')),
@@ -728,8 +733,18 @@ void main() {
       // No customer message on record: no wait shown.
       expect(waiting(3), findsNothing);
 
+      await tester.tap(find.byKey(const Key('needs_reply_order_menu')));
+      await tester.pumpAndSettle();
+      expect(find.text('Newest first'), findsOneWidget);
       await tester.tap(find.text('Newest first'));
       await _frames(tester);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('needs_reply_order_menu')),
+          matching: find.text('Newest first'),
+        ),
+        findsOneWidget,
+      );
       expect(
         server.lists.last.queryParameters['ordering'],
         '-last_customer_message_at',
@@ -747,9 +762,15 @@ void main() {
       await _pumpInbox(tester, server, locale: const Locale('ar'));
       expect(tester.takeException(), isNull);
       expect(find.text('يحتاج رد'), findsOneWidget);
-      expect(find.text('ترتيب'), findsOneWidget);
+      expect(find.text('ترتيب المحادثات'), findsOneWidget);
       expect(find.text('الأقدم أولاً'), findsOneWidget);
-      expect(find.text('الأحدث أولاً'), findsOneWidget);
+      expect(find.text('ابحث في المحادثات...'), findsOneWidget);
+      // The dropdown sits at the row's end: the left, in Arabic.
+      final label = tester.getRect(find.text('ترتيب المحادثات'));
+      final menu = tester.getRect(
+        find.byKey(const Key('needs_reply_order_menu')),
+      );
+      expect(menu.right, lessThan(label.left));
       expect(find.text('الكل'), findsOneWidget);
       expect(find.text('في الانتظار 8m'), findsOneWidget);
       expect(

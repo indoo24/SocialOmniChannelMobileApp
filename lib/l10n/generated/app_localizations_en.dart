@@ -477,7 +477,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inboxTitle => 'Inbox';
 
   @override
-  String get searchConversationsHint => 'Search conversations';
+  String get searchConversationsHint => 'Search conversations...';
 
   @override
   String get inboxScrollToTop => 'Scroll to top';
@@ -518,6 +518,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clearFiltersButton => 'Clear filters';
+
+  @override
+  String get channelsAndAccountsTitle => 'Channels & accounts';
+
+  @override
+  String get allChannelsFilter => 'All channels';
+
+  @override
+  String get channelFilterTooltip => 'Filter by channel';
+
+  @override
+  String get accountFilterTooltip => 'Filter by account';
+
+  @override
+  String accountsSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count accounts',
+      one: '1 account',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String unreadMessagesSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count unread messages',
+      one: '1 unread message',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String assignedToSemantics(String name) {
+    return 'Assigned to $name';
+  }
 
   @override
   String employeeInboxBanner(String name) {
@@ -3586,6 +3625,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get conversationResolvedSnackbar => 'Conversation resolved';
 
   @override
+  String get resolveAction => 'Resolve';
+
+  @override
   String get undoAction => 'Undo';
 
   @override
@@ -5310,6 +5352,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get theCustomerLabel => 'The customer';
 
   @override
+  String get markSoldTooltip => 'Sold';
+
+  @override
+  String get confirmPurchaseForbiddenMessage =>
+      'You don\'t have permission to confirm purchases.';
+
+  @override
   String get confirmPurchaseAction => 'Confirm purchase';
 
   @override
@@ -5394,7 +5443,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get needsReplySortLabel => 'Sort';
+  String tabCountSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conversations',
+      one: '1 conversation',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get needsReplySortLabel => 'Sort conversations';
 
   @override
   String get needsReplyOldestFirst => 'Oldest first';

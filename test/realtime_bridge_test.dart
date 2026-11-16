@@ -352,7 +352,7 @@ void _accessRevokedDispatchTests() {
     final container = ProviderContainer(
       overrides: [
         inboxControllerProvider.overrideWith(() => fakeInbox),
-        conversationCountsProvider.overrideWith((ref) async => {}),
+        conversationCountsProvider.overrideWithBuild((ref, _) async => {}),
         realtimeClientProvider.overrideWithValue(
           RealtimeClient(
             cookieJar: CookieJar(),
@@ -387,7 +387,7 @@ void _accessRevokedDispatchTests() {
     final container = ProviderContainer(
       overrides: [
         inboxControllerProvider.overrideWith(() => fakeInbox),
-        conversationCountsProvider.overrideWith((ref) async => {}),
+        conversationCountsProvider.overrideWithBuild((ref, _) async => {}),
         realtimeClientProvider.overrideWithValue(
           RealtimeClient(
             cookieJar: CookieJar(),

@@ -718,7 +718,7 @@ void main() {
           expect(banner, findsNothing);
 
           // At the top of the actions sheet, beside the pin, on its row —
-          // the two titled buttons are all there is: no Resolve here.
+          // with Resolve full width under the two of them.
           await openActionsSheet(tester);
           expect(
             tester.getCenter(reviewButton).dy,
@@ -727,9 +727,13 @@ void main() {
           final pinX = tester.getCenter(pinButton).dx;
           final reviewX = tester.getCenter(reviewButton).dx;
           expect(arabic ? reviewX < pinX : reviewX > pinX, isTrue);
+          final resolveButton = find.byKey(
+            const Key('conversation_actions_sheet_resolve_button'),
+          );
+          expect(resolveButton, findsOneWidget);
           expect(
-            find.byKey(const Key('conversation_actions_sheet_resolve_button')),
-            findsNothing,
+            tester.getRect(resolveButton).top,
+            greaterThanOrEqualTo(tester.getRect(pinButton).bottom),
           );
           expect(titled(pinButton, l10n.pinConversationAction), findsOneWidget);
           expect(

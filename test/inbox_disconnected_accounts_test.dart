@@ -107,6 +107,9 @@ class _Server {
 
   final grouped = <Map<String, String>>[];
 
+  /// Queries of `GET /conversations/counts/`, as strings.
+  final counted = <Map<String, String>>[];
+
   /// Holds the next grouped request until completed.
   Completer<void>? holdNext;
 
@@ -164,6 +167,12 @@ class _Server {
             'is_muted': c['is_muted'],
           },
       ]);
+    }
+    if (o.path == '/conversations/counts/') {
+      counted.add({
+        for (final e in o.queryParameters.entries) e.key: '${e.value}',
+      });
+      return _json({'all': 41, 'needs_reply': 3});
     }
     if (isGroupedPath(o.path)) {
       final q = {
@@ -481,9 +490,10 @@ void main() {
       final server = _Server()..archived.addAll({2, 3});
       final (:c, inbox: _) = _open(server);
       final counts = await c.read(conversationCountsProvider.future);
-      final countQueries = server.grouped.where((q) => q['page_size'] == '1');
-      expect(countQueries, hasLength(5));
-      expect(countQueries.map((q) => q['channel_connections']).toSet(), {'1'});
+      // One counts request, limited to the account the list still shows —
+      // the archived ones' conversations are not counted.
+      expect(server.counted, hasLength(1));
+      expect(server.counted.single['channel_connections'], '1');
       expect(counts['all'], 41);
     });
 

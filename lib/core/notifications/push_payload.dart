@@ -88,6 +88,8 @@ class PushPayload {
     this.channelName = '',
     this.sentAt,
     this.hasSystemNotification = false,
+    this.systemTitle,
+    this.systemBody,
   });
 
   /// Parses a push. [data] is FCM's `data` map; [notificationTitle] /
@@ -134,6 +136,8 @@ class PushPayload {
       sentAt: sentAt,
       receivedAt: receivedAt,
       hasSystemNotification: hasSystemNotification,
+      systemTitle: hasSystemNotification ? notificationTitle : null,
+      systemBody: hasSystemNotification ? notificationBody : null,
     );
   }
 
@@ -174,6 +178,12 @@ class PushPayload {
   /// True when the push carried a `notification` block — the OS has already
   /// drawn it (backgrounded/killed), so the app must not draw it again.
   final bool hasSystemNotification;
+
+  /// The `notification` block's title and body exactly as sent — what the OS
+  /// put on the notification it drew, used to find that copy in the tray.
+  /// Null without a block.
+  final String? systemTitle;
+  final String? systemBody;
 
   DateTime get timestamp => sentAt ?? receivedAt;
 

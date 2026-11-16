@@ -137,45 +137,73 @@ void main() {
         PushPayload.parse(
           data: {'type': type, 'conversation_id': '5'},
           hasSystemNotification: block,
+          notificationTitle: block ? 'Sara' : null,
+          notificationBody: block ? 'Hi' : null,
           receivedAt: received,
         );
 
     test('Android, data-only message: the app draws it (grouped)', () {
-      expect(shouldDrawLocally(payload(), isAndroid: true), isTrue);
+      expect(localDrawFor(payload(), isAndroid: true), LocalDraw.draw);
     });
 
     test('Android, data-only assignment: the app draws it (not grouped)', () {
       expect(
-        shouldDrawLocally(
-          payload(type: 'conversation_assigned'),
-          isAndroid: true,
-        ),
-        isTrue,
+        localDrawFor(payload(type: 'conversation_assigned'), isAndroid: true),
+        LocalDraw.draw,
       );
     });
 
     test(
-      'a push with a notification block was drawn by the OS — never twice',
+      'Android, message the OS already drew: folded into the conversation',
       () {
         expect(
-          shouldDrawLocally(payload(block: true), isAndroid: true),
-          isFalse,
+          localDrawFor(payload(block: true), isAndroid: true),
+          LocalDraw.adoptSystemCopy,
         );
       },
     );
 
+    test('Android, assignment the OS already drew: left to the OS', () {
+      expect(
+        localDrawFor(
+          payload(block: true, type: 'conversation_assigned'),
+          isAndroid: true,
+        ),
+        LocalDraw.none,
+      );
+    });
+
     test('iOS: the APNs alert is the presenter, the app never draws', () {
-      expect(shouldDrawLocally(payload(), isAndroid: false), isFalse);
+      expect(localDrawFor(payload(), isAndroid: false), LocalDraw.none);
+      expect(
+        localDrawFor(payload(block: true), isAndroid: false),
+        LocalDraw.none,
+      );
     });
 
     test('a push naming no conversation is never drawn', () {
       expect(
-        shouldDrawLocally(
+        localDrawFor(
           PushPayload.parse(data: const {'type': 'x'}, receivedAt: received),
           isAndroid: true,
         ),
-        isFalse,
+        LocalDraw.none,
       );
+    });
+
+    test('the raw notification text is kept to find the OS copy', () {
+      final push = PushPayload.parse(
+        data: const {'type': 'new_message', 'conversation_id': '5'},
+        hasSystemNotification: true,
+        notificationTitle: 'Sara  Ahmed',
+        notificationBody: 'line  break',
+        receivedAt: received,
+      );
+      // Cleaned for display, untouched for matching.
+      expect(push.title, 'Sara Ahmed');
+      expect(push.systemTitle, 'Sara  Ahmed');
+      expect(push.body, 'line break');
+      expect(push.systemBody, 'line  break');
     });
   });
 

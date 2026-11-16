@@ -5,11 +5,14 @@
 /// answered a customer and did not is the worst outcome this app can produce.
 library;
 
+import 'dart:async' show unawaited;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/conversation_review.dart';
+import '../../core/models/intelligence.dart';
 import '../../core/models/message.dart';
 import '../../core/models/template.dart';
 import '../../core/providers.dart';
@@ -20,6 +23,7 @@ import '../conversations/conversation_repository.dart'
     show ConversationRepository;
 import '../conversations/inbox_controller.dart';
 import '../templates/templates_providers.dart';
+import 'intelligence_providers.dart';
 
 class ConversationState {
   const ConversationState({
@@ -335,6 +339,48 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       );
     }
     ref.read(inboxControllerProvider.notifier).refreshQuietly();
+  }
+
+  /// The employee confirms that the customer's purchase claim actually
+  /// happened: `POST /conversations/{id}/confirm-purchase/` with
+  /// `{confirmed: true, note}` (needs `conversation.confirm_purchase`).
+  ///
+  /// The server decides everything that follows — `AGENT_CONFIRMED`, the
+  /// stage, who confirmed and when — and returns the updated intelligence,
+  /// which this hands back. Nothing changes here until it has answered; no
+  /// order is created or touched. It is not a status change: the
+  /// conversation's status is left as it is.
+  ///
+  /// On success the answer is shown straight away as the conversation's
+  /// intelligence (Customer Information's confirmed banner), the
+  /// intelligence and confirmation history are read again, the conversation's
+  /// own summary (stage, purchase status) is refreshed and the inbox folds
+  /// the change in. A 404 means this conversation is no longer the
+  /// employee's to see: handled as lost access, then rethrown with every
+  /// other refusal for the caller to explain.
+  Future<ConversationIntelligence> confirmPurchase({String note = ''}) async {
+    final ConversationIntelligence result;
+    try {
+      result = await ref
+          .read(conversationRepositoryProvider)
+          .confirmPurchase(conversationId, confirmed: true, note: note);
+    } on ApiException catch (error) {
+      if (error.isNotFound) _lostAccess();
+      rethrow;
+    }
+    if (!ref.mounted) return result;
+    // The answer is the intelligence read itself: Customer Information shows
+    // it — the confirmed banner — at once, then the read is taken again
+    // (shown in place, no flicker) in case the answer left anything out.
+    ref
+        .read(conversationIntelligenceProvider(conversationId).notifier)
+        .applyServerAnswer(result);
+    ref
+      ..invalidate(conversationIntelligenceProvider(conversationId))
+      ..invalidate(purchaseConfirmationsProvider(conversationId));
+    unawaited(_refreshConversationDetail());
+    ref.read(inboxControllerProvider.notifier).refreshQuietly();
+    return result;
   }
 
   /// Send a reply, showing it immediately as pending.
@@ -1199,7 +1245,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     ref
         .read(inboxControllerProvider.notifier)
         .setUnreadCount(conversationId, unreadCount);
-    ref.invalidate(conversationCountsProvider);
+    ref.refreshInboxCounts();
   }
 
   Future<void> loadOlder() async {

@@ -415,7 +415,7 @@ class _PushBridgeState extends ConsumerState<PushBridge>
       MessageNotifications.instance.rememberDelivered(pushPayloadOf(message));
     }
     ref.read(inboxControllerProvider.notifier).refreshQuietly();
-    ref.invalidate(conversationCountsProvider);
+    ref.refreshInboxCounts();
 
     final active = ref.read(activeConversationProvider);
     if (active == conversationId) {

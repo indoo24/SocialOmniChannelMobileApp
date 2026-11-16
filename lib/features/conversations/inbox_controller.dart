@@ -45,8 +45,11 @@ import '../../core/providers.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
 import 'conversation_repository.dart';
+import 'inbox_counts.dart';
 import 'inbox_list_merge.dart';
 import 'inbox_pagination_log.dart';
+
+export 'inbox_counts.dart';
 
 /// Computes allowed channel IDs across all platforms, matching Web's `pn(selection, connections)`.
 List<int>? computeAllowedChannelConnections(
@@ -769,8 +772,7 @@ class InboxController extends AsyncNotifier<InboxState> {
     _reloads++;
     try {
       ref.invalidate(channelsProvider);
-      ref.invalidate(conversationCountsProvider);
-      ref.invalidate(needsReplyCountProvider);
+      ref.refreshInboxCounts(now: true);
       final filters = ref.read(inboxFiltersProvider);
       final fresh = await _firstBatch(filters, navigation: ++_navigation);
       if (!ref.mounted || epoch != _epoch) return;
@@ -795,8 +797,7 @@ class InboxController extends AsyncNotifier<InboxState> {
   /// leaving the list as it is if that fails.
   Future<void> refreshQuietly({bool reset = false}) async {
     ref.invalidate(channelsProvider);
-    ref.invalidate(conversationCountsProvider);
-    ref.invalidate(needsReplyCountProvider);
+    ref.refreshInboxCounts();
     if (reset) {
       await _resetQuietly();
     } else {
@@ -1057,8 +1058,7 @@ class InboxController extends AsyncNotifier<InboxState> {
   /// and re-read the counts it was part of.
   void lostAccess(int conversationId) {
     removeConversation(conversationId);
-    ref.invalidate(conversationCountsProvider);
-    ref.invalidate(needsReplyCountProvider);
+    ref.refreshInboxCounts();
   }
 
   // -- local patches --------------------------------------------------------
@@ -1237,48 +1237,3 @@ class InboxController extends AsyncNotifier<InboxState> {
 
 final inboxControllerProvider =
     AsyncNotifierProvider<InboxController, InboxState>(InboxController.new);
-
-/// The Needs reply badge: the server's own `needs_reply` from
-/// `GET /conversations/counts/` — one request, the number the web badges.
-/// Scoped to the account picked when exactly one is (the endpoint takes one).
-/// Null while it cannot be read; the badge then shows nothing.
-final needsReplyCountProvider = FutureProvider<int?>((ref) async {
-  final picked = ref.watch(
-    inboxFiltersProvider.select((f) => f.channelConnections),
-  );
-  try {
-    final counts = await ref
-        .watch(conversationRepositoryProvider)
-        .serverCounts(
-          channelConnection: picked != null && picked.length == 1
-              ? picked.single
-              : null,
-        );
-    return counts['needs_reply'];
-  } on ApiException {
-    return null;
-  }
-});
-
-final conversationCountsProvider = FutureProvider<Map<String, int>>((
-  ref,
-) async {
-  final filters = ref.watch(inboxFiltersProvider);
-  // The badges count what the list shows, so they are limited to the same
-  // eligible accounts ([eligibleInboxAccounts]).
-  List<int>? accounts;
-  try {
-    accounts = eligibleInboxAccounts(await ref.watch(channelsProvider.future));
-  } catch (_) {
-    accounts = null;
-  }
-  return ref
-      .watch(conversationRepositoryProvider)
-      .counts(
-        channelConnections: scopeToEligibleAccounts(
-          filters,
-          accounts,
-        ).channelConnections,
-        currentEmployeeId: ref.watch(currentEmployeeProvider)?.id,
-      );
-});

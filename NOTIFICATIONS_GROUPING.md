@@ -42,7 +42,7 @@ Android removes a group summary together with its last child. Rule C needs the c
 | Element | Conversation notification | Summary |
 |---|---|---|
 | Small icon | `ic_stat_scenario`: the logo's centre mark, monochrome, tinted Scenario blue `#3A2CF0` | same |
-| Header | app name · channel (*"WhatsApp · Main store"*) · time | app name · time |
+| Header | app name · channel (*"WhatsApp · Main store"*) · *"3 new messages"* once there is more than one · time | app name · time |
 | Title | customer name (bold) | *"15 new messages"* |
 | Body | `MessagingStyle`: the last ≤5 messages with timestamps | `InboxStyle`: one line per recent conversation, *"Sara: Is it in stock?"*, footer *"From 10 conversations"* |
 | Large icon | initials avatar in a stable per-customer colour, with a dot in the channel's brand colour | none |
@@ -139,7 +139,8 @@ Some OEM battery managers (Xiaomi, Huawei, some Samsung modes) may delay or drop
 
 1. **Never draw twice:** the app draws a push only if it has *no* `notification` block (`shouldDrawLocally`).
 2. **Never count twice:** the backend `message_id` (else FCM's delivery id) is remembered for the last 300 messages across bursts. A repeat produces no notification and no count change. Messages shown as an in-app banner are remembered too.
-3. **Never two notifications per conversation:** stable id per conversation (`NotificationIds.forConversation`) plus a per-kind tag. In summary mode, no conversation notification is posted at all.
+3. **Never two notifications per conversation:** Android identifies a notification by (tag, id), and both come from `conversation_id` only: tag `scenario.conversation.<id>`, id `conversation_id & 0x7fffffff` (`NotificationIds`). Every message of a conversation, in any isolate and after any restart, updates the same notification. The id in the tag makes the pair collision-free even for ids past 32 bits. In summary mode, no conversation notification is posted at all.
+3a. **Pushes the OS already drew:** a `new_message` that still carries a `notification` block is drawn by the Firebase SDK under a fresh `FCM-Notification:<time>` tag per push, which is why each message used to appear separately. The background handler still runs for it on Android. It finds that copy in the tray by tag prefix and exact title/body (polling up to 2 s, since either side can go first), folds the message into the conversation's notification **silently** (the OS already played the sound), then cancels the copy. If the copy never appears, the tray is left as is and nothing is counted. So one notification per conversation holds with either payload shape. Data-only (§5.1) is still the clean path: no brief flash of the OS copy and no dependency on the SDK's tag format.
 4. **Never a duplicate summary:** one fixed summary id, updated in place.
 5. **Tap replay:** the existing `messageId` guard for FCM taps is unchanged. Local launch details are read once per launch.
 

@@ -344,64 +344,34 @@ class ConversationRepository {
     return Conversation.fromJson(data);
   }
 
-  /// Quick-filter badge counts, one per bucket: all, mine, unassigned,
-  /// unread, open.
+  /// Every inbox tab's count in one request — `GET /conversations/counts/`,
+  /// exactly as the web inbox reads its tab numbers: `all`, `mine`,
+  /// `unassigned`, `unread`, `open`, `resolved`, `needs_reply`,
+  /// `review_mine` (and `new`, `waiting`), scoped by the server to what the
+  /// caller may see, muted channels left out as the list leaves them out.
   ///
-  /// Deliberately **not** `GET /conversations/counts/`: that endpoint's own
-  /// total disagreed with what `/conversations/` actually returns for the
-  /// same account (confirmed live against production — the badge read 32
-  /// while the list, and the web client, both agreed on 15), which is a
-  /// server-side inconsistency between the two endpoints' queries. Asking
-  /// `/conversations/` itself — the same endpoint and the same
-  /// [ConversationFilters] the list uses — for each bucket's `count` makes
-  /// the badge numbers correct by construction: they cannot disagree with
-  /// the list, because they are answers from the list's own query, not a
-  /// second, independently-implemented one. `pageSize: 1` keeps each of the
-  /// five requests to a single-row response; only `count` is read.
+  /// [channelConnections] go as `channel_connections` (sorted,
+  /// comma-separated) — the parameter the web client sends with its account
+  /// selection. The inbox passes the same accounts its list is limited to
+  /// (`scopeToEligibleAccounts`), so a disconnected or archived account's
+  /// conversations, which the list never shows, are not counted either.
+  /// Null sends nothing (the server's own scope); an empty list — no account
+  /// eligible — sends `0`, as the list does, which matches nothing.
   ///
-  /// The inbox lists **groups** (`GET /conversations/grouped/`), so that is
-  /// the query each badge asks: a badge counts the rows the list would show,
-  /// so "Unread 5" is five rows and "Page 1 of N" agrees with "All".
-  Future<Map<String, int>> counts({
-    List<int>? channelConnections,
-    int? currentEmployeeId,
-  }) async {
-    final base = ConversationFilters(channelConnections: channelConnections);
-
-    Future<int> countFor(ConversationFilters filters) async {
-      final page = await listGrouped(
-        filters: filters,
-        currentEmployeeId: currentEmployeeId,
-        pageSize: 1,
-      );
-      return page.count;
-    }
-
-    final results = await Future.wait([
-      countFor(base),
-      countFor(base.copyWith(assignedToMe: true)),
-      countFor(base.copyWith(unassigned: true)),
-      countFor(base.copyWith(unread: true)),
-      countFor(base.copyWith(status: 'OPEN')),
-    ]);
-
-    return {
-      'all': results[0],
-      'mine': results[1],
-      'unassigned': results[2],
-      'unread': results[3],
-      'open': results[4],
+  /// These count conversations, as the web's do; the inbox lists customers
+  /// (one row may hold several of their conversations), so a tab's number
+  /// can be above the rows it shows. Earlier the badges asked the grouped
+  /// list for its row count instead, after this endpoint once read 32 where
+  /// the list read 15; they now show the web's own numbers.
+  Future<Map<String, int>> counts({List<int>? channelConnections}) async {
+    final picked = switch (channelConnections) {
+      null => null,
+      [] => '0',
+      final ids => ([...ids]..sort()).join(','),
     };
-  }
-
-  /// `GET /conversations/counts/` — one number per bucket, as the server
-  /// counts them (conversations, not customer groups). Read for
-  /// `needs_reply`, which the web inbox badges the same way. Scoped to one
-  /// account with [channelConnection], as the endpoint allows.
-  Future<Map<String, int>> serverCounts({int? channelConnection}) async {
     final data = await _api.get<Map<String, dynamic>>(
       '/conversations/counts/',
-      query: {'channel_connection': ?channelConnection},
+      query: {'channel_connections': ?picked},
     );
     return {
       for (final entry in data.entries)

@@ -17,15 +17,35 @@ import '../../core/providers.dart';
 /// `AsyncData(null)` is the legitimate "not analyzed yet" state — distinct
 /// from `AsyncLoading` and `AsyncError` — since the backend returns a literal
 /// JSON `null` before the analyzer has run.
+///
+/// Read, watched, awaited (`.future`) and invalidated exactly like the
+/// `FutureProvider` it was. A notifier only so that an action whose endpoint
+/// answers with this same read can show that answer at once
+/// ([ConversationIntelligenceNotifier.applyServerAnswer]).
 final conversationIntelligenceProvider =
-    FutureProvider.family<ConversationIntelligence?, int>((
-      ref,
-      conversationId,
-    ) {
-      return ref
-          .watch(conversationRepositoryProvider)
-          .intelligence(conversationId);
-    });
+    AsyncNotifierProvider.family<
+      ConversationIntelligenceNotifier,
+      ConversationIntelligence?,
+      int
+    >(ConversationIntelligenceNotifier.new);
+
+class ConversationIntelligenceNotifier
+    extends AsyncNotifier<ConversationIntelligence?> {
+  ConversationIntelligenceNotifier(this.conversationId);
+
+  final int conversationId;
+
+  @override
+  Future<ConversationIntelligence?> build() =>
+      ref.watch(conversationRepositoryProvider).intelligence(conversationId);
+
+  /// What the server just answered from an endpoint that returns this same
+  /// intelligence read (`POST …/confirm-purchase/`), shown as it is — never
+  /// a value worked out here. A later read (an invalidation, a realtime
+  /// `intelligence.updated`) replaces it as usual.
+  void applyServerAnswer(ConversationIntelligence intelligence) =>
+      state = AsyncData(intelligence);
+}
 
 /// History of human rulings on purchase claims for one conversation.
 final purchaseConfirmationsProvider =

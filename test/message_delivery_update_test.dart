@@ -242,7 +242,7 @@ void main() {
       container = ProviderContainer(
         overrides: [
           inboxControllerProvider.overrideWith(() => _FakeInboxController()),
-          conversationCountsProvider.overrideWith((ref) async => {}),
+          conversationCountsProvider.overrideWithBuild((ref, _) async => {}),
           conversationControllerProvider(
             1,
           ).overrideWith(() => conversationController),

@@ -1748,7 +1748,7 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
     // list — not only at the top — so reload the list from the top rather
     // than only refreshing its head.
     ref.read(inboxControllerProvider.notifier).refreshQuietly(reset: true);
-    ref.invalidate(conversationCountsProvider);
+    ref.refreshInboxCounts();
     final active = ref.read(activeConversationProvider);
     if (active != null) {
       ref
@@ -1810,7 +1810,7 @@ class _ChannelCardState extends ConsumerState<_ChannelCard> {
     // list — not only at the top — so reload the list from the top rather
     // than only refreshing its head.
     ref.read(inboxControllerProvider.notifier).refreshQuietly(reset: true);
-    ref.invalidate(conversationCountsProvider);
+    ref.refreshInboxCounts();
     final active = ref.read(activeConversationProvider);
     if (active != null) {
       ref
