@@ -6391,6 +6391,12 @@ abstract class AppLocalizations {
   /// **'Conversation resolved'**
   String get conversationResolvedSnackbar;
 
+  /// No description provided for @resolveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve'**
+  String get resolveAction;
+
   /// Snack bar action that reverses the last action.
   ///
   /// In en, this message translates to:
@@ -9283,6 +9289,18 @@ abstract class AppLocalizations {
   /// **'The customer'**
   String get theCustomerLabel;
 
+  /// No description provided for @markSoldTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold'**
+  String get markSoldTooltip;
+
+  /// No description provided for @confirmPurchaseForbiddenMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to confirm purchases.'**
+  String get confirmPurchaseForbiddenMessage;
+
   /// No description provided for @confirmPurchaseAction.
   ///
   /// In en, this message translates to:
@@ -9420,6 +9438,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, one{1 conversation needs a reply} other{{count} conversations need a reply}}'**
   String needsReplyCountSemantics(int count);
+
+  /// No description provided for @tabCountSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 conversation} other{{count} conversations}}'**
+  String tabCountSemantics(int count);
 
   /// No description provided for @needsReplySortLabel.
   ///

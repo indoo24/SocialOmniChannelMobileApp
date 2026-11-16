@@ -770,7 +770,6 @@ class InboxController extends AsyncNotifier<InboxState> {
     try {
       ref.invalidate(channelsProvider);
       ref.invalidate(conversationCountsProvider);
-      ref.invalidate(needsReplyCountProvider);
       final filters = ref.read(inboxFiltersProvider);
       final fresh = await _firstBatch(filters, navigation: ++_navigation);
       if (!ref.mounted || epoch != _epoch) return;
@@ -796,7 +795,6 @@ class InboxController extends AsyncNotifier<InboxState> {
   Future<void> refreshQuietly({bool reset = false}) async {
     ref.invalidate(channelsProvider);
     ref.invalidate(conversationCountsProvider);
-    ref.invalidate(needsReplyCountProvider);
     if (reset) {
       await _resetQuietly();
     } else {
@@ -1058,7 +1056,6 @@ class InboxController extends AsyncNotifier<InboxState> {
   void lostAccess(int conversationId) {
     removeConversation(conversationId);
     ref.invalidate(conversationCountsProvider);
-    ref.invalidate(needsReplyCountProvider);
   }
 
   // -- local patches --------------------------------------------------------
@@ -1238,34 +1235,24 @@ class InboxController extends AsyncNotifier<InboxState> {
 final inboxControllerProvider =
     AsyncNotifierProvider<InboxController, InboxState>(InboxController.new);
 
-/// The Needs reply badge: the server's own `needs_reply` from
-/// `GET /conversations/counts/` — one request, the number the web badges.
-/// Scoped to the account picked when exactly one is (the endpoint takes one).
-/// Null while it cannot be read; the badge then shows nothing.
-final needsReplyCountProvider = FutureProvider<int?>((ref) async {
-  final picked = ref.watch(
-    inboxFiltersProvider.select((f) => f.channelConnections),
-  );
-  try {
-    final counts = await ref
-        .watch(conversationRepositoryProvider)
-        .serverCounts(
-          channelConnection: picked != null && picked.length == 1
-              ? picked.single
-              : null,
-        );
-    return counts['needs_reply'];
-  } on ApiException {
-    return null;
-  }
-});
-
+/// The inbox's counts — every quick-filter tab's number and the drawer's
+/// unread badge — from one `GET /conversations/counts/`, the request the web
+/// inbox makes for its tabs ([ConversationRepository.counts]).
+///
+/// Scoped to the same accounts as the list: those the employee picked, or
+/// else every eligible one ([eligibleInboxAccounts]) — so conversations on a
+/// disconnected or archived account, which the list never shows, are not
+/// counted. Read again only when that scope changes — not on a tab, search
+/// or sort change, which leave the numbers as they are. Kept current by
+/// invalidation: every event that can move a conversation between tabs (a
+/// message, an assignment, a status change, a resync, a pull to refresh)
+/// re-reads it, in one request.
 final conversationCountsProvider = FutureProvider<Map<String, int>>((
   ref,
 ) async {
-  final filters = ref.watch(inboxFiltersProvider);
-  // The badges count what the list shows, so they are limited to the same
-  // eligible accounts ([eligibleInboxAccounts]).
+  final picked = ref.watch(
+    inboxFiltersProvider.select((f) => f.channelConnections),
+  );
   List<int>? accounts;
   try {
     accounts = eligibleInboxAccounts(await ref.watch(channelsProvider.future));
@@ -1276,9 +1263,8 @@ final conversationCountsProvider = FutureProvider<Map<String, int>>((
       .watch(conversationRepositoryProvider)
       .counts(
         channelConnections: scopeToEligibleAccounts(
-          filters,
+          ConversationFilters(channelConnections: picked),
           accounts,
         ).channelConnections,
-        currentEmployeeId: ref.watch(currentEmployeeProvider)?.id,
       );
 });

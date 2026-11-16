@@ -33,6 +33,7 @@ import 'conversion_sheet.dart';
 import 'customer_intelligence_section.dart';
 import 'intelligence_providers.dart';
 import 'notes_sheet.dart';
+import 'resolve_undo.dart';
 import '../customer_fields/custom_fields_section.dart';
 import '../directory/edit_customer_sheet.dart';
 import '../directory/call_customer_button.dart';
@@ -50,6 +51,26 @@ const _statuses = [
   'CLOSED',
 ];
 const _priorities = ['URGENT', 'HIGH', 'NORMAL', 'LOW'];
+
+/// What each status chip is coloured as: open is live work (green), waiting
+/// on the customer is blue, waiting on the team amber, resolved a settled
+/// grey and closed the quietest grey. Colour only — the values sent are
+/// [_statuses], unchanged.
+_ChipTone _statusTone(String status) => switch (status) {
+  'OPEN' => _ChipTone.success,
+  'WAITING_CUSTOMER' => _ChipTone.info,
+  'WAITING_INTERNAL' => _ChipTone.warning,
+  'RESOLVED' => _ChipTone.neutral,
+  _ => _ChipTone.muted,
+};
+
+/// Urgent red, high orange, normal blue, low muted grey.
+_ChipTone _priorityTone(String priority) => switch (priority) {
+  'URGENT' => _ChipTone.danger,
+  'HIGH' => _ChipTone.warning,
+  'NORMAL' => _ChipTone.info,
+  _ => _ChipTone.muted,
+};
 
 /// Opens the comprehensive data and actions bottom sheet for a conversation.
 Future<void> showConversationActionsSheet(
@@ -250,9 +271,8 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
           ),
 
         // ------------------------------------------------------------
-        // TOP QUICK ACTIONS: PIN AND REVIEW
+        // TOP QUICK ACTIONS: PIN AND REVIEW, THEN RESOLVE
         // ------------------------------------------------------------
-        // Resolve lives in the conversation's top bar.
         if (conversation != null) ...[
           Row(
             children: [
@@ -267,6 +287,36 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
               ],
             ],
           ),
+          // Resolve: the status change to RESOLVED — the same endpoint and
+          // value as the Resolved status chip below, gated on the same
+          // `conversation.change_status`. Not the header's "تم البيع", which
+          // confirms a purchase and leaves the status alone.
+          if (canChangeStatus) ...[
+            const SizedBox(height: Space.sm),
+            _SheetResolveButton(
+              resolved: conversation.status.toUpperCase() == 'RESOLVED',
+              busy: _busy,
+              onPressed: () {
+                // What Undo goes back to; read before the request changes it.
+                final previousStatus = conversation.status;
+                _run(
+                  () => ref
+                      .read(
+                        conversationControllerProvider(
+                          widget.conversationId,
+                        ).notifier,
+                      )
+                      .updateStatus('RESOLVED'),
+                  context.l10n.conversationResolvedSnackbar,
+                  onSuccess: (context) => showResolveUndoSnackBar(
+                    context,
+                    conversationId: widget.conversationId,
+                    previousStatus: previousStatus,
+                  ),
+                );
+              },
+            ),
+          ],
           const SizedBox(height: Space.lg),
         ],
 
@@ -620,20 +670,19 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                   runSpacing: Space.sm,
                   children: [
                     for (final status in _statuses)
-                      ChoiceChip(
-                        label: Text(
-                          ConversationBadges.status(context, status).$1,
-                        ),
+                      _ToneChip(
+                        key: Key('status_chip_$status'),
+                        label: ConversationBadges.status(context, status).$1,
+                        tone: _statusTone(status),
                         selected: conversation?.status == status,
-                        onSelected: _busy
-                            ? null
-                            : (_) => _run(
-                                () => repository.changeStatus(
-                                  widget.conversationId,
-                                  status,
-                                ),
-                                context.l10n.statusUpdatedMessage,
-                              ),
+                        enabled: !_busy,
+                        onSelected: () => _run(
+                          () => repository.changeStatus(
+                            widget.conversationId,
+                            status,
+                          ),
+                          context.l10n.statusUpdatedMessage,
+                        ),
                       ),
                   ],
                 ),
@@ -647,20 +696,22 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                   runSpacing: Space.sm,
                   children: [
                     for (final priority in _priorities)
-                      ChoiceChip(
-                        label: Text(
-                          ConversationBadges.priority(context, priority).$1,
-                        ),
+                      _ToneChip(
+                        key: Key('priority_chip_$priority'),
+                        label: ConversationBadges.priority(
+                          context,
+                          priority,
+                        ).$1,
+                        tone: _priorityTone(priority),
                         selected: conversation?.priority == priority,
-                        onSelected: _busy
-                            ? null
-                            : (_) => _run(
-                                () => repository.changePriority(
-                                  widget.conversationId,
-                                  priority,
-                                ),
-                                context.l10n.priorityUpdatedMessage,
-                              ),
+                        enabled: !_busy,
+                        onSelected: () => _run(
+                          () => repository.changePriority(
+                            widget.conversationId,
+                            priority,
+                          ),
+                          context.l10n.priorityUpdatedMessage,
+                        ),
                       ),
                   ],
                 ),
@@ -681,34 +732,40 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                       data: (options) => Wrap(
                         spacing: Space.sm,
                         runSpacing: Space.sm,
+                        // Categories carry no meaning in a colour: the brand
+                        // colour when chosen, the quiet neutral otherwise.
                         children: [
-                          ChoiceChip(
-                            label: Text(context.l10n.categoryNoneOption),
+                          _ToneChip(
+                            key: const Key('category_chip_none'),
+                            label: context.l10n.categoryNoneOption,
+                            tone: _ChipTone.brand,
+                            quietWhenUnselected: true,
                             selected: conversation?.category == null,
-                            onSelected: _busy
-                                ? null
-                                : (_) => _run(
-                                    () => repository.changeCategory(
-                                      widget.conversationId,
-                                      null,
-                                    ),
-                                    context.l10n.categoryUpdatedMessage,
-                                  ),
+                            enabled: !_busy,
+                            onSelected: () => _run(
+                              () => repository.changeCategory(
+                                widget.conversationId,
+                                null,
+                              ),
+                              context.l10n.categoryUpdatedMessage,
+                            ),
                           ),
                           for (final category in options)
-                            ChoiceChip(
-                              label: Text(category.label),
+                            _ToneChip(
+                              key: Key('category_chip_${category.id}'),
+                              label: category.label,
+                              tone: _ChipTone.brand,
+                              quietWhenUnselected: true,
                               selected:
                                   conversation?.category?.id == category.id,
-                              onSelected: _busy
-                                  ? null
-                                  : (_) => _run(
-                                      () => repository.changeCategory(
-                                        widget.conversationId,
-                                        category.id,
-                                      ),
-                                      context.l10n.categoryUpdatedMessage,
-                                    ),
+                              enabled: !_busy,
+                              onSelected: () => _run(
+                                () => repository.changeCategory(
+                                  widget.conversationId,
+                                  category.id,
+                                ),
+                                context.l10n.categoryUpdatedMessage,
+                              ),
                             ),
                         ],
                       ),
@@ -1798,6 +1855,213 @@ class _SheetQuickAction extends StatelessWidget {
             )
           : Icon(icon, size: 20),
       label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+    );
+  }
+}
+
+/// Resolve — full width under Pin and Review, in the success green.
+///
+/// White on a green deepened from the theme's own success colour until the
+/// label reads at 4.5:1. Once the conversation is resolved it says so,
+/// softly, and cannot be tapped again (reopening is the Open status chip).
+/// A spinner stands in for the icon while the sheet is busy.
+class _SheetResolveButton extends StatelessWidget {
+  const _SheetResolveButton({
+    required this.resolved,
+    required this.busy,
+    required this.onPressed,
+  });
+
+  final bool resolved;
+  final bool busy;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = AppColors.of(context);
+    final l10n = context.l10n;
+    final solid = _readableUnderWhite(colors.success);
+    final settledInk = Color.lerp(colors.success, colors.foreground, 0.45)!;
+    return FilledButton.icon(
+      key: const Key('conversation_actions_sheet_resolve_button'),
+      onPressed: resolved || busy ? null : onPressed,
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(50),
+        backgroundColor: solid,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: resolved
+            ? colors.successSurface
+            : solid.withValues(alpha: 0.6),
+        disabledForegroundColor: resolved ? settledInk : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.md),
+          side: resolved
+              ? BorderSide(color: colors.success.withValues(alpha: 0.45))
+              : BorderSide.none,
+        ),
+        textStyle: theme.textTheme.labelLarge?.copyWith(
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      icon: busy && !resolved
+          ? const SizedBox(
+              key: Key('conversation_actions_sheet_resolve_busy'),
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : Icon(
+              resolved ? Icons.done_all_rounded : Icons.check_circle_rounded,
+              size: 22,
+            ),
+      label: Text(
+        resolved ? l10n.statusResolved : l10n.resolveAction,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+}
+
+/// What a selection chip is coloured as — the theme's own status colours
+/// (`AppColors`), plus the brand colour for choices with no meaning in a
+/// colour (categories).
+enum _ChipTone { success, info, warning, danger, neutral, muted, brand }
+
+/// [color] taken darker, in its own hue, until white text on it reads at
+/// WCAG AA (4.5:1) — so a selected chip or the Resolve button is always
+/// legible, whatever the theme's tone. A colour that already passes is
+/// returned as is.
+Color _readableUnderWhite(Color color) {
+  var hsl = HSLColor.fromColor(color);
+  double contrast(Color c) => (1.0 + 0.05) / (c.computeLuminance() + 0.05);
+  while (contrast(hsl.toColor()) < 4.5 && hsl.lightness > 0.05) {
+    hsl = hsl.withLightness((hsl.lightness - 0.03).clamp(0.0, 1.0));
+  }
+  return hsl.toColor();
+}
+
+/// One pill in the Status, Priority or Category choices.
+///
+/// Selected: filled in its tone (deepened to keep white text readable), with
+/// a check, bold. Unselected: the tone's light tint with a faint border of
+/// the same tone and its text in that tone — or, [quietWhenUnselected], the
+/// neutral surface. Tapping the selected chip does nothing: it is already
+/// the value, and sending it again would change nothing.
+class _ToneChip extends StatelessWidget {
+  const _ToneChip({
+    required this.label,
+    required this.tone,
+    required this.selected,
+    required this.enabled,
+    required this.onSelected,
+    this.quietWhenUnselected = false,
+    super.key,
+  });
+
+  final String label;
+  final _ChipTone tone;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onSelected;
+  final bool quietWhenUnselected;
+
+  /// The tone's strong colour and its light surface.
+  (Color, Color) _palette(BuildContext context) {
+    final colors = AppColors.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return switch (tone) {
+      _ChipTone.success => (colors.success, colors.successSurface),
+      _ChipTone.info => (colors.info, colors.infoSurface),
+      _ChipTone.warning => (colors.warning, colors.warningSurface),
+      _ChipTone.danger => (colors.danger, colors.dangerSurface),
+      _ChipTone.neutral => (scheme.onSurface, colors.muted),
+      _ChipTone.muted => (colors.mutedForeground, colors.muted),
+      _ChipTone.brand => (colors.primary, colors.infoSurface),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = AppColors.of(context);
+    final (strong, surface) = _palette(context);
+    final quiet = quietWhenUnselected && !selected;
+
+    final Color background;
+    final Color foreground;
+    final BorderSide border;
+    if (selected) {
+      background = _readableUnderWhite(strong);
+      foreground = Colors.white;
+      border = BorderSide(color: background);
+    } else if (quiet) {
+      background = colors.muted;
+      foreground = theme.colorScheme.onSurface;
+      border = BorderSide(color: colors.border);
+    } else {
+      background = surface;
+      // The tone, pulled toward the page's text colour so it reads on its
+      // own light tint (amber on cream would not).
+      foreground = Color.lerp(strong, colors.foreground, 0.35)!;
+      border = BorderSide(color: strong.withValues(alpha: 0.35));
+    }
+    final shape = StadiumBorder(side: border);
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.6,
+        child: Material(
+          color: background,
+          shape: shape,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            customBorder: shape,
+            onTap: enabled && !selected ? onSelected : null,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 40),
+              child: Padding(
+                padding: EdgeInsetsDirectional.only(
+                  start: selected ? Space.md : Space.md + 2,
+                  end: Space.md + 2,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (selected) ...[
+                      Icon(Icons.check_rounded, size: 16, color: foreground),
+                      const SizedBox(width: 6),
+                    ],
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: foreground,
+                          fontSize: 13.5,
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                          height: 1.2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

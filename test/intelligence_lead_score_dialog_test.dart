@@ -158,6 +158,16 @@ const _purchaseClaimIntelligence = ConversationIntelligence(
   analyzedAt: null,
 );
 
+/// The intelligence read, fixed to [_value] for the test.
+class _FixedIntelligence extends ConversationIntelligenceNotifier {
+  _FixedIntelligence(this._value) : super(1);
+
+  final ConversationIntelligence _value;
+
+  @override
+  Future<ConversationIntelligence?> build() async => _value;
+}
+
 Widget _harness({
   required ApiClient apiClient,
   required Widget child,
@@ -169,7 +179,7 @@ Widget _harness({
       currentEmployeeProvider.overrideWithValue(_employee),
       conversationIntelligenceProvider(
         1,
-      ).overrideWith((ref) async => intelligence),
+      ).overrideWith(() => _FixedIntelligence(intelligence)),
       purchaseConfirmationsProvider(1).overrideWith((ref) async => []),
     ],
     child: MaterialApp(

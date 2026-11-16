@@ -131,9 +131,9 @@ ProviderContainer _container(_Server server, {Employee? me}) {
     overrides: [
       apiClientProvider.overrideWithValue(server.client()),
       currentEmployeeProvider.overrideWith((ref) => ref.watch(_whoProvider)),
-      // The Needs reply badge reads the same counts endpoint; it is not what
-      // these tests measure, so it does not ask here.
-      needsReplyCountProvider.overrideWith((ref) async => null),
+      // The tabs' counts read the same endpoint; they are not what these
+      // tests measure, so they do not ask here.
+      conversationCountsProvider.overrideWith((ref) async => const {}),
     ],
   );
   addTearDown(c.dispose);

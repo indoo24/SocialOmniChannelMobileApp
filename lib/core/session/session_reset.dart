@@ -58,7 +58,6 @@ void clearSessionScopedState(Ref ref) {
   ref.invalidate(inboxControllerProvider);
   ref.invalidate(inboxFiltersProvider);
   ref.invalidate(conversationCountsProvider);
-  ref.invalidate(needsReplyCountProvider);
   ref.invalidate(reviewCountProvider);
   ref.invalidate(conversationControllerProvider);
 

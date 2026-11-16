@@ -251,7 +251,6 @@ final inboxResyncProvider = Provider<InboxResync>((ref) {
 void resyncInbox(Ref ref) {
   ref.invalidate(channelsProvider);
   ref.invalidate(conversationCountsProvider);
-  ref.invalidate(needsReplyCountProvider);
   ref.invalidate(reviewCountProvider);
   ref.read(inboxControllerProvider.notifier).resync();
   final active = ref.read(activeConversationProvider);

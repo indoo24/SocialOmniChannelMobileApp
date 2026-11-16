@@ -39,7 +39,7 @@ import 'conversation_review.dart' show ConversationReviewBanner;
 import 'composer_attachment.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
-import 'conversation_resolve_button.dart';
+import 'conversation_sold_button.dart';
 import 'conversation_skeleton.dart';
 import 'conversation_source_card.dart';
 import 'media_group_grid.dart';
@@ -762,9 +762,6 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final canChangeCategory = ref.watch(
       canProvider(Perm.conversationChangeCategory),
     );
-    final canChangeStatus = ref.watch(
-      canProvider(Perm.conversationChangeStatus),
-    );
     final canAssignAny = ref.watch(canProvider(Perm.conversationAssignAny));
 
     async.whenData((state) {
@@ -881,10 +878,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             orElse: () => const SizedBox.shrink(),
           ),
           async.maybeWhen(
-            data: (state) => ConversationResolveButton(
-              conversation: state.conversation,
-              canChange: canChangeStatus,
-            ),
+            // "تم البيع": confirms the customer's purchase claim
+            // (`conversation.confirm_purchase`). Resolving is in the actions
+            // sheet's Status section.
+            data: (state) =>
+                ConversationSoldButton(conversation: state.conversation),
             orElse: () => const ConversationActionSkeleton(),
           ),
           async.maybeWhen(

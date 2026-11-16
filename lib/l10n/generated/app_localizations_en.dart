@@ -3625,6 +3625,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get conversationResolvedSnackbar => 'Conversation resolved';
 
   @override
+  String get resolveAction => 'Resolve';
+
+  @override
   String get undoAction => 'Undo';
 
   @override
@@ -5349,6 +5352,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get theCustomerLabel => 'The customer';
 
   @override
+  String get markSoldTooltip => 'Sold';
+
+  @override
+  String get confirmPurchaseForbiddenMessage =>
+      'You don\'t have permission to confirm purchases.';
+
+  @override
   String get confirmPurchaseAction => 'Confirm purchase';
 
   @override
@@ -5428,6 +5438,17 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '$count conversations need a reply',
       one: '1 conversation needs a reply',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tabCountSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conversations',
+      one: '1 conversation',
     );
     return '$_temp0';
   }

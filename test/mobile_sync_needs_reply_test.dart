@@ -387,11 +387,14 @@ void main() {
       () async {
         final server = _Server(_rows(3));
         final c = _container(server);
-        c.listen(needsReplyCountProvider, (_, _) {});
+        c.listen(conversationCountsProvider, (_, _) {});
         await c.read(inboxControllerProvider.future);
         _apply(c, RealtimeEvents.connectionReady); // startup
         await _settle();
-        expect(await c.read(needsReplyCountProvider.future), 12);
+        expect(
+          (await c.read(conversationCountsProvider.future))['needs_reply'],
+          12,
+        );
         final lists = server.lists.length;
 
         // Missed while the socket was down: a new conversation, and the count.
@@ -402,7 +405,10 @@ void main() {
 
         expect(server.lists.length, lists + 1);
         expect(_loadedIds(c), contains(99));
-        expect(await c.read(needsReplyCountProvider.future), 13);
+        expect(
+          (await c.read(conversationCountsProvider.future))['needs_reply'],
+          13,
+        );
       },
     );
 
@@ -547,7 +553,7 @@ void main() {
       await c.read(inboxControllerProvider.future);
       expect(_loadedIds(c), contains(2));
       final counts = server.hits('/api/conversations/counts/');
-      c.listen(needsReplyCountProvider, (_, _) {});
+      c.listen(conversationCountsProvider, (_, _) {});
 
       server.gone.add(2);
       c.read(activeConversationProvider.notifier).opened(2);

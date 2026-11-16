@@ -1946,6 +1946,7 @@
     "description": "Heading and chip for saved replies saved without a category."
   },
   "conversationResolvedSnackbar": "Conversation resolved",
+  "resolveAction": "Resolve",
   "@conversationResolvedSnackbar": {
     "description": "Confirmation after resolving, shown with an Undo action."
   },
@@ -2860,6 +2861,8 @@
   "purchaseClaimSaysPaid": "{name} says they have paid. Scenario has no access to payment records, so this is unverified.",
   "@purchaseClaimSaysPaid": {"placeholders": {"name": {"type": "String"}}},
   "theCustomerLabel": "The customer",
+  "markSoldTooltip": "Sold",
+  "confirmPurchaseForbiddenMessage": "You don't have permission to confirm purchases.",
   "confirmPurchaseAction": "Confirm purchase",
   "purchaseNotePlaceholder": "Optional note (e.g. how you verified it)",
   "confirmingRecordsHint": "Confirming records your name and the time. It does not charge or verify any payment.",
@@ -2886,6 +2889,8 @@
   "needsReplyFilter": "Needs reply",
   "needsReplyCountSemantics": "{count, plural, one{1 conversation needs a reply} other{{count} conversations need a reply}}",
   "@needsReplyCountSemantics": {"placeholders": {"count": {"type": "int"}}},
+  "tabCountSemantics": "{count, plural, one{1 conversation} other{{count} conversations}}",
+  "@tabCountSemantics": {"placeholders": {"count": {"type": "int"}}},
   "needsReplySortLabel": "Sort conversations",
   "needsReplyOldestFirst": "Oldest first",
   "needsReplyNewestFirst": "Newest first",

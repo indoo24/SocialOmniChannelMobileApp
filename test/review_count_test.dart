@@ -624,9 +624,8 @@ void main() {
       );
     });
 
-    testWidgets('nothing at zero, nothing when unknown, 99+ when large', (
-      tester,
-    ) async {
+    testWidgets('nothing at zero, nothing when unknown, the full number '
+        'when large', (tester) async {
       final server = _Server();
       await tester.pumpWidget(bar(server));
       await tester.pumpAndSettle();
@@ -643,7 +642,9 @@ void main() {
         ..overrideValue = 250;
       c.invalidate(reviewCountProvider);
       await tester.pumpAndSettle();
-      expect(find.text('99+'), findsOneWidget);
+      // In full, as the web shows every tab's number — not "99+".
+      expect(find.text('250'), findsOneWidget);
+      expect(find.text('99+'), findsNothing);
     });
 
     testWidgets('follows the server: up, down and gone', (tester) async {

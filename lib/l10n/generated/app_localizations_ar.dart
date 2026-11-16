@@ -3646,6 +3646,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get conversationResolvedSnackbar => 'تم حل المحادثة';
 
   @override
+  String get resolveAction => 'تم الحل';
+
+  @override
   String get undoAction => 'تراجع';
 
   @override
@@ -5380,6 +5383,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get theCustomerLabel => 'العميل';
 
   @override
+  String get markSoldTooltip => 'تم البيع';
+
+  @override
+  String get confirmPurchaseForbiddenMessage =>
+      'ليست لديك صلاحية تأكيد عمليات الشراء.';
+
+  @override
   String get confirmPurchaseAction => 'تأكيد الشراء';
 
   @override
@@ -5463,6 +5473,21 @@ class AppLocalizationsAr extends AppLocalizations {
       two: 'محادثتان تحتاجان ردًا',
       one: 'محادثة واحدة تحتاج ردًا',
       zero: 'لا توجد محادثات تحتاج ردًا',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tabCountSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة',
+      many: '$count محادثة',
+      few: '$count محادثات',
+      two: 'محادثتان',
+      one: 'محادثة واحدة',
+      zero: 'لا توجد محادثات',
     );
     return '$_temp0';
   }
