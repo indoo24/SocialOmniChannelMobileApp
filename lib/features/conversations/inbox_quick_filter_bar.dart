@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/employee.dart';
-
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
@@ -25,8 +25,10 @@ import 'review_count.dart';
 ///
 /// The web's five (`jn = ["all", "mine", "unassigned", "unread", "open"]`
 /// in `inbox.js`) plus Need review and Resolved, and the same behaviour:
-///  - Active item renders filled with the primary colour and a check.
-///  - Inactive items render outlined on the page.
+///  - Active item renders solid in the primary colour, its label bold.
+///  - Inactive items render on the light neutral surface, hairline border.
+///  - In an employee's inbox Mine and Unassigned are left out, and the
+///    counts hidden ([visibleQuickFilters]).
 ///  - A label, and no count — except Need review, which carries how many
 ///    conversations a colleague asked this employee to review (the server's
 ///    `review_mine`, see [reviewCountProvider]), while there are any.
@@ -184,13 +186,15 @@ class _QuickFilterPill extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    // Selected = filled brand colour with a check; unselected = outlined on
-    // the page. The check means the state never rests on colour alone.
+    // Selected = solid brand colour with light, bold text; unselected = the
+    // light neutral surface with a hairline border and regular text. The
+    // fill, the text colour and the weight all change, so the state never
+    // rests on hue alone — and the pill reports itself `selected`.
     final foreground = isActive ? scheme.onPrimary : scheme.onSurface;
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(Radii.pill),
       side: isActive
-          ? BorderSide.none
+          ? BorderSide(color: scheme.primary)
           : BorderSide(color: scheme.outlineVariant),
     );
 
@@ -198,29 +202,25 @@ class _QuickFilterPill extends StatelessWidget {
       button: true,
       selected: isActive,
       child: Material(
-        color: isActive ? scheme.primary : scheme.surface,
+        color: isActive ? scheme.primary : AppColors.of(context).muted,
         shape: shape,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: Sizes.pill),
+            constraints: const BoxConstraints(minHeight: Sizes.touchTarget),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Space.md + 2),
+              padding: const EdgeInsets.symmetric(horizontal: Space.lg + 2),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (isActive) ...[
-                    Icon(Icons.check_rounded, size: 16, color: foreground),
-                    const SizedBox(width: Space.xs),
-                  ],
                   Text(
                     label,
                     maxLines: 1,
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: foreground,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                      fontSize: 13,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                      fontSize: 14,
                       height: 1.2,
                     ),
                   ),
@@ -293,52 +293,125 @@ class _CountBadge extends StatelessWidget {
   }
 }
 
-/// Oldest first / Newest first, under the quick filters while Needs reply is
-/// the view: `ordering=last_customer_message_at` or its reverse, applied by
-/// the server (pages stay consistent; nothing is re-sorted on the phone).
-/// Nothing is shown for any other view.
+/// "Sort conversations" with the order in a compact dropdown at the row's
+/// end (the left in Arabic), under the search bar while Needs reply is the
+/// view: Oldest first / Newest first, sent as
+/// `ordering=last_customer_message_at` or its reverse and applied by the
+/// server (pages stay consistent; nothing is re-sorted on the phone).
+/// Nothing is shown for any other view — none of them has an order to pick.
 class NeedsReplySortBar extends ConsumerWidget {
   const NeedsReplySortBar({super.key});
+
+  static String _labelOf(BuildContext context, NeedsReplyOrder order) =>
+      switch (order) {
+        NeedsReplyOrder.oldestFirst => context.l10n.needsReplyOldestFirst,
+        NeedsReplyOrder.newestFirst => context.l10n.needsReplyNewestFirst,
+      };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filters = ref.watch(inboxFiltersProvider);
     if (!filters.needsReply) return const SizedBox.shrink();
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final l10n = context.l10n;
-
-    Widget option(NeedsReplyOrder order, String label) {
-      final selected = filters.needsReplyOrder == order;
-      return ChoiceChip(
-        key: Key('needs_reply_order_${order.name}'),
-        label: Text(label),
-        selected: selected,
-        showCheckmark: false,
-        visualDensity: VisualDensity.compact,
-        labelStyle: theme.textTheme.labelMedium?.copyWith(
-          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-        ),
-        onSelected: (_) =>
-            ref.read(inboxFiltersProvider.notifier).setNeedsReplyOrder(order),
-      );
-    }
+    final current = filters.needsReplyOrder;
 
     return Padding(
       key: const Key('needs_reply_sort_bar'),
       padding: const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.sm),
-      child: Wrap(
-        spacing: Space.sm,
-        runSpacing: Space.xs,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      child: Row(
         children: [
-          Text(
-            l10n.needsReplySortLabel,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.textTheme.bodySmall?.color,
+          Icon(
+            Icons.swap_vert_rounded,
+            size: Sizes.iconMd,
+            color: theme.textTheme.bodySmall?.color,
+          ),
+          const SizedBox(width: Space.xs),
+          Expanded(
+            child: Text(
+              l10n.needsReplySortLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: theme.textTheme.bodySmall?.color,
+              ),
             ),
           ),
-          option(NeedsReplyOrder.oldestFirst, l10n.needsReplyOldestFirst),
-          option(NeedsReplyOrder.newestFirst, l10n.needsReplyNewestFirst),
+          const SizedBox(width: Space.sm),
+          PopupMenuButton<NeedsReplyOrder>(
+            key: const Key('needs_reply_order_menu'),
+            tooltip: l10n.needsReplySortLabel,
+            initialValue: current,
+            position: PopupMenuPosition.under,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(Radii.lg),
+            ),
+            onSelected: (order) => ref
+                .read(inboxFiltersProvider.notifier)
+                .setNeedsReplyOrder(order),
+            itemBuilder: (context) => [
+              for (final order in NeedsReplyOrder.values)
+                PopupMenuItem(
+                  key: Key('needs_reply_order_${order.name}'),
+                  value: order,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _labelOf(context, order),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: order == current
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: order == current ? scheme.primary : null,
+                          ),
+                        ),
+                      ),
+                      if (order == current)
+                        Icon(
+                          Icons.check_rounded,
+                          size: 18,
+                          color: scheme.primary,
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+            child: Container(
+              constraints: const BoxConstraints(minHeight: Sizes.pill),
+              padding: const EdgeInsets.symmetric(horizontal: Space.md),
+              decoration: BoxDecoration(
+                color: AppColors.of(context).muted,
+                borderRadius: BorderRadius.circular(Radii.pill),
+                border: Border.all(color: scheme.outlineVariant),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 160),
+                    child: Text(
+                      _labelOf(context, current),
+                      key: const Key('needs_reply_order_current'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: Space.xs),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: Sizes.iconMd,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

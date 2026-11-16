@@ -74,6 +74,14 @@ final _me = Employee(
   visibilityScope: 'ALL',
 );
 
+/// Taps a quick filter pill, scrolling the bar to it first: the pills scroll
+/// sideways and the later ones can sit past its visible end.
+Future<void> _tapPill(WidgetTester tester, String key) async {
+  await tester.ensureVisible(find.byKey(Key(key)));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(Key(key)));
+}
+
 void main() {
   // -------------------------------------------------------------------------
   group('query', () {
@@ -365,7 +373,7 @@ void main() {
 
       // Need review asks the server for review=mine; nothing is pending for
       // this employee there.
-      await tester.tap(find.byKey(const Key('quick_filter_needs_review')));
+      await _tapPill(tester, 'quick_filter_needs_review');
       await tester.pumpAndSettle();
       var query = adapter.received
           .lastWhere(_isListRequest)
@@ -386,7 +394,12 @@ void main() {
       );
       expect(find.text('Nothing to review'), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('quick_filter_resolved')));
+      // The bar scrolls sideways; Resolved may sit past its visible end.
+      await tester.ensureVisible(
+        find.byKey(const Key('quick_filter_resolved')),
+      );
+      await tester.pumpAndSettle();
+      await _tapPill(tester, 'quick_filter_resolved');
       await tester.pumpAndSettle();
       query = adapter.received.lastWhere(_isListRequest).uri.queryParameters;
       expect(query['status'], 'RESOLVED');
@@ -399,20 +412,20 @@ void main() {
       // unhighlighted.
       expect(container.read(inboxFiltersProvider).hasAdvancedFilters, isFalse);
 
-      await tester.tap(find.byKey(const Key('quick_filter_unread')));
+      await _tapPill(tester, 'quick_filter_unread');
       await tester.pumpAndSettle();
       query = adapter.received.lastWhere(_isListRequest).uri.queryParameters;
       expect(query['unread'], 'true');
       expect(query.containsKey('review'), isFalse);
       expect(query.containsKey('status'), isFalse);
 
-      await tester.tap(find.byKey(const Key('quick_filter_mine')));
+      await _tapPill(tester, 'quick_filter_mine');
       await tester.pumpAndSettle();
       query = adapter.received.lastWhere(_isListRequest).uri.queryParameters;
       expect(query['assigned_to'], '42');
       expect(query.containsKey('unread'), isFalse);
 
-      await tester.tap(find.byKey(const Key('quick_filter_all')));
+      await _tapPill(tester, 'quick_filter_all');
       await tester.pumpAndSettle();
       query = adapter.received.lastWhere(_isListRequest).uri.queryParameters;
       expect(query.containsKey('status'), isFalse);
@@ -588,7 +601,7 @@ void main() {
         .map((r) => r.uri.queryParameters);
 
     Future<void> openNeedReview(WidgetTester tester) async {
-      await tester.tap(find.byKey(const Key('quick_filter_needs_review')));
+      await _tapPill(tester, 'quick_filter_needs_review');
       await tester.pumpAndSettle();
     }
 
@@ -628,7 +641,7 @@ void main() {
       expect(ys[0] < ys[1] && ys[1] < ys[2], isTrue);
 
       // Back to All: everything again, without the review filter.
-      await tester.tap(find.byKey(const Key('quick_filter_all')));
+      await _tapPill(tester, 'quick_filter_all');
       await tester.pumpAndSettle();
       expect(listQueries().last.containsKey('review'), isFalse);
       expect(find.text('Ali Elnewehy'), findsOneWidget);
@@ -665,7 +678,7 @@ void main() {
       await openNeedReview(tester);
       expect(find.text('Sarah Connor'), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('quick_filter_unread')));
+      await _tapPill(tester, 'quick_filter_unread');
       await tester.pumpAndSettle();
       // Sarah's review is withdrawn while another tab is open.
       reviewers.remove(1);

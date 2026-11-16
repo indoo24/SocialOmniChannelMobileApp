@@ -231,7 +231,7 @@
   "signInButton": "Sign in",
 
   "inboxTitle": "Inbox",
-  "searchConversationsHint": "Search conversations",
+  "searchConversationsHint": "Search conversations...",
   "inboxScrollToTop": "Scroll to top",
   "@inboxScrollToTop": {"description": "Tooltip and screen-reader label of the floating button in the inbox that scrolls the list back to the first conversation"},
   "inboxLoadMoreFailed": "Couldn't load more conversations",
@@ -261,6 +261,34 @@
     "description": "Button that clears the inbox search query."
   },
   "clearFiltersButton": "Clear filters",
+  "channelsAndAccountsTitle": "Channels & accounts",
+  "allChannelsFilter": "All channels",
+  "channelFilterTooltip": "Filter by channel",
+  "accountFilterTooltip": "Filter by account",
+  "accountsSelectedCount": "{count, plural, one{1 account} other{{count} accounts}}",
+  "@accountsSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unreadMessagesSemantics": "{count, plural, one{1 unread message} other{{count} unread messages}}",
+  "@unreadMessagesSemantics": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assignedToSemantics": "Assigned to {name}",
+  "@assignedToSemantics": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "employeeInboxBanner": "Conversations assigned to {name}",
   "@employeeInboxBanner": {
     "description": "Inbox banner while it shows only one employee's conversations, opened from the Employees screen.",
@@ -2858,7 +2886,7 @@
   "needsReplyFilter": "Needs reply",
   "needsReplyCountSemantics": "{count, plural, one{1 conversation needs a reply} other{{count} conversations need a reply}}",
   "@needsReplyCountSemantics": {"placeholders": {"count": {"type": "int"}}},
-  "needsReplySortLabel": "Sort",
+  "needsReplySortLabel": "Sort conversations",
   "needsReplyOldestFirst": "Oldest first",
   "needsReplyNewestFirst": "Newest first",
   "waitingFor": "Waiting {duration}",

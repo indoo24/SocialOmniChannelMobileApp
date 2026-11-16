@@ -273,19 +273,26 @@ void main() {
                 .isSelected ==
             Tristate.isTrue;
 
+        FontWeight? labelWeight(String key) => tester
+            .widget<Text>(
+              find
+                  .descendant(
+                    of: find.byKey(Key(key)),
+                    matching: find.byType(Text),
+                  )
+                  .first,
+            )
+            .style
+            ?.fontWeight;
+
         // The inbox opens on Needs reply.
         expect(selected('quick_filter_needs_reply'), isTrue);
         expect(selected('quick_filter_all'), isFalse);
         expect(selected('quick_filter_mine'), isFalse);
-        // The selected pill carries a check, so it is told apart without
+        // The selected pill's label is bold, so it is told apart without
         // relying on its colour.
-        expect(
-          find.descendant(
-            of: find.byKey(const Key('quick_filter_needs_reply')),
-            matching: find.byIcon(Icons.check_rounded),
-          ),
-          findsOneWidget,
-        );
+        expect(labelWeight('quick_filter_needs_reply'), FontWeight.w700);
+        expect(labelWeight('quick_filter_all'), isNot(FontWeight.w700));
 
         await tester.ensureVisible(find.byKey(const Key('quick_filter_mine')));
         await tester.pump();
@@ -294,13 +301,8 @@ void main() {
 
         expect(selected('quick_filter_mine'), isTrue);
         expect(selected('quick_filter_all'), isFalse);
-        expect(
-          find.descendant(
-            of: find.byKey(const Key('quick_filter_mine')),
-            matching: find.byIcon(Icons.check_rounded),
-          ),
-          findsOneWidget,
-        );
+        expect(labelWeight('quick_filter_mine'), FontWeight.w700);
+        expect(labelWeight('quick_filter_needs_reply'), isNot(FontWeight.w700));
         final container = ProviderScope.containerOf(
           tester.element(find.byType(InboxQuickFilterBar)),
         );

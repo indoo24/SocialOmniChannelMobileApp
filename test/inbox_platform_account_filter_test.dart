@@ -363,16 +363,20 @@ void main() {
     testWidgets(
       'shows account selectors for multi-account platforms and hides single-account platform',
       (tester) async {
+        // A phone's height: all five rows are built under the inbox header
+        // (the 800×600 test default leaves room for four).
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = const Size(430, 932);
+        addTearDown(tester.view.reset);
         await tester.pumpWidget(createInboxApp());
         await tester.pumpAndSettle();
 
-        // Facebook has 2 accounts -> shows selector
-        // Instagram has 2 accounts -> shows selector
-        // WhatsApp has 1 account -> hidden (matches Web fn(l) => l.length > 1)
-        expect(find.byType(PlatformAccountSelectorButton), findsNWidgets(2));
-
-        // Both buttons start with "All accounts"
-        expect(find.text('All accounts'), findsNWidgets(2));
+        // One Accounts control for every platform with several accounts,
+        // beside the Channels control, starting on "All accounts".
+        expect(find.byKey(const Key('inbox_account_filter')), findsOneWidget);
+        expect(find.byKey(const Key('inbox_channel_filter')), findsOneWidget);
+        expect(find.text('All accounts'), findsOneWidget);
+        expect(find.text('All channels'), findsOneWidget);
 
         // All 5 conversations are initially rendered
         expect(find.text('Customer FB 1'), findsOneWidget);
@@ -380,6 +384,14 @@ void main() {
         expect(find.text('Customer IG 1'), findsOneWidget);
         expect(find.text('Customer IG 2'), findsOneWidget);
         expect(find.text('Customer WA 1'), findsOneWidget);
+
+        // Its menu offers Facebook (2 accounts) and Instagram (2 accounts),
+        // not WhatsApp (1 account - the web's fn(l) => l.length > 1).
+        await tester.tap(find.byKey(const Key('inbox_account_filter')));
+        await tester.pumpAndSettle();
+        expect(find.text('Facebook Messenger'), findsOneWidget);
+        expect(find.text('Instagram Direct'), findsOneWidget);
+        expect(find.text('Support line'), findsNothing);
       },
     );
 
@@ -389,12 +401,8 @@ void main() {
         await tester.pumpWidget(createInboxApp());
         await tester.pumpAndSettle();
 
-        // Find the Instagram selector button (second PlatformAccountSelectorButton)
-        final buttons = find.byType(PlatformAccountSelectorButton);
-        final igButton = buttons.at(1);
-
-        // Tap the Instagram selector to open popup menu
-        await tester.tap(igButton);
+        // Open the Accounts menu
+        await tester.tap(find.byKey(const Key('inbox_account_filter')));
         await tester.pumpAndSettle();
 
         // Dropdown menu shows Instagram Direct header and account names
@@ -406,8 +414,14 @@ void main() {
         await tester.tap(find.text('Yousef Qandeel'));
         await tester.pumpAndSettle();
 
-        // The button label changes to "Yousef Qandeel"
-        expect(find.text('Yousef Qandeel'), findsWidgets);
+        // The control now names the account
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('inbox_account_filter')),
+            matching: find.text('Yousef Qandeel'),
+          ),
+          findsOneWidget,
+        );
 
         // Only Customer IG 2 (channel 4) is shown among IG conversations; Customer IG 1 is hidden!
         expect(find.text('Customer IG 2'), findsOneWidget);
@@ -433,16 +447,16 @@ void main() {
         await tester.pumpWidget(createInboxApp());
         await tester.pumpAndSettle();
 
-        final buttons = find.byType(PlatformAccountSelectorButton);
+        final buttons = find.byKey(const Key('inbox_account_filter'));
 
         // 1. Select Instagram = Yousef Qandeel (account 4)
-        await tester.tap(buttons.at(1));
+        await tester.tap(buttons);
         await tester.pumpAndSettle();
         await tester.tap(find.text('Yousef Qandeel'));
         await tester.pumpAndSettle();
 
         // 2. Select Facebook = IndoTech (account 1)
-        await tester.tap(buttons.at(0));
+        await tester.tap(buttons);
         await tester.pumpAndSettle();
         expect(find.text('Facebook Messenger'), findsOneWidget);
         expect(find.text('IndoTech'), findsOneWidget);
@@ -461,6 +475,15 @@ void main() {
         expect(find.text('Customer IG 1'), findsNothing);
         expect(find.text('Customer WA 1'), findsOneWidget);
 
+        // One account picked on each of two platforms
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('inbox_account_filter')),
+            matching: find.text('2 accounts'),
+          ),
+          findsOneWidget,
+        );
+
         // Verify query: channel_connections=1,4,5
         final lastConvoReq = adapter.received.lastWhere(_isListRequest);
         expect(
@@ -468,13 +491,20 @@ void main() {
           equals('1,4,5'),
         );
 
-        // 3. Reset Instagram to "All accounts"
-        // Tap the Instagram selector button (displaying "Yousef Qandeel")
-        await tester.tap(find.text('Yousef Qandeel'));
+        // 3. Reset Instagram to "All accounts": its own entry, under its
+        // own heading (the last of the menu's two "All accounts").
+        await tester.tap(find.byKey(const Key('inbox_account_filter')));
         await tester.pumpAndSettle();
         expect(find.text('Instagram Direct'), findsOneWidget);
-        await tester.tap(find.text('All accounts'));
+        await tester.tap(find.text('All accounts').last);
         await tester.pumpAndSettle();
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('inbox_account_filter')),
+            matching: find.text('IndoTech'),
+          ),
+          findsOneWidget,
+        );
 
         // Instagram shows all accounts again (Mohamed & Yousef Qandeel), while Facebook remains filtered to IndoTech!
         expect(find.text('Customer FB 1'), findsOneWidget);
@@ -498,12 +528,13 @@ void main() {
       await tester.pumpWidget(createInboxApp(locale: const Locale('ar')));
       await tester.pumpAndSettle();
 
-      // Both buttons show Arabic "كل الحسابات"
-      expect(find.text('كل الحسابات'), findsNWidgets(2));
+      // The section and both controls read in Arabic
+      expect(find.text('القنوات والحسابات'), findsOneWidget);
+      expect(find.text('كل القنوات'), findsOneWidget);
+      expect(find.text('كل الحسابات'), findsOneWidget);
 
-      // Open Instagram popup in Arabic
-      final buttons = find.byType(PlatformAccountSelectorButton);
-      await tester.tap(buttons.at(1));
+      // Open the Accounts popup in Arabic
+      await tester.tap(find.byKey(const Key('inbox_account_filter')));
       await tester.pumpAndSettle();
 
       // Shows Arabic "كل الحسابات" inside dropdown as well
@@ -523,9 +554,16 @@ void main() {
       await tester.pumpWidget(createInboxApp());
       await tester.pumpAndSettle();
 
-      // SingleChildScrollView ensures no RenderFlex overflow
+      // Too narrow to share a row: the two controls stack, nothing overflows
       expect(tester.takeException(), isNull);
-      expect(find.byType(PlatformAccountFilterBar), findsOneWidget);
+      expect(find.byType(InboxChannelAccountFilters), findsOneWidget);
+      final channels = tester.getRect(
+        find.byKey(const Key('inbox_channel_filter')),
+      );
+      final accounts = tester.getRect(
+        find.byKey(const Key('inbox_account_filter')),
+      );
+      expect(accounts.top, greaterThan(channels.bottom - 1));
     });
 
     testWidgets('when all platforms have single account, bar renders nothing', (
@@ -550,8 +588,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // No multi-account platform -> SizedBox.shrink()
-      expect(find.byType(PlatformAccountSelectorButton), findsNothing);
+      // No multi-account platform: nothing to pick, so no Accounts control;
+      // Channels still offered.
+      expect(find.byKey(const Key('inbox_account_filter')), findsNothing);
+      expect(find.byKey(const Key('inbox_channel_filter')), findsOneWidget);
     });
 
     testWidgets('dark mode renders without error and applies theme contrast', (
@@ -575,7 +615,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(PlatformAccountSelectorButton), findsNWidgets(2));
+      expect(find.byKey(const Key('inbox_account_filter')), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -590,8 +630,8 @@ void main() {
       );
 
       // Select Facebook account 1 (IndoTech)
-      final buttons = find.byType(PlatformAccountSelectorButton);
-      await tester.tap(buttons.at(0));
+      final buttons = find.byKey(const Key('inbox_account_filter'));
+      await tester.tap(buttons);
       await tester.pumpAndSettle();
       await tester.tap(find.text('IndoTech'));
       await tester.pumpAndSettle();
@@ -633,8 +673,8 @@ void main() {
         await tester.pumpAndSettle();
 
         // 1. Select Instagram = Yousef Qandeel (id 4)
-        final buttons = find.byType(PlatformAccountSelectorButton);
-        await tester.tap(buttons.at(1));
+        final buttons = find.byKey(const Key('inbox_account_filter'));
+        await tester.tap(buttons);
         await tester.pumpAndSettle();
         await tester.tap(find.text('Yousef Qandeel'));
         await tester.pumpAndSettle();
@@ -679,8 +719,8 @@ void main() {
         await tester.pumpAndSettle();
 
         // Select Instagram Yousef Qandeel
-        final buttons = find.byType(PlatformAccountSelectorButton);
-        await tester.tap(buttons.at(1));
+        final buttons = find.byKey(const Key('inbox_account_filter'));
+        await tester.tap(buttons);
         await tester.pumpAndSettle();
         await tester.tap(find.text('Yousef Qandeel'));
         await tester.pumpAndSettle();

@@ -941,7 +941,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchConversationsHint.
   ///
   /// In en, this message translates to:
-  /// **'Search conversations'**
+  /// **'Search conversations...'**
   String get searchConversationsHint;
 
   /// Tooltip and screen-reader label of the floating button in the inbox that scrolls the list back to the first conversation
@@ -1015,6 +1015,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear filters'**
   String get clearFiltersButton;
+
+  /// No description provided for @channelsAndAccountsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels & accounts'**
+  String get channelsAndAccountsTitle;
+
+  /// No description provided for @allChannelsFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'All channels'**
+  String get allChannelsFilter;
+
+  /// No description provided for @channelFilterTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by channel'**
+  String get channelFilterTooltip;
+
+  /// No description provided for @accountFilterTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by account'**
+  String get accountFilterTooltip;
+
+  /// No description provided for @accountsSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 account} other{{count} accounts}}'**
+  String accountsSelectedCount(int count);
+
+  /// No description provided for @unreadMessagesSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 unread message} other{{count} unread messages}}'**
+  String unreadMessagesSemantics(int count);
+
+  /// No description provided for @assignedToSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned to {name}'**
+  String assignedToSemantics(String name);
 
   /// Inbox banner while it shows only one employee's conversations, opened from the Employees screen.
   ///
@@ -9382,7 +9424,7 @@ abstract class AppLocalizations {
   /// No description provided for @needsReplySortLabel.
   ///
   /// In en, this message translates to:
-  /// **'Sort'**
+  /// **'Sort conversations'**
   String get needsReplySortLabel;
 
   /// No description provided for @needsReplyOldestFirst.

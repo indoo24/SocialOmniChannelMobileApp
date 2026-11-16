@@ -35,7 +35,6 @@ import 'package:scenario_mobile/core/theme/app_theme.dart';
 import 'package:scenario_mobile/features/authentication/auth_controller.dart';
 import 'package:scenario_mobile/features/conversations/conversation_repository.dart';
 import 'package:scenario_mobile/features/conversations/inbox_screen.dart';
-import 'package:scenario_mobile/features/conversations/platform_account_filter_bar.dart';
 import 'package:scenario_mobile/features/directory/directory_providers.dart';
 import 'package:scenario_mobile/l10n/generated/app_localizations.dart';
 
@@ -283,7 +282,7 @@ void main() {
         await tester.pumpWidget(createInboxApp());
         await tester.pumpAndSettle();
 
-        await tester.tap(find.byType(PlatformAccountSelectorButton));
+        await tester.tap(find.byKey(const Key('inbox_account_filter')));
         await tester.pumpAndSettle();
         await tester.tap(find.text('WhatsApp Sales'));
         await tester.pumpAndSettle();

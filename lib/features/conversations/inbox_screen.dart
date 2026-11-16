@@ -17,6 +17,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 import '../../app/router.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/conversation_group.dart';
+import '../../core/models/employee.dart' show EmployeeBrief;
 import '../../core/realtime/realtime_bridge.dart';
 import '../../core/realtime/realtime_client.dart';
 import '../../core/providers.dart';
@@ -92,8 +93,16 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   /// built), so it starts at offset 0; `keepScrollOffset: false` also stops
   /// PageStorage from restoring an old list's depth into a new one.
   final _scrollController = ScrollController(keepScrollOffset: false);
-  final _searchController = TextEditingController();
-  bool _searching = false;
+
+  /// Starts on the search the inbox is on (see [initState]): the filters
+  /// outlive this screen, so coming back to the inbox shows the query that
+  /// still narrows the list — in an unfocused field.
+  late final TextEditingController _searchController;
+
+  /// The search field's focus, owned here rather than by the field so the
+  /// screen decides when it lets go — see [_dismissSearchKeyboard]. The field
+  /// only ever gains it from the agent's own tap: nothing here asks for it.
+  final _searchFocus = FocusNode(debugLabel: 'inboxSearch');
 
   /// How long typing must pause before the query is sent. Pressing Search on
   /// the keyboard sends it at once.
@@ -112,7 +121,27 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   void initState() {
     super.initState();
     _inbox = ref.read(inboxControllerProvider.notifier);
+    _searchController = TextEditingController(
+      text: ref.read(inboxFiltersProvider).search,
+    );
     _scrollController.addListener(_onScroll);
+  }
+
+  /// Puts the keyboard away and takes focus off the search field.
+  ///
+  /// `unfocus()` on the field's own node — not on the route's `FocusScope` —
+  /// because it also clears the scope's memory of the field. A route that
+  /// becomes current again (a conversation, sheet or menu popped off it)
+  /// refocuses whatever its scope last remembered; unfocusing the scope
+  /// instead left the field remembered, which is what reopened the keyboard
+  /// on every return to the inbox.
+  void _dismissSearchKeyboard() => _searchFocus.unfocus();
+
+  /// Opens a conversation with the keyboard already put away, so it is not
+  /// still sliding down over the conversation as it opens.
+  void _openConversation(int conversationId) {
+    _dismissSearchKeyboard();
+    context.push(Routes.conversation(conversationId));
   }
 
   @override
@@ -124,6 +153,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     _showScrollTop.dispose();
     _searchDebounce?.cancel();
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -213,11 +243,10 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
         .update(filters.copyWith(search: term));
   }
 
-  /// Closes the search field and drops the query, showing the unsearched
+  /// Empties the search field and drops the query, showing the unsearched
   /// inbox again.
   void _clearSearch() {
     _searchDebounce?.cancel();
-    setState(() => _searching = false);
     _searchController.clear();
     final filters = ref.read(inboxFiltersProvider);
     if (filters.search.isNotEmpty) {
@@ -244,6 +273,16 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     ref.listen(inboxControllerProvider, (_, _) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
     });
+    // The field always shows the search the inbox is on. Typing reaches the
+    // filters through [_applySearch] with what is in the field, so this only
+    // ever acts when the search was changed elsewhere — an employee's inbox
+    // opened, a notification's view chosen, "Clear search" in the empty
+    // state — and the field would otherwise keep a stale query.
+    ref.listen(inboxFiltersProvider.select((f) => f.search), (previous, next) {
+      if (next.trim() == _searchController.text.trim()) return;
+      _searchDebounce?.cancel();
+      _searchController.text = next;
+    });
 
     // Keeps the socket alive and the cache invalidated while this screen lives.
     ref.watch(realtimeEventProvider);
@@ -253,27 +292,17 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
       // section reaches every other one from here.
       drawer: const AppDrawer(),
       appBar: AppBar(
-        title: _searching
-            ? _SearchField(
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-                onSubmitted: _applySearch,
-              )
-            : Text(context.l10n.inboxTitle),
+        // Search lives in its own bar under the quick filters, so the title
+        // has the bar to itself next to the actions.
+        title: Text(
+          context.l10n.inboxTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+        ),
         actions: [
-          IconButton(
-            tooltip: _searching
-                ? context.l10n.commonCloseSearch
-                : context.l10n.commonSearch,
-            icon: Icon(_searching ? Icons.close : Icons.search),
-            onPressed: () {
-              if (_searching) {
-                _clearSearch();
-              } else {
-                setState(() => _searching = true);
-              }
-            },
-          ),
           _FilterButton(active: filters.hasAdvancedFilters),
           const NotificationBellButton(),
           const UserAccountMenuButton(),
@@ -289,8 +318,23 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               onClear: () =>
                   ref.read(inboxFiltersProvider.notifier).clearEmployee(),
             ),
-          const PlatformAccountFilterBar(),
+          // Where conversations came from, then which of them (the views),
+          // then what they say (search), then their order.
+          const InboxChannelAccountFilters(),
+          const SizedBox(height: Space.sm),
           const InboxQuickFilterBar(),
+          InboxSearchBar(
+            controller: _searchController,
+            focusNode: _searchFocus,
+            onChanged: _onSearchChanged,
+            // The Search key sends the query at once and puts the keyboard
+            // away: the agent is done typing and wants the results.
+            onSubmitted: (value) {
+              _applySearch(value);
+              _dismissSearchKeyboard();
+            },
+            onClear: _clearSearch,
+          ),
           const NeedsReplySortBar(),
           // Separates the controls from the list they act on.
           const Divider(height: 1),
@@ -362,10 +406,17 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                     key: const ValueKey('inboxList'),
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
+                    // Scrolling through the results puts the keyboard away
+                    // (by unfocusing the field itself, so it stays away).
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     itemCount: groups.length + (showFooter ? 1 : 0),
+                    // Hairlines inset to the page margins, like the web
+                    // inbox's rows.
                     separatorBuilder: (_, _) => const Divider(
                       height: 1,
-                      indent: Sizes.rowDividerIndent,
+                      indent: Space.lg,
+                      endIndent: Space.lg,
                     ),
                     itemBuilder: (context, index) {
                       if (index >= groups.length) {
@@ -386,10 +437,13 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                           group: group,
                           searchQuery: searchQuery,
                           showWaiting: filters.needsReply,
-                          onTap: () => CustomerConversationGroupSheet.show(
-                            context,
-                            group: group,
-                          ),
+                          onTap: () {
+                            _dismissSearchKeyboard();
+                            CustomerConversationGroupSheet.show(
+                              context,
+                              group: group,
+                            );
+                          },
                         );
                       }
 
@@ -400,12 +454,14 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                         currentEmployeeId: employee?.id,
                         searchQuery: searchQuery,
                         showWaiting: filters.needsReply,
-                        onTap: () =>
-                            context.push(Routes.conversation(conversation.id)),
-                        onLongPress: () => showConversationQuickActions(
-                          context,
-                          conversation: conversation,
-                        ),
+                        onTap: () => _openConversation(conversation.id),
+                        onLongPress: () {
+                          _dismissSearchKeyboard();
+                          showConversationQuickActions(
+                            context,
+                            conversation: conversation,
+                          );
+                        },
                       );
                     },
                   );
@@ -559,6 +615,7 @@ class ConversationGroupRow extends StatelessWidget {
       unreadCount: group.isUnread ? group.unreadCount : 0,
       // One of this customer's threads is pinned (each keeps its own pin).
       pinned: group.hasPinned,
+      assignee: _sharedAssignee(group),
       outboundDeliveryStatus: group.lastMessageDirection == 'OUTBOUND'
           ? group.lastMessageDeliveryStatus
           : null,
@@ -586,6 +643,21 @@ class ConversationGroupRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The employee holding every one of [group]'s threads, or null when they
+/// are held by different people or any is unassigned — one avatar must not
+/// claim a group for someone who holds only part of it.
+EmployeeBrief? _sharedAssignee(CustomerConversationGroup group) {
+  EmployeeBrief? shared;
+  for (final c in group.conversations) {
+    final holder = c.isUnassigned ? null : c.assignedTo;
+    if (holder == null || (shared != null && shared.id != holder.id)) {
+      return null;
+    }
+    shared = holder;
+  }
+  return shared;
 }
 
 /// The earliest `last_customer_message_at` among [group]'s threads: how long
@@ -666,6 +738,7 @@ class ConversationRow extends StatelessWidget {
       searchMatch: conversation.searchMatch,
       unreadCount: conversation.hasUnread ? conversation.unreadCount : 0,
       pinned: conversation.isPinned,
+      assignee: conversation.isUnassigned ? null : conversation.assignedTo,
       outboundDeliveryStatus: conversation.lastMessageDirection == 'OUTBOUND'
           ? conversation.lastMessageDeliveryStatus
           : null,
@@ -721,9 +794,15 @@ class ConversationRow extends StatelessWidget {
   }
 }
 
-/// The shared shape of an inbox row: avatar, then name and time, the last
-/// message, and a footer of badges. Name and time lead; the preview is
-/// secondary; the footer is the quietest line.
+/// The shared shape of an inbox row, as on the web inbox:
+///
+///  - start (the right in Arabic): the customer's avatar with its channel;
+///  - middle: the name with a red unread count right beside it, how long the
+///    customer has waited, the last message, and the badges;
+///  - end (the left in Arabic): when, and below it who holds the
+///    conversation — the assigned employee's avatar.
+///
+/// Name leads; the preview is secondary; the badges are the quietest line.
 class _InboxRowLayout extends StatelessWidget {
   const _InboxRowLayout({
     required this.onTap,
@@ -736,6 +815,7 @@ class _InboxRowLayout extends StatelessWidget {
     required this.unreadCount,
     required this.outboundDeliveryStatus,
     required this.footer,
+    this.assignee,
     this.phone = '',
     this.searchQuery = '',
     this.searchMatch,
@@ -768,6 +848,11 @@ class _InboxRowLayout extends StatelessWidget {
 
   /// 0 when read.
   final int unreadCount;
+
+  /// Who holds the conversation, shown under the time; null when nobody
+  /// does (the Unassigned badge says so) or, for a customer's group, when
+  /// their threads are held by different people.
+  final EmployeeBrief? assignee;
 
   /// The last message's delivery status when the agent's side sent it; null
   /// for a customer's message, which carries no tick.
@@ -807,7 +892,7 @@ class _InboxRowLayout extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Expanded(
+                      Flexible(
                         child: Text(
                           name,
                           maxLines: 1,
@@ -818,27 +903,16 @@ class _InboxRowLayout extends StatelessWidget {
                           textAlign: startAlign,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: unread
-                                ? FontWeight.w700
-                                : FontWeight.w600,
+                                ? FontWeight.w800
+                                : FontWeight.w700,
                             height: 1.3,
                           ),
                         ),
                       ),
-                      if (pinned) ...[
+                      if (unread) ...[
                         const SizedBox(width: Space.sm),
-                        const PinnedIndicator(),
+                        _UnreadBadge(count: unreadCount),
                       ],
-                      const SizedBox(width: Space.sm),
-                      Text(
-                        formatRelativeTime(context, match?.createdAt ?? time),
-                        maxLines: 1,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: unread ? theme.colorScheme.primary : muted,
-                          fontWeight: unread
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                        ),
-                      ),
                     ],
                   ),
                   if (searching && phone.isNotEmpty)
@@ -865,7 +939,6 @@ class _InboxRowLayout extends StatelessWidget {
                       match: match,
                       query: searchQuery,
                       highlight: highlight,
-                      unreadCount: unreadCount,
                     )
                   else
                     Row(
@@ -893,10 +966,6 @@ class _InboxRowLayout extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (unread) ...[
-                          const SizedBox(width: Space.sm),
-                          _UnreadPill(count: unreadCount),
-                        ],
                       ],
                     ),
                   const SizedBox(height: Space.sm),
@@ -904,11 +973,121 @@ class _InboxRowLayout extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(width: Space.md),
+            _RowTrailing(
+              time: formatRelativeTime(context, match?.createdAt ?? time),
+              unread: unread,
+              pinned: pinned,
+              assignee: assignee,
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+/// A row's end column: the time (with the pin) on top, the assigned
+/// employee's avatar under it, both against the row's end edge.
+class _RowTrailing extends StatelessWidget {
+  const _RowTrailing({
+    required this.time,
+    required this.unread,
+    required this.pinned,
+    required this.assignee,
+  });
+
+  final String time;
+  final bool unread;
+  final bool pinned;
+  final EmployeeBrief? assignee;
+
+  /// Room enough for "31 Aug" / "31 أغسطس" and a pin; a longer label is
+  /// cut rather than allowed to squeeze the name.
+  static const _maxWidth = 96.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: _maxWidth),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (pinned) ...[
+                const PinnedIndicator(),
+                const SizedBox(width: Space.xs),
+              ],
+              Flexible(
+                child: Text(
+                  time,
+                  key: const ValueKey('inboxRowTime'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: unread
+                        ? theme.colorScheme.primary
+                        : theme.textTheme.bodySmall?.color,
+                    fontWeight: unread ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (assignee case final employee?) ...[
+            const SizedBox(height: Space.sm),
+            _AssigneeAvatar(employee: employee),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The assigned employee as a small avatar (their photo, or initials), named
+/// on long press and to screen readers.
+class _AssigneeAvatar extends StatelessWidget {
+  const _AssigneeAvatar({required this.employee});
+
+  final EmployeeBrief employee;
+
+  static const _size = 30.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = context.l10n.assignedToSemantics(employee.fullName);
+    return Tooltip(
+      message: label,
+      excludeFromSemantics: true,
+      child: Semantics(
+        label: label,
+        excludeSemantics: true,
+        child: InitialsAvatar(
+          key: const ValueKey('inboxRowAssignee'),
+          initials: employee.initials.isNotEmpty
+              ? employee.initials
+              : initialsOf(employee.fullName),
+          imageUrl: employee.avatarUrl,
+          size: _size,
+        ),
+      ),
+    );
+  }
+}
+
+/// Up to two initials from [name], for an employee the server sent none
+/// for.
+@visibleForTesting
+String initialsOf(String name) {
+  final words = name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+  return words
+      .take(2)
+      .map((w) => String.fromCharCode(w.runes.first).toUpperCase())
+      .join();
 }
 
 /// "Waiting 1h 24m" — how long the customer has been waiting for a reply,
@@ -967,13 +1146,11 @@ class _SearchMatchLine extends StatelessWidget {
     required this.match,
     required this.query,
     required this.highlight,
-    required this.unreadCount,
   });
 
   final SearchMatch match;
   final String query;
   final TextStyle highlight;
-  final int unreadCount;
 
   @override
   Widget build(BuildContext context) {
@@ -1014,10 +1191,6 @@ class _SearchMatchLine extends StatelessWidget {
             ),
           ),
         ),
-        if (unreadCount > 0) ...[
-          const SizedBox(width: Space.sm),
-          _UnreadPill(count: unreadCount),
-        ],
       ],
     );
   }
@@ -1100,28 +1273,41 @@ class _RowDeliveryIcon extends StatelessWidget {
   }
 }
 
-class _UnreadPill extends StatelessWidget {
-  const _UnreadPill({required this.count});
+/// The unread count beside a customer's name, as on the web inbox: white on
+/// red, a circle for one or two digits that stretches into a pill for "99+",
+/// and read aloud as a sentence rather than a bare number.
+class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge({required this.count});
 
   final int count;
 
+  static const _size = 22.0;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      constraints: const BoxConstraints(minWidth: 20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(Radii.pill),
-      ),
-      child: Text(
-        count > 99 ? '99+' : '$count',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onPrimary,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          height: 1.3,
+    return Semantics(
+      label: context.l10n.unreadMessagesSemantics(count),
+      excludeSemantics: true,
+      child: Container(
+        key: const ValueKey('inboxRowUnread'),
+        height: _size,
+        constraints: const BoxConstraints(minWidth: _size),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.of(context).danger,
+          borderRadius: BorderRadius.circular(Radii.pill),
+        ),
+        child: Text(
+          count > 99 ? '99+' : '$count',
+          maxLines: 1,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            height: 1.1,
+          ),
         ),
       ),
     );
@@ -1322,32 +1508,93 @@ class _FilterButton extends ConsumerWidget {
   }
 }
 
-class _SearchField extends StatelessWidget {
-  const _SearchField({
+/// The inbox's search, always on screen under the quick filters: a rounded,
+/// full-width field with the search glyph inside and, while it holds text, a
+/// clear button. It only collects the query — debouncing and sending it are
+/// the inbox screen's ([onChanged] / [onSubmitted]), as before.
+///
+/// Focus is the agent's to give: the field never focuses itself, lets go
+/// when they tap anywhere else, and cannot take focus while another route
+/// (a conversation, a sheet, a menu, a dialog) covers the inbox. That last
+/// part is what keeps the keyboard shut on the way back: a route that
+/// becomes current again refocuses the field its scope last held, unless
+/// that field cannot take focus at that moment.
+class InboxSearchBar extends StatelessWidget {
+  const InboxSearchBar({
     required this.controller,
+    required this.focusNode,
     required this.onChanged,
     required this.onSubmitted,
+    required this.onClear,
+    super.key,
   });
 
   final TextEditingController controller;
+
+  /// Owned by the inbox screen, which disposes of it.
+  final FocusNode focusNode;
   final ValueChanged<String> onChanged;
   final ValueChanged<String> onSubmitted;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      autofocus: true,
-      textInputAction: TextInputAction.search,
-      onChanged: onChanged,
-      onSubmitted: onSubmitted,
-      decoration: InputDecoration(
-        hintText: context.l10n.searchConversationsHint,
-        border: InputBorder.none,
-        enabledBorder: InputBorder.none,
-        focusedBorder: InputBorder.none,
-        filled: false,
-        isDense: true,
+    // Rebuilt whenever a route is pushed over the inbox or popped off it.
+    // Null outside any route (a bare widget test): nothing covers it.
+    final onTop = ModalRoute.isCurrentOf(context) ?? true;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final muted = theme.textTheme.bodySmall?.color;
+    final shape = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(Radii.xl),
+      borderSide: BorderSide(color: scheme.outlineVariant, width: 1.2),
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.sm),
+      child: TextField(
+        key: const Key('inbox_search_field'),
+        controller: controller,
+        focusNode: focusNode,
+        // Only the agent's tap opens the keyboard — never arriving here.
+        autofocus: false,
+        canRequestFocus: onTop,
+        textInputAction: TextInputAction.search,
+        onChanged: onChanged,
+        onSubmitted: onSubmitted,
+        // Keeps the search going but puts the keyboard away when the agent
+        // moves on to the list. The field's own node, not the route's scope:
+        // unfocusing the scope would leave the field remembered, to be
+        // refocused when the agent comes back.
+        onTapOutside: (_) => focusNode.unfocus(),
+        style: theme.textTheme.bodyLarge,
+        decoration: InputDecoration(
+          hintText: context.l10n.searchConversationsHint,
+          prefixIcon: Icon(Icons.search_rounded, color: muted),
+          // Rebuilt with the text so the clear button shows only while there
+          // is something to clear.
+          suffixIcon: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (context, value, _) => value.text.isEmpty
+                ? const SizedBox.shrink()
+                : IconButton(
+                    key: const Key('inbox_search_clear'),
+                    tooltip: context.l10n.clearSearchButton,
+                    icon: Icon(Icons.close_rounded, color: muted),
+                    onPressed: onClear,
+                  ),
+          ),
+          filled: true,
+          fillColor: scheme.surface,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: Space.md,
+            vertical: Space.md,
+          ),
+          border: shape,
+          enabledBorder: shape,
+          focusedBorder: shape.copyWith(
+            borderSide: BorderSide(color: scheme.primary, width: 1.5),
+          ),
+        ),
       ),
     );
   }

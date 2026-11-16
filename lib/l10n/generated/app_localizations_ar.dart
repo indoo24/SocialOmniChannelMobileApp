@@ -477,7 +477,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get inboxTitle => 'صندوق الوارد';
 
   @override
-  String get searchConversationsHint => 'البحث في المحادثات';
+  String get searchConversationsHint => 'ابحث في المحادثات...';
 
   @override
   String get inboxScrollToTop => 'العودة إلى الأعلى';
@@ -517,6 +517,53 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get clearFiltersButton => 'مسح الفلاتر';
+
+  @override
+  String get channelsAndAccountsTitle => 'القنوات والحسابات';
+
+  @override
+  String get allChannelsFilter => 'كل القنوات';
+
+  @override
+  String get channelFilterTooltip => 'تصفية حسب القناة';
+
+  @override
+  String get accountFilterTooltip => 'تصفية حسب الحساب';
+
+  @override
+  String accountsSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count حساب',
+      many: '$count حسابًا',
+      few: '$count حسابات',
+      two: 'حسابان',
+      one: 'حساب واحد',
+      zero: 'لا حسابات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String unreadMessagesSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رسالة غير مقروءة',
+      many: '$count رسالة غير مقروءة',
+      few: '$count رسائل غير مقروءة',
+      two: 'رسالتان غير مقروءتين',
+      one: 'رسالة واحدة غير مقروءة',
+      zero: 'لا رسائل غير مقروءة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String assignedToSemantics(String name) {
+    return 'مُسنَدة إلى $name';
+  }
 
   @override
   String employeeInboxBanner(String name) {
@@ -5421,7 +5468,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get needsReplySortLabel => 'ترتيب';
+  String get needsReplySortLabel => 'ترتيب المحادثات';
 
   @override
   String get needsReplyOldestFirst => 'الأقدم أولاً';
