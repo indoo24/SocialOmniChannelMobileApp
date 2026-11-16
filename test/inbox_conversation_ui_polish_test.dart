@@ -262,6 +262,13 @@ void main() {
             theme: v.theme,
             locale: v.locale,
             textScale: 1.4,
+            // No server here: the numbers are settled up front, so none
+            // arriving or failing mid-test moves the pills under the tap.
+            overrides: [
+              conversationCountsProvider.overrideWithBuild(
+                (ref, _) => const {},
+              ),
+            ],
           ),
         );
         expect(tester.takeException(), isNull);

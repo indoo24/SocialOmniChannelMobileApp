@@ -67,8 +67,8 @@ Widget _buildDrawerHarness({
     overrides: [
       cookieJarProvider.overrideWithValue(CookieJar()),
       currentEmployeeProvider.overrideWithValue(employee),
-      conversationCountsProvider.overrideWith(
-        (ref) async => {'unread': unreadCount, 'open': 10},
+      conversationCountsProvider.overrideWithBuild(
+        (ref, _) async => {'unread': unreadCount, 'open': 10},
       ),
     ],
     child: MaterialApp.router(

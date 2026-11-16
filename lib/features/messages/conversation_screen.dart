@@ -675,7 +675,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         if (unreadCount != null) {
           inboxNotifier.setUnreadCount(conversationId, unreadCount);
         }
-        container.invalidate(conversationCountsProvider);
+        container.refreshInboxCounts();
         inboxNotifier.refreshQuietly();
         activeNotifier.closed(conversationId);
       } catch (_) {

@@ -42,10 +42,22 @@ class NotificationChannels {
 }
 
 class AndroidNotificationPresenter {
-  AndroidNotificationPresenter([AndroidFlutterLocalNotificationsPlugin? plugin])
-    : _plugin = plugin ?? AndroidFlutterLocalNotificationsPlugin();
+  AndroidNotificationPresenter([
+    AndroidFlutterLocalNotificationsPlugin? plugin,
+    this.systemCopyTimeout = const Duration(seconds: 2),
+  ]) : _plugin = plugin ?? AndroidFlutterLocalNotificationsPlugin();
 
   final AndroidFlutterLocalNotificationsPlugin _plugin;
+
+  /// How long [findSystemCopy] waits for the OS to post its copy of a push.
+  final Duration systemCopyTimeout;
+
+  /// The tag prefix the Firebase SDK gives a notification it draws from a
+  /// `notification` block that sets no `android.notification.tag` —
+  /// `FCM-Notification:<uptime>`, a new tag per push, which is why each such
+  /// push shows up as a separate notification. (Firebase Messaging's
+  /// `CommonNotificationBuilder`; checked in firebase-messaging 25.1.2.)
+  static const systemTagPrefix = 'FCM-Notification:';
 
   static const smallIcon = 'ic_stat_scenario';
   static const accent = Color(0xFF3A2CF0);
@@ -100,9 +112,13 @@ class AndroidNotificationPresenter {
     try {
       final active = await _plugin.getActiveNotifications();
       return TraySnapshot(
-        conversationNotificationIds: {
+        conversationIds: {
+          for (final n in active) ?NotificationIds.conversationIdFromTag(n.tag),
+          // Posted by the previous build under one shared tag, whose int id
+          // was the conversation id.
           for (final n in active)
-            if (n.tag == NotificationIds.conversationTag && n.id != null) n.id!,
+            if (n.tag == NotificationIds.conversationTagPrefix && n.id != null)
+              n.id!,
         },
         summaryVisible: active.any(
           (n) =>
@@ -116,10 +132,14 @@ class AndroidNotificationPresenter {
     }
   }
 
+  /// Carries out [plan]. [silent] posts without sound, vibration or
+  /// heads-up — used when the OS has already alerted for this push (see
+  /// [findSystemCopy]), so the agent is not alerted twice.
   Future<void> execute(
     NotificationPlan plan,
-    NotificationContentBuilder content,
-  ) async {
+    NotificationContentBuilder content, {
+    bool silent = false,
+  }) async {
     for (final op in plan.ops) {
       try {
         switch (op) {
@@ -128,14 +148,20 @@ class AndroidNotificationPresenter {
               content.conversation(entry),
               entry,
               content.l10n,
+              silent: silent,
             );
           case CancelConversation(:final conversationId):
             await _plugin.cancel(
               id: NotificationIds.forConversation(conversationId),
-              tag: NotificationIds.conversationTag,
+              tag: NotificationIds.conversationTag(conversationId),
             );
+            await _cancelLegacy(conversationId);
           case ShowSummary():
-            await _showSummary(content.summary(op), content.l10n);
+            await _showSummary(
+              content.summary(op),
+              content.l10n,
+              silent: silent,
+            );
           case CancelSummary():
             await _plugin.cancel(
               id: NotificationIds.summaryId,
@@ -161,13 +187,63 @@ class AndroidNotificationPresenter {
       for (final n in active) {
         final id = n.id;
         if (id == null) continue;
-        if (n.tag == NotificationIds.conversationTag ||
+        if (NotificationIds.isConversationTag(n.tag) ||
             n.tag == NotificationIds.summaryTag) {
           await _plugin.cancel(id: id, tag: n.tag);
         }
       }
     } catch (error) {
       _log('clearMessages() — tray sweep unavailable: $error');
+    }
+  }
+
+  /// The previous build posted every conversation under one shared tag.
+  /// Removing that copy (a no-op when there is none) keeps the first update
+  /// after an app upgrade from leaving two notifications for one
+  /// conversation.
+  Future<void> _cancelLegacy(int conversationId) => _plugin.cancel(
+    id: NotificationIds.forConversation(conversationId),
+    tag: NotificationIds.conversationTagPrefix,
+  );
+
+  /// The notification the OS drew for a push that carried a `notification`
+  /// block, found by its FCM tag and its exact title and body. Polls, because
+  /// the OS and this background isolate receive the push independently and
+  /// either can go first. Null if it never appears within
+  /// [systemCopyTimeout] (or was already dismissed) — then the caller leaves
+  /// the tray alone.
+  Future<ActiveNotification?> findSystemCopy({
+    required String? title,
+    required String? body,
+  }) async {
+    final deadline = DateTime.now().add(systemCopyTimeout);
+    while (true) {
+      try {
+        final active = await _plugin.getActiveNotifications();
+        for (final n in active) {
+          if ((n.tag?.startsWith(systemTagPrefix) ?? false) &&
+              (n.title ?? '') == (title ?? '') &&
+              (n.body ?? '') == (body ?? '')) {
+            return n;
+          }
+        }
+      } catch (error) {
+        _log('findSystemCopy() — tray unavailable: $error');
+        return null;
+      }
+      if (!DateTime.now().isBefore(deadline)) return null;
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+    }
+  }
+
+  /// Removes a notification found by [findSystemCopy].
+  Future<void> cancelSystemCopy(ActiveNotification copy) async {
+    final id = copy.id;
+    if (id == null) return;
+    try {
+      await _plugin.cancel(id: id, tag: copy.tag);
+    } catch (error) {
+      _log('cancelSystemCopy() failed: $error');
     }
   }
 
@@ -197,7 +273,7 @@ class AndroidNotificationPresenter {
         color: accent,
         importance: Importance.high,
         priority: Priority.high,
-        tag: NotificationIds.activityTag,
+        tag: NotificationIds.activityTag(conversationId),
         visibility: NotificationVisibility.private,
         when: push.timestamp.millisecondsSinceEpoch,
         styleInformation: body.isEmpty ? null : BigTextStyleInformation(body),
@@ -208,8 +284,9 @@ class AndroidNotificationPresenter {
   Future<void> _showConversation(
     ConversationNotificationContent c,
     ConversationEntry entry,
-    AppLocalizations l10n,
-  ) async {
+    AppLocalizations l10n, {
+    required bool silent,
+  }) async {
     final Uint8List? avatar = c.showsPreview
         ? await NotificationAvatar.render(
             initials: c.initials,
@@ -251,18 +328,23 @@ class AndroidNotificationPresenter {
         category: AndroidNotificationCategory.message,
         visibility: NotificationVisibility.private,
         styleInformation: style,
-        subText: c.channelLabel.isEmpty ? null : c.channelLabel,
+        subText: c.headerText.isEmpty ? null : c.headerText,
         when: c.when.millisecondsSinceEpoch,
         number: c.messageCount,
-        tag: NotificationIds.conversationTag,
+        silent: silent,
+        // Same (tag, id) for every message of this conversation: Android
+        // replaces the notification in place instead of adding one.
+        tag: NotificationIds.conversationTag(entry.conversationId),
       ),
     );
+    await _cancelLegacy(entry.conversationId);
   }
 
   Future<void> _showSummary(
     SummaryNotificationContent s,
-    AppLocalizations l10n,
-  ) async {
+    AppLocalizations l10n, {
+    required bool silent,
+  }) async {
     await _plugin.show(
       id: NotificationIds.summaryId,
       title: s.title,
@@ -287,6 +369,7 @@ class AndroidNotificationPresenter {
               ),
         when: s.when.millisecondsSinceEpoch,
         number: s.messageCount,
+        silent: silent,
         tag: NotificationIds.summaryTag,
       ),
     );

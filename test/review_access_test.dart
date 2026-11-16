@@ -133,7 +133,7 @@ ProviderContainer _container(_Server server, {Employee? me}) {
       currentEmployeeProvider.overrideWith((ref) => ref.watch(_whoProvider)),
       // The tabs' counts read the same endpoint; they are not what these
       // tests measure, so they do not ask here.
-      conversationCountsProvider.overrideWith((ref) async => const {}),
+      conversationCountsProvider.overrideWithBuild((ref, _) async => const {}),
     ],
   );
   addTearDown(c.dispose);

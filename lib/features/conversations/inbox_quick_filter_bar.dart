@@ -29,6 +29,10 @@ import 'review_count.dart';
 ///    web's: one `GET /conversations/counts/` ([conversationCountsProvider]),
 ///    the bucket named after the tab, shown in full (the web does not
 ///    abbreviate). Need review shows `review_mine` ([reviewCountProvider]).
+///  - the bar never waits for them: until the first answer for the accounts
+///    on screen arrives each pill holds a small empty badge in the number's
+///    place — never a 0 — and a failed read shows no number at all. Numbers
+///    already known stay up while they are read again.
 ///  - in an employee's inbox Mine and Unassigned are left out and no number
 ///    is shown: every count is the caller's whole inbox, not the employee's.
 ///
@@ -164,22 +168,42 @@ class _InboxQuickFilterBarState extends ConsumerState<InboxQuickFilterBar> {
     // the list — the caller's whole inbox, the caller's own review queue —
     // not this employee's. No badge beats a wrong one.
     final employeeScoped = filters.assignedEmployee != null;
-    // `.value` keeps the last numbers while they are being read again, so
-    // the badges do not blink; null when the server could not be asked.
-    final counts = employeeScoped
+    // The numbers for the accounts on screen — kept up while they are read
+    // again, so the badges do not blink — or null while they are first read
+    // and when they could not be. A placeholder holds their place only until
+    // the first answer or failure: retries after a failure do not make it
+    // blink in and out.
+    final countsState = employeeScoped
         ? null
-        : ref.watch(conversationCountsProvider).value;
+        : ref.watch(conversationCountsProvider);
+    final counts = countsState == null ? null : shownInboxCounts(countsState);
+    final countsLoading =
+        countsState != null &&
+        counts == null &&
+        countsState.isLoading &&
+        !countsState.hasError;
     // Only someone with a Need review tab is ever counted for: nothing is
     // asked on an agent's behalf.
     final employeeId = ref.watch(currentEmployeeProvider.select((e) => e?.id));
-    final reviewCount = canReview && employeeId != null && !employeeScoped
-        ? ref.watch(reviewCountProvider(employeeId)).value
+    final reviewState = canReview && employeeId != null && !employeeScoped
+        ? ref.watch(reviewCountProvider(employeeId))
         : null;
+    final reviewCount = reviewState?.value;
+    final reviewLoading =
+        reviewState != null &&
+        !reviewState.hasValue &&
+        reviewState.isLoading &&
+        !reviewState.hasError;
 
     int? countOf(InboxQuickFilter filter) {
       final key = InboxQuickFilterBar.countKeyOf(filter);
       return key == null ? reviewCount : counts?[key];
     }
+
+    bool loadingOf(InboxQuickFilter filter) =>
+        InboxQuickFilterBar.countKeyOf(filter) == null
+        ? reviewLoading
+        : countsLoading;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -203,7 +227,9 @@ class _InboxQuickFilterBarState extends ConsumerState<InboxQuickFilterBar> {
                 key: Key(_keyOf(filter)),
                 label: _labelOf(context, filter),
                 badge: countOf(filter),
+                badgeLoading: loadingOf(filter),
                 badgeKey: _badgeKeyOf(filter),
+                placeholderKey: Key('${_keyOf(filter)}_count_loading'),
                 badgeSemantics: _semanticsOf(context, filter),
                 isActive: activeFilter == filter,
                 onTap: () => ref
@@ -225,7 +251,9 @@ class _QuickFilterPill extends StatelessWidget {
     required this.onTap,
     required this.badgeSemantics,
     this.badge,
+    this.badgeLoading = false,
     this.badgeKey,
+    this.placeholderKey,
     super.key,
   });
 
@@ -238,12 +266,18 @@ class _QuickFilterPill extends StatelessWidget {
   /// Tells one tab's number from another's.
   final Key? badgeKey;
 
+  /// Tells one tab's placeholder from another's.
+  final Key? placeholderKey;
+
   /// How the badge's number is read aloud.
   final String Function(int count) badgeSemantics;
 
   /// A count shown after the label while it is above zero; null or zero shows
   /// nothing (as on the web).
   final int? badge;
+
+  /// The number is still being read: a small empty badge holds its place.
+  final bool badgeLoading;
   final bool isActive;
   final VoidCallback onTap;
 
@@ -294,6 +328,12 @@ class _QuickFilterPill extends StatelessWidget {
                       count: badge!,
                       onActivePill: isActive,
                       semantics: badgeSemantics(badge!),
+                    ),
+                  ] else if (badgeLoading) ...[
+                    const SizedBox(width: Space.xs + 2),
+                    _CountPlaceholder(
+                      key: placeholderKey,
+                      onActivePill: isActive,
                     ),
                   ],
                 ],
@@ -358,6 +398,36 @@ class _CountBadge extends StatelessWidget {
             height: 1.0,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Where a tab's number will be while it is first read: the badge's own
+/// shape and wash, empty — no digit, so nothing that could pass for a count —
+/// as wide as a two-digit number, so most numbers land without moving the
+/// row. Still, not animated: the bar settles, and nothing is announced.
+class _CountPlaceholder extends StatelessWidget {
+  const _CountPlaceholder({required this.onActivePill, super.key});
+
+  final bool onActivePill;
+
+  static const width = 22.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final colors = AppColors.of(context);
+    return ExcludeSemantics(
+      child: Container(
+        width: width,
+        height: _CountBadge._height,
+        decoration: BoxDecoration(
+          color: onActivePill
+              ? scheme.onPrimary.withValues(alpha: 0.22)
+              : colors.foreground.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(Radii.pill),
         ),
       ),
     );

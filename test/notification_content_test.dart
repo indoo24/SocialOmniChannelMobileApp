@@ -77,6 +77,27 @@ void main() {
       expect(c.channelLabel, 'إنستغرام');
     });
 
+    test('header shows the channel, plus the count once there are several', () {
+      expect(builder('en').conversation(entry(1)).headerText, 'WhatsApp');
+      expect(
+        builder(
+          'en',
+        ).conversation(entry(1, previews: ['a', 'b', 'c'])).headerText,
+        'WhatsApp · 3 new messages',
+      );
+      expect(
+        builder('ar').conversation(entry(1, previews: ['a', 'b'])).headerText,
+        'واتساب · رسالتان جديدتان',
+      );
+      // Unknown channel: just the count.
+      expect(
+        builder(
+          'en',
+        ).conversation(entry(1, previews: ['a', 'b'], provider: '')).headerText,
+        '2 new messages',
+      );
+    });
+
     test('channel account name is shown next to the platform', () {
       final c = builder('en').conversation(entry(1, channel: 'Main store'));
       expect(c.channelLabel, 'WhatsApp · ${Bidi.isolate('Main store')}');

@@ -304,7 +304,7 @@ class _ForwardMessageSheetState extends ConsumerState<ForwardMessageSheet> {
   /// server's realtime event does the same for anyone else watching.
   void _refreshAfterForward(int destinationId) {
     unawaited(ref.read(inboxControllerProvider.notifier).refreshQuietly());
-    ref.invalidate(conversationCountsProvider);
+    ref.refreshInboxCounts();
     final thread = conversationControllerProvider(destinationId);
     if (ref.exists(thread)) {
       unawaited(ref.read(thread.notifier).refreshFromServer());

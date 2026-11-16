@@ -342,10 +342,7 @@ void main() {
       h.push(20);
       h.push(30);
       // The agent dismissed 10 and 20; a minute later two new chats arrive.
-      final tray = TraySnapshot(
-        conversationNotificationIds: {NotificationIds.forConversation(30)},
-        summaryVisible: false,
-      );
+      final tray = TraySnapshot(conversationIds: {30}, summaryVisible: false);
       expect(
         summaryOf(h.push(40, after: const Duration(minutes: 1), tray: tray)),
         isNull,
@@ -357,10 +354,7 @@ void main() {
       final h = Harness();
       h.push(10);
       // Back to back: the tray does not list 10 yet.
-      const tray = TraySnapshot(
-        conversationNotificationIds: {},
-        summaryVisible: false,
-      );
+      const tray = TraySnapshot(conversationIds: {}, summaryVisible: false);
       h.push(20, after: const Duration(milliseconds: 200), tray: tray);
       expect(h.state.conversationCount, 2);
     });
@@ -370,10 +364,7 @@ void main() {
       for (final id in [10, 20, 30, 40]) {
         h.push(id);
       }
-      const tray = TraySnapshot(
-        conversationNotificationIds: {},
-        summaryVisible: false,
-      );
+      const tray = TraySnapshot(conversationIds: {}, summaryVisible: false);
       final plan = h.push(50, after: const Duration(minutes: 1), tray: tray);
       expect(shown(plan), [50]);
       expect(h.state.summaryMode, isFalse);
@@ -406,10 +397,53 @@ void main() {
 
     test('kinds are kept apart by tag', () {
       expect({
-        NotificationIds.conversationTag,
+        NotificationIds.conversationTag(5),
         NotificationIds.summaryTag,
-        NotificationIds.activityTag,
+        NotificationIds.activityTag(5),
       }, hasLength(3));
+    });
+
+    test('identity is the conversation id, never a message id', () {
+      // Same conversation → same (tag, id), whatever else differs.
+      expect(NotificationIds.conversationTag(306), 'scenario.conversation.306');
+      expect(
+        NotificationIds.conversationIdFromTag('scenario.conversation.306'),
+        306,
+      );
+      expect(
+        NotificationIds.conversationIdFromTag('FCM-Notification:12'),
+        isNull,
+      );
+      expect(
+        NotificationIds.conversationIdFromTag('scenario.conversation'),
+        isNull,
+      );
+    });
+
+    test('conversations whose 32-bit ids collide still never share a key', () {
+      const a = 5;
+      const b = 5 + 0x80000000;
+      expect(
+        NotificationIds.forConversation(a),
+        NotificationIds.forConversation(b),
+      );
+      expect(
+        NotificationIds.conversationTag(a),
+        isNot(NotificationIds.conversationTag(b)),
+      );
+    });
+
+    test('legacy and current conversation tags are both swept', () {
+      expect(
+        NotificationIds.isConversationTag('scenario.conversation'),
+        isTrue,
+      );
+      expect(
+        NotificationIds.isConversationTag('scenario.conversation.9'),
+        isTrue,
+      );
+      expect(NotificationIds.isConversationTag('scenario.summary'), isFalse);
+      expect(NotificationIds.isConversationTag(null), isFalse);
     });
   });
 

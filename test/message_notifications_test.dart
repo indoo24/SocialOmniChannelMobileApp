@@ -91,6 +91,45 @@ class FakeAndroidPlugin extends Fake
 
   List<Shown> withTag(String tag) =>
       tray.values.where((n) => n.tag == tag).toList();
+
+  /// The app's conversation notifications (one tag per conversation).
+  List<Shown> get conversations => tray.values
+      .where((n) => NotificationIds.isConversationTag(n.tag))
+      .toList();
+
+  int _osSeq = 0;
+
+  /// What Android does today for a push with a `notification` block: the
+  /// Firebase SDK posts it itself, id 0, under a fresh `FCM-Notification:`
+  /// tag — so every push is its own notification.
+  void postSystemCopy(String title, String body) {
+    final tag = '${AndroidNotificationPresenter.systemTagPrefix}${++_osSeq}';
+    tray[key(tag, 0)] = Shown(
+      0,
+      title,
+      body,
+      AndroidNotificationDetails(
+        NotificationChannels.updatesId,
+        'Conversation updates',
+        tag: tag,
+      ),
+      null,
+    );
+  }
+
+  List<Shown> get systemCopies => tray.values
+      .where(
+        (n) =>
+            n.tag?.startsWith(AndroidNotificationPresenter.systemTagPrefix) ??
+            false,
+      )
+      .toList();
+
+  List<Shown> get activities => tray.values
+      .where(
+        (n) => n.tag?.startsWith(NotificationIds.activityTagPrefix) ?? false,
+      )
+      .toList();
 }
 
 class MemorySecureStore extends SecureStore {
@@ -131,9 +170,11 @@ void main() {
 
   /// A fresh coordinator per call, like a fresh background isolate per push:
   /// nothing survives between pushes except the state file on disk.
-  MessageNotifications isolate() => MessageNotifications(
+  MessageNotifications isolate({
+    Duration copyTimeout = const Duration(seconds: 2),
+  }) => MessageNotifications(
     store: NotificationStateStore(directory: () async => dir),
-    presenter: AndroidNotificationPresenter(plugin),
+    presenter: AndroidNotificationPresenter(plugin, copyTimeout),
     secureStore: secure,
     clock: () => now,
   );
@@ -144,6 +185,35 @@ void main() {
   }) {
     now = now.add(after);
     return isolate().present(push);
+  }
+
+  /// A push as the backend sends it today (with a `notification` block),
+  /// handled the way the device handles it: the OS posts its own copy, then
+  /// the background handler runs in a fresh isolate.
+  Future<void> deliverFromOs(
+    int conversation,
+    String messageId, {
+    String name = 'Sara Ahmed',
+    String body = 'Hello',
+    bool osPostsCopy = true,
+    Duration copyTimeout = const Duration(seconds: 2),
+  }) {
+    now = now.add(const Duration(seconds: 30));
+    if (osPostsCopy) plugin.postSystemCopy(name, body);
+    final push = PushPayload.parse(
+      data: {
+        'type': 'new_message',
+        'conversation_id': '$conversation',
+        'message_id': messageId,
+      },
+      hasSystemNotification: true,
+      notificationTitle: name,
+      notificationBody: body,
+      receivedAt: now,
+    );
+    return isolate(
+      copyTimeout: copyTimeout,
+    ).present(push, mode: localDrawFor(push, isAndroid: true));
   }
 
   setUp(() async {
@@ -184,7 +254,7 @@ void main() {
       await deliver(message(1, 'b', name: 'Sara', body: 'Are you there?'));
       await deliver(message(1, 'c', name: 'Sara', body: 'Is it in stock?'));
 
-      final shown = plugin.withTag(NotificationIds.conversationTag);
+      final shown = plugin.conversations;
       expect(shown, hasLength(1));
       final n = shown.single;
       expect(n.id, 1);
@@ -194,7 +264,7 @@ void main() {
       expect(n.details.icon, 'ic_stat_scenario');
       expect(n.details.category, AndroidNotificationCategory.message);
       expect(n.details.visibility, NotificationVisibility.private);
-      expect(n.details.subText, 'WhatsApp');
+      expect(n.details.subText, 'WhatsApp · 3 new messages');
       expect(n.details.number, 3);
       final style = n.details.styleInformation as MessagingStyleInformation;
       expect(style.messages!.map((m) => m.text), [
@@ -214,10 +284,7 @@ void main() {
     for (final c in [1, 2, 3]) {
       await deliver(message(c, 'm$c'));
     }
-    expect(
-      plugin.withTag(NotificationIds.conversationTag).map((n) => n.id),
-      unorderedEquals([1, 2, 3]),
-    );
+    expect(plugin.conversations.map((n) => n.id), unorderedEquals([1, 2, 3]));
     expect(plugin.withTag(NotificationIds.summaryTag), isEmpty);
   });
 
@@ -228,7 +295,7 @@ void main() {
         await deliver(message(c, 'm$c'));
       }
       expect(
-        plugin.withTag(NotificationIds.conversationTag),
+        plugin.conversations,
         isEmpty,
         reason: 'no child notification may stay next to the summary',
       );
@@ -259,10 +326,7 @@ void main() {
     plugin.log.clear();
     await deliver(message(1, 'same'));
     expect(plugin.log, isEmpty);
-    expect(
-      plugin.withTag(NotificationIds.conversationTag).single.details.number,
-      1,
-    );
+    expect(plugin.conversations.single.details.number, 1);
   });
 
   test('assignments are drawn on their own channel, never grouped', () async {
@@ -272,10 +336,10 @@ void main() {
     await deliver(
       message(4, 'z', type: 'conversation_assigned', name: 'Assigned to you'),
     );
-    final activity = plugin.withTag(NotificationIds.activityTag).single;
+    final activity = plugin.activities.single;
     expect(activity.details.channelId, NotificationChannels.updatesId);
     // Still rule B: the assignment did not make it "four conversations".
-    expect(plugin.withTag(NotificationIds.conversationTag), hasLength(3));
+    expect(plugin.conversations, hasLength(3));
     expect(plugin.withTag(NotificationIds.summaryTag), isEmpty);
   });
 
@@ -287,15 +351,15 @@ void main() {
     await isolate().clearAfterAppOpened();
 
     expect(plugin.withTag(NotificationIds.summaryTag), isEmpty);
-    expect(plugin.withTag(NotificationIds.conversationTag), isEmpty);
-    expect(plugin.withTag(NotificationIds.activityTag), hasLength(1));
+    expect(plugin.conversations, isEmpty);
+    expect(plugin.activities, hasLength(1));
 
     // Counting starts again — rule A — but the old message ids are still
     // remembered, so a late retry of one is not shown.
     await deliver(message(5, 'n5'));
-    expect(plugin.withTag(NotificationIds.conversationTag).single.id, 5);
+    expect(plugin.conversations.single.id, 5);
     await deliver(message(1, 'm1'));
-    expect(plugin.withTag(NotificationIds.conversationTag), hasLength(1));
+    expect(plugin.conversations, hasLength(1));
   });
 
   test('sign-out removes everything and forgets the state file', () async {
@@ -336,7 +400,7 @@ void main() {
   test('previews off: no name or text reaches Android', () async {
     secure.previews = false;
     await deliver(message(1, 'a', name: 'Sara Secret', body: 'card 4111'));
-    final n = plugin.withTag(NotificationIds.conversationTag).single;
+    final n = plugin.conversations.single;
     expect(n.title, 'New message');
     expect(n.body, '1 new message');
     expect(n.details.largeIcon, isNull);
@@ -367,4 +431,169 @@ void main() {
       expect(await isolate().launchTapTarget(), isNull);
     },
   );
+
+  group('One notification per conversation (reported bug)', () {
+    String keyOf(Shown n) => FakeAndroidPlugin.key(n.tag, n.id);
+
+    test(
+      'three OS-drawn messages for conversation 306 end as ONE notification',
+      () async {
+        final keys = <String>[];
+        for (final (id, body) in [
+          ('m1', 'Hello'),
+          ('m2', 'Is it available?'),
+          ('m3', 'What is the price?'),
+        ]) {
+          await deliverFromOs(306, id, body: body);
+          // After every push: no OS copy left, exactly one notification.
+          expect(plugin.systemCopies, isEmpty);
+          expect(plugin.conversations, hasLength(1));
+          keys.add(keyOf(plugin.conversations.single));
+        }
+
+        // Same Android identity for all three — derived from conversation 306.
+        expect(keys.toSet(), {'scenario.conversation.306/306'});
+
+        final n = plugin.conversations.single;
+        expect(n.title, 'Sara Ahmed');
+        expect(n.body, 'What is the price?');
+        expect(n.details.number, 3);
+        expect(n.details.subText, '3 new messages');
+        expect(n.details.when, now.millisecondsSinceEpoch);
+        final style = n.details.styleInformation as MessagingStyleInformation;
+        expect(style.messages!.map((m) => m.text), [
+          'Hello',
+          'Is it available?',
+          'What is the price?',
+        ]);
+        // The OS already played the sound for each push: ours is silent.
+        expect(n.details.silent, isTrue);
+        expect(
+          NotificationTapTarget.decode(n.payload),
+          const OpenConversation(306),
+        );
+        expect(plugin.tray, hasLength(1));
+      },
+    );
+
+    test('four messages from one conversation are not a summary', () async {
+      for (var i = 1; i <= 4; i++) {
+        await deliverFromOs(306, 'm$i', body: 'message $i');
+      }
+      expect(plugin.withTag(NotificationIds.summaryTag), isEmpty);
+      expect(plugin.conversations.single.details.number, 4);
+      expect(plugin.conversations.single.body, 'message 4');
+    });
+
+    test('two conversations: two notifications', () async {
+      await deliverFromOs(306, 'a', name: 'Sara');
+      await deliverFromOs(307, 'b', name: 'Omar');
+      await deliverFromOs(306, 'c', name: 'Sara');
+      expect(plugin.systemCopies, isEmpty);
+      expect(
+        plugin.conversations.map((n) => n.tag),
+        unorderedEquals([
+          'scenario.conversation.306',
+          'scenario.conversation.307',
+        ]),
+      );
+    });
+
+    test('four conversations: the existing summary, nothing else', () async {
+      for (final c in [1, 2, 3, 4]) {
+        await deliverFromOs(c, 'm$c', name: 'Customer $c');
+      }
+      expect(plugin.systemCopies, isEmpty);
+      expect(plugin.conversations, isEmpty);
+      final summary = plugin.withTag(NotificationIds.summaryTag).single;
+      expect(summary.title, '4 new messages');
+    });
+
+    test(
+      'a repeated delivery removes its OS copy and counts nothing',
+      () async {
+        await deliverFromOs(306, 'same', body: 'Hello');
+        await deliverFromOs(306, 'same', body: 'Hello');
+        expect(plugin.systemCopies, isEmpty);
+        expect(plugin.conversations.single.details.number, 1);
+      },
+    );
+
+    test('if the OS copy never shows up, the tray is left alone and nothing is '
+        'counted', () async {
+      await deliverFromOs(
+        306,
+        'x',
+        osPostsCopy: false,
+        copyTimeout: const Duration(milliseconds: 50),
+      );
+      expect(plugin.tray, isEmpty);
+      // The next real message still starts the count at one.
+      await deliverFromOs(306, 'y');
+      expect(plugin.conversations.single.details.number, 1);
+    });
+
+    test(
+      'identity survives an app restart (state re-read from disk)',
+      () async {
+        await deliver(message(306, 'a'));
+        final before = keyOf(plugin.conversations.single);
+        // A new coordinator, store and presenter — nothing kept in memory.
+        final restarted = MessageNotifications(
+          store: NotificationStateStore(directory: () async => dir),
+          presenter: AndroidNotificationPresenter(plugin),
+          secureStore: secure,
+          clock: () => now,
+        );
+        now = now.add(const Duration(seconds: 30));
+        await restarted.present(message(306, 'b'));
+        expect(plugin.conversations, hasLength(1));
+        expect(keyOf(plugin.conversations.single), before);
+        expect(plugin.conversations.single.details.number, 2);
+      },
+    );
+
+    test('data-only messages update in place too, with sound', () async {
+      await deliver(message(306, 'a', body: 'one'));
+      await deliver(message(306, 'b', body: 'two'));
+      expect(plugin.conversations, hasLength(1));
+      expect(plugin.conversations.single.body, 'two');
+      expect(plugin.conversations.single.details.silent, isFalse);
+    });
+
+    test(
+      'a notification from the previous build is replaced, not doubled',
+      () async {
+        plugin.tray[FakeAndroidPlugin.key(
+          'scenario.conversation',
+          306,
+        )] = Shown(
+          306,
+          'Old',
+          'old',
+          const AndroidNotificationDetails(
+            NotificationChannels.messagesId,
+            'Customer messages',
+            tag: 'scenario.conversation',
+          ),
+          null,
+        );
+        await deliver(message(306, 'a'));
+        expect(plugin.conversations.single.tag, 'scenario.conversation.306');
+      },
+    );
+
+    test(
+      'previews off: one generic notification, still per conversation',
+      () async {
+        secure.previews = false;
+        await deliverFromOs(306, 'a', body: 'secret');
+        await deliverFromOs(306, 'b', body: 'secret 2');
+        final n = plugin.conversations.single;
+        expect(n.title, 'New message');
+        expect(n.body, '2 new messages');
+        expect(plugin.systemCopies, isEmpty);
+      },
+    );
+  });
 }

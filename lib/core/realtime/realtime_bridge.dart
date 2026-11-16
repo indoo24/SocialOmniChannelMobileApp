@@ -250,7 +250,7 @@ final inboxResyncProvider = Provider<InboxResync>((ref) {
 @visibleForTesting
 void resyncInbox(Ref ref) {
   ref.invalidate(channelsProvider);
-  ref.invalidate(conversationCountsProvider);
+  ref.refreshInboxCounts(now: true);
   ref.invalidate(reviewCountProvider);
   ref.read(inboxControllerProvider.notifier).resync();
   final active = ref.read(activeConversationProvider);
@@ -442,7 +442,7 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
       case RealtimeEvents.conversationAssigned:
       case RealtimeEvents.conversationStatusChanged:
         ref.read(inboxControllerProvider.notifier).refreshQuietly();
-        ref.invalidate(conversationCountsProvider);
+        ref.refreshInboxCounts();
         // The server sends no event of its own for a review, so these are
         // the closest signal; the count is re-read, never adjusted.
         ref.invalidate(reviewCountProvider);
@@ -486,7 +486,7 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
           }
         }
         ref.read(inboxControllerProvider.notifier).refreshQuietly();
-        ref.invalidate(conversationCountsProvider);
+        ref.refreshInboxCounts();
         if (conversationId != null) {
           _refreshConversation(
             ref,
@@ -498,7 +498,7 @@ void _apply(Ref ref, RealtimeEvent event, {String? traceId}) {
 
       case RealtimeEvents.messageDeleted:
         ref.read(inboxControllerProvider.notifier).refreshQuietly();
-        ref.invalidate(conversationCountsProvider);
+        ref.refreshInboxCounts();
         if (conversationId != null) {
           _refreshConversation(
             ref,

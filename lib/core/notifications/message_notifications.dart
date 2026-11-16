@@ -28,14 +28,32 @@ import 'notification_grouping.dart';
 import 'notification_state_store.dart';
 import 'push_payload.dart';
 
-/// Whether the app must draw this push itself — decided from the payload
-/// alone so it can be tested.
-///
-/// Only on Android, only for a push without a `notification` block (one
-/// with a block has already been drawn by the OS; drawing it again would
-/// duplicate it), and only for a push that names a conversation.
-bool shouldDrawLocally(PushPayload push, {required bool isAndroid}) =>
-    isAndroid && !push.hasSystemNotification && push.kind != PushKind.other;
+/// What the background isolate does with a push.
+enum LocalDraw {
+  /// Leave it to the OS (iOS; a push naming no conversation; a non-message
+  /// push the OS already drew — those are never grouped).
+  none,
+
+  /// A data-only push: nothing is on screen yet, the app draws it.
+  draw,
+
+  /// A customer message the OS already drew from its `notification` block —
+  /// as a *separate* notification per push, under a fresh `FCM-Notification`
+  /// tag each time. The app folds it into the conversation's own
+  /// notification (silently: the OS already alerted) and removes the OS copy,
+  /// so a conversation still shows exactly one notification whichever
+  /// payload shape the backend sends.
+  adoptSystemCopy,
+}
+
+/// Decided from the payload alone, so it can be tested.
+LocalDraw localDrawFor(PushPayload push, {required bool isAndroid}) {
+  if (!isAndroid || push.kind == PushKind.other) return LocalDraw.none;
+  if (!push.hasSystemNotification) return LocalDraw.draw;
+  return push.kind == PushKind.customerMessage
+      ? LocalDraw.adoptSystemCopy
+      : LocalDraw.none;
+}
 
 /// Whether this build draws notifications itself at all.
 bool get drawsNotificationsLocally => !kIsWeb && Platform.isAndroid;
@@ -70,9 +88,13 @@ class MessageNotifications {
   // Background isolate
   // ---------------------------------------------------------------------- //
 
-  /// Draws [push] (already checked with [shouldDrawLocally]). Never throws:
-  /// a failure here must not crash the background isolate.
-  Future<void> present(PushPayload push) async {
+  /// Draws [push] as [mode] (from [localDrawFor]). Never throws: a failure
+  /// here must not crash the background isolate.
+  Future<void> present(
+    PushPayload push, {
+    LocalDraw mode = LocalDraw.draw,
+  }) async {
+    if (mode == LocalDraw.none) return;
     try {
       final settings = await _readSettings();
       await _ensureInitialized(settings.l10n);
@@ -84,6 +106,23 @@ class MessageNotifications {
       switch (push.kind) {
         case PushKind.customerMessage:
           await _store.locked(() async {
+            final adopt = mode == LocalDraw.adoptSystemCopy;
+            // Inside the lock, so two pushes handled together never claim
+            // the same OS copy.
+            final systemCopy = adopt
+                ? await _presenter.findSystemCopy(
+                    title: push.systemTitle,
+                    body: push.systemBody,
+                  )
+                : null;
+            if (adopt && systemCopy == null) {
+              // Never found (already swiped away, or the OS was slower than
+              // the timeout): leave the tray exactly as it is rather than risk
+              // a second notification for this message.
+              _log('present() — OS copy not found, leaving it to the OS.');
+              return;
+            }
+
             final state = await _store.read();
             final tray = await _presenter.traySnapshot();
             final result = _grouper.apply(
@@ -94,9 +133,17 @@ class MessageNotifications {
             );
             if (result.plan.duplicate) {
               _log('present() — repeat delivery, not shown again.');
+              if (systemCopy != null) {
+                await _presenter.cancelSystemCopy(systemCopy);
+              }
               return;
             }
-            await _presenter.execute(result.plan, content);
+            // Ours first, then the OS copy removed: the tray never flashes
+            // empty, and the conversation ends with one notification.
+            await _presenter.execute(result.plan, content, silent: adopt);
+            if (systemCopy != null) {
+              await _presenter.cancelSystemCopy(systemCopy);
+            }
             await _store.write(result.state);
             _log(
               'present() — ${result.state.conversationCount} conversation(s), '
@@ -105,6 +152,7 @@ class MessageNotifications {
             );
           });
         case PushKind.conversationActivity:
+          if (mode != LocalDraw.draw) break;
           await _presenter.showActivity(
             push,
             settings.l10n,

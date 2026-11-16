@@ -113,6 +113,7 @@ class ConversationNotificationContent {
     required this.initials,
     required this.messages,
     required this.channelLabel,
+    required this.headerText,
     required this.when,
     required this.messageCount,
     required this.showsPreview,
@@ -139,6 +140,12 @@ class ConversationNotificationContent {
 
   /// "WhatsApp" or "WhatsApp · Store name". Empty when unknown.
   final String channelLabel;
+
+  /// Android's header line (next to the app name): the channel, plus
+  /// "3 new messages" once the conversation has more than one — the stacked
+  /// messages show at most five, so the count is what says how many arrived.
+  /// Empty when there is nothing to show.
+  final String headerText;
   final DateTime when;
   final int messageCount;
   final bool showsPreview;
@@ -208,6 +215,8 @@ class NotificationContentBuilder {
         initials: '',
         messages: const [],
         channelLabel: channel,
+        // The body already carries the count with previews off.
+        headerText: channel,
         when: entry.lastMessageAt,
         messageCount: entry.messageCount,
         showsPreview: false,
@@ -230,6 +239,11 @@ class NotificationContentBuilder {
       initials: initialsOf(entry.customerName),
       messages: messages,
       channelLabel: channel,
+      headerText: [
+        if (channel.isNotEmpty) channel,
+        if (entry.messageCount > 1)
+          l10n.notificationNewMessagesCount(entry.messageCount),
+      ].join(' · '),
       when: entry.lastMessageAt,
       messageCount: entry.messageCount,
       showsPreview: true,

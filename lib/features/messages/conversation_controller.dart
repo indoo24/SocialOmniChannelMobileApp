@@ -1245,7 +1245,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     ref
         .read(inboxControllerProvider.notifier)
         .setUnreadCount(conversationId, unreadCount);
-    ref.invalidate(conversationCountsProvider);
+    ref.refreshInboxCounts();
   }
 
   Future<void> loadOlder() async {

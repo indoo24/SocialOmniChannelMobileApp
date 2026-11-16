@@ -45,8 +45,11 @@ import '../../core/providers.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
 import 'conversation_repository.dart';
+import 'inbox_counts.dart';
 import 'inbox_list_merge.dart';
 import 'inbox_pagination_log.dart';
+
+export 'inbox_counts.dart';
 
 /// Computes allowed channel IDs across all platforms, matching Web's `pn(selection, connections)`.
 List<int>? computeAllowedChannelConnections(
@@ -769,7 +772,7 @@ class InboxController extends AsyncNotifier<InboxState> {
     _reloads++;
     try {
       ref.invalidate(channelsProvider);
-      ref.invalidate(conversationCountsProvider);
+      ref.refreshInboxCounts(now: true);
       final filters = ref.read(inboxFiltersProvider);
       final fresh = await _firstBatch(filters, navigation: ++_navigation);
       if (!ref.mounted || epoch != _epoch) return;
@@ -794,7 +797,7 @@ class InboxController extends AsyncNotifier<InboxState> {
   /// leaving the list as it is if that fails.
   Future<void> refreshQuietly({bool reset = false}) async {
     ref.invalidate(channelsProvider);
-    ref.invalidate(conversationCountsProvider);
+    ref.refreshInboxCounts();
     if (reset) {
       await _resetQuietly();
     } else {
@@ -1055,7 +1058,7 @@ class InboxController extends AsyncNotifier<InboxState> {
   /// and re-read the counts it was part of.
   void lostAccess(int conversationId) {
     removeConversation(conversationId);
-    ref.invalidate(conversationCountsProvider);
+    ref.refreshInboxCounts();
   }
 
   // -- local patches --------------------------------------------------------
@@ -1234,37 +1237,3 @@ class InboxController extends AsyncNotifier<InboxState> {
 
 final inboxControllerProvider =
     AsyncNotifierProvider<InboxController, InboxState>(InboxController.new);
-
-/// The inbox's counts — every quick-filter tab's number and the drawer's
-/// unread badge — from one `GET /conversations/counts/`, the request the web
-/// inbox makes for its tabs ([ConversationRepository.counts]).
-///
-/// Scoped to the same accounts as the list: those the employee picked, or
-/// else every eligible one ([eligibleInboxAccounts]) — so conversations on a
-/// disconnected or archived account, which the list never shows, are not
-/// counted. Read again only when that scope changes — not on a tab, search
-/// or sort change, which leave the numbers as they are. Kept current by
-/// invalidation: every event that can move a conversation between tabs (a
-/// message, an assignment, a status change, a resync, a pull to refresh)
-/// re-reads it, in one request.
-final conversationCountsProvider = FutureProvider<Map<String, int>>((
-  ref,
-) async {
-  final picked = ref.watch(
-    inboxFiltersProvider.select((f) => f.channelConnections),
-  );
-  List<int>? accounts;
-  try {
-    accounts = eligibleInboxAccounts(await ref.watch(channelsProvider.future));
-  } catch (_) {
-    accounts = null;
-  }
-  return ref
-      .watch(conversationRepositoryProvider)
-      .counts(
-        channelConnections: scopeToEligibleAccounts(
-          ConversationFilters(channelConnections: picked),
-          accounts,
-        ).channelConnections,
-      );
-});

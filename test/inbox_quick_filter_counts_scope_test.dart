@@ -326,7 +326,10 @@ void main() {
       org
         ..['needs_reply'] = 16
         ..['unread'] = 3;
-      container(tester).invalidate(conversationCountsProvider);
+      // What the realtime bridge asks for on a message — coalesced with
+      // whatever else arrives in the same moment.
+      container(tester).refreshInboxCounts();
+      await tester.pump(ConversationCountsController.settleDelay);
       await tester.pumpAndSettle();
       expect(_shown(tester, 'needs_reply'), '16');
       expect(_shown(tester, 'unread'), '3');

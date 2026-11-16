@@ -178,7 +178,7 @@ ProviderContainer _container(_Server server) {
       apiClientProvider.overrideWithValue(server.client()),
       currentEmployeeProvider.overrideWith((ref) => ref.watch(_whoProvider)),
       inboxControllerProvider.overrideWith(_FakeInbox.new),
-      conversationCountsProvider.overrideWith((ref) async => {}),
+      conversationCountsProvider.overrideWithBuild((ref, _) async => {}),
     ],
   );
   addTearDown(c.dispose);

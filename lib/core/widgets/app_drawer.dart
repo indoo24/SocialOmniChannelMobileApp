@@ -32,7 +32,9 @@ class AppDrawer extends ConsumerWidget {
     final currentPath = GoRouterState.of(context).matchedLocation;
     // Read out here rather than inline: `cond ? map?['k'] : null` trips Dart's
     // parser, which reads the `?[` as a null-aware index on the condition.
-    final unread = ref.watch(conversationCountsProvider).value?['unread'];
+    final unread = shownInboxCounts(
+      ref.watch(conversationCountsProvider),
+    )?['unread'];
 
     return Drawer(
       backgroundColor: AppColors.of(context).sidebar,

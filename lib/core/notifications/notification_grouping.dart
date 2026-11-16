@@ -235,13 +235,13 @@ class NotificationGroupState {
 /// then nothing is assumed dismissed.
 class TraySnapshot {
   const TraySnapshot({
-    required this.conversationNotificationIds,
+    required this.conversationIds,
     required this.summaryVisible,
   });
 
-  /// Android ids ([NotificationIds.forConversation]) of the conversation
-  /// notifications still showing.
-  final Set<int> conversationNotificationIds;
+  /// Conversations whose notification is still showing, read back from each
+  /// notification's tag ([NotificationIds.conversationIdFromTag]).
+  final Set<int> conversationIds;
   final bool summaryVisible;
 }
 
@@ -409,9 +409,7 @@ class NotificationGrouper {
 
     final kept = [
       for (final c in state.conversations)
-        if (tray.conversationNotificationIds.contains(
-              NotificationIds.forConversation(c.conversationId),
-            ) ||
+        if (tray.conversationIds.contains(c.conversationId) ||
             !settled(c.postedAt))
           c,
     ];
@@ -477,22 +475,52 @@ class NotificationGrouper {
   }
 }
 
-/// Stable Android notification ids. A conversation always maps to the same
-/// id (so an update replaces rather than adds), and each kind of
-/// notification carries its own tag, so ids can never collide across kinds
-/// — nor with FCM's own, which it posts under an `FCM-Notification:` tag.
+/// Stable Android notification identity.
+///
+/// Android identifies a notification by **(tag, id)**: posting again with the
+/// same pair replaces it in place. A conversation's pair is derived from its
+/// `conversation_id` alone — never from a message id — so every message of a
+/// conversation, in any isolate, before or after an app restart, updates the
+/// same notification.
+///
+/// The conversation id is in the *tag* as well as the int id, which makes the
+/// pair collision-free for any id: the int id is only 32 bits (ids past
+/// 2^31 fold onto smaller ones), but two different conversations never share
+/// a tag. Each kind of notification has its own tag namespace, so they never
+/// collide with each other either — nor with FCM's own, which it posts under
+/// `FCM-Notification:<time>`.
 class NotificationIds {
   const NotificationIds._();
 
-  static const conversationTag = 'scenario.conversation';
+  /// Prefix of every conversation notification's tag. The bare prefix (no
+  /// trailing dot) also matches the single tag an earlier build used.
+  static const conversationTagPrefix = 'scenario.conversation';
   static const summaryTag = 'scenario.summary';
-  static const activityTag = 'scenario.activity';
+  static const activityTagPrefix = 'scenario.activity';
 
   /// The summary is the only notification under [summaryTag].
   static const summaryId = 1;
 
+  static String conversationTag(int conversationId) =>
+      '$conversationTagPrefix.$conversationId';
+
+  static String activityTag(int conversationId) =>
+      '$activityTagPrefix.$conversationId';
+
+  /// The conversation a tag belongs to, or null if it is not a conversation
+  /// notification's tag.
+  static int? conversationIdFromTag(String? tag) {
+    if (tag == null || !tag.startsWith('$conversationTagPrefix.')) return null;
+    final id = int.tryParse(tag.substring(conversationTagPrefix.length + 1));
+    return id != null && id > 0 ? id : null;
+  }
+
+  /// Any conversation notification this app has ever posted (current or the
+  /// earlier single-tag scheme) — what "clear message notifications" sweeps.
+  static bool isConversationTag(String? tag) =>
+      tag != null && tag.startsWith(conversationTagPrefix);
+
   /// Android ids are 32-bit signed ints; a database id beyond that range is
-  /// folded into it rather than overflowing to a negative or colliding with
-  /// the summary's tag.
+  /// folded into it. Uniqueness comes from the tag, see above.
   static int forConversation(int conversationId) => conversationId & 0x7fffffff;
 }
