@@ -5626,4 +5626,39 @@ class AppLocalizationsAr extends AppLocalizations {
   ) {
     return '$name: المستلمة $received، تم الرد $replied، تمت البيعة $sales';
   }
+
+  @override
+  String galleryCounter(String current, String all) {
+    return '$current من $all';
+  }
+
+  @override
+  String galleryCounterMore(String current, String all) {
+    return '$current من $all+';
+  }
+
+  @override
+  String galleryCounterSemantics(String current, String all) {
+    return 'الصورة $current من $all';
+  }
+
+  @override
+  String galleryCounterMoreSemantics(String current, String all) {
+    return 'الصورة $current من $all على الأقل';
+  }
+
+  @override
+  String get galleryPreviousImage => 'الصورة السابقة';
+
+  @override
+  String get galleryNextImage => 'الصورة التالية';
+
+  @override
+  String get galleryLoadingEarlier => 'جارٍ تحميل الصور الأقدم…';
+
+  @override
+  String get galleryEarlierFailed => 'تعذّر تحميل الصور الأقدم.';
+
+  @override
+  String get galleryImageFailed => 'تعذّر تحميل هذه الصورة.';
 }

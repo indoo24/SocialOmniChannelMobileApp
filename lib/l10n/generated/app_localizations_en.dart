@@ -5582,4 +5582,39 @@ class AppLocalizationsEn extends AppLocalizations {
   ) {
     return '$name: $received received, $replied replied, $sales sales';
   }
+
+  @override
+  String galleryCounter(String current, String all) {
+    return '$current / $all';
+  }
+
+  @override
+  String galleryCounterMore(String current, String all) {
+    return '$current / $all+';
+  }
+
+  @override
+  String galleryCounterSemantics(String current, String all) {
+    return 'Image $current of $all';
+  }
+
+  @override
+  String galleryCounterMoreSemantics(String current, String all) {
+    return 'Image $current of at least $all';
+  }
+
+  @override
+  String get galleryPreviousImage => 'Previous image';
+
+  @override
+  String get galleryNextImage => 'Next image';
+
+  @override
+  String get galleryLoadingEarlier => 'Loading earlier images…';
+
+  @override
+  String get galleryEarlierFailed => 'Couldn\'t load earlier images.';
+
+  @override
+  String get galleryImageFailed => 'Couldn\'t load this image.';
 }

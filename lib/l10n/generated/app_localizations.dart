@@ -9635,6 +9635,60 @@ abstract class AppLocalizations {
     String replied,
     String sales,
   );
+
+  /// No description provided for @galleryCounter.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} / {all}'**
+  String galleryCounter(String current, String all);
+
+  /// No description provided for @galleryCounterMore.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} / {all}+'**
+  String galleryCounterMore(String current, String all);
+
+  /// No description provided for @galleryCounterSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Image {current} of {all}'**
+  String galleryCounterSemantics(String current, String all);
+
+  /// No description provided for @galleryCounterMoreSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Image {current} of at least {all}'**
+  String galleryCounterMoreSemantics(String current, String all);
+
+  /// No description provided for @galleryPreviousImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous image'**
+  String get galleryPreviousImage;
+
+  /// No description provided for @galleryNextImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Next image'**
+  String get galleryNextImage;
+
+  /// No description provided for @galleryLoadingEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading earlier images…'**
+  String get galleryLoadingEarlier;
+
+  /// No description provided for @galleryEarlierFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load earlier images.'**
+  String get galleryEarlierFailed;
+
+  /// No description provided for @galleryImageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this image.'**
+  String get galleryImageFailed;
 }
 
 class _AppLocalizationsDelegate

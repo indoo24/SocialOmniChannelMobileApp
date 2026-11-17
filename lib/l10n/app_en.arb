@@ -2931,5 +2931,18 @@
   "teamWorkloadSaleCompletedTooltip": "Of the conversations handed to this employee in the selected window, how many ended in a confirmed sale. Credited to whoever was holding the conversation when the sale was recorded, not to whoever pressed the button.",
   "teamWorkloadPeriodFailed": "Couldn't load the figures for this period.",
   "teamWorkloadRowSemantics": "{name}: {received} received, {replied} replied, {sales} sales",
-  "@teamWorkloadRowSemantics": {"placeholders": {"name": {"type": "String"}, "received": {"type": "String"}, "replied": {"type": "String"}, "sales": {"type": "String"}}}
+  "@teamWorkloadRowSemantics": {"placeholders": {"name": {"type": "String"}, "received": {"type": "String"}, "replied": {"type": "String"}, "sales": {"type": "String"}}},
+  "galleryCounter": "{current} / {all}",
+  "@galleryCounter": {"placeholders": {"current": {"type": "String"}, "all": {"type": "String"}}},
+  "galleryCounterMore": "{current} / {all}+",
+  "@galleryCounterMore": {"placeholders": {"current": {"type": "String"}, "all": {"type": "String"}}},
+  "galleryCounterSemantics": "Image {current} of {all}",
+  "@galleryCounterSemantics": {"placeholders": {"current": {"type": "String"}, "all": {"type": "String"}}},
+  "galleryCounterMoreSemantics": "Image {current} of at least {all}",
+  "@galleryCounterMoreSemantics": {"placeholders": {"current": {"type": "String"}, "all": {"type": "String"}}},
+  "galleryPreviousImage": "Previous image",
+  "galleryNextImage": "Next image",
+  "galleryLoadingEarlier": "Loading earlier images…",
+  "galleryEarlierFailed": "Couldn't load earlier images.",
+  "galleryImageFailed": "Couldn't load this image."
 }

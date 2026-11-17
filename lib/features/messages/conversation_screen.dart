@@ -47,6 +47,7 @@ import 'forward_message_sheet.dart' show startForwardMessage;
 import 'message_bubble.dart';
 import 'package:flutter/rendering.dart';
 import 'highlight_message_coordinator.dart';
+import 'image_gallery.dart';
 import 'notes_controller.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
@@ -965,17 +966,22 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                                 }
                                 return false;
                               },
-                              child: _MessageList(
-                                state: state,
-                                controller: _scrollController,
+                              // An image tapped in this thread opens the
+                              // gallery over the whole conversation.
+                              child: ConversationGalleryScope(
                                 conversationId: widget.conversationId,
-                                onInitialLayout: _initialScrollDone
-                                    ? null
-                                    : _jumpToBottomInitial,
-                                onReply: canReply ? _startReplyingTo : null,
-                                onQuoteTap: _scrollToQuotedMessage,
-                                keyForMessage: _bubbleKeyFor,
-                                sourceCardKey: _sourceCardKey,
+                                child: _MessageList(
+                                  state: state,
+                                  controller: _scrollController,
+                                  conversationId: widget.conversationId,
+                                  onInitialLayout: _initialScrollDone
+                                      ? null
+                                      : _jumpToBottomInitial,
+                                  onReply: canReply ? _startReplyingTo : null,
+                                  onQuoteTap: _scrollToQuotedMessage,
+                                  keyForMessage: _bubbleKeyFor,
+                                  sourceCardKey: _sourceCardKey,
+                                ),
                               ),
                             ),
                           ),

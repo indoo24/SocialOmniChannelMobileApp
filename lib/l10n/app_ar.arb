@@ -1662,5 +1662,14 @@
   "teamWorkloadSaleCompleted": "تمت البيعة",
   "teamWorkloadSaleCompletedTooltip": "من المحادثات التي أُسندت إلى هذا الموظف في الفترة المحددة، كم محادثة انتهت ببيعة مؤكدة. تُحتسب لمن كان يتولى المحادثة وقت تسجيل البيعة، لا لمن ضغط الزر.",
   "teamWorkloadPeriodFailed": "تعذّر تحميل الأرقام لهذه الفترة.",
-  "teamWorkloadRowSemantics": "{name}: المستلمة {received}، تم الرد {replied}، تمت البيعة {sales}"
+  "teamWorkloadRowSemantics": "{name}: المستلمة {received}، تم الرد {replied}، تمت البيعة {sales}",
+  "galleryCounter": "{current} من {all}",
+  "galleryCounterMore": "{current} من {all}+",
+  "galleryCounterSemantics": "الصورة {current} من {all}",
+  "galleryCounterMoreSemantics": "الصورة {current} من {all} على الأقل",
+  "galleryPreviousImage": "الصورة السابقة",
+  "galleryNextImage": "الصورة التالية",
+  "galleryLoadingEarlier": "جارٍ تحميل الصور الأقدم…",
+  "galleryEarlierFailed": "تعذّر تحميل الصور الأقدم.",
+  "galleryImageFailed": "تعذّر تحميل هذه الصورة."
 }
