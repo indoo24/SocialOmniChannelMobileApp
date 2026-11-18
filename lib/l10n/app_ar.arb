@@ -1671,5 +1671,18 @@
   "galleryNextImage": "الصورة التالية",
   "galleryLoadingEarlier": "جارٍ تحميل الصور الأقدم…",
   "galleryEarlierFailed": "تعذّر تحميل الصور الأقدم.",
-  "galleryImageFailed": "تعذّر تحميل هذه الصورة."
+  "galleryImageFailed": "تعذّر تحميل هذه الصورة.",
+  "attachContactAction": "جهة اتصال",
+  "contactShareTitle": "مشاركة جهة اتصال",
+  "contactSendAction": "إرسال",
+  "contactChangeAction": "تغيير",
+  "contactNoPhone": "لا يوجد رقم هاتف لمشاركته في جهة الاتصال هذه.",
+  "contactPickerUnavailable": "تعذّر فتح جهات الاتصال.",
+  "contactMessageLabel": "جهة اتصال",
+  "contactCopyNumberAction": "نسخ الرقم",
+  "contactNumberCopied": "تم نسخ الرقم",
+  "phoneTypeMobile": "جوال",
+  "phoneTypeHome": "المنزل",
+  "phoneTypeWork": "العمل",
+  "phoneTypeMain": "رئيسي"
 }

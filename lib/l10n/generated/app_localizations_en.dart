@@ -5617,4 +5617,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get galleryImageFailed => 'Couldn\'t load this image.';
+
+  @override
+  String get attachContactAction => 'Contact';
+
+  @override
+  String get contactShareTitle => 'Share contact';
+
+  @override
+  String get contactSendAction => 'Send';
+
+  @override
+  String get contactChangeAction => 'Change';
+
+  @override
+  String get contactNoPhone => 'This contact has no phone number to share.';
+
+  @override
+  String get contactPickerUnavailable => 'Couldn\'t open your contacts.';
+
+  @override
+  String get contactMessageLabel => 'Contact';
+
+  @override
+  String get contactCopyNumberAction => 'Copy number';
+
+  @override
+  String get contactNumberCopied => 'Number copied';
+
+  @override
+  String get phoneTypeMobile => 'Mobile';
+
+  @override
+  String get phoneTypeHome => 'Home';
+
+  @override
+  String get phoneTypeWork => 'Work';
+
+  @override
+  String get phoneTypeMain => 'Main';
 }

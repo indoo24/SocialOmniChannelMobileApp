@@ -413,9 +413,12 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     List<MessageAttachment>? attachmentPreviews,
     QuotedMessage? replyTo,
     String? reuseLocalId,
+    List<ContactCard> contacts = const [],
   }) async {
     final current = state.value;
-    final trimmed = text.trim();
+    // A shared contact is a message on its own: no text, no files.
+    final isContact = contacts.isNotEmpty;
+    final trimmed = isContact ? '' : text.trim();
 
     final ids = (attachmentIds != null && attachmentIds.isNotEmpty)
         ? attachmentIds
@@ -426,7 +429,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         : [?attachmentPreview];
 
     final hasAttachments = ids.isNotEmpty;
-    if (current == null || (trimmed.isEmpty && !hasAttachments)) return;
+    if (current == null || (trimmed.isEmpty && !hasAttachments && !isContact)) {
+      return;
+    }
 
     final employee = ref.read(currentEmployeeProvider);
     final localId =
@@ -438,10 +443,12 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       senderName: employee?.fullName ?? 'You',
       senderInitials: employee?.initials ?? '',
       previewAttachments: previews,
-      pendingAttachmentIds: ids,
+      pendingAttachmentIds: isContact ? const [] : ids,
       replyTo: replyTo,
+      contacts: contacts,
     );
 
+    // No phone numbers or names in the log: only that a contact was sent.
     RealtimeLogger.log(
       'CONTROLLER',
       'SEND_START',
@@ -451,6 +458,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         'textLength': trimmed.length,
         'hasAttachment': hasAttachments,
         'attachmentCount': ids.length,
+        'isContact': isContact,
       },
     );
 
@@ -464,9 +472,10 @@ class ConversationController extends AsyncNotifier<ConversationState> {
           .reply(
             current.conversation.id,
             trimmed,
-            attachmentIds: ids,
+            attachmentIds: isContact ? const [] : ids,
             clientMessageId: localId,
             replyToId: replyTo?.id,
+            contacts: contacts,
           );
 
       RealtimeLogger.log(
@@ -663,6 +672,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       attachmentPreviews: failed.attachments,
       replyTo: failed.replyTo,
       reuseLocalId: localId,
+      contacts: failed.contacts,
     );
   }
 

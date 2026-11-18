@@ -2,7 +2,16 @@
 
 Lets an agent share a phone contact (name + one phone number) in a conversation, and lets the app show contacts that customers send. This document is the backend half. The mobile app will not ship the feature until this contract is live.
 
-**Status (2026-11-17):** not supported by the backend. Nothing has been built on mobile yet. The product decision is backend first, then mobile.
+**Status (2026-11-18):** shipped on the backend; built on mobile (`lib/features/messages/contact_share.dart`).
+
+What the live schema shipped, where it differs from the proposal below:
+
+- `CONTACT`, `Reply.contacts`, `Message.contacts`, `ContactCard {name, phones}` and `ContactPhone {phone, type, wa_id (read-only)}` match.
+- `contact_delivery` is a free-form, nullable **object**, not the `"native" | "text_fallback"` string of §2.4, and its keys are not documented. The app stores it unread and shows no "sent as text" note until its shape is documented.
+- There is **no per-conversation capability field** (§2.5). The app offers Contact wherever it offers attachments; a channel that refuses comes back through the normal failed-send path with the server's reason and a retry.
+- Still open: what Messenger, Instagram and TikTok do with a contact (§2.5), and whether `text` carries the summary of §2.4.
+
+*Earlier status (2026-11-17): not supported by the backend; backend first, then mobile.*
 
 ---
 

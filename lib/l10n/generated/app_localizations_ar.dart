@@ -5661,4 +5661,43 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get galleryImageFailed => 'تعذّر تحميل هذه الصورة.';
+
+  @override
+  String get attachContactAction => 'جهة اتصال';
+
+  @override
+  String get contactShareTitle => 'مشاركة جهة اتصال';
+
+  @override
+  String get contactSendAction => 'إرسال';
+
+  @override
+  String get contactChangeAction => 'تغيير';
+
+  @override
+  String get contactNoPhone => 'لا يوجد رقم هاتف لمشاركته في جهة الاتصال هذه.';
+
+  @override
+  String get contactPickerUnavailable => 'تعذّر فتح جهات الاتصال.';
+
+  @override
+  String get contactMessageLabel => 'جهة اتصال';
+
+  @override
+  String get contactCopyNumberAction => 'نسخ الرقم';
+
+  @override
+  String get contactNumberCopied => 'تم نسخ الرقم';
+
+  @override
+  String get phoneTypeMobile => 'جوال';
+
+  @override
+  String get phoneTypeHome => 'المنزل';
+
+  @override
+  String get phoneTypeWork => 'العمل';
+
+  @override
+  String get phoneTypeMain => 'رئيسي';
 }

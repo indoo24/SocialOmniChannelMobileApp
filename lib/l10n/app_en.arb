@@ -2944,5 +2944,18 @@
   "galleryNextImage": "Next image",
   "galleryLoadingEarlier": "Loading earlier images…",
   "galleryEarlierFailed": "Couldn't load earlier images.",
-  "galleryImageFailed": "Couldn't load this image."
+  "galleryImageFailed": "Couldn't load this image.",
+  "attachContactAction": "Contact",
+  "contactShareTitle": "Share contact",
+  "contactSendAction": "Send",
+  "contactChangeAction": "Change",
+  "contactNoPhone": "This contact has no phone number to share.",
+  "contactPickerUnavailable": "Couldn't open your contacts.",
+  "contactMessageLabel": "Contact",
+  "contactCopyNumberAction": "Copy number",
+  "contactNumberCopied": "Number copied",
+  "phoneTypeMobile": "Mobile",
+  "phoneTypeHome": "Home",
+  "phoneTypeWork": "Work",
+  "phoneTypeMain": "Main"
 }

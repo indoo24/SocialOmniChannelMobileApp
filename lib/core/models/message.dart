@@ -342,6 +342,77 @@ class QuotedMessage {
   }
 }
 
+/// One number on a shared contact (`ContactPhone`).
+class ContactPhone {
+  const ContactPhone({required this.phone, this.type = '', this.waId = ''});
+
+  /// As given — `+`, digits and spaces kept; never rewritten here.
+  final String phone;
+
+  /// WhatsApp's vocabulary when known (`CELL`, `MAIN`, `IPHONE`, `HOME`,
+  /// `WORK`), otherwise empty. At most 16 characters on the wire.
+  final String type;
+
+  /// WhatsApp's own confirmation that the number has an account. Read-only:
+  /// set by the server on inbound contacts, never sent.
+  final String waId;
+
+  factory ContactPhone.fromJson(Map<String, dynamic> json) => ContactPhone(
+    phone: JsonSafe.asString(json['phone']),
+    type: JsonSafe.asString(json['type']),
+    waId: JsonSafe.asString(json['wa_id']),
+  );
+
+  /// The request body: `wa_id` is read-only and never sent.
+  Map<String, dynamic> toJson() => {
+    'phone': phone,
+    if (type.isNotEmpty) 'type': type,
+  };
+}
+
+/// A shared phone contact (`ContactCard`): a name and one to five numbers.
+class ContactCard {
+  const ContactCard({required this.name, required this.phones});
+
+  /// The `name` object as sent: `formatted_name`, optionally `first_name`
+  /// and `last_name`.
+  final Map<String, String> name;
+  final List<ContactPhone> phones;
+
+  /// The name to show: `formatted_name`, else first and last name joined.
+  String get displayName {
+    final formatted = (name['formatted_name'] ?? '').trim();
+    if (formatted.isNotEmpty) return formatted;
+    return [
+      name['first_name'] ?? '',
+      name['last_name'] ?? '',
+    ].map((p) => p.trim()).where((p) => p.isNotEmpty).join(' ');
+  }
+
+  factory ContactCard.fromJson(Map<String, dynamic> json) {
+    final rawName = json['name'];
+    return ContactCard(
+      name: {
+        if (rawName is Map)
+          for (final entry in rawName.entries)
+            if (entry.value is String) '${entry.key}': entry.value as String,
+      },
+      phones: JsonSafe.parseList(
+        json['phones'],
+        ContactPhone.fromJson,
+      ).where((p) => p.phone.trim().isNotEmpty).toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'name': {
+      for (final entry in name.entries)
+        if (entry.value.trim().isNotEmpty) entry.key: entry.value,
+    },
+    'phones': [for (final phone in phones) phone.toJson()],
+  };
+}
+
 class Message {
   const Message({
     required this.id,
@@ -366,6 +437,8 @@ class Message {
     this.sendState = SendState.sent,
     this.localId,
     this.pendingAttachmentIds = const [],
+    this.contacts = const [],
+    this.contactDelivery,
   });
 
   final int id;
@@ -431,6 +504,16 @@ class Message {
   /// Backward-compatible single attachment id getter.
   String? get pendingAttachmentId => pendingAttachmentIds.firstOrNull;
 
+  /// The contacts a `CONTACT` message carries; empty for every other type.
+  final List<ContactCard> contacts;
+
+  /// The server's record of how the contact reached the customer, kept
+  /// exactly as sent. Its shape is not documented yet, so nothing reads it.
+  final Map<String, dynamic>? contactDelivery;
+
+  /// A shared contact the app can show as a card.
+  bool get isContact => messageType == 'CONTACT' && contacts.isNotEmpty;
+
   factory Message.fromJson(Map<String, dynamic> json) {
     final rawAttachments = JsonSafe.parseList(
       json['attachments'] ??
@@ -461,11 +544,7 @@ class Message {
             }
           }
           attachments.add(
-            MessageAttachment(
-              type: type,
-              fileName: fileName,
-              status: 'READY',
-            ),
+            MessageAttachment(type: type, fileName: fileName, status: 'READY'),
           );
         }
       }
@@ -516,6 +595,13 @@ class Message {
       clientMessageId: JsonSafe.asString(
         json['client_message_id'] ?? json['clientMessageId'],
       ),
+      contacts: JsonSafe.parseList(
+        json['contacts'],
+        ContactCard.fromJson,
+      ).where((c) => c.phones.isNotEmpty || c.displayName.isNotEmpty).toList(),
+      contactDelivery: json['contact_delivery'] is Map
+          ? JsonSafe.asMap(json['contact_delivery'])
+          : null,
     );
   }
 
@@ -537,6 +623,7 @@ class Message {
     String? pendingAttachmentId,
     List<String>? pendingAttachmentIds,
     QuotedMessage? replyTo,
+    List<ContactCard> contacts = const [],
   }) {
     final previews = [?previewAttachment, ...?previewAttachments];
     final ids = [
@@ -546,6 +633,7 @@ class Message {
     ];
 
     String deriveMessageType() {
+      if (contacts.isNotEmpty) return 'CONTACT';
       if (previews.isEmpty) return 'TEXT';
       if (previews.any((p) => p.isAudio)) return 'AUDIO';
       if (previews.any((p) => p.isInlineImage)) return 'IMAGE';
@@ -568,6 +656,7 @@ class Message {
       localId: localId,
       clientMessageId: localId,
       pendingAttachmentIds: ids,
+      contacts: contacts,
     );
   }
 
@@ -595,7 +684,9 @@ class Message {
     attachments: attachments ?? this.attachments,
     deliveryStatus: deliveryStatus ?? this.deliveryStatus,
     deliveryError: deliveryError ?? this.deliveryError,
-    deliveryErrorCode: deliveryErrorCode ?? (deliveryError != null ? '' : this.deliveryErrorCode),
+    deliveryErrorCode:
+        deliveryErrorCode ??
+        (deliveryError != null ? '' : this.deliveryErrorCode),
     contentNotice: contentNotice,
     replyTo: replyTo,
     sentAt: sentAt,
@@ -611,6 +702,8 @@ class Message {
         (pendingAttachmentId != null
             ? [pendingAttachmentId]
             : this.pendingAttachmentIds),
+    contacts: contacts,
+    contactDelivery: contactDelivery,
   );
 
   /// Applies one entry of a `message.updated` delivery-status realtime event
@@ -643,6 +736,8 @@ class Message {
     clientMessageId: clientMessageId,
     memberMessageIds: memberMessageIds,
     pendingAttachmentIds: pendingAttachmentIds,
+    contacts: contacts,
+    contactDelivery: contactDelivery,
   );
 
   bool get isOutbound => direction == 'OUTBOUND';
@@ -665,7 +760,9 @@ class Message {
   /// True when this message contains only image attachments (or has message_type == 'IMAGE').
   bool get hasOnlyImages {
     if (attachments.isEmpty) return messageType == 'IMAGE';
-    return attachments.every((a) => a.type == 'IMAGE' || a.mimeType.startsWith('image/'));
+    return attachments.every(
+      (a) => a.type == 'IMAGE' || a.mimeType.startsWith('image/'),
+    );
   }
 }
 

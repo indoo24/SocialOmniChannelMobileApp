@@ -9689,6 +9689,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load this image.'**
   String get galleryImageFailed;
+
+  /// No description provided for @attachContactAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get attachContactAction;
+
+  /// No description provided for @contactShareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share contact'**
+  String get contactShareTitle;
+
+  /// No description provided for @contactSendAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get contactSendAction;
+
+  /// No description provided for @contactChangeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get contactChangeAction;
+
+  /// No description provided for @contactNoPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'This contact has no phone number to share.'**
+  String get contactNoPhone;
+
+  /// No description provided for @contactPickerUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open your contacts.'**
+  String get contactPickerUnavailable;
+
+  /// No description provided for @contactMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get contactMessageLabel;
+
+  /// No description provided for @contactCopyNumberAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy number'**
+  String get contactCopyNumberAction;
+
+  /// No description provided for @contactNumberCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Number copied'**
+  String get contactNumberCopied;
+
+  /// No description provided for @phoneTypeMobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile'**
+  String get phoneTypeMobile;
+
+  /// No description provided for @phoneTypeHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get phoneTypeHome;
+
+  /// No description provided for @phoneTypeWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Work'**
+  String get phoneTypeWork;
+
+  /// No description provided for @phoneTypeMain.
+  ///
+  /// In en, this message translates to:
+  /// **'Main'**
+  String get phoneTypeMain;
 }
 
 class _AppLocalizationsDelegate

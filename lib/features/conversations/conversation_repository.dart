@@ -483,18 +483,25 @@ class ConversationRepository {
   /// two stored messages. [replyToId] must be a real, already-stored message
   /// id in this conversation — the backend's own contract explicitly refuses
   /// an optimistic (negative, not-yet-sent) id here.
+  /// [contacts], when given, sends a `CONTACT` message: the shared contact
+  /// is the whole message, so its text is empty and it carries no files.
   Future<Message> reply(
     int conversationId,
     String text, {
     List<String> attachmentIds = const [],
     String? clientMessageId,
     int? replyToId,
+    List<ContactCard> contacts = const [],
   }) async {
+    final isContact = contacts.isNotEmpty;
     final data = await _api.post<Map<String, dynamic>>(
       '/conversations/$conversationId/reply/',
       body: {
-        'text': text,
-        if (attachmentIds.isNotEmpty) 'attachment_ids': attachmentIds,
+        'text': isContact ? '' : text,
+        if (isContact) 'message_type': 'CONTACT',
+        if (isContact) 'contacts': [for (final c in contacts) c.toJson()],
+        if (!isContact && attachmentIds.isNotEmpty)
+          'attachment_ids': attachmentIds,
         'client_message_id': ?clientMessageId,
         'reply_to_id': ?replyToId,
       },

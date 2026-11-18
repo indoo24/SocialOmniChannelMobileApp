@@ -34,6 +34,7 @@ import '../../l10n/l10n_extensions.dart';
 import '../../core/utils/attachment_helper.dart';
 import 'highlight_message_coordinator.dart';
 import 'audio_duration.dart';
+import 'contact_share.dart';
 import 'image_gallery.dart';
 import 'media_group_grid.dart';
 import 'swipe_to_reply.dart';
@@ -264,7 +265,16 @@ class MessageBubble extends ConsumerWidget {
                               ],
                               if (message.attachments.isNotEmpty)
                                 _Attachments(message: message),
-                              if (message.text.isNotEmpty)
+                              // A shared contact: one card per contact. The
+                              // server's text summary of it is not shown as
+                              // well — the card says the same thing.
+                              if (message.isContact)
+                                for (final contact in message.contacts)
+                                  ContactMessageCard(
+                                    contact: contact,
+                                    foreground: foreground,
+                                  ),
+                              if (message.text.isNotEmpty && !message.isContact)
                                 // Text only — attachments above never are.
                                 LinkifiedText(
                                   message.text,
@@ -442,6 +452,7 @@ class _QuoteBlock extends StatelessWidget {
         : switch (quote.messageType) {
             'IMAGE' => context.l10n.photoMessageLabel,
             'AUDIO' => context.l10n.voiceMessageLabel,
+            'CONTACT' => context.l10n.contactMessageLabel,
             _ => context.l10n.attachmentMessageLabel,
           };
 
