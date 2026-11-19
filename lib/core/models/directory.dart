@@ -495,27 +495,6 @@ class IntelligenceMetrics {
   }
 }
 
-/// The window for the Team workload funnel — `team_window` on
-/// `GET /api/dashboard/`: `received`, `replied` and `sale_completed` all
-/// count the conversations handed over inside it. Independent of the
-/// dashboard's own period and of every routing setting. The backend accepts
-/// exactly these two and answers anything else with a 400.
-enum TeamWindow {
-  /// A rolling sixty minutes ending now.
-  lastHour('last_hour'),
-
-  /// Local midnight in the organization's timezone until now — not the last
-  /// 24 hours.
-  today('today');
-
-  const TeamWindow(this.apiValue);
-
-  final String apiValue;
-
-  /// The backend's default when none is sent; the web's default too.
-  static const fallback = today;
-}
-
 class WorkloadEntry {
   const WorkloadEntry({
     required this.id,
@@ -543,7 +522,8 @@ class WorkloadEntry {
   final String avatarUrl;
 
   /// The funnel, all over one cohort — the conversations handed to this
-  /// employee during `team_window` — so `replied` and `saleCompleted` can
+  /// employee during the dashboard's period (`preset` or `from`/`to`, the
+  /// same as every other figure) — so `replied` and `saleCompleted` can
   /// never exceed `received`. Null from a server that does not send them:
   /// shown as a dash, never as 0.
   ///
@@ -575,11 +555,7 @@ class WorkloadEntry {
 }
 
 class TeamMetrics {
-  const TeamMetrics({
-    required this.onlineAgents,
-    required this.workload,
-    this.window,
-  });
+  const TeamMetrics({required this.onlineAgents, required this.workload});
 
   final int onlineAgents;
 
@@ -587,19 +563,9 @@ class TeamMetrics {
   /// order — most received first. Kept as received; nothing is trimmed here.
   final List<WorkloadEntry> workload;
 
-  /// The `team_window` this block was **requested** with. The response does
-  /// not echo it; the repository records what it asked for, so a screen can
-  /// tell figures for the selected window from figures still on screen from
-  /// the previous one.
-  final TeamWindow? window;
-
-  factory TeamMetrics.fromJson(
-    Map<String, dynamic> json, {
-    TeamWindow? window,
-  }) => TeamMetrics(
+  factory TeamMetrics.fromJson(Map<String, dynamic> json) => TeamMetrics(
     onlineAgents: JsonSafe.asInt(json['online_agents']),
     workload: JsonSafe.parseList(json['workload'], WorkloadEntry.fromJson),
-    window: window,
   );
 }
 
@@ -652,29 +618,25 @@ class DashboardSummary {
   /// Recent activity conversations from `GET /api/dashboard/`.
   final List<Conversation> recentConversations;
 
-  /// [teamWindow] is the `team_window` the request carried, recorded on
-  /// [team] (see [TeamMetrics.window]).
-  factory DashboardSummary.fromJson(
-    Map<String, dynamic> json, {
-    TeamWindow? teamWindow,
-  }) => DashboardSummary(
-    conversations: ConversationMetrics.fromJson(
-      JsonSafe.asMap(json['conversations']),
-    ),
-    intelligence: IntelligenceMetrics.fromJson(
-      JsonSafe.asMap(json['intelligence']),
-    ),
-    period: json['period'] is Map
-        ? DashboardPeriod.fromJson(JsonSafe.asMap(json['period']))
-        : null,
-    team: json['team'] is Map
-        ? TeamMetrics.fromJson(JsonSafe.asMap(json['team']), window: teamWindow)
-        : null,
-    recentConversations: JsonSafe.parseList(
-      json['recent_conversations'],
-      Conversation.fromJson,
-    ),
-  );
+  factory DashboardSummary.fromJson(Map<String, dynamic> json) =>
+      DashboardSummary(
+        conversations: ConversationMetrics.fromJson(
+          JsonSafe.asMap(json['conversations']),
+        ),
+        intelligence: IntelligenceMetrics.fromJson(
+          JsonSafe.asMap(json['intelligence']),
+        ),
+        period: json['period'] is Map
+            ? DashboardPeriod.fromJson(JsonSafe.asMap(json['period']))
+            : null,
+        team: json['team'] is Map
+            ? TeamMetrics.fromJson(JsonSafe.asMap(json['team']))
+            : null,
+        recentConversations: JsonSafe.parseList(
+          json['recent_conversations'],
+          Conversation.fromJson,
+        ),
+      );
 }
 
 class ChannelVolume {

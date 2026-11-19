@@ -31,18 +31,11 @@ import 'dashboard_date_filter_state.dart';
 /// Built from the parameters the request actually carries — preset, or from/to
 /// for a custom range — not the display label, so two ranges that happen to
 /// share a label cannot collide and a custom range keys on its real bounds.
-///
-/// [teamWindow] is part of the query (`team_window`), so each window is its
-/// own entry: an answer for one window can never be served for the other.
-QueryKey dashboardSummaryKey(
-  DashboardDateFilterState filter, {
-  TeamWindow teamWindow = TeamWindow.fallback,
-}) {
+QueryKey dashboardSummaryKey(DashboardDateFilterState filter) {
   return QueryKey.of('dashboard', {
     'preset': filter.preset?.apiValue,
     'from': filter.fromApiString,
     'to': filter.toApiString,
-    'team_window': teamWindow.apiValue,
   });
 }
 
@@ -74,11 +67,7 @@ class DashboardCache {
   /// the range I am looking at" without the data providers having to tell a
   /// refresh apart from an ordinary filter change. Other ranges stay cached.
   void invalidateFilter(DashboardDateFilterState filter) {
-    // Every team window for this range: a refresh is a refresh of the
-    // range, whichever window the team table shows.
-    for (final teamWindow in TeamWindow.values) {
-      summary.invalidate(dashboardSummaryKey(filter, teamWindow: teamWindow));
-    }
+    summary.invalidate(dashboardSummaryKey(filter));
     performance.invalidate(dashboardPerformanceKey(filter));
   }
 

@@ -9451,17 +9451,17 @@ abstract class AppLocalizations {
   /// **'Sort conversations'**
   String get needsReplySortLabel;
 
-  /// No description provided for @needsReplyOldestFirst.
+  /// No description provided for @inboxSortLongestWaiting.
   ///
   /// In en, this message translates to:
-  /// **'Oldest first'**
-  String get needsReplyOldestFirst;
+  /// **'Longest waiting'**
+  String get inboxSortLongestWaiting;
 
-  /// No description provided for @needsReplyNewestFirst.
+  /// No description provided for @inboxSortNewest.
   ///
   /// In en, this message translates to:
-  /// **'Newest first'**
-  String get needsReplyNewestFirst;
+  /// **'Newest'**
+  String get inboxSortNewest;
 
   /// No description provided for @waitingFor.
   ///
@@ -9498,12 +9498,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Received'**
   String get teamWorkloadReceived;
-
-  /// No description provided for @teamWorkloadReceivedWindow.
-  ///
-  /// In en, this message translates to:
-  /// **'Received window'**
-  String get teamWorkloadReceivedWindow;
 
   /// No description provided for @teamWorkloadEmptyTitle.
   ///
@@ -9610,7 +9604,7 @@ abstract class AppLocalizations {
   /// No description provided for @teamWorkloadSaleCompleted.
   ///
   /// In en, this message translates to:
-  /// **'Sale completed'**
+  /// **'Sold'**
   String get teamWorkloadSaleCompleted;
 
   /// No description provided for @teamWorkloadSaleCompletedTooltip.
@@ -9618,12 +9612,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Of the conversations handed to this employee in the selected window, how many ended in a confirmed sale. Credited to whoever was holding the conversation when the sale was recorded, not to whoever pressed the button.'**
   String get teamWorkloadSaleCompletedTooltip;
-
-  /// No description provided for @teamWorkloadPeriodFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the figures for this period.'**
-  String get teamWorkloadPeriodFailed;
 
   /// No description provided for @teamWorkloadRowSemantics.
   ///
@@ -9635,6 +9623,168 @@ abstract class AppLocalizations {
     String replied,
     String sales,
   );
+
+  /// No description provided for @galleryCounter.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} / {all}'**
+  String galleryCounter(String current, String all);
+
+  /// No description provided for @galleryCounterMore.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} / {all}+'**
+  String galleryCounterMore(String current, String all);
+
+  /// No description provided for @galleryCounterSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Image {current} of {all}'**
+  String galleryCounterSemantics(String current, String all);
+
+  /// No description provided for @galleryCounterMoreSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Image {current} of at least {all}'**
+  String galleryCounterMoreSemantics(String current, String all);
+
+  /// No description provided for @galleryPreviousImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous image'**
+  String get galleryPreviousImage;
+
+  /// No description provided for @galleryNextImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Next image'**
+  String get galleryNextImage;
+
+  /// No description provided for @galleryLoadingEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading earlier images…'**
+  String get galleryLoadingEarlier;
+
+  /// No description provided for @galleryEarlierFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load earlier images.'**
+  String get galleryEarlierFailed;
+
+  /// No description provided for @galleryImageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this image.'**
+  String get galleryImageFailed;
+
+  /// No description provided for @attachContactAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get attachContactAction;
+
+  /// No description provided for @contactShareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share contact'**
+  String get contactShareTitle;
+
+  /// No description provided for @contactSendAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get contactSendAction;
+
+  /// No description provided for @contactChangeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get contactChangeAction;
+
+  /// No description provided for @contactNoPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'This contact has no phone number to share.'**
+  String get contactNoPhone;
+
+  /// No description provided for @contactPickerUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open your contacts.'**
+  String get contactPickerUnavailable;
+
+  /// No description provided for @contactMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get contactMessageLabel;
+
+  /// No description provided for @contactCopyNumberAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy number'**
+  String get contactCopyNumberAction;
+
+  /// No description provided for @contactNumberCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Number copied'**
+  String get contactNumberCopied;
+
+  /// No description provided for @phoneTypeMobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile'**
+  String get phoneTypeMobile;
+
+  /// No description provided for @phoneTypeHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get phoneTypeHome;
+
+  /// No description provided for @phoneTypeWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Work'**
+  String get phoneTypeWork;
+
+  /// No description provided for @phoneTypeMain.
+  ///
+  /// In en, this message translates to:
+  /// **'Main'**
+  String get phoneTypeMain;
+
+  /// No description provided for @dateFilterLastHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Last hour'**
+  String get dateFilterLastHour;
+
+  /// No description provided for @dateFilterLast24Hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 24 hours'**
+  String get dateFilterLast24Hours;
+
+  /// No description provided for @dashboardPeriodUpdating.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating for the selected period'**
+  String get dashboardPeriodUpdating;
+
+  /// No description provided for @dashboardPeriodFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this period. The figures below are from the previous selection.'**
+  String get dashboardPeriodFailed;
+
+  /// No description provided for @teamWorkloadPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Period: {period}'**
+  String teamWorkloadPeriod(String period);
 }
 
 class _AppLocalizationsDelegate

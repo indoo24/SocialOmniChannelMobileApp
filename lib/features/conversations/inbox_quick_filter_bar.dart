@@ -436,17 +436,18 @@ class _CountPlaceholder extends StatelessWidget {
 
 /// "Sort conversations" with the order in a compact dropdown at the row's
 /// end (the left in Arabic), under the search bar while Needs reply is the
-/// view: Oldest first / Newest first, sent as
-/// `ordering=last_customer_message_at` or its reverse and applied by the
-/// server (pages stay consistent; nothing is re-sorted on the phone).
+/// view: Newest / Longest waiting, sent as
+/// `ordering=-last_customer_message_at` or `last_customer_message_at` and
+/// applied by the server (pages stay consistent; nothing is re-sorted on the
+/// phone).
 /// Nothing is shown for any other view — none of them has an order to pick.
 class NeedsReplySortBar extends ConsumerWidget {
   const NeedsReplySortBar({super.key});
 
   static String _labelOf(BuildContext context, NeedsReplyOrder order) =>
       switch (order) {
-        NeedsReplyOrder.oldestFirst => context.l10n.needsReplyOldestFirst,
-        NeedsReplyOrder.newestFirst => context.l10n.needsReplyNewestFirst,
+        NeedsReplyOrder.newest => context.l10n.inboxSortNewest,
+        NeedsReplyOrder.longestWaiting => context.l10n.inboxSortLongestWaiting,
       };
 
   @override

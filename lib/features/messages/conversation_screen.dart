@@ -47,6 +47,8 @@ import 'forward_message_sheet.dart' show startForwardMessage;
 import 'message_bubble.dart';
 import 'package:flutter/rendering.dart';
 import 'highlight_message_coordinator.dart';
+import 'contact_share.dart';
+import 'image_gallery.dart';
 import 'notes_controller.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
@@ -753,6 +755,23 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     }
   }
 
+  /// The composer's "Contact" option: pick a number, preview, send — as a
+  /// reply to the quoted message when there is one.
+  Future<void> _shareContact() async {
+    final replyTo = _replyingTo;
+    await shareContact(
+      context,
+      ref,
+      conversationId: widget.conversationId,
+      replyTo: replyTo == null ? null : QuotedMessage.fromMessage(replyTo),
+      onSent: () {
+        if (!mounted) return;
+        setState(() => _replyingTo = null);
+        _scrollToBottom(animated: true);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(
@@ -965,17 +984,22 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                                 }
                                 return false;
                               },
-                              child: _MessageList(
-                                state: state,
-                                controller: _scrollController,
+                              // An image tapped in this thread opens the
+                              // gallery over the whole conversation.
+                              child: ConversationGalleryScope(
                                 conversationId: widget.conversationId,
-                                onInitialLayout: _initialScrollDone
-                                    ? null
-                                    : _jumpToBottomInitial,
-                                onReply: canReply ? _startReplyingTo : null,
-                                onQuoteTap: _scrollToQuotedMessage,
-                                keyForMessage: _bubbleKeyFor,
-                                sourceCardKey: _sourceCardKey,
+                                child: _MessageList(
+                                  state: state,
+                                  controller: _scrollController,
+                                  conversationId: widget.conversationId,
+                                  onInitialLayout: _initialScrollDone
+                                      ? null
+                                      : _jumpToBottomInitial,
+                                  onReply: canReply ? _startReplyingTo : null,
+                                  onQuoteTap: _scrollToQuotedMessage,
+                                  keyForMessage: _bubbleKeyFor,
+                                  sourceCardKey: _sourceCardKey,
+                                ),
                               ),
                             ),
                           ),
@@ -1017,6 +1041,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     'WHATSAPP',
                 replyingTo: _replyingTo,
                 onCancelReply: _cancelReply,
+                onShareContact: _shareContact,
               )
             else
               const _ReadOnlyNotice(),
@@ -2315,6 +2340,7 @@ class _Composer extends ConsumerStatefulWidget {
     this.isWhatsApp = false,
     this.replyingTo,
     this.onCancelReply,
+    this.onShareContact,
   });
 
   final int conversationId;
@@ -2327,6 +2353,7 @@ class _Composer extends ConsumerStatefulWidget {
   /// composer. Null hides the bar entirely.
   final Message? replyingTo;
   final VoidCallback? onCancelReply;
+  final VoidCallback? onShareContact;
 
   @override
   ConsumerState<_Composer> createState() => _ComposerState();
@@ -2643,6 +2670,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                           currentStagedCount: _uploads.count,
                           onPicked: _uploads.add,
                           onError: _showMessage,
+                          onShareContact: widget.onShareContact,
                         ),
                       // Saved replies: inserts text for the agent to edit,
                       // never sends. Only in this row, which exists only while
