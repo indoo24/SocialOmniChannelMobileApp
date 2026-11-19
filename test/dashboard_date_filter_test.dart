@@ -280,16 +280,30 @@ void main() {
       },
     );
 
-    test('the two new presets carry the backend names', () {
+    test('the presets carry the backend names, in the web picker\'s order', () {
+      expect(DashboardPreset.lastHour.apiValue, 'last_1_hour');
+      expect(DashboardPreset.last24Hours.apiValue, 'last_24_hours');
       expect(DashboardPreset.yesterday.apiValue, 'yesterday');
       expect(DashboardPreset.last3Days.apiValue, 'last_3_days');
-      // Shortest first, as the backend's PRESETS orders the picker.
-      expect(DashboardPreset.values.take(4), [
-        DashboardPreset.today,
-        DashboardPreset.yesterday,
-        DashboardPreset.last3Days,
-        DashboardPreset.last7Days,
-      ]);
+      // The web's list exactly; last_month still resolves but is not offered.
+      expect(
+        [for (final p in DashboardPreset.offered) p.apiValue],
+        [
+          'last_1_hour',
+          'last_24_hours',
+          'today',
+          'yesterday',
+          'last_3_days',
+          'last_7_days',
+          'last_30_days',
+          'this_month',
+        ],
+      );
+      expect(DashboardPreset.lastMonth.apiValue, 'last_month');
+      expect(
+        DashboardPreset.offered,
+        isNot(contains(DashboardPreset.lastMonth)),
+      );
     });
 
     test('Yesterday is the previous calendar day only — never today', () {
@@ -628,10 +642,14 @@ void main() {
           ),
           findsOneWidget,
         );
+        expect(find.text('Last hour'), findsOneWidget);
+        expect(find.text('Last 24 hours'), findsOneWidget);
         expect(find.text('Last 7 days'), findsOneWidget);
         expect(find.text('Last 30 days'), findsOneWidget);
         expect(find.text('This month'), findsOneWidget);
-        expect(find.text('Last month'), findsOneWidget);
+        // No longer offered, as on the web.
+        expect(find.text('Last month'), findsNothing);
+        await tester.ensureVisible(find.text('Custom range'));
         expect(find.text('Custom range'), findsOneWidget);
 
         // Checkmark is present on Today
@@ -698,7 +716,10 @@ void main() {
       await tester.tap(find.byType(DashboardDateFilterButton));
       await tester.pumpAndSettle();
 
-      // Tap Apply without picking From or To
+      // Tap Apply without picking From or To — below the presets, so
+      // scrolled to first.
+      await tester.ensureVisible(find.text('Apply'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Apply'));
       await tester.pumpAndSettle();
 
@@ -716,6 +737,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Apply without picking To
+      await tester.ensureVisible(find.text('Apply'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Apply'));
       await tester.pumpAndSettle();
 
@@ -723,6 +746,8 @@ void main() {
       expect(find.text('Invalid date range'), findsOneWidget);
 
       // Cancel closes sheet
+      await tester.ensureVisible(find.text('Cancel'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
@@ -891,7 +916,7 @@ void main() {
     );
 
     testWidgets(
-      'Selecting Last month sends preset=last_month to both dashboard and performance',
+      'Selecting Last hour sends preset=last_1_hour to both dashboard and performance',
       (tester) async {
         final requests = <RequestOptions>[];
         final adapter = _StubAdapter((options) {
@@ -911,17 +936,23 @@ void main() {
         await tester.tap(find.byType(DashboardDateFilterButton));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Last month'));
+        await tester.tap(find.text('Last hour'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Last month'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(DashboardDateFilterButton),
+            matching: find.text('Last hour'),
+          ),
+          findsOneWidget,
+        );
 
         final dashReq = requests.firstWhere((r) => r.path == '/dashboard/');
-        expect(dashReq.queryParameters['preset'], 'last_month');
+        expect(dashReq.queryParameters, {'preset': 'last_1_hour'});
         final perfReq = requests.firstWhere(
           (r) => r.path == '/dashboard/performance/',
         );
-        expect(perfReq.queryParameters['preset'], 'last_month');
+        expect(perfReq.queryParameters['preset'], 'last_1_hour');
       },
     );
 
@@ -948,13 +979,14 @@ void main() {
       expect(find.text('Yesterday'), findsOneWidget);
       expect(find.text('Last 3 days'), findsOneWidget);
       final rows = [
+        'Last hour',
+        'Last 24 hours',
         'Today',
         'Yesterday',
         'Last 3 days',
         'Last 7 days',
         'Last 30 days',
         'This month',
-        'Last month',
       ].map((label) => tester.getTopLeft(find.text(label).last).dy).toList();
       expect(rows, [...rows]..sort(), reason: 'listed in this order');
       expect(tester.takeException(), isNull);
@@ -1005,12 +1037,7 @@ void main() {
           // app sends the name and never device-computed from/to bounds.
           for (final path in ['/dashboard/', '/dashboard/performance/']) {
             final request = requests.firstWhere((r) => r.path == path);
-            expect(request.queryParameters, {
-              'preset': apiValue,
-              // The Team workload table's own window, independent of the
-              // preset; only the summary carries it.
-              if (path == '/dashboard/') 'team_window': 'today',
-            }, reason: path);
+            expect(request.queryParameters, {'preset': apiValue}, reason: path);
           }
 
           // Reopened, the sheet marks it — and only it — as selected.

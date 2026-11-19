@@ -287,6 +287,7 @@ Future<ProviderContainer> _pumpInbox(
   final router = GoRouter(
     initialLocation: Routes.inbox,
     routes: [
+      GoRoute(path: '/away', builder: (_, _) => const Text('AWAY')),
       GoRoute(
         path: Routes.inbox,
         builder: (_, _) => const InboxScreen(),
@@ -626,25 +627,22 @@ void main() {
       },
     );
 
-    test(
-      'newest first asks the reverse, from page 1, in the server order',
-      () async {
-        final server = _Server(_rows(4));
-        final c = _container(server);
-        await c.read(inboxControllerProvider.future);
-        // Oldest first: the longest wait (40 min, id 4) leads.
-        expect(_loadedIds(c), [4, 3, 2, 1]);
+    test('Newest asks the reverse, from page 1, in the server order', () async {
+      final server = _Server(_rows(4));
+      final c = _container(server);
+      await c.read(inboxControllerProvider.future);
+      // Longest waiting (the default): the 40-minute wait (id 4) leads.
+      expect(_loadedIds(c), [4, 3, 2, 1]);
 
-        c
-            .read(inboxFiltersProvider.notifier)
-            .setNeedsReplyOrder(NeedsReplyOrder.newestFirst);
-        await c.read(inboxControllerProvider.future);
-        final q = server.lists.last.queryParameters;
-        expect(q['ordering'], '-last_customer_message_at');
-        expect(q['page'], '1');
-        expect(_loadedIds(c), [1, 2, 3, 4]);
-      },
-    );
+      c
+          .read(inboxFiltersProvider.notifier)
+          .setNeedsReplyOrder(NeedsReplyOrder.newest);
+      await c.read(inboxControllerProvider.future);
+      final q = server.lists.last.queryParameters;
+      expect(q['ordering'], '-last_customer_message_at');
+      expect(q['page'], '1');
+      expect(_loadedIds(c), [1, 2, 3, 4]);
+    });
 
     test('pagination stays the server\'s: page 2 asks with the same view and '
         'order, appended as sent', () async {
@@ -720,8 +718,8 @@ void main() {
       expect(find.byKey(const Key('needs_reply_sort_bar')), findsOneWidget);
       // The order in force shows in the dropdown; the other is in its menu.
       expect(find.text('Sort conversations'), findsOneWidget);
-      expect(find.text('Oldest first'), findsOneWidget);
-      expect(find.text('Newest first'), findsNothing);
+      expect(find.text('Longest waiting'), findsOneWidget);
+      expect(find.text('Newest'), findsNothing);
 
       Finder waiting(int id) => find.descendant(
         of: find.byKey(ValueKey('inbox-conversation-$id')),
@@ -735,13 +733,21 @@ void main() {
 
       await tester.tap(find.byKey(const Key('needs_reply_order_menu')));
       await tester.pumpAndSettle();
-      expect(find.text('Newest first'), findsOneWidget);
-      await tester.tap(find.text('Newest first'));
+      // The menu, in its order: Newest, then Longest waiting.
+      final newestItem = tester.getTopLeft(
+        find.byKey(const Key('needs_reply_order_newest')),
+      );
+      final longestItem = tester.getTopLeft(
+        find.byKey(const Key('needs_reply_order_longestWaiting')),
+      );
+      expect(newestItem.dy, lessThan(longestItem.dy));
+      expect(find.text('Newest'), findsOneWidget);
+      await tester.tap(find.text('Newest'));
       await _frames(tester);
       expect(
         find.descendant(
           of: find.byKey(const Key('needs_reply_order_menu')),
-          matching: find.text('Newest first'),
+          matching: find.text('Newest'),
         ),
         findsOneWidget,
       );
@@ -757,13 +763,53 @@ void main() {
       expect(find.byKey(const Key('needs_reply_sort_bar')), findsNothing);
     });
 
+    testWidgets('both orders in Arabic, and the chosen one survives leaving '
+        'the inbox and coming back', (tester) async {
+      final server = _Server([
+        _Row(1, waitingFor: const Duration(minutes: 8)),
+        _Row(2, waitingFor: const Duration(minutes: 40)),
+      ]);
+      await _pumpInbox(tester, server, locale: const Locale('ar'));
+      expect(find.text('الأطول انتظارًا'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('needs_reply_order_menu')));
+      await tester.pumpAndSettle();
+      expect(find.text('الأحدث'), findsOneWidget);
+      await tester.tap(find.text('الأحدث'));
+      await _frames(tester);
+      expect(
+        server.lists.last.queryParameters['ordering'],
+        '-last_customer_message_at',
+      );
+
+      final router = GoRouter.of(tester.element(find.byType(InboxScreen)));
+      router.go('/away');
+      await _frames(tester);
+      expect(find.text('AWAY'), findsOneWidget);
+      router.go(Routes.inbox);
+      await _frames(tester);
+
+      // Still Newest, and asked for as such again.
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('needs_reply_order_menu')),
+          matching: find.text('الأحدث'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        server.lists.last.queryParameters['ordering'],
+        '-last_customer_message_at',
+      );
+    });
+
     testWidgets('Arabic labels, right to left', (tester) async {
       final server = _Server([_Row(1, waitingFor: const Duration(minutes: 8))]);
       await _pumpInbox(tester, server, locale: const Locale('ar'));
       expect(tester.takeException(), isNull);
       expect(find.text('يحتاج رد'), findsOneWidget);
       expect(find.text('ترتيب المحادثات'), findsOneWidget);
-      expect(find.text('الأقدم أولاً'), findsOneWidget);
+      expect(find.text('الأطول انتظارًا'), findsOneWidget);
       expect(find.text('ابحث في المحادثات...'), findsOneWidget);
       // The dropdown sits at the row's end: the left, in Arabic.
       final label = tester.getRect(find.text('ترتيب المحادثات'));

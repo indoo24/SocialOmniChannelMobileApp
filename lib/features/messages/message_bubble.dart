@@ -34,6 +34,8 @@ import '../../l10n/l10n_extensions.dart';
 import '../../core/utils/attachment_helper.dart';
 import 'highlight_message_coordinator.dart';
 import 'audio_duration.dart';
+import 'contact_share.dart';
+import 'image_gallery.dart';
 import 'media_group_grid.dart';
 import 'swipe_to_reply.dart';
 import 'voice_playback_service.dart';
@@ -263,7 +265,16 @@ class MessageBubble extends ConsumerWidget {
                               ],
                               if (message.attachments.isNotEmpty)
                                 _Attachments(message: message),
-                              if (message.text.isNotEmpty)
+                              // A shared contact: one card per contact. The
+                              // server's text summary of it is not shown as
+                              // well — the card says the same thing.
+                              if (message.isContact)
+                                for (final contact in message.contacts)
+                                  ContactMessageCard(
+                                    contact: contact,
+                                    foreground: foreground,
+                                  ),
+                              if (message.text.isNotEmpty && !message.isContact)
                                 // Text only — attachments above never are.
                                 LinkifiedText(
                                   message.text,
@@ -441,6 +452,7 @@ class _QuoteBlock extends StatelessWidget {
         : switch (quote.messageType) {
             'IMAGE' => context.l10n.photoMessageLabel,
             'AUDIO' => context.l10n.voiceMessageLabel,
+            'CONTACT' => context.l10n.contactMessageLabel,
             _ => context.l10n.attachmentMessageLabel,
           };
 
@@ -742,45 +754,48 @@ class _Attachments extends ConsumerWidget {
         }
 
         if (imageGroup.length >= 2) {
+          final groupStart = i;
           widgets.add(
             MediaGroupGrid(
               attachments: imageGroup,
               messageId: message.id,
               isOutbound: message.isOutbound,
-              onTapImage: (index) async {
-                final headers = await ref
-                    .read(apiClientProvider)
-                    .mediaAuthHeaders();
-                if (!context.mounted) return;
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => _ImageViewerScreen(
-                      attachments: imageGroup,
-                      initialIndex: index,
-                      headers: headers,
-                      messageId: message.id,
-                    ),
-                  ),
-                );
-              },
+              // The conversation's gallery, opened on this exact picture.
+              onTapImage: (index) => openImageGallery(
+                context,
+                message: message,
+                attachmentIndex: groupStart + index,
+              ),
             ),
           );
         } else {
+          final index = i;
           widgets.add(
             _Attachment(
               attachment: current,
               isOutbound: message.isOutbound,
               messageId: message.id,
+              onOpenImage: () => openImageGallery(
+                context,
+                message: message,
+                attachmentIndex: index,
+              ),
             ),
           );
         }
         i = j;
       } else {
+        final index = i;
         widgets.add(
           _Attachment(
             attachment: current,
             isOutbound: message.isOutbound,
             messageId: message.id,
+            onOpenImage: () => openImageGallery(
+              context,
+              message: message,
+              attachmentIndex: index,
+            ),
           ),
         );
         i++;
@@ -807,6 +822,7 @@ class _Attachments extends ConsumerWidget {
 class _Attachment extends ConsumerWidget {
   const _Attachment({
     required this.attachment,
+    required this.onOpenImage,
     this.isOutbound = true,
     this.messageId,
   });
@@ -814,6 +830,10 @@ class _Attachment extends ConsumerWidget {
   final MessageAttachment attachment;
   final bool isOutbound;
   final int? messageId;
+
+  /// Opens the image gallery on this attachment. Only images use it; videos,
+  /// voice notes and files keep their own tap behaviour.
+  final VoidCallback onOpenImage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -824,16 +844,7 @@ class _Attachment extends ConsumerWidget {
     final localPath = attachment.localFilePath;
     if (attachment.isInlineImage && localPath != null && localPath.isNotEmpty) {
       return GestureDetector(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => _ImageViewerScreen(
-              url: '',
-              localPath: localPath,
-              headers: const {},
-              attachment: attachment,
-            ),
-          ),
-        ),
+        onTap: onOpenImage,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(Radii.md),
           child: Image.file(
@@ -869,6 +880,7 @@ class _Attachment extends ConsumerWidget {
           attachment: attachment,
           url: safeUrl,
           messageId: messageId,
+          onOpen: onOpenImage,
         );
       }
     }
@@ -883,12 +895,14 @@ class _AttachmentImage extends ConsumerWidget {
   const _AttachmentImage({
     required this.attachment,
     required this.url,
+    required this.onOpen,
     this.messageId,
   });
 
   final MessageAttachment attachment;
   final String url;
   final int? messageId;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -902,16 +916,7 @@ class _AttachmentImage extends ConsumerWidget {
         if (!snapshot.hasData) return const _ImagePlaceholder();
 
         return GestureDetector(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => _ImageViewerScreen(
-                url: url,
-                headers: headers ?? const {},
-                attachment: attachment,
-                messageId: messageId,
-              ),
-            ),
-          ),
+          onTap: onOpen,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(Radii.md),
             child: CachedNetworkImage(
@@ -953,152 +958,6 @@ class _ImagePlaceholder extends StatelessWidget {
           height: 22,
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
-      ),
-    );
-  }
-}
-
-/// Full-screen, pinch-to-zoom view of an image attachment or multi-image gallery.
-class _ImageViewerScreen extends StatefulWidget {
-  const _ImageViewerScreen({
-    this.attachments = const [],
-    this.initialIndex = 0,
-    this.url = '',
-    this.headers = const {},
-    this.localPath,
-    this.attachment,
-    this.messageId,
-  });
-
-  final List<MessageAttachment> attachments;
-  final int initialIndex;
-  final String url;
-  final Map<String, String> headers;
-  final String? localPath;
-  final MessageAttachment? attachment;
-  final int? messageId;
-
-  @override
-  State<_ImageViewerScreen> createState() => _ImageViewerScreenState();
-}
-
-class _ImageViewerScreenState extends State<_ImageViewerScreen> {
-  late final PageController _pageController;
-  late int _currentIndex;
-  late final List<MessageAttachment> _galleryItems;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.attachments.isNotEmpty) {
-      _galleryItems = widget.attachments;
-      _currentIndex = widget.initialIndex.clamp(0, _galleryItems.length - 1);
-    } else if (widget.attachment != null) {
-      _galleryItems = [widget.attachment!];
-      _currentIndex = 0;
-    } else {
-      _galleryItems = [
-        MessageAttachment(
-          type: 'IMAGE',
-          url: widget.url,
-          localFilePath: widget.localPath,
-        ),
-      ];
-      _currentIndex = 0;
-    }
-    _pageController = PageController(initialPage: _currentIndex);
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final currentAttachment = _currentIndex < _galleryItems.length
-        ? _galleryItems[_currentIndex]
-        : null;
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: _galleryItems.length > 1
-            ? Text(
-                '${_currentIndex + 1} / ${_galleryItems.length}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              )
-            : null,
-        actions: [
-          if (currentAttachment != null)
-            Consumer(
-              builder: (context, ref, _) => IconButton(
-                icon: const Icon(Icons.download_rounded),
-                tooltip: context.l10n.downloadAttachmentAction,
-                onPressed: () => AttachmentHelper.saveAttachmentToDownloads(
-                  context: context,
-                  attachment: currentAttachment,
-                  api: ref.read(apiClientProvider),
-                  messageId: widget.messageId,
-                ),
-              ),
-            ),
-        ],
-      ),
-      body: PageView.builder(
-        controller: _pageController,
-        itemCount: _galleryItems.length,
-        onPageChanged: (idx) => setState(() => _currentIndex = idx),
-        itemBuilder: (context, index) {
-          final item = _galleryItems[index];
-          final localPath =
-              item.localFilePath ??
-              (index == 0 && widget.localPath != null
-                  ? widget.localPath
-                  : null);
-          final hasLocal =
-              localPath != null &&
-              localPath.isNotEmpty &&
-              File(localPath).existsSync();
-          final rawUrl = item.resolvedUrl.isNotEmpty
-              ? item.resolvedUrl
-              : widget.url;
-          final safeUrl = SafeUrl.forImage(rawUrl);
-
-          return Center(
-            child: InteractiveViewer(
-              minScale: 1,
-              maxScale: 4,
-              child: hasLocal
-                  ? Image.file(File(localPath), fit: BoxFit.contain)
-                  : CachedNetworkImage(
-                      imageUrl: safeUrl,
-                      httpHeaders: widget.headers,
-                      fit: BoxFit.contain,
-                      placeholder: (_, _) => const Center(
-                        child: Icon(
-                          Icons.image_outlined,
-                          color: Colors.white38,
-                          size: 48,
-                        ),
-                      ),
-                      errorWidget: (_, _, _) => Icon(
-                        Icons.broken_image_outlined,
-                        color: Colors.white.withValues(alpha: 0.7),
-                        size: 48,
-                      ),
-                    ),
-            ),
-          );
-        },
       ),
     );
   }

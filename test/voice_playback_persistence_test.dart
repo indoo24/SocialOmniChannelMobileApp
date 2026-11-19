@@ -270,7 +270,8 @@ void main() {
       expect(find.byType(InteractiveViewer), findsOneWidget);
       expectStillPlaying(c);
 
-      await tester.pageBack();
+      // The gallery closes with its ✕ (a back gesture works the same).
+      await tester.tap(find.byKey(const ValueKey('galleryClose')));
       await _frames(tester, 20);
       expect(find.byType(InteractiveViewer), findsNothing);
       expect(_pause, findsOneWidget);

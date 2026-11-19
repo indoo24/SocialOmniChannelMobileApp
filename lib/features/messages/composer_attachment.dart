@@ -369,6 +369,7 @@ class ComposerAttachmentButton extends ConsumerStatefulWidget {
     required this.onPicked,
     required this.onError,
     this.currentStagedCount = 0,
+    this.onShareContact,
     super.key,
   });
 
@@ -376,6 +377,10 @@ class ComposerAttachmentButton extends ConsumerStatefulWidget {
   final bool enabled;
   final ValueChanged<List<PickedAttachmentFile>> onPicked;
   final ValueChanged<String> onError;
+
+  /// Offers "Contact" in the sheet when set: picks one number from the
+  /// phone's contacts and sends it as its own message.
+  final VoidCallback? onShareContact;
 
   /// Cards already in the composer, in any state — counted against
   /// [maxComposerAttachments].
@@ -517,28 +522,43 @@ class _ComposerAttachmentButtonState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // An equal share of the row each, so four options fit a small
+              // phone and a long label wraps instead of overflowing.
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _AttachmentOption(
-                    icon: Icons.insert_drive_file_rounded,
-                    color: const Color(0xFF5F60B9),
-                    label: sheetContext.l10n.attachDocumentAction,
-                    onTap: _pickDocuments,
-                  ),
-                  _AttachmentOption(
-                    icon: Icons.photo_camera_rounded,
-                    color: const Color(0xFFEC407A),
-                    label: sheetContext.l10n.attachFromCameraAction,
-                    onTap: _pickCamera,
-                  ),
-                  _AttachmentOption(
-                    icon: Icons.photo_library_rounded,
-                    color: const Color(0xFF8B5CF6),
-                    label: sheetContext.l10n.attachFromGalleryAction,
-                    onTap: _pickGallery,
-                  ),
+                  for (final option in <Widget>[
+                    _AttachmentOption(
+                      icon: Icons.insert_drive_file_rounded,
+                      color: const Color(0xFF5F60B9),
+                      label: sheetContext.l10n.attachDocumentAction,
+                      onTap: _pickDocuments,
+                    ),
+                    _AttachmentOption(
+                      icon: Icons.photo_camera_rounded,
+                      color: const Color(0xFFEC407A),
+                      label: sheetContext.l10n.attachFromCameraAction,
+                      onTap: _pickCamera,
+                    ),
+                    _AttachmentOption(
+                      icon: Icons.photo_library_rounded,
+                      color: const Color(0xFF8B5CF6),
+                      label: sheetContext.l10n.attachFromGalleryAction,
+                      onTap: _pickGallery,
+                    ),
+                    if (widget.onShareContact != null)
+                      _AttachmentOption(
+                        key: const ValueKey('attachContactOption'),
+                        icon: Icons.person_rounded,
+                        color: const Color(0xFF0E9F8E),
+                        label: sheetContext.l10n.attachContactAction,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          widget.onShareContact!();
+                        },
+                      ),
+                  ])
+                    Expanded(child: Center(child: option)),
                 ],
               ),
               const SizedBox(height: Space.sm),
@@ -571,6 +591,7 @@ class _AttachmentOption extends StatelessWidget {
     required this.color,
     required this.label,
     required this.onTap,
+    super.key,
   });
 
   final IconData icon;
@@ -585,8 +606,9 @@ class _AttachmentOption extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(Radii.md),
       child: Padding(
+        // Tight sideways: four options share a 320pt phone's row.
         padding: const EdgeInsets.symmetric(
-          horizontal: Space.sm,
+          horizontal: Space.xs,
           vertical: Space.xs,
         ),
         child: Column(

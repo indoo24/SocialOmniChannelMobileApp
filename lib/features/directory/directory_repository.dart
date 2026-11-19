@@ -422,14 +422,12 @@ class DirectoryRepository {
     return JsonSafe.parseList(data, ConversationCategory.fromJson);
   }
 
-  /// [teamWindow] sets `team_window`: the window for the Team workload
-  /// funnel (`received`, `replied`, `sale_completed`) only — read-only,
-  /// independent of the page period and of every routing setting.
+  /// One period for the whole response — the Team workload funnel included
+  /// (the backend's `team_window` is deprecated and ignored).
   Future<DashboardSummary> dashboard({
     String? preset,
     String? from,
     String? to,
-    TeamWindow? teamWindow,
   }) async {
     final query = <String, dynamic>{};
     if (from != null && to != null) {
@@ -438,14 +436,11 @@ class DirectoryRepository {
     } else if (preset != null && preset.isNotEmpty) {
       query['preset'] = preset;
     }
-    if (teamWindow != null) {
-      query['team_window'] = teamWindow.apiValue;
-    }
     final data = await _api.get<Map<String, dynamic>>(
       '/dashboard/',
       query: query.isEmpty ? null : query,
     );
-    return DashboardSummary.fromJson(data, teamWindow: teamWindow);
+    return DashboardSummary.fromJson(data);
   }
 
   /// Volume per connected channel. Requires `analytics.view` server-side.

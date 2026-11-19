@@ -185,7 +185,7 @@ class _DashboardDateFilterSheetState
               ),
             ),
             const SizedBox(height: Space.sm),
-            for (final preset in DashboardPreset.values)
+            for (final preset in DashboardPreset.offered)
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: Space.sm,
