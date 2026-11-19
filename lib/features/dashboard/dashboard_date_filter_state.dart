@@ -18,7 +18,12 @@ import '../../l10n/l10n_extensions.dart';
 /// sent. [yesterday] is the one preset that excludes today, and [last3Days]
 /// is today plus the two days before it, like [last7Days] beside it — not a
 /// rolling 72 hours.
+/// The dashboard's periods, in the web picker's order. The first two are
+/// trailing windows ending now (`period.sub_day` in the response); the rest
+/// are calendar periods in the organization's timezone.
 enum DashboardPreset {
+  lastHour('last_1_hour'),
+  last24Hours('last_24_hours'),
   today('today'),
   yesterday('yesterday'),
   last3Days('last_3_days'),
@@ -32,8 +37,18 @@ enum DashboardPreset {
   /// The exact parameter string expected by `GET /api/dashboard/?preset=...`.
   final String apiValue;
 
+  /// What the picker offers — the web's list. `last_month` is still a valid
+  /// period for the backend (and for a filter already holding it) but, as on
+  /// the web, no longer offered.
+  static final List<DashboardPreset> offered = [
+    for (final preset in values)
+      if (preset != DashboardPreset.lastMonth) preset,
+  ];
+
   /// Localized display label.
   String label(BuildContext context) => switch (this) {
+    DashboardPreset.lastHour => context.l10n.dateFilterLastHour,
+    DashboardPreset.last24Hours => context.l10n.dateFilterLast24Hours,
     DashboardPreset.today => context.l10n.dateFilterToday,
     DashboardPreset.yesterday => context.l10n.dateFilterYesterday,
     DashboardPreset.last3Days => context.l10n.dateFilterLast3Days,
@@ -43,10 +58,21 @@ enum DashboardPreset {
     DashboardPreset.lastMonth => context.l10n.dateFilterLastMonth,
   };
 
-  /// Computes the calendar bounds (inclusive) for reference and tests.
+  /// Computes the calendar bounds (inclusive) for reference and tests. For
+  /// the two trailing windows these are only the local dates the window
+  /// touches — the server measures them from the moment of the request.
   (DateTime from, DateTime to) calculateRange(DateTime now) {
     final today = DateTime(now.year, now.month, now.day);
     return switch (this) {
+      // Before 01:00 the past hour reaches back into yesterday.
+      DashboardPreset.lastHour => (
+        DateTime(today.year, today.month, today.day - (now.hour == 0 ? 1 : 0)),
+        today,
+      ),
+      DashboardPreset.last24Hours => (
+        DateTime(today.year, today.month, today.day - 1),
+        today,
+      ),
       DashboardPreset.today => (today, today),
       DashboardPreset.yesterday => (
         DateTime(today.year, today.month, today.day - 1),

@@ -177,7 +177,7 @@ void main() {
   );
 
   testWidgets(
-    'opens the same sheet with the same 5 presets plus custom range',
+    'opens the same sheet with the web\'s presets plus custom range',
     (tester) async {
       final client = _clientFrom(_adapter());
 
@@ -188,10 +188,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Today'), findsNWidgets(2)); // Button + sheet row
+      expect(find.text('Last hour'), findsOneWidget);
+      expect(find.text('Last 24 hours'), findsOneWidget);
       expect(find.text('Last 7 days'), findsOneWidget);
       expect(find.text('Last 30 days'), findsOneWidget);
       expect(find.text('This month'), findsOneWidget);
-      expect(find.text('Last month'), findsOneWidget);
+      expect(find.text('Last month'), findsNothing);
+      await tester.ensureVisible(find.text('Custom range'));
       expect(find.text('Custom range'), findsOneWidget);
     },
   );
@@ -277,11 +280,7 @@ void main() {
       expect(container.read(dashboardDateFilterProvider).preset, preset);
       expect(find.text(label), findsOneWidget);
       final dashReq = requests.firstWhere((r) => r.path == '/dashboard/');
-      expect(dashReq.queryParameters, {
-        'preset': apiValue,
-        // The Team workload table's window, carried by the shared request.
-        'team_window': 'today',
-      });
+      expect(dashReq.queryParameters, {'preset': apiValue});
     });
   }
 

@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
 import '../../core/models/conversation.dart';
+import '../../core/models/directory.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/cache/cached_async_value.dart';
@@ -37,7 +38,16 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final employee = ref.watch(currentEmployeeProvider);
     final summary = ref.watch(dashboardProvider);
+    final filter = ref.watch(dashboardDateFilterProvider);
     final firstName = employee?.fullName.split(' ').first ?? 'there';
+
+    // An explicit ask for fresh data for the selected period.
+    void retry() {
+      ref.read(dashboardCacheProvider).invalidateFilter(filter);
+      ref
+        ..invalidate(dashboardProvider)
+        ..invalidate(dashboardPerformanceProvider);
+    }
 
     return SectionScaffold(
       title: context.l10n.dashboardGreeting(firstName),
@@ -84,111 +94,219 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ],
         ),
-        data: (data) => ListView(
-          padding: const EdgeInsets.all(Space.lg),
-          children: [
-            SectionHeading(
-              context.l10n.conversationsSectionTitle,
-              trailing: const DashboardDateFilterButton(),
-            ),
-            _MetricGrid(
-              tiles: [
-                MetricTile(
-                  label: context.l10n.openMetric,
-                  value: '${data.conversations.open}',
-                  icon: Icons.inbox_outlined,
-                  onTap: () => context.go('/inbox'),
+        data: (data) {
+          // The figures on screen are for some other period while a newly
+          // selected one loads (or failed to): every section says so the
+          // same way, instead of passing old numbers off as the new period's.
+          final stale = !dashboardAnswers(
+            data,
+            filter,
+            loading: summary.isLoading,
+          );
+          return ListView(
+            padding: const EdgeInsets.all(Space.lg),
+            children: [
+              SectionHeading(
+                context.l10n.conversationsSectionTitle,
+                trailing: const DashboardDateFilterButton(),
+              ),
+              if (stale)
+                _PeriodStatus(loading: summary.isLoading, onRetry: retry),
+              // Each section dimmed on its own, so the list stays lazy.
+              for (final section in <Widget>[
+                _MetricGrid(
+                  tiles: [
+                    MetricTile(
+                      label: context.l10n.openMetric,
+                      value: '${data.conversations.open}',
+                      icon: Icons.inbox_outlined,
+                      onTap: () => context.go('/inbox'),
+                    ),
+                    MetricTile(
+                      label: context.l10n.unassignedBadge,
+                      value: '${data.conversations.unassigned}',
+                      icon: Icons.person_off_outlined,
+                      tone: data.conversations.unassigned > 0
+                          ? MetricTone.warning
+                          : MetricTone.neutral,
+                      onTap: () => context.go('/inbox'),
+                    ),
+                    MetricTile(
+                      label: context.l10n.waitingMetric,
+                      value: '${data.conversations.waiting}',
+                      icon: Icons.schedule_outlined,
+                    ),
+                    MetricTile(
+                      label: context.l10n.resolvedTodayMetric,
+                      value: '${data.conversations.resolvedToday}',
+                      icon: Icons.check_circle_outline,
+                      tone: MetricTone.success,
+                    ),
+                  ],
                 ),
-                MetricTile(
-                  label: context.l10n.unassignedBadge,
-                  value: '${data.conversations.unassigned}',
-                  icon: Icons.person_off_outlined,
-                  tone: data.conversations.unassigned > 0
-                      ? MetricTone.warning
-                      : MetricTone.neutral,
-                  onTap: () => context.go('/inbox'),
-                ),
-                MetricTile(
-                  label: context.l10n.waitingMetric,
-                  value: '${data.conversations.waiting}',
-                  icon: Icons.schedule_outlined,
-                ),
-                MetricTile(
-                  label: context.l10n.resolvedTodayMetric,
-                  value: '${data.conversations.resolvedToday}',
-                  icon: Icons.check_circle_outline,
-                  tone: MetricTone.success,
-                ),
-              ],
-            ),
 
-            const SizedBox(height: Space.xl),
-            SectionHeading(context.l10n.customerIntelligenceSectionTitle),
-            _MetricGrid(
-              tiles: [
-                MetricTile(
-                  label: context.l10n.qualifiedLeadsMetric,
-                  value: '${data.intelligence.qualifiedLeads}',
-                  icon: Icons.verified_user_outlined,
+                const SizedBox(height: Space.xl),
+                SectionHeading(context.l10n.customerIntelligenceSectionTitle),
+                _MetricGrid(
+                  tiles: [
+                    MetricTile(
+                      label: context.l10n.qualifiedLeadsMetric,
+                      value: '${data.intelligence.qualifiedLeads}',
+                      icon: Icons.verified_user_outlined,
+                    ),
+                    MetricTile(
+                      label: context.l10n.hotLeadsMetric,
+                      value: '${data.intelligence.hotLeads}',
+                      icon: Icons.local_fire_department_outlined,
+                      tone: MetricTone.danger,
+                    ),
+                    MetricTile(
+                      label: context.l10n.purchaseClaimsMetric,
+                      value: '${data.intelligence.purchaseClaims}',
+                      icon: Icons.warning_amber_outlined,
+                      tone: MetricTone.warning,
+                      hint: context.l10n.purchaseClaimsHint,
+                    ),
+                    MetricTile(
+                      label: context.l10n.confirmedMetric,
+                      value: '${data.intelligence.agentConfirmedPurchases}',
+                      icon: Icons.task_alt_outlined,
+                      tone: MetricTone.success,
+                      hint: context.l10n.confirmedHint,
+                    ),
+                  ],
                 ),
-                MetricTile(
-                  label: context.l10n.hotLeadsMetric,
-                  value: '${data.intelligence.hotLeads}',
-                  icon: Icons.local_fire_department_outlined,
-                  tone: MetricTone.danger,
-                ),
-                MetricTile(
-                  label: context.l10n.purchaseClaimsMetric,
-                  value: '${data.intelligence.purchaseClaims}',
-                  icon: Icons.warning_amber_outlined,
-                  tone: MetricTone.warning,
-                  hint: context.l10n.purchaseClaimsHint,
-                ),
-                MetricTile(
-                  label: context.l10n.confirmedMetric,
-                  value: '${data.intelligence.agentConfirmedPurchases}',
-                  icon: Icons.task_alt_outlined,
-                  tone: MetricTone.success,
-                  hint: context.l10n.confirmedHint,
-                ),
-              ],
-            ),
 
-            if (data.intelligence.pendingReview > 0) ...[
-              const SizedBox(height: Space.lg),
-              _ReviewCallout(count: data.intelligence.pendingReview),
+                if (data.intelligence.pendingReview > 0) ...[
+                  const SizedBox(height: Space.lg),
+                  _ReviewCallout(count: data.intelligence.pendingReview),
+                ],
+
+                // Every employee is entitled to their own numbers — being measured
+                // without being allowed to see the measurement is not a defensible
+                // default. The endpoint returns one row for an agent, so this needs
+                // no permission check.
+                const _MyPerformance(),
+
+                // The web's Team workload table, from this same response.
+                // Omitted by the server for roles without analytics.view.
+                if (data.team case final team?) TeamWorkloadSection(team: team),
+
+                const SizedBox(height: Space.xl),
+                SectionHeading(
+                  context.l10n.recentActivityTitle,
+                  trailing: TextButton(
+                    onPressed: () {
+                      // The normal inbox, never an employee's left open earlier.
+                      ref.read(inboxFiltersProvider.notifier).clearEmployee();
+                      context.go(Routes.inbox);
+                    },
+                    child: Text(context.l10n.openInboxButton),
+                  ),
+                ),
+                _RecentActivityCard(
+                  conversations: data.recentConversations,
+                  currentEmployeeId: employee?.id,
+                ),
+              ])
+                _StaleFade(stale: stale, child: section),
+
+              const SizedBox(height: Space.xxl),
             ],
+          );
+        },
+      ),
+    );
+  }
+}
 
-            // Every employee is entitled to their own numbers — being measured
-            // without being allowed to see the measurement is not a defensible
-            // default. The endpoint returns one row for an agent, so this needs
-            // no permission check.
-            const _MyPerformance(),
+/// True when [data] answers [filter] — the period the response echoes
+/// (`period.preset`, or `from`/`to` for a custom range) is the one selected.
+/// A response without an echoed period cannot be checked, and counts as
+/// current unless a request is in flight.
+@visibleForTesting
+bool dashboardAnswers(
+  DashboardSummary data,
+  DashboardDateFilterState filter, {
+  required bool loading,
+}) {
+  final period = data.period;
+  if (period == null || period.preset.isEmpty) return !loading;
+  if (filter.isCustom) {
+    return period.preset == 'custom' &&
+        period.from == filter.fromApiString &&
+        period.to == filter.toApiString;
+  }
+  return period.preset == filter.preset?.apiValue;
+}
 
-            // The web's Team workload table, from this same response.
-            // Omitted by the server for roles without analytics.view.
-            if (data.team case final team?) TeamWorkloadSection(team: team),
+/// One dashboard section, dimmed while it shows another period's figures.
+class _StaleFade extends StatelessWidget {
+  const _StaleFade({required this.stale, required this.child});
 
-            const SizedBox(height: Space.xl),
-            SectionHeading(
-              context.l10n.recentActivityTitle,
-              trailing: TextButton(
-                onPressed: () {
-                  // The normal inbox, never an employee's left open earlier.
-                  ref.read(inboxFiltersProvider.notifier).clearEmployee();
-                  context.go(Routes.inbox);
-                },
-                child: Text(context.l10n.openInboxButton),
+  final bool stale;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => AnimatedOpacity(
+    opacity: stale ? 0.45 : 1,
+    duration: const Duration(milliseconds: 150),
+    child: child,
+  );
+}
+
+/// Under the date filter while the figures below are not the selected
+/// period's: a thin progress bar while it loads, or what went wrong with a
+/// retry.
+class _PeriodStatus extends StatelessWidget {
+  const _PeriodStatus({required this.loading, required this.onRetry});
+
+  final bool loading;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    if (loading) {
+      return Padding(
+        key: const ValueKey('dashboardPeriodUpdating'),
+        padding: const EdgeInsets.only(bottom: Space.md),
+        child: Semantics(
+          label: l10n.dashboardPeriodUpdating,
+          child: const LinearProgressIndicator(minHeight: 2),
+        ),
+      );
+    }
+    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    return Container(
+      key: const ValueKey('dashboardPeriodFailed'),
+      margin: const EdgeInsets.only(bottom: Space.md),
+      padding: const EdgeInsetsDirectional.only(start: Space.md, end: Space.xs),
+      decoration: BoxDecoration(
+        color: colors.warningSurface,
+        borderRadius: BorderRadius.circular(Radii.md),
+        border: Border.all(color: colors.warning.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: Space.sm),
+              child: Text(
+                l10n.dashboardPeriodFailed,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colors.foreground,
+                ),
               ),
             ),
-            _RecentActivityCard(
-              conversations: data.recentConversations,
-              currentEmployeeId: employee?.id,
-            ),
-
-            const SizedBox(height: Space.xxl),
-          ],
-        ),
+          ),
+          TextButton(
+            key: const ValueKey('dashboardPeriodRetry'),
+            onPressed: onRetry,
+            child: Text(l10n.retryButton),
+          ),
+        ],
       ),
     );
   }

@@ -5496,10 +5496,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get needsReplySortLabel => 'ترتيب المحادثات';
 
   @override
-  String get needsReplyOldestFirst => 'الأقدم أولاً';
+  String get inboxSortLongestWaiting => 'الأطول انتظارًا';
 
   @override
-  String get needsReplyNewestFirst => 'الأحدث أولاً';
+  String get inboxSortNewest => 'الأحدث';
 
   @override
   String waitingFor(String duration) {
@@ -5519,10 +5519,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get teamWorkloadEmployee => 'الموظف';
 
   @override
-  String get teamWorkloadReceived => 'المستلمة';
-
-  @override
-  String get teamWorkloadReceivedWindow => 'نطاق المستلمة';
+  String get teamWorkloadReceived => 'محادثات مستلمة';
 
   @override
   String get teamWorkloadEmptyTitle => 'لا توجد محادثات مُسندة';
@@ -5608,14 +5605,11 @@ class AppLocalizationsAr extends AppLocalizations {
       'من المحادثات التي أُسندت إلى هذا الموظف في الفترة المحددة، كم محادثة ردّ عليها بنفسه. لا يُحتسب الرد الآلي ولا رد زميل آخر ولا رسالة أُرسلت من تطبيق واتساب نفسه.';
 
   @override
-  String get teamWorkloadSaleCompleted => 'تمت البيعة';
+  String get teamWorkloadSaleCompleted => 'تم البيع';
 
   @override
   String get teamWorkloadSaleCompletedTooltip =>
       'من المحادثات التي أُسندت إلى هذا الموظف في الفترة المحددة، كم محادثة انتهت ببيعة مؤكدة. تُحتسب لمن كان يتولى المحادثة وقت تسجيل البيعة، لا لمن ضغط الزر.';
-
-  @override
-  String get teamWorkloadPeriodFailed => 'تعذّر تحميل الأرقام لهذه الفترة.';
 
   @override
   String teamWorkloadRowSemantics(
@@ -5700,4 +5694,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get phoneTypeMain => 'رئيسي';
+
+  @override
+  String get dateFilterLastHour => 'آخر ساعة';
+
+  @override
+  String get dateFilterLast24Hours => 'آخر 24 ساعة';
+
+  @override
+  String get dashboardPeriodUpdating => 'جارٍ التحديث للفترة المحددة';
+
+  @override
+  String get dashboardPeriodFailed =>
+      'تعذّر تحميل هذه الفترة. الأرقام أدناه من الاختيار السابق.';
+
+  @override
+  String teamWorkloadPeriod(String period) {
+    return 'الفترة: $period';
+  }
 }

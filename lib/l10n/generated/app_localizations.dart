@@ -9451,17 +9451,17 @@ abstract class AppLocalizations {
   /// **'Sort conversations'**
   String get needsReplySortLabel;
 
-  /// No description provided for @needsReplyOldestFirst.
+  /// No description provided for @inboxSortLongestWaiting.
   ///
   /// In en, this message translates to:
-  /// **'Oldest first'**
-  String get needsReplyOldestFirst;
+  /// **'Longest waiting'**
+  String get inboxSortLongestWaiting;
 
-  /// No description provided for @needsReplyNewestFirst.
+  /// No description provided for @inboxSortNewest.
   ///
   /// In en, this message translates to:
-  /// **'Newest first'**
-  String get needsReplyNewestFirst;
+  /// **'Newest'**
+  String get inboxSortNewest;
 
   /// No description provided for @waitingFor.
   ///
@@ -9498,12 +9498,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Received'**
   String get teamWorkloadReceived;
-
-  /// No description provided for @teamWorkloadReceivedWindow.
-  ///
-  /// In en, this message translates to:
-  /// **'Received window'**
-  String get teamWorkloadReceivedWindow;
 
   /// No description provided for @teamWorkloadEmptyTitle.
   ///
@@ -9610,7 +9604,7 @@ abstract class AppLocalizations {
   /// No description provided for @teamWorkloadSaleCompleted.
   ///
   /// In en, this message translates to:
-  /// **'Sale completed'**
+  /// **'Sold'**
   String get teamWorkloadSaleCompleted;
 
   /// No description provided for @teamWorkloadSaleCompletedTooltip.
@@ -9618,12 +9612,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Of the conversations handed to this employee in the selected window, how many ended in a confirmed sale. Credited to whoever was holding the conversation when the sale was recorded, not to whoever pressed the button.'**
   String get teamWorkloadSaleCompletedTooltip;
-
-  /// No description provided for @teamWorkloadPeriodFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the figures for this period.'**
-  String get teamWorkloadPeriodFailed;
 
   /// No description provided for @teamWorkloadRowSemantics.
   ///
@@ -9767,6 +9755,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Main'**
   String get phoneTypeMain;
+
+  /// No description provided for @dateFilterLastHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Last hour'**
+  String get dateFilterLastHour;
+
+  /// No description provided for @dateFilterLast24Hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 24 hours'**
+  String get dateFilterLast24Hours;
+
+  /// No description provided for @dashboardPeriodUpdating.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating for the selected period'**
+  String get dashboardPeriodUpdating;
+
+  /// No description provided for @dashboardPeriodFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this period. The figures below are from the previous selection.'**
+  String get dashboardPeriodFailed;
+
+  /// No description provided for @teamWorkloadPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Period: {period}'**
+  String teamWorkloadPeriod(String period);
 }
 
 class _AppLocalizationsDelegate

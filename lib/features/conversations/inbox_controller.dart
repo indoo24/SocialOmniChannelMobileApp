@@ -237,7 +237,7 @@ class InboxFiltersController extends Notifier<ConversationFilters> {
       needsMyReview: filter == InboxQuickFilter.needsReview,
       needsReply: filter == InboxQuickFilter.needsReply,
       // Choosing Needs reply opens it longest-wait first, as the web does.
-      needsReplyOrder: NeedsReplyOrder.oldestFirst,
+      needsReplyOrder: NeedsReplyOrder.longestWaiting,
       status: status,
       clearStatus: status == null && quickStatus,
       // Every other quick filter narrows the employee's inbox and keeps it.

@@ -10,20 +10,17 @@
 /// * Employee: `id`, `full_name`, `avatar_url`; initials and tint from the
 ///   name, as the web's avatar computes them.
 /// * The funnel, over one cohort — the conversations handed to the employee
-///   during `team_window` (`last_hour` | `today`):
+///   during the **dashboard's period** (the date filter at the top; the
+///   backend's own `team_window` is deprecated and ignored):
 ///   * Received: `received`.
 ///   * Replied: `replied` — of those, the ones they answered themselves.
 ///   * Sale completed: `sale_completed` — of those, the ones that ended in a
 ///     confirmed sale.
 ///
-/// The window selector only changes `team_window` on that GET. It writes
-/// nothing: not the routing policy, its `workload_window`, the distribution
-/// method or any assignment.
-///
-/// The response does not echo the window, so the figures are matched against
-/// the window the request **carried** ([TeamMetrics.window]). While a switch
-/// is in flight, or after it failed, the funnel never shows the previous
-/// window's numbers under the new selection.
+/// The table has no period control of its own: the one at the top of the
+/// Dashboard decides it, as on the web. While a new period loads, or after it
+/// failed, the Dashboard marks every section — this one included — as
+/// showing the previous selection.
 ///
 /// Every employee the server returns is listed. The rows scroll inside a
 /// bounded box under a header that stays put, as the web's table does.
@@ -34,45 +31,25 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exception.dart';
 import '../../core/models/directory.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/avatar.dart';
-import '../../core/widgets/shimmer.dart';
-import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
-import '../directory/directory_providers.dart';
-import 'dashboard_cache.dart';
 import 'dashboard_date_filter_state.dart';
 
 /// The web's `max-h-[min(26rem,60vh)]`.
 double teamTableMaxHeight(double screenHeight) =>
     math.min(416, screenHeight * 0.6);
 
-class TeamWorkloadSection extends ConsumerWidget {
+class TeamWorkloadSection extends StatelessWidget {
   const TeamWorkloadSection({required this.team, super.key});
 
-  /// The block on screen — possibly from before a window switch that is
-  /// still loading or has failed.
+  /// The `team` block of the response on screen.
   final TeamMetrics team;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selected = ref.watch(teamWindowProvider);
-    final summary = ref.watch(dashboardProvider);
-    final _FunnelState funnel;
-    if (team.window == selected) {
-      funnel = _FunnelState.shown;
-    } else if (summary.isLoading) {
-      funnel = _FunnelState.pending;
-    } else if (summary.hasError) {
-      funnel = _FunnelState.failed;
-    } else {
-      funnel = _FunnelState.unknown;
-    }
-    final error = summary.error;
-
+  Widget build(BuildContext context) {
     return Padding(
       key: const ValueKey('dashboardTeam'),
       padding: const EdgeInsets.only(top: Space.xl),
@@ -80,41 +57,16 @@ class TeamWorkloadSection extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Header(onlineAgents: team.onlineAgents, selected: selected),
-            if (funnel == _FunnelState.failed)
-              _PeriodFailed(
-                message: error is ApiException ? error.message : null,
-                onRetry: () {
-                  ref
-                      .read(dashboardCacheProvider)
-                      .invalidateFilter(ref.read(dashboardDateFilterProvider));
-                  ref.invalidate(dashboardProvider);
-                },
-              ),
+            _Header(onlineAgents: team.onlineAgents),
             if (team.workload.isEmpty)
               const _Empty()
             else
-              _Table(rows: team.workload, funnel: funnel),
+              _Table(rows: team.workload),
           ],
         ),
       ),
     );
   }
-}
-
-/// How the funnel columns stand against the selected window.
-enum _FunnelState {
-  /// The figures were requested for the selected window.
-  shown,
-
-  /// A request for the selected window is in flight.
-  pending,
-
-  /// The request for the selected window failed.
-  failed,
-
-  /// Figures for some other window, with nothing in flight.
-  unknown,
 }
 
 /// The web table's bordered card.
@@ -138,17 +90,22 @@ class _Frame extends StatelessWidget {
   }
 }
 
-/// Title, then online count and window toggle — wrapping under the title
-/// when a narrow phone cannot hold them on one line, as the web header does.
-class _Header extends StatelessWidget {
-  const _Header({required this.onlineAgents, required this.selected});
+/// Title, then the live online count and the period the figures answer —
+/// wrapping under the title when a narrow phone cannot hold it all on one
+/// line, as the web header does.
+///
+/// The period is the Dashboard filter's own selection and wording (custom
+/// ranges included), so it changes the moment the filter does. The online
+/// count beside it is live presence and does not depend on it.
+class _Header extends ConsumerWidget {
+  const _Header({required this.onlineAgents});
 
   final int onlineAgents;
-  final TeamWindow selected;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
+    final period = ref.watch(dashboardDateFilterProvider).displayLabel(context);
     final theme = Theme.of(context);
     final colors = AppColors.of(context);
     return Container(
@@ -171,145 +128,29 @@ class _Header extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          // Online count and toggle wrap onto their own lines before
-          // anything overflows; the toggle shrinks only as a last resort.
-          Wrap(
-            spacing: Space.sm,
-            runSpacing: Space.xs,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                l10n.onlineAgentsSuffix(onlineAgents),
-                key: const ValueKey('teamOnlineCount'),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colors.mutedForeground,
-                ),
-              ),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: _WindowToggle(selected: selected),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The web's two-button toggle: the selected window filled with the brand
-/// colour.
-class _WindowToggle extends ConsumerWidget {
-  const _WindowToggle({required this.selected});
-
-  final TeamWindow selected;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final colors = AppColors.of(context);
-    return Semantics(
-      container: true,
-      label: l10n.teamWorkloadReceivedWindow,
-      child: Container(
-        key: const ValueKey('teamPeriodSelector'),
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(Radii.md),
-          border: Border.all(color: colors.border),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final window in TeamWindow.values)
-              Semantics(
-                button: true,
-                selected: window == selected,
-                child: Material(
-                  key: ValueKey('teamPeriod_${window.apiValue}'),
-                  color: window == selected
-                      ? scheme.primary
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(Radii.sm),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(Radii.sm),
-                    onTap: window == selected
-                        ? null
-                        : () => ref
-                              .read(teamWindowProvider.notifier)
-                              .select(window),
-                    child: ConstrainedBox(
-                      // A comfortable target without a tall toggle.
-                      constraints: const BoxConstraints(minHeight: 28),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Space.sm,
-                          vertical: Space.xs,
-                        ),
-                        child: Center(
-                          widthFactor: 1,
-                          child: Text(
-                            windowLabel(l10n, window),
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: window == selected
-                                  ? scheme.onPrimary
-                                  : colors.mutedForeground,
-                              fontWeight: window == selected
-                                  ? FontWeight.w600
-                                  : FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The label for [window], as the web words it.
-String windowLabel(AppLocalizations l10n, TeamWindow window) =>
-    switch (window) {
-      TeamWindow.lastHour => l10n.workloadWindowLastHour,
-      TeamWindow.today => l10n.dateFilterToday,
-    };
-
-class _PeriodFailed extends StatelessWidget {
-  const _PeriodFailed({required this.onRetry, this.message});
-
-  final VoidCallback onRetry;
-  final String? message;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-    final colors = AppColors.of(context);
-    return Container(
-      key: const ValueKey('teamPeriodError'),
-      color: colors.warningSurface,
-      padding: const EdgeInsetsDirectional.only(start: Space.md, end: Space.xs),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              message ?? l10n.teamWorkloadPeriodFailed,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: colors.foreground,
-              ),
+          // "22 online · Period: Today" — each part kept whole, the period
+          // moving to its own line before anything is cut.
+          DefaultTextStyle.merge(
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colors.mutedForeground,
             ),
-          ),
-          TextButton(
-            key: const ValueKey('teamRetry'),
-            onPressed: onRetry,
-            child: Text(l10n.retryButton),
+            child: Wrap(
+              spacing: Space.xs,
+              runSpacing: 2,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                // Live presence: always now, whatever the period.
+                Text(
+                  l10n.onlineAgentsSuffix(onlineAgents),
+                  key: const ValueKey('teamOnlineCount'),
+                ),
+                const ExcludeSemantics(child: Text('·')),
+                Text(
+                  l10n.teamWorkloadPeriod(period),
+                  key: const ValueKey('teamPeriodLabel'),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -352,10 +193,9 @@ class _Empty extends StatelessWidget {
 /// The header stays put; the rows scroll beneath it inside a box no taller
 /// than the web's. A short list takes only the room it needs.
 class _Table extends StatefulWidget {
-  const _Table({required this.rows, required this.funnel});
+  const _Table({required this.rows});
 
   final List<WorkloadEntry> rows;
-  final _FunnelState funnel;
 
   @override
   State<_Table> createState() => _TableState();
@@ -376,10 +216,7 @@ class _TableState extends State<_Table> {
     final maxHeight = teamTableMaxHeight(MediaQuery.sizeOf(context).height);
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Three figure columns share under half the card, so names stay
-        // readable at 320pt; the Arabic headers wrap to two lines there, and
-        // a tablet does not stretch them.
-        final figure = (constraints.maxWidth * 0.15).clamp(44.0, 104.0);
+        final columns = _figureColumns(context, constraints.maxWidth);
         return ConstrainedBox(
           key: const ValueKey('teamTable'),
           constraints: BoxConstraints(maxHeight: maxHeight),
@@ -387,7 +224,7 @@ class _TableState extends State<_Table> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _HeaderRow(figure: figure),
+              _HeaderRow(columns: columns),
               Divider(height: 1, color: colors.border),
               Flexible(
                 child: Scrollbar(
@@ -402,11 +239,8 @@ class _TableState extends State<_Table> {
                     itemCount: widget.rows.length,
                     separatorBuilder: (_, _) =>
                         Divider(height: 1, color: colors.border),
-                    itemBuilder: (_, i) => _EmployeeRow(
-                      row: widget.rows[i],
-                      figure: figure,
-                      funnel: widget.funnel,
-                    ),
+                    itemBuilder: (_, i) =>
+                        _EmployeeRow(row: widget.rows[i], columns: columns),
                   ),
                 ),
               ),
@@ -418,36 +252,89 @@ class _TableState extends State<_Table> {
   }
 }
 
-/// "Employee | Received | Replied | Sale completed", each figure label with
-/// the web's tooltip.
-class _HeaderRow extends StatelessWidget {
-  const _HeaderRow({required this.figure});
+/// The widths of the three figure columns.
+typedef _Columns = ({double received, double replied, double sales});
 
-  final double figure;
+TextStyle? _headerStyle(BuildContext context) =>
+    Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: AppColors.of(context).mutedForeground,
+      fontWeight: FontWeight.w500,
+    );
+
+/// Each figure column as wide as its own header on one line — or a
+/// four-digit figure, if wider — at the user's text size, so
+/// "محادثات مستلمة" and "Received" sit on a single line and the name takes
+/// the rest. Only when a phone is too narrow for that and a readable name
+/// both does every column fall back to an even share, where a header may
+/// take a second line.
+_Columns _figureColumns(BuildContext context, double cardWidth) {
+  final l10n = context.l10n;
+  final style = _headerStyle(context);
+  final direction = Directionality.of(context);
+  final scaler = MediaQuery.textScalerOf(context);
+  final share = (cardWidth * 0.15).clamp(44.0, 104.0);
+  double measure(String text, TextStyle? textStyle) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: textStyle),
+      textDirection: direction,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
+
+  final figure = measure(
+    '0000',
+    Theme.of(context).textTheme.bodyMedium?.copyWith(
+      fontFeatures: const [FontFeature.tabularFigures()],
+    ),
+  );
+  double fit(String label) {
+    final width = measure(label, style);
+    return (width > figure ? width : figure) + 8;
+  }
+
+  final fitted = (
+    received: fit(l10n.teamWorkloadReceived),
+    replied: fit(l10n.teamWorkloadReplied),
+    sales: fit(l10n.teamWorkloadSaleCompleted),
+  );
+  // Row padding, avatar and its gap, and room for a readable name.
+  const reserved = Space.md * 2 + 32 + Space.sm + 88;
+  final total = fitted.received + fitted.replied + fitted.sales;
+  if (cardWidth - reserved >= total) return fitted;
+  return (received: share, replied: share, sales: share);
+}
+
+/// "Employee | Received | Replied | Sold", each figure label with the web's
+/// tooltip.
+class _HeaderRow extends StatelessWidget {
+  const _HeaderRow({required this.columns});
+
+  final _Columns columns;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final theme = Theme.of(context);
     final colors = AppColors.of(context);
-    final style = theme.textTheme.labelSmall?.copyWith(
-      color: colors.mutedForeground,
-      fontWeight: FontWeight.w500,
-    );
+    final style = _headerStyle(context);
 
-    Widget column(String label, String tooltip, String key) => SizedBox(
-      width: figure,
-      child: Tooltip(
-        message: tooltip,
-        child: Text(
-          label,
-          key: ValueKey(key),
-          textAlign: TextAlign.end,
-          maxLines: 2,
-          style: style,
-        ),
-      ),
-    );
+    Widget column(String label, String tooltip, String key, double width) =>
+        SizedBox(
+          width: width,
+          child: Tooltip(
+            message: tooltip,
+            child: Text(
+              label,
+              key: ValueKey(key),
+              textAlign: TextAlign.end,
+              maxLines: 2,
+              style: style,
+            ),
+          ),
+        );
 
     return Container(
       key: const ValueKey('teamHeaderRow'),
@@ -463,16 +350,19 @@ class _HeaderRow extends StatelessWidget {
             l10n.teamWorkloadReceived,
             l10n.teamWorkloadReceivedTooltip,
             'teamReceivedHeader',
+            columns.received,
           ),
           column(
             l10n.teamWorkloadReplied,
             l10n.teamWorkloadRepliedTooltip,
             'teamRepliedHeader',
+            columns.replied,
           ),
           column(
             l10n.teamWorkloadSaleCompleted,
             l10n.teamWorkloadSaleCompletedTooltip,
             'teamSalesHeader',
+            columns.sales,
           ),
         ],
       ),
@@ -481,52 +371,41 @@ class _HeaderRow extends StatelessWidget {
 }
 
 class _EmployeeRow extends StatelessWidget {
-  const _EmployeeRow({
-    required this.row,
-    required this.figure,
-    required this.funnel,
-  });
+  const _EmployeeRow({required this.row, required this.columns});
 
   final WorkloadEntry row;
-  final double figure;
-  final _FunnelState funnel;
+  final _Columns columns;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final colors = AppColors.of(context);
-    final shown = funnel == _FunnelState.shown;
-    int? figureOf(int? value) => shown ? value : null;
-    final received = figureOf(row.received);
-    final replied = figureOf(row.replied);
-    final sales = figureOf(row.saleCompleted);
+    final received = row.received;
+    final replied = row.replied;
+    final sales = row.saleCompleted;
     String text(int? value) => value == null ? '—' : '$value';
 
     final number = theme.textTheme.bodyMedium?.copyWith(
       fontFeatures: const [FontFeature.tabularFigures()],
     );
 
-    Widget cell(int? value, String key, {TextStyle? emphasis}) => SizedBox(
-      width: figure,
-      child: Align(
-        alignment: AlignmentDirectional.centerEnd,
-        child: funnel == _FunnelState.pending
-            ? AppShimmer(
-                key: ValueKey('${key}Pending'),
-                child: const SkeletonBox(width: 22, height: 12),
-              )
-            : Text(
-                text(value),
-                key: ValueKey(key),
-                textAlign: TextAlign.end,
-                // Zero (or unknown) in the muted tone, as on the web.
-                style: (value ?? 0) == 0
-                    ? number?.copyWith(color: colors.mutedForeground)
-                    : (emphasis ?? number),
-              ),
-      ),
-    );
+    Widget cell(int? value, String key, double width, {TextStyle? emphasis}) =>
+        SizedBox(
+          width: width,
+          child: Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Text(
+              text(value),
+              key: ValueKey(key),
+              textAlign: TextAlign.end,
+              // Zero (or unknown) in the muted tone, as on the web.
+              style: (value ?? 0) == 0
+                  ? number?.copyWith(color: colors.mutedForeground)
+                  : (emphasis ?? number),
+            ),
+          ),
+        );
 
     return Semantics(
       container: true,
@@ -557,11 +436,12 @@ class _EmployeeRow extends StatelessWidget {
                   ),
                 ),
               ),
-              cell(received, 'teamReceived'),
-              cell(replied, 'teamReplied'),
+              cell(received, 'teamReceived', columns.received),
+              cell(replied, 'teamReplied', columns.replied),
               cell(
                 sales,
                 'teamSales',
+                columns.sales,
                 emphasis: number?.copyWith(
                   color: colors.success,
                   fontWeight: FontWeight.w600,

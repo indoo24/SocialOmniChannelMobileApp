@@ -37,39 +37,22 @@ import 'employee_filter_state.dart';
 /// this a refresh?" out of the provider, where the two cases are otherwise
 /// indistinguishable.
 ///
-/// The request also carries the team table's window, as the web's
-/// does: one request answers the page and the table, and switching the
-/// window reruns it with the page's numbers kept on screen meanwhile.
+/// One period answers the whole page, the Team workload table included, as
+/// on the web: the date filter is the only source of the period.
 final dashboardProvider = FutureProvider<DashboardSummary>((ref) {
   final filter = ref.watch(dashboardDateFilterProvider);
-  final teamWindow = ref.watch(teamWindowProvider);
   final repository = ref.watch(directoryRepositoryProvider);
   final cache = ref.watch(dashboardCacheProvider);
 
   return cache.summary.run(
-    dashboardSummaryKey(filter, teamWindow: teamWindow),
+    dashboardSummaryKey(filter),
     () => repository.dashboard(
       preset: filter.preset?.apiValue,
       from: filter.fromApiString,
       to: filter.toApiString,
-      teamWindow: teamWindow,
     ),
   );
 });
-
-/// The Dashboard team table's window — local view state, sent only as
-/// `team_window` on `GET /dashboard/`. Never written anywhere: the routing
-/// policy, its `workload_window` and the distribution are untouched by it.
-class TeamWindowController extends Notifier<TeamWindow> {
-  @override
-  TeamWindow build() => TeamWindow.fallback;
-
-  void select(TeamWindow window) => state = window;
-}
-
-final teamWindowProvider = NotifierProvider<TeamWindowController, TeamWindow>(
-  TeamWindowController.new,
-);
 
 /// The organization's routing policy. An `AsyncNotifier` rather than a
 /// `FutureProvider` only so a save can [RoutingPolicyController.confirm] the

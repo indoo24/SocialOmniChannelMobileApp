@@ -20,12 +20,18 @@ import '../../core/realtime/realtime_logger.dart';
 import '../../core/utils/json_safe.dart';
 
 /// How the Needs reply view is ordered — by when the customer last wrote
-/// (`last_customer_message_at`), never by `last_message_at`. The server sorts
-/// (with an id tiebreak), so pages stay consistent; nothing is re-sorted here.
+/// (`last_customer_message_at`), the only orderings the backend documents and
+/// the web uses. The server sorts (with an id tiebreak), so pages stay
+/// consistent; nothing is re-sorted here. Declared in the menu's order.
 enum NeedsReplyOrder {
-  /// Longest-waiting customer first — the default.
-  oldestFirst('last_customer_message_at'),
-  newestFirst('-last_customer_message_at');
+  /// The customer who wrote most recently first.
+  newest('-last_customer_message_at'),
+
+  /// The customer who has waited longest first — the default. Every row in
+  /// Needs reply is waiting on a human answer since its last customer
+  /// message, so the oldest such message has waited longest (the same
+  /// timestamp the row's "Waiting …" age is measured from).
+  longestWaiting('last_customer_message_at');
 
   const NeedsReplyOrder(this.ordering);
 
@@ -66,7 +72,7 @@ class ConversationFilters {
     this.unread = false,
     this.needsMyReview = false,
     this.needsReply = false,
-    this.needsReplyOrder = NeedsReplyOrder.oldestFirst,
+    this.needsReplyOrder = NeedsReplyOrder.longestWaiting,
     this.search = '',
     this.selectedAccounts = const {},
     this.channelConnections,

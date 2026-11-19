@@ -5457,10 +5457,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get needsReplySortLabel => 'Sort conversations';
 
   @override
-  String get needsReplyOldestFirst => 'Oldest first';
+  String get inboxSortLongestWaiting => 'Longest waiting';
 
   @override
-  String get needsReplyNewestFirst => 'Newest first';
+  String get inboxSortNewest => 'Newest';
 
   @override
   String waitingFor(String duration) {
@@ -5483,9 +5483,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get teamWorkloadReceived => 'Received';
-
-  @override
-  String get teamWorkloadReceivedWindow => 'Received window';
 
   @override
   String get teamWorkloadEmptyTitle => 'Nothing assigned';
@@ -5563,15 +5560,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Of the conversations handed to this employee in the selected window, how many they themselves answered. An automatic reply, a colleague\'s reply, or a message sent from WhatsApp\'s own app does not count.';
 
   @override
-  String get teamWorkloadSaleCompleted => 'Sale completed';
+  String get teamWorkloadSaleCompleted => 'Sold';
 
   @override
   String get teamWorkloadSaleCompletedTooltip =>
       'Of the conversations handed to this employee in the selected window, how many ended in a confirmed sale. Credited to whoever was holding the conversation when the sale was recorded, not to whoever pressed the button.';
-
-  @override
-  String get teamWorkloadPeriodFailed =>
-      'Couldn\'t load the figures for this period.';
 
   @override
   String teamWorkloadRowSemantics(
@@ -5656,4 +5649,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get phoneTypeMain => 'Main';
+
+  @override
+  String get dateFilterLastHour => 'Last hour';
+
+  @override
+  String get dateFilterLast24Hours => 'Last 24 hours';
+
+  @override
+  String get dashboardPeriodUpdating => 'Updating for the selected period';
+
+  @override
+  String get dashboardPeriodFailed =>
+      'Couldn\'t load this period. The figures below are from the previous selection.';
+
+  @override
+  String teamWorkloadPeriod(String period) {
+    return 'Period: $period';
+  }
 }
