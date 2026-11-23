@@ -9785,6 +9785,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Period: {period}'**
   String teamWorkloadPeriod(String period);
+
+  /// No description provided for @transferTeamAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer to team'**
+  String get transferTeamAction;
+
+  /// No description provided for @transferTeamTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer conversation to another team'**
+  String get transferTeamTitle;
+
+  /// No description provided for @transferTeamBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Responsibility moves to the receiving team: the current assignee is released, and the conversation is assigned inside that team automatically.'**
+  String get transferTeamBody;
+
+  /// No description provided for @transferTeamField.
+  ///
+  /// In en, this message translates to:
+  /// **'Team'**
+  String get transferTeamField;
+
+  /// No description provided for @transferTeamPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a team'**
+  String get transferTeamPlaceholder;
+
+  /// No description provided for @transferTeamUnstaffed.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · no members'**
+  String transferTeamUnstaffed(String name);
+
+  /// No description provided for @transferTeamNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get transferTeamNote;
+
+  /// No description provided for @transferTeamNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What the receiving team needs to know'**
+  String get transferTeamNoteHint;
+
+  /// No description provided for @transferTeamSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer'**
+  String get transferTeamSubmit;
+
+  /// No description provided for @transferTeamDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Transferred to {team}'**
+  String transferTeamDone(String team);
+
+  /// No description provided for @transferTeamNoTeams.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no other active team to transfer to.'**
+  String get transferTeamNoTeams;
+
+  /// No description provided for @transferTeamLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the teams.'**
+  String get transferTeamLoadFailed;
+
+  /// No description provided for @transferTeamCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current team: {team}'**
+  String transferTeamCurrent(String team);
+
+  /// No description provided for @transferTeamNoCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'No team yet'**
+  String get transferTeamNoCurrent;
+
+  /// No description provided for @conversationTeamSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Team: {team}'**
+  String conversationTeamSemantics(String team);
+
+  /// No description provided for @historyTeamTransferred.
+  ///
+  /// In en, this message translates to:
+  /// **'Transferred to another team'**
+  String get historyTeamTransferred;
 }
 
 class _AppLocalizationsDelegate

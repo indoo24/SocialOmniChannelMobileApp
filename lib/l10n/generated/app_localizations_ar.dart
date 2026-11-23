@@ -5712,4 +5712,61 @@ class AppLocalizationsAr extends AppLocalizations {
   String teamWorkloadPeriod(String period) {
     return 'الفترة: $period';
   }
+
+  @override
+  String get transferTeamAction => 'تحويل إلى فريق';
+
+  @override
+  String get transferTeamTitle => 'تحويل المحادثة إلى فريق آخر';
+
+  @override
+  String get transferTeamBody =>
+      'تنتقل مسؤولية المحادثة إلى الفريق المستلم: يُعفى المسند إليه الحالي، وتُسند المحادثة داخل الفريق تلقائيًا.';
+
+  @override
+  String get transferTeamField => 'الفريق';
+
+  @override
+  String get transferTeamPlaceholder => 'اختر فريقًا';
+
+  @override
+  String transferTeamUnstaffed(String name) {
+    return '$name · بلا أعضاء';
+  }
+
+  @override
+  String get transferTeamNote => 'ملاحظة (اختياري)';
+
+  @override
+  String get transferTeamNoteHint => 'ما يحتاج الفريق المستلم معرفته';
+
+  @override
+  String get transferTeamSubmit => 'تحويل';
+
+  @override
+  String transferTeamDone(String team) {
+    return 'تم التحويل إلى $team';
+  }
+
+  @override
+  String get transferTeamNoTeams => 'لا يوجد فريق نشط آخر للتحويل إليه.';
+
+  @override
+  String get transferTeamLoadFailed => 'تعذّر تحميل الفرق.';
+
+  @override
+  String transferTeamCurrent(String team) {
+    return 'الفريق الحالي: $team';
+  }
+
+  @override
+  String get transferTeamNoCurrent => 'بلا فريق بعد';
+
+  @override
+  String conversationTeamSemantics(String team) {
+    return 'الفريق: $team';
+  }
+
+  @override
+  String get historyTeamTransferred => 'حُوّلت إلى فريق آخر';
 }

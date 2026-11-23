@@ -73,6 +73,8 @@ class Employee {
     this.routingChannelScope = 'ALL',
     this.routingProviders = const [],
     this.aiKnowledgeEnabled = false,
+    this.teamIds = const {},
+    this.teamTransferEnabled = false,
   });
 
   final int id;
@@ -114,6 +116,17 @@ class Employee {
   /// 404, so the AI settings are not offered at all — same rule as the web.
   /// Defaults to false so an older backend never widens access.
   final bool aiKnowledgeEnabled;
+
+  /// The teams this employee belongs to (`/auth/me/`'s `teams`), by id —
+  /// what decides whether an unassigned conversation in a team is theirs to
+  /// hand on (see `canTransferToTeam`).
+  final Set<int> teamIds;
+
+  /// Whether team-to-team transfer is switched on for the organization
+  /// (`/auth/me/`'s `team_transfer_enabled`). Defaults to false so an older
+  /// backend never offers an action it cannot carry out — the web's own
+  /// gate.
+  final bool teamTransferEnabled;
 
   /// Providers that stay coming soon when the server has not said otherwise,
   /// so an older backend or a partial payload can never widen access.
@@ -186,6 +199,12 @@ class Employee {
       ),
       routingProviders: JsonSafe.asStringList(json['routing_providers']),
       aiKnowledgeEnabled: JsonSafe.asBool(json['ai_knowledge_enabled']),
+      teamIds: {
+        for (final team in JsonSafe.asObjectList(json['teams']))
+          if (team is Map && JsonSafe.asIntOrNull(team['id']) != null)
+            JsonSafe.asIntOrNull(team['id'])!,
+      },
+      teamTransferEnabled: JsonSafe.asBool(json['team_transfer_enabled']),
     );
   }
 
@@ -238,6 +257,8 @@ class Employee {
     routingChannelScope: routingChannelScope,
     routingProviders: routingProviders,
     aiKnowledgeEnabled: aiKnowledgeEnabled,
+    teamIds: teamIds,
+    teamTransferEnabled: teamTransferEnabled,
   );
 }
 

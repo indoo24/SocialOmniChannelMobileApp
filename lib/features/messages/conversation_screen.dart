@@ -49,6 +49,7 @@ import 'package:flutter/rendering.dart';
 import 'highlight_message_coordinator.dart';
 import 'contact_share.dart';
 import 'image_gallery.dart';
+import 'transfer_team_sheet.dart';
 import 'notes_controller.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
@@ -1525,6 +1526,10 @@ class _Header extends StatelessWidget {
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final maxW = constraints.maxWidth;
+                        // The responsible team, beside the channel: a
+                        // team pill, never the assignee's avatar (that
+                        // stays on the right of the bar).
+                        final team = conversation.assignedTeam as TeamBrief?;
                         if (maxW < 75) {
                           return Row(
                             children: [
@@ -1543,6 +1548,10 @@ class _Header extends StatelessWidget {
                                 provider: conversation.provider as String,
                               ),
                             ),
+                            if (team != null) ...[
+                              const SizedBox(width: 4),
+                              Flexible(child: ConversationTeamPill(team: team)),
+                            ],
                             const SizedBox(width: 5),
                             Expanded(
                               child: Text(

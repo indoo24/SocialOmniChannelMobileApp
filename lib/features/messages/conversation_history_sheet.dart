@@ -217,6 +217,10 @@ class _HistoryRow extends StatelessWidget {
   /// person's own reply, not routing; a fallback placement says it had no
   /// better option; a reassignment names who it moved the work off of.
   static String _titleFor(BuildContext context, ConversationEvent event) {
+    // The teams themselves are in the from → to row beneath.
+    if (event.eventType == 'TEAM_TRANSFERRED') {
+      return context.l10n.historyTeamTransferred;
+    }
     if (event.eventType == 'ASSIGNED' && event.actorName.isEmpty) {
       if (event.mode == 'claim') {
         return context.l10n.historyClaimedByReplying(event.targetName);
@@ -261,6 +265,7 @@ class _HistoryRow extends StatelessWidget {
     'UNASSIGNED' ||
     'TRANSFERRED' ||
     'TEAM_ASSIGNED' => Icons.person_outline,
+    'TEAM_TRANSFERRED' => Icons.groups_2_outlined,
     'STATUS_CHANGED' => Icons.sync_alt,
     'PRIORITY_CHANGED' => Icons.flag_outlined,
     'CATEGORY_CHANGED' => Icons.label_outline,

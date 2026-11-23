@@ -42,6 +42,7 @@ import '../orders/customer_data_sheet.dart';
 import '../orders/order_and_fact_dialogs.dart';
 import '../orders/order_details.dart';
 import '../conversations/conversation_pin.dart';
+import 'transfer_team_sheet.dart';
 
 const _statuses = [
   'OPEN',
@@ -626,6 +627,36 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                       : () => showAssignConversationSheet(
                           context,
                           conversationId: widget.conversationId,
+                          conversation: conversation,
+                        ),
+                ),
+
+              // Handing the conversation to another team — the web's rule
+              // (feature on, assign_any, or assign_self on one's own or an
+              // unassigned conversation in one's teams). The picker and the
+              // call live in transfer_team_sheet.dart.
+              if (conversation != null &&
+                  canTransferToTeam(employee, conversation))
+                ListTile(
+                  key: const Key('transferTeamAction'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.groups_2_outlined),
+                  title: Text(context.l10n.transferTeamAction),
+                  subtitle: Text(
+                    conversation.assignedTeam?.name.isNotEmpty == true
+                        ? context.l10n.transferTeamCurrent(
+                            conversation.assignedTeam!.name,
+                          )
+                        : context.l10n.transferTeamNoCurrent,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  enabled: !_busy,
+                  onTap: _busy
+                      ? null
+                      : () => showTransferTeamSheet(
+                          context,
                           conversation: conversation,
                         ),
                 ),

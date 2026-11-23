@@ -5667,4 +5667,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String teamWorkloadPeriod(String period) {
     return 'Period: $period';
   }
+
+  @override
+  String get transferTeamAction => 'Transfer to team';
+
+  @override
+  String get transferTeamTitle => 'Transfer conversation to another team';
+
+  @override
+  String get transferTeamBody =>
+      'Responsibility moves to the receiving team: the current assignee is released, and the conversation is assigned inside that team automatically.';
+
+  @override
+  String get transferTeamField => 'Team';
+
+  @override
+  String get transferTeamPlaceholder => 'Choose a team';
+
+  @override
+  String transferTeamUnstaffed(String name) {
+    return '$name · no members';
+  }
+
+  @override
+  String get transferTeamNote => 'Note (optional)';
+
+  @override
+  String get transferTeamNoteHint => 'What the receiving team needs to know';
+
+  @override
+  String get transferTeamSubmit => 'Transfer';
+
+  @override
+  String transferTeamDone(String team) {
+    return 'Transferred to $team';
+  }
+
+  @override
+  String get transferTeamNoTeams =>
+      'There is no other active team to transfer to.';
+
+  @override
+  String get transferTeamLoadFailed => 'Couldn\'t load the teams.';
+
+  @override
+  String transferTeamCurrent(String team) {
+    return 'Current team: $team';
+  }
+
+  @override
+  String get transferTeamNoCurrent => 'No team yet';
+
+  @override
+  String conversationTeamSemantics(String team) {
+    return 'Team: $team';
+  }
+
+  @override
+  String get historyTeamTransferred => 'Transferred to another team';
 }

@@ -1687,5 +1687,21 @@
   "dateFilterLast24Hours": "آخر 24 ساعة",
   "dashboardPeriodUpdating": "جارٍ التحديث للفترة المحددة",
   "dashboardPeriodFailed": "تعذّر تحميل هذه الفترة. الأرقام أدناه من الاختيار السابق.",
-  "teamWorkloadPeriod": "الفترة: {period}"
+  "teamWorkloadPeriod": "الفترة: {period}",
+  "transferTeamAction": "تحويل إلى فريق",
+  "transferTeamTitle": "تحويل المحادثة إلى فريق آخر",
+  "transferTeamBody": "تنتقل مسؤولية المحادثة إلى الفريق المستلم: يُعفى المسند إليه الحالي، وتُسند المحادثة داخل الفريق تلقائيًا.",
+  "transferTeamField": "الفريق",
+  "transferTeamPlaceholder": "اختر فريقًا",
+  "transferTeamUnstaffed": "{name} · بلا أعضاء",
+  "transferTeamNote": "ملاحظة (اختياري)",
+  "transferTeamNoteHint": "ما يحتاج الفريق المستلم معرفته",
+  "transferTeamSubmit": "تحويل",
+  "transferTeamDone": "تم التحويل إلى {team}",
+  "transferTeamNoTeams": "لا يوجد فريق نشط آخر للتحويل إليه.",
+  "transferTeamLoadFailed": "تعذّر تحميل الفرق.",
+  "transferTeamCurrent": "الفريق الحالي: {team}",
+  "transferTeamNoCurrent": "بلا فريق بعد",
+  "conversationTeamSemantics": "الفريق: {team}",
+  "historyTeamTransferred": "حُوّلت إلى فريق آخر"
 }

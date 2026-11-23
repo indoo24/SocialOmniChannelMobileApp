@@ -618,6 +618,29 @@ class ConversationRepository {
   ///
   /// Returns the conversation as the server now holds it, so callers apply
   /// the confirmed assignment rather than guessing at it.
+  /// `POST /conversations/{id}/transfer-team/` — hands the conversation to
+  /// [teamId]: the current owner is released, the team becomes responsible,
+  /// and the backend allocates it inside that team. [note] is optional free
+  /// text (at most 255 characters) kept in the audit trail. Returns the
+  /// conversation as it now stands — the backend's truth, team and assignee
+  /// included.
+  ///
+  /// A 400 means the team is archived, already holds the conversation, or
+  /// has nobody who can take work; a 409 that the conversation changed while
+  /// the transfer ran. Both carry the server's own explanation.
+  Future<Conversation> transferTeam(
+    int conversationId, {
+    required int teamId,
+    String note = '',
+  }) async {
+    final trimmed = note.trim();
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/transfer-team/',
+      body: {'team_id': teamId, if (trimmed.isNotEmpty) 'note': trimmed},
+    );
+    return Conversation.fromJson(data);
+  }
+
   Future<Conversation> assign(
     int conversationId, {
     int? assigneeId,
