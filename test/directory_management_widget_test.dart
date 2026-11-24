@@ -198,15 +198,6 @@ Widget _plainHarness({
 /// it just as precisely without needing the type.
 Finder _managementMenus() => find.byIcon(Icons.more_vert);
 
-/// The sheet's single Save/submit button, found by type rather than by its
-/// text — a submitting button swaps its child for a spinner, so `find.text`
-/// stops matching it exactly when a second tap needs to prove the button is
-/// now unresponsive rather than merely gone.
-Finder _saveButton() => find.descendant(
-  of: find.byType(DraggableScrollableSheet),
-  matching: find.byType(FilledButton),
-);
-
 /// The sheet's own scrollable, found within `DraggableScrollableSheet` rather
 /// than by bare `find.byType(ListView)` — the screen underneath a modal sheet
 /// stays mounted (`EmployeesScreen`/`TeamsScreen` render their own
@@ -245,6 +236,16 @@ Future<void> _scrollUpToText(WidgetTester tester, String text) =>
       _sheetScrollable(),
       const Offset(0, 300),
     );
+
+/// The team form's Save sits in a footer under the scrolling content, so it
+/// is always on screen — no scrolling needed.
+Future<void> _tapTeamSave(WidgetTester tester) async {
+  // In edit, Save enables once there is a change; let the typed text's
+  // rebuild land first.
+  await tester.pump();
+  await tester.tap(find.byKey(const ValueKey('teamFormSave')));
+  await tester.pumpAndSettle();
+}
 
 void main() {
   group('admin-gate provider composition', () {
@@ -574,7 +575,7 @@ void main() {
   });
 
   group('TeamsScreen — admin-only visibility', () {
-    testWidgets('a non-admin sees no Add Team button and no management menu', (
+    testWidgets('a non-admin sees no Add Team button and no team actions', (
       tester,
     ) async {
       final client = _clientFrom(_adapter());
@@ -588,13 +589,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(FloatingActionButton), findsNothing);
-      expect(_managementMenus(), findsNothing);
+      expect(find.byKey(const ValueKey('teamEdit_3')), findsNothing);
+      expect(find.byKey(const ValueKey('teamDeactivate_3')), findsNothing);
       expect(find.text('Support'), findsOneWidget);
     });
 
-    testWidgets('an admin sees Add Team and a management menu on team cards', (
-      tester,
-    ) async {
+    testWidgets('an admin sees Add Team and direct Edit / Deactivate actions '
+        'on team cards', (tester) async {
       final client = _clientFrom(_adapter());
       await tester.pumpWidget(
         _screenHarness(
@@ -606,13 +607,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(FloatingActionButton), findsOneWidget);
-      expect(_managementMenus(), findsOneWidget);
-
-      await tester.tap(_managementMenus().first);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Edit'), findsOneWidget);
-      expect(find.text('Deactivate'), findsOneWidget);
+      // No overflow menu any more: the actions sit on the card.
+      expect(_managementMenus(), findsNothing);
+      expect(find.byKey(const ValueKey('teamEdit_3')), findsOneWidget);
+      expect(find.byKey(const ValueKey('teamDeactivate_3')), findsOneWidget);
+      expect(find.byTooltip('Edit team'), findsOneWidget);
+      expect(find.byTooltip('Deactivate team'), findsOneWidget);
     });
 
     testWidgets(
@@ -645,7 +645,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Support'));
+        await tester.tap(find.byKey(const ValueKey('teamEdit_3')));
         await tester.pumpAndSettle();
 
         expect(find.text('Edit team'), findsOneWidget);
@@ -656,8 +656,7 @@ void main() {
           'Tier 2 support',
         );
 
-        await _scrollToAndTapSave(tester);
-        await tester.pumpAndSettle();
+        await _tapTeamSave(tester);
 
         expect(patchCount, 1);
         final patchRequest = adapter.received.firstWhere(
@@ -697,9 +696,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(_managementMenus().first);
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Deactivate'));
+        await tester.tap(find.byKey(const ValueKey('teamDeactivate_3')));
         await tester.pumpAndSettle();
 
         // Confirmation names the team and never says "delete".
@@ -754,7 +751,7 @@ void main() {
           find.widgetWithText(TextField, 'Team name'),
           'VIP desk',
         );
-        await _scrollToAndTapSave(tester);
+        await _tapTeamSave(tester);
 
         expect(postCount, 1);
         // Found by path/method rather than `.last`: a successful create
@@ -765,6 +762,7 @@ void main() {
         );
         expect(postRequest.data, {
           'name': 'VIP desk',
+          'color': '#6366f1',
           'is_active': true,
           'member_ids': <int>[],
           'leader_ids': <int>[],
@@ -791,8 +789,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final requestsBefore = adapter.received.length;
-      await _scrollToAndTapSave(tester);
-      await _scrollUpToText(tester, 'Enter a team name.');
+      await _tapTeamSave(tester);
 
       expect(find.text('Enter a team name.'), findsOneWidget);
       expect(adapter.received.length, requestsBefore);
@@ -922,17 +919,15 @@ void main() {
           'VIP desk',
         );
 
-        await tester.dragUntilVisible(
-          find.text('Save'),
-          _sheetScrollable(),
-          const Offset(0, -300),
-        );
-        await tester.tap(_saveButton());
+        await tester.tap(find.byKey(const ValueKey('teamFormSave')));
         await tester.pump();
-        // The button now shows a spinner instead of "Save" — still present
-        // (found by type), but its `onPressed` is null while submitting, so
-        // a second tap has nothing to actually invoke.
-        await tester.tap(_saveButton(), warnIfMissed: false);
+        // The button now shows a spinner instead of its label — still
+        // present, but its `onPressed` is null while submitting, so a second
+        // tap has nothing to actually invoke.
+        await tester.tap(
+          find.byKey(const ValueKey('teamFormSave')),
+          warnIfMissed: false,
+        );
         await tester.pump();
 
         completer.complete(

@@ -4049,38 +4049,20 @@ abstract class AppLocalizations {
   /// Explanation text below the team responsibilities section
   ///
   /// In en, this message translates to:
-  /// **'Which channels this team is offered new conversations from. This decides who is offered work first — it never changes who can see a conversation.'**
+  /// **'Choose which channels or accounts this team should receive new conversations from.'**
   String get teamResponsibilitiesDescription;
 
   /// No description provided for @teamResponsibilityNone.
   ///
   /// In en, this message translates to:
-  /// **'None'**
+  /// **'No responsibility'**
   String get teamResponsibilityNone;
-
-  /// No description provided for @teamResponsibilityAll.
-  ///
-  /// In en, this message translates to:
-  /// **'All accounts'**
-  String get teamResponsibilityAll;
-
-  /// No description provided for @teamResponsibilitySelected.
-  ///
-  /// In en, this message translates to:
-  /// **'Selected accounts'**
-  String get teamResponsibilitySelected;
 
   /// No description provided for @teamResponsibilitiesLoadFailedMessage.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load current responsibilities.'**
+  /// **'Couldn\'t load this team\'s channel responsibilities, so they can\'t be changed right now. Your other changes still save.'**
   String get teamResponsibilitiesLoadFailedMessage;
-
-  /// No description provided for @teamResponsibilityNoChannelsMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'No connected accounts for this channel yet.'**
-  String get teamResponsibilityNoChannelsMessage;
 
   /// No description provided for @deactivateTeamConfirmTitle.
   ///
@@ -9881,6 +9863,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Transferred to another team'**
   String get historyTeamTransferred;
+
+  /// No description provided for @teamLeadersLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaders'**
+  String get teamLeadersLabel;
+
+  /// No description provided for @deactivateTeamAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate team'**
+  String get deactivateTeamAction;
+
+  /// No description provided for @reactivateTeamAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reactivate team'**
+  String get reactivateTeamAction;
+
+  /// No description provided for @teamReactivatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} reactivated'**
+  String teamReactivatedSnackbar(String name);
+
+  /// No description provided for @teamMoreMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{and 1 more member} other{and {count} more members}}'**
+  String teamMoreMembers(int count);
+
+  /// No description provided for @teamFormRoutingNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Teams organise people and set what a team leader can see. A team\'s channel responsibilities decide which new conversations it is offered first; they never change who can see a conversation.'**
+  String get teamFormRoutingNote;
+
+  /// No description provided for @teamFormInfoSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Team details'**
+  String get teamFormInfoSection;
+
+  /// No description provided for @teamFormNamePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Arabic Customer Service'**
+  String get teamFormNamePlaceholder;
+
+  /// No description provided for @teamFormDescriptionPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'What this team handles'**
+  String get teamFormDescriptionPlaceholder;
+
+  /// No description provided for @teamFormLanguageHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Language code, e.g. ar or en'**
+  String get teamFormLanguageHelper;
+
+  /// No description provided for @teamFormColorPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Team colour'**
+  String get teamFormColorPickerTitle;
+
+  /// No description provided for @teamFormColorHexLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Hex code'**
+  String get teamFormColorHexLabel;
+
+  /// No description provided for @teamFormColorInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a colour as # followed by six hex digits.'**
+  String get teamFormColorInvalid;
+
+  /// No description provided for @teamFormColorSwatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour {hex}'**
+  String teamFormColorSwatch(String hex);
+
+  /// No description provided for @teamFormColorApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Use colour'**
+  String get teamFormColorApply;
+
+  /// No description provided for @teamFormMembersSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{None selected} one{1 selected} other{{count} selected}}'**
+  String teamFormMembersSelected(int count);
+
+  /// No description provided for @teamFormLeadersSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 leader} other{{count} leaders}}'**
+  String teamFormLeadersSelected(int count);
+
+  /// No description provided for @teamFormMembersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tick the people in this team. Tap Leader to make someone a team leader.'**
+  String get teamFormMembersHint;
+
+  /// No description provided for @teamFormLeaderToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leader'**
+  String get teamFormLeaderToggle;
+
+  /// No description provided for @teamFormMakeLeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Make {name} a leader'**
+  String teamFormMakeLeader(String name);
+
+  /// No description provided for @teamFormRemoveLeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name} as leader'**
+  String teamFormRemoveLeader(String name);
+
+  /// No description provided for @teamFormSearchPeople.
+  ///
+  /// In en, this message translates to:
+  /// **'Search people'**
+  String get teamFormSearchPeople;
+
+  /// No description provided for @teamFormNoPersonMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No one matches “{query}”.'**
+  String teamFormNoPersonMatch(String query);
+
+  /// No description provided for @teamFormNoEmployees.
+  ///
+  /// In en, this message translates to:
+  /// **'No active employees yet.'**
+  String get teamFormNoEmployees;
+
+  /// No description provided for @teamFormCreateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Create team'**
+  String get teamFormCreateAction;
+
+  /// No description provided for @teamFormSaveChangesAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get teamFormSaveChangesAction;
+
+  /// No description provided for @teamFormFixFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fix the highlighted fields.'**
+  String get teamFormFixFields;
+
+  /// No description provided for @teamResponsibilityNotVisibility.
+  ///
+  /// In en, this message translates to:
+  /// **'This only decides who is offered new conversations first. It does not change who can see conversations.'**
+  String get teamResponsibilityNotVisibility;
+
+  /// No description provided for @teamResponsibilityAllOf.
+  ///
+  /// In en, this message translates to:
+  /// **'All {accounts}'**
+  String teamResponsibilityAllOf(String accounts);
+
+  /// No description provided for @teamResponsibilitySelectedOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected {accounts}'**
+  String teamResponsibilitySelectedOf(String accounts);
+
+  /// No description provided for @teamResponsibilitySelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 account selected} other{{count} accounts selected}}'**
+  String teamResponsibilitySelectedCount(int count);
+
+  /// No description provided for @teamAccountsWhatsapp.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp numbers'**
+  String get teamAccountsWhatsapp;
+
+  /// No description provided for @teamAccountsFacebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Facebook Pages'**
+  String get teamAccountsFacebook;
+
+  /// No description provided for @teamAccountsInstagram.
+  ///
+  /// In en, this message translates to:
+  /// **'Instagram accounts'**
+  String get teamAccountsInstagram;
+
+  /// No description provided for @teamAccountsTiktok.
+  ///
+  /// In en, this message translates to:
+  /// **'TikTok accounts'**
+  String get teamAccountsTiktok;
+
+  /// No description provided for @teamResponsibilityIncludesFuture.
+  ///
+  /// In en, this message translates to:
+  /// **'Includes accounts connected later.'**
+  String get teamResponsibilityIncludesFuture;
+
+  /// No description provided for @teamResponsibilityModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Mode'**
+  String get teamResponsibilityModeLabel;
+
+  /// No description provided for @teamResponsibilityFlexible.
+  ///
+  /// In en, this message translates to:
+  /// **'Flexible'**
+  String get teamResponsibilityFlexible;
+
+  /// No description provided for @teamResponsibilityStrict.
+  ///
+  /// In en, this message translates to:
+  /// **'Strict'**
+  String get teamResponsibilityStrict;
+
+  /// No description provided for @teamResponsibilityFlexibleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The people named here are offered the conversation first. If none of them can take it, your routing settings decide who else may.'**
+  String get teamResponsibilityFlexibleHint;
+
+  /// No description provided for @teamResponsibilityStrictHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Work on this account never leaves the people named here. If none of them can take a conversation it stays unassigned.'**
+  String get teamResponsibilityStrictHint;
+
+  /// No description provided for @teamResponsibilityNoAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'No {accounts} connected yet.'**
+  String teamResponsibilityNoAccounts(String accounts);
+
+  /// No description provided for @teamResponsibilitySearchAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Search accounts'**
+  String get teamResponsibilitySearchAccounts;
+
+  /// No description provided for @teamResponsibilityNoAccountMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No account matches “{query}”.'**
+  String teamResponsibilityNoAccountMatch(String query);
+
+  /// No description provided for @teamResponsibilityNotConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected'**
+  String get teamResponsibilityNotConnected;
+
+  /// No description provided for @teamResponsibilityChooseAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose at least one account for {provider}, or pick another option.'**
+  String teamResponsibilityChooseAccount(String provider);
+
+  /// No description provided for @teamResponsibilityRedundantRules.
+  ///
+  /// In en, this message translates to:
+  /// **'This team also has rules for individual {providers} accounts that “All accounts” already covers. Saving a change to its responsibilities removes them.'**
+  String teamResponsibilityRedundantRules(String providers);
+
+  /// No description provided for @teamResponsibilityAccountsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the connected accounts.'**
+  String get teamResponsibilityAccountsLoadFailed;
 }
 
 class _AppLocalizationsDelegate

@@ -1,19 +1,26 @@
-/// Add/Edit Team — `POST /teams/` and `PATCH /teams/{id}/`.
+/// Create Team and Edit Team — one shared form, `POST /teams/` and
+/// `PATCH /teams/{id}/`.
 ///
-/// ADMIN only, server-side (`team.manage`) and in this UI: every entry point
-/// that opens this sheet is itself gated on
-/// `isAdminProvider && canProvider(Perm.teamManage)` — see `teams_screen.dart`
-/// — so reaching this file at all already implies both checks passed.
+/// Laid out like the web CRM's team dialog: team details (name, description,
+/// language, colour), members with leaders, and channel responsibilities.
+/// The pieces live in `team_form/`:
+///   * `team_info_fields.dart` — name, description, language, colour;
+///   * `team_members_picker.dart` — `member_ids` / `leader_ids`;
+///   * `channel_responsibility_section.dart` — the per-channel sections;
+///   * `team_responsibility_state.dart` — the channel logic as plain data.
 ///
-/// Member/leader pickers read `employeeDirectoryProvider` — the same
-/// directory data `employees_screen.dart` already loads — rather than a
-/// second employee source.
+/// Who may open it: every entry point is gated on
+/// `isAdminProvider && canProvider(Perm.teamManage)` (see `teams_screen.dart`).
+/// Channel responsibilities additionally need `routing.manage` — the backend
+/// requires it to send `responsibilities` at all — so without it that
+/// section is not shown and the field is never sent, as on the web.
 ///
-/// In edit mode ([existing] != null), only changed fields are diffed and sent
-/// via `PATCH /teams/{id}/`.
+/// Edit sends only what changed. `responsibilities` is the team's complete
+/// channel responsibility, so it is sent only when the admin changed it —
+/// omitting it leaves the saved rules untouched (the backend's contract).
 library;
 
-import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,659 +28,784 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/logging/app_log.dart';
 import '../../core/models/directory.dart';
+import '../../core/models/employee.dart';
 import '../../core/models/routing_policy.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../ai_knowledge/knowledge_forms.dart' show confirmDiscardChanges;
+import '../authentication/auth_controller.dart';
 import 'directory_providers.dart';
+import 'team_form/channel_responsibility_section.dart';
+import 'team_form/team_info_fields.dart';
+import 'team_form/team_members_picker.dart';
+import 'team_form/team_responsibility_state.dart';
 
-/// `RoutableProviderEnum`.
-const _routableProviders = ['WHATSAPP', 'FACEBOOK', 'INSTAGRAM', 'TIKTOK'];
-
-/// Development-only diagnostics for this section. Logs ids, providers, scopes
-/// and status codes — never names, cookies or anything about a customer.
+/// Development-only diagnostics. Logs ids, providers, scopes and status
+/// codes — never names or anything about a customer.
 void _log(String message) =>
     AppLog.debug('TEAM_CHANNEL_RESPONSIBILITY', message);
 
-/// Opens the Add Team sheet.
-Future<void> showAddTeamSheet(BuildContext context) {
+/// Opens Create Team.
+Future<void> showAddTeamSheet(BuildContext context) =>
+    _showTeamFormSheet(context, null);
+
+/// Opens Edit Team, prefilled from [team].
+Future<void> showEditTeamSheet(BuildContext context, {required Team team}) =>
+    _showTeamFormSheet(context, team);
+
+/// A tall sheet with its own header and footer. It is not drag-dismissed:
+/// a drag would close it straight past the unsaved-changes check, which
+/// only the back button, a tap outside and Cancel go through.
+Future<void> _showTeamFormSheet(BuildContext context, Team? team) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    showDragHandle: true,
+    enableDrag: false,
     useSafeArea: true,
-    builder: (_) => DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.9,
-      maxChildSize: 0.95,
-      builder: (context, controller) =>
-          _TeamFormSheet(scrollController: controller),
-    ),
+    builder: (_) => TeamFormSheet(team: team),
   );
 }
 
-/// Opens the Edit Team sheet, prefilled from [team].
-Future<void> showEditTeamSheet(BuildContext context, {required Team team}) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    useSafeArea: true,
-    builder: (_) => DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.9,
-      maxChildSize: 0.95,
-      builder: (context, controller) =>
-          _TeamFormSheet(existing: team, scrollController: controller),
-    ),
-  );
-}
+class TeamFormSheet extends ConsumerStatefulWidget {
+  const TeamFormSheet({this.team, super.key});
 
-class _TeamFormSheet extends ConsumerStatefulWidget {
-  const _TeamFormSheet({this.existing, required this.scrollController});
+  /// Null for Create Team.
+  final Team? team;
 
-  final Team? existing;
-  final ScrollController scrollController;
-
-  bool get isEdit => existing != null;
+  bool get isEdit => team != null;
 
   @override
-  ConsumerState<_TeamFormSheet> createState() => _TeamFormSheetState();
+  ConsumerState<TeamFormSheet> createState() => _TeamFormSheetState();
 }
 
-class _TeamFormSheetState extends ConsumerState<_TeamFormSheet> {
-  late final _name = TextEditingController(text: widget.existing?.name);
-  late final _description = TextEditingController(
-    text: widget.existing?.description,
-  );
-  late final _language = TextEditingController(text: widget.existing?.language);
-  late final _color = TextEditingController(text: widget.existing?.color);
-  late bool _isActive = widget.existing?.isActive ?? true;
-  final Set<int> _memberIds = {};
-  final Set<int> _leaderIds = {};
+class _TeamFormSheetState extends ConsumerState<TeamFormSheet> {
+  // ---- Team details -------------------------------------------------------
+  late final String _initialName = widget.team?.name ?? '';
+  late final String _initialDescription = widget.team?.description ?? '';
+  late final String _initialLanguage = widget.team?.language ?? '';
 
-  /// One entry per provider the team is responsible for. A provider absent
-  /// here has no responsibility — matches the backend's own "omitted means
-  /// none" semantics for `TeamWrite.responsibilities`.
-  final Map<String, TeamResponsibilityInput> _responsibilities = {};
+  /// The web shows the default colour for a team that has none; so does
+  /// this form. It is only sent when it differs from what the team has.
+  late final String _initialColor = (widget.team?.color ?? '').trim().isEmpty
+      ? defaultTeamColor
+      : widget.team!.color.trim();
 
-  /// Seeded once, the first time [routingResponsibilitiesProvider] resolves
-  /// — there is no per-team read endpoint, so this is derived client-side
-  /// from the full org list and must not be re-applied on every rebuild
-  /// (that would stomp whatever the admin has already changed).
-  bool _responsibilitiesSeeded = false;
+  late final _name = TextEditingController(text: _initialName);
+  late final _description = TextEditingController(text: _initialDescription);
+  late final _language = TextEditingController(text: _initialLanguage);
+  late String _color = _initialColor;
 
-  /// Whether the admin has touched the responsibilities section this
-  /// session. `responsibilities` is only ever sent when true — omitting the
-  /// field on edit leaves existing rules untouched (the backend's own
-  /// contract), and nothing here can safely diff against "current state"
-  /// the way other fields do, since it starts unseeded until the async
-  /// fetch resolves.
-  bool _responsibilitiesTouched = false;
+  // ---- Members and leaders -----------------------------------------------
+  late final Set<int> _initialMemberIds = {
+    ...?widget.team?.memberIds,
+    ...?widget.team?.members.map((m) => m.id),
+  };
+  late final Set<int> _initialLeaderIds = {
+    ...?widget.team?.leaderIds,
+    ...?widget.team?.leaders.map((m) => m.id),
+  };
+  late final Set<int> _memberIds = {..._initialMemberIds};
+  late final Set<int> _leaderIds = {..._initialLeaderIds};
 
+  // ---- Channel responsibilities -------------------------------------------
+
+  /// What the team has saved — empty for a new team, read once from the
+  /// rules for an existing one. Null until those rules have loaded.
+  ResponsibilityDrafts? _baseline;
+
+  /// The admin's choice. Null until they change something, so nothing is
+  /// sent for a section they never touched.
+  ResponsibilityDrafts? _edited;
+
+  /// Expanded channels. Starts with every channel that has a choice.
+  final Set<String> _expanded = {};
+
+  final Map<String, GlobalKey> _channelKeys = {
+    for (final p in routableProviders) p: GlobalKey(),
+  };
+  final _nameKey = GlobalKey();
+
+  // ---- Submission ---------------------------------------------------------
   bool _submitting = false;
-  String? _error;
+  String? _banner;
+  Map<String, String> _fieldErrors = const {};
+  Map<String, String> _channelErrors = const {};
+  String? _responsibilitiesError;
 
   @override
   void initState() {
     super.initState();
-    if (widget.existing != null) {
-      _memberIds.addAll(widget.existing!.memberIds);
-      _leaderIds.addAll(widget.existing!.leaderIds);
+    if (!widget.isEdit) _baseline = emptyResponsibilityDrafts();
+    for (final c in [_name, _description, _language]) {
+      c.addListener(_onTextChanged);
     }
   }
 
-  void _seedResponsibilities(List<RoutingResponsibility> all) {
-    if (_responsibilitiesSeeded || widget.existing == null) return;
-    _responsibilitiesSeeded = true;
-
-    final mine = all.where(
-      (r) => r.isActive && r.teamId == widget.existing!.id,
-    );
-    final byProvider = <String, List<RoutingResponsibility>>{};
-    var skipped = 0;
-    for (final rule in mine) {
-      // `RoutingResponsibility.provider` already falls back to the account's
-      // own provider for a rule that names one account. Anything still not a
-      // routable provider cannot be shown in a row, and must never be sent
-      // back (`TeamWrite` rejects it), so it is left out and counted.
-      if (!_routableProviders.contains(rule.provider)) {
-        skipped++;
-        continue;
+  void _onTextChanged() {
+    // Rebuild for the dirty state, and clear a field's error once edited.
+    setState(() {
+      if (_fieldErrors.isNotEmpty) {
+        _fieldErrors = {
+          for (final e in _fieldErrors.entries)
+            if (!_fieldChanged(e.key)) e.key: e.value,
+        };
       }
-      (byProvider[rule.provider] ??= []).add(rule);
-    }
-
-    for (final entry in byProvider.entries) {
-      final channelSpecific = entry.value
-          .where((r) => r.isChannelSpecific)
-          .map((r) => r.channelConnectionId!)
-          .toList();
-      _responsibilities[entry.key] = TeamResponsibilityInput(
-        provider: entry.key,
-        // A provider-wide rule (no channel_connection) means "all"; every
-        // rule this team has for this provider being channel-specific means
-        // "selected" with exactly those channels.
-        scope: channelSpecific.isEmpty ? 'all' : 'selected',
-        channelConnectionIds: channelSpecific,
-      );
-    }
-    _log(
-      'SEED teamId=${widget.existing!.id} activeRules=${mine.length} '
-      'skippedUnknownProvider=$skipped '
-      'seeded=${_responsibilities.values.map((r) => '${r.provider}:${r.scope}${r.channelConnectionIds}').join(',')}',
-    );
+    });
   }
 
-  /// `TeamWrite.responsibilities` for the current selection.
-  ///
-  /// Only the four routable providers, so a blank or unknown `provider` can
-  /// never be sent (the backend refuses it with `"" is not a valid choice`).
-  /// "None" for a provider is its absence from this list — the contract's own
-  /// meaning of "a provider left out has no responsibility" — never `null`
-  /// and never an empty string.
-  List<Map<String, dynamic>> _responsibilitiesPayload() => [
-    for (final r in _responsibilities.values)
-      if (_routableProviders.contains(r.provider)) r.toJson(),
-  ];
+  final Map<String, String> _errorSnapshot = {};
+
+  bool _fieldChanged(String field) {
+    final now = switch (field) {
+      'name' => _name.text,
+      'description' => _description.text,
+      'language' => _language.text,
+      _ => null,
+    };
+    if (now == null) return false;
+    return _errorSnapshot[field] != now;
+  }
 
   @override
   void dispose() {
     _name.dispose();
     _description.dispose();
     _language.dispose();
-    _color.dispose();
     super.dispose();
+  }
+
+  bool get _canManageRouting => ref.read(canProvider(Perm.routingManage));
+
+  ResponsibilityDrafts? get _drafts => _edited ?? _baseline;
+
+  void _seed(List<RoutingResponsibility> rules) {
+    if (_baseline != null || widget.team == null) return;
+    final seeded = seedResponsibilityDrafts(rules, widget.team!.id);
+    _baseline = seeded;
+    _expanded.addAll([
+      for (final p in routableProviders)
+        if (seeded[p]!.mode != ResponsibilityMode.none) p,
+    ]);
+    _log(
+      'SEED teamId=${widget.team!.id} '
+      'seeded=${responsibilitiesPayload(seeded)}',
+    );
+  }
+
+  bool get _responsibilitiesChanged {
+    final edited = _edited;
+    final baseline = _baseline;
+    if (edited == null || baseline == null) return false;
+    return !sameResponsibilities(edited, baseline);
+  }
+
+  /// Whether `responsibilities` goes in the request.
+  bool get _sendResponsibilities {
+    if (!_canManageRouting || _edited == null) return false;
+    return widget.isEdit
+        ? _responsibilitiesChanged
+        : responsibilitiesPayload(_edited!).isNotEmpty;
+  }
+
+  bool get _dirty =>
+      _name.text.trim() != _initialName.trim() ||
+      _description.text.trim() != _initialDescription.trim() ||
+      _language.text.trim() != _initialLanguage.trim() ||
+      _color != _initialColor ||
+      !_sameSet(_memberIds, _initialMemberIds) ||
+      !_sameSet(_leaderIds, _initialLeaderIds) ||
+      _responsibilitiesChanged;
+
+  static bool _sameSet(Set<int> a, Set<int> b) =>
+      a.length == b.length && a.containsAll(b);
+
+  void _toggle(Set<int> ids, int id, String errorKey) => setState(() {
+    if (!ids.remove(id)) ids.add(id);
+    _fieldErrors = {..._fieldErrors}..remove(errorKey);
+  });
+
+  void _changeChannel(String provider, ChannelResponsibilityDraft draft) {
+    final current = _drafts;
+    if (current == null) return;
+    _log(
+      'SELECT teamId=${widget.team?.id ?? 'new'} channel=$provider '
+      'mode=${draft.mode.name} ids=${draft.selectedIds.toList()} '
+      'strict=${draft.strict}',
+    );
+    setState(() {
+      _edited = {...current, provider: draft};
+      _channelErrors = {..._channelErrors}..remove(provider);
+      _responsibilitiesError = null;
+    });
+  }
+
+  void _toggleExpanded(String provider) => setState(() {
+    if (!_expanded.remove(provider)) _expanded.add(provider);
+  });
+
+  Map<String, dynamic> _createBody() {
+    final description = _description.text.trim();
+    final language = _language.text.trim();
+    return {
+      'name': _name.text.trim(),
+      if (description.isNotEmpty) 'description': description,
+      if (language.isNotEmpty) 'language': language,
+      'color': _color,
+      'is_active': true,
+      'member_ids': _memberIds.toList()..sort(),
+      'leader_ids': _leaderIds.toList()..sort(),
+      if (_sendResponsibilities)
+        'responsibilities': responsibilitiesPayload(_edited!),
+    };
+  }
+
+  Map<String, dynamic> _editBody() {
+    final fields = <String, dynamic>{};
+    void putText(String key, String now, String before) {
+      if (now.trim() != before.trim()) fields[key] = now.trim();
+    }
+
+    putText('name', _name.text, _initialName);
+    putText('description', _description.text, _initialDescription);
+    putText('language', _language.text, _initialLanguage);
+    if (_color != _initialColor) fields['color'] = _color;
+    if (!_sameSet(_memberIds, _initialMemberIds)) {
+      fields['member_ids'] = _memberIds.toList()..sort();
+    }
+    if (!_sameSet(_leaderIds, _initialLeaderIds)) {
+      fields['leader_ids'] = _leaderIds.toList()..sort();
+    }
+    if (_sendResponsibilities) {
+      fields['responsibilities'] = responsibilitiesPayload(_edited!);
+    }
+    return fields;
+  }
+
+  /// Local checks, before any request. Returns false and shows the errors
+  /// when something is wrong.
+  bool _validate() {
+    final l10n = context.l10n;
+    final fieldErrors = <String, String>{};
+    final channelErrors = <String, String>{};
+    if (_name.text.trim().isEmpty) {
+      fieldErrors['name'] = l10n.addTeamNameRequiredError;
+    }
+    final drafts = _drafts;
+    if (_canManageRouting && _edited != null && drafts != null) {
+      for (final provider in routableProviders) {
+        final draft = drafts[provider]!;
+        if (draft.mode == ResponsibilityMode.selected &&
+            draft.connectionIds.isEmpty) {
+          channelErrors[provider] = l10n.teamResponsibilityChooseAccount(
+            ConversationBadges.providerLabel(context, provider),
+          );
+        }
+      }
+    }
+    if (fieldErrors.isEmpty && channelErrors.isEmpty) return true;
+
+    _snapshotErrorFields(fieldErrors.keys);
+    setState(() {
+      _fieldErrors = fieldErrors;
+      _channelErrors = channelErrors;
+      _expanded.addAll(channelErrors.keys);
+      _banner = null;
+    });
+    _revealFirstError(
+      fieldErrors.containsKey('name')
+          ? _nameKey
+          : _channelKeys[firstProviderMissingAccounts(drafts!)],
+    );
+    return false;
+  }
+
+  void _snapshotErrorFields(Iterable<String> fields) {
+    _errorSnapshot
+      ..clear()
+      ..addAll({
+        for (final f in fields)
+          f: switch (f) {
+            'name' => _name.text,
+            'description' => _description.text,
+            'language' => _language.text,
+            _ => '',
+          },
+      });
+  }
+
+  void _revealFirstError(GlobalKey? key) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = key?.currentContext;
+      if (target == null || !target.mounted) return;
+      unawaited(
+        Scrollable.ensureVisible(
+          target,
+          alignment: 0.1,
+          duration: const Duration(milliseconds: 250),
+        ),
+      );
+    });
   }
 
   Future<void> _submit() async {
     if (_submitting) return;
-
-    final name = _name.text.trim();
-    if (name.isEmpty) {
-      setState(() => _error = context.l10n.addTeamNameRequiredError);
-      return;
-    }
-
-    final emptySelected = _responsibilities.values.where(
-      (r) => r.scope == 'selected' && r.channelConnectionIds.isEmpty,
-    );
-    if (emptySelected.isNotEmpty) {
-      setState(() => _error = context.l10n.routingChannelScopeRequiredError);
-      return;
-    }
+    FocusScope.of(context).unfocus();
+    if (!_validate()) return;
 
     final repository = ref.read(directoryRepositoryProvider);
-
+    final body = widget.isEdit ? _editBody() : _createBody();
     setState(() {
       _submitting = true;
-      _error = null;
+      _banner = null;
+      _fieldErrors = const {};
+      _channelErrors = const {};
+      _responsibilitiesError = null;
     });
+    _log(
+      'SUBMIT teamId=${widget.team?.id ?? 'new'} fields=${body.keys.toList()} '
+      'responsibilities=${body['responsibilities']}',
+    );
     try {
       if (widget.isEdit) {
-        final fields = _diff();
-        _log(
-          'SUBMIT teamId=${widget.existing!.id} fields=${fields.keys.toList()} '
-          'payload=${jsonEncode(fields['responsibilities'])}',
-        );
-        await repository.updateTeam(widget.existing!.id, fields);
-        _log('RESULT teamId=${widget.existing!.id} responseStatus=200');
+        await repository.updateTeam(widget.team!.id, body);
       } else {
-        _log(
-          'SUBMIT teamId=new payload=${jsonEncode(_responsibilitiesPayload())}',
-        );
-        await repository.createTeam({
-          'name': name,
-          if (_description.text.trim().isNotEmpty)
-            'description': _description.text.trim(),
-          if (_language.text.trim().isNotEmpty)
-            'language': _language.text.trim(),
-          if (_color.text.trim().isNotEmpty) 'color': _color.text.trim(),
-          'is_active': _isActive,
-          'member_ids': _memberIds.toList(),
-          'leader_ids': _leaderIds.toList(),
-          if (_responsibilities.isNotEmpty)
-            'responsibilities': _responsibilitiesPayload(),
-        });
+        await repository.createTeam(body);
       }
-
-      // Guarded together — see conversation_actions_sheet.dart's
-      // _ActionsSheetState._run(): ref/Navigator use here throws "Using ref
-      // when a widget is about to or has been unmounted" if this sheet
-      // closed some other way while the request was in flight.
+      _log('RESULT teamId=${widget.team?.id ?? 'new'} ok');
+      // Guarded together: ref and Navigator must not be used once this
+      // sheet has closed some other way while the request was in flight.
       if (!mounted) return;
       ref.invalidate(teamsProvider);
       ref.invalidate(employeeDirectoryProvider);
-      // The saved rules live in this provider, and the next Edit Team (and
-      // the Settings list) re-read from it — a stale copy would show the
-      // selection from before this save.
-      ref.invalidate(routingResponsibilitiesProvider);
+      // Settings and the next form read the saved rules from here.
+      if (body.containsKey('responsibilities')) {
+        ref.invalidate(routingResponsibilitiesProvider);
+      }
+      final messenger = ScaffoldMessenger.of(context);
+      final message = widget.isEdit
+          ? context.l10n.teamUpdatedSnackbar
+          : context.l10n.teamAddedSnackbar;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.isEdit
-                ? context.l10n.teamUpdatedSnackbar
-                : context.l10n.teamAddedSnackbar,
-          ),
-        ),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(message)));
     } on ApiException catch (error) {
       _log(
-        'RESULT teamId=${widget.existing?.id ?? 'new'} '
-        'responseStatus=${error.statusCode} error=${error.message}',
+        'RESULT teamId=${widget.team?.id ?? 'new'} '
+        'status=${error.statusCode} code=${error.code}',
       );
       if (!mounted) return;
-      setState(() => _error = error.message);
+      _showServerErrors(error);
+    } catch (error) {
+      _log('RESULT teamId=${widget.team?.id ?? 'new'} failed=$error');
+      if (!mounted) return;
+      setState(() => _banner = context.l10n.genericErrorTitle);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
   }
 
-  Map<String, dynamic> _diff() {
-    final existing = widget.existing!;
-    final fields = <String, dynamic>{};
+  static const _fieldNames = {
+    'name',
+    'description',
+    'language',
+    'color',
+    'member_ids',
+    'leader_ids',
+  };
 
-    void putString(String key, String current, String original) {
-      final trimmed = current.trim();
-      if (trimmed != original.trim()) fields[key] = trimmed;
+  void _showServerErrors(ApiException error) {
+    final fieldErrors = <String, String>{};
+    for (final entry in error.fieldErrors().entries) {
+      if (_fieldNames.contains(entry.key)) fieldErrors[entry.key] = entry.value;
     }
+    final responsibilities = error.details.containsKey('responsibilities')
+        ? _firstText(error.details['responsibilities']) ?? error.message
+        : null;
+    final hasFieldErrors = fieldErrors.isNotEmpty || responsibilities != null;
 
-    putString('name', _name.text, existing.name);
-    putString('description', _description.text, existing.description);
-    putString('language', _language.text, existing.language);
-    putString('color', _color.text, existing.color);
-
-    if (_isActive != existing.isActive) fields['is_active'] = _isActive;
-
-    final originalMemberIds = existing.memberIds.toSet();
-    if (!_setEquals(_memberIds, originalMemberIds)) {
-      fields['member_ids'] = _memberIds.toList();
-    }
-
-    final originalLeaderIds = existing.leaderIds.toSet();
-    if (!_setEquals(_leaderIds, originalLeaderIds)) {
-      fields['leader_ids'] = _leaderIds.toList();
-    }
-
-    // Omitted entirely unless the admin actually opened and edited this
-    // section — see the field's own doc comment for why nothing here can
-    // diff against "current state" the way the fields above do. Sending it
-    // untouched would silently overwrite rules this form never displayed
-    // (e.g. still loading when the admin hit Save).
-    if (_responsibilitiesTouched) {
-      fields['responsibilities'] = _responsibilitiesPayload();
-    }
-
-    return fields;
+    _snapshotErrorFields(fieldErrors.keys);
+    setState(() {
+      _fieldErrors = fieldErrors;
+      _responsibilitiesError = responsibilities;
+      _banner = error.isForbidden || !hasFieldErrors
+          ? error.message
+          : context.l10n.teamFormFixFields;
+    });
+    if (fieldErrors.containsKey('name')) _revealFirstError(_nameKey);
   }
 
-  bool _setEquals<T>(Set<T> a, Set<T> b) {
-    if (a.length != b.length) return false;
-    return a.containsAll(b);
+  /// The first readable message in a nested DRF error.
+  static String? _firstText(Object? value) {
+    if (value is String) return value.trim().isEmpty ? null : value.trim();
+    if (value is List) {
+      for (final item in value) {
+        final text = _firstText(item);
+        if (text != null) return text;
+      }
+    }
+    if (value is Map) {
+      for (final item in value.values) {
+        final text = _firstText(item);
+        if (text != null) return text;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _cancel() async {
+    if (_submitting) return;
+    await Navigator.of(context).maybePop();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
-    final employees = ref.watch(employeeDirectoryProvider);
+    final colors = AppColors.of(context);
+    final canManageRouting = ref.watch(canProvider(Perm.routingManage));
 
-    return ListView(
-      controller: widget.scrollController,
-      padding: const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.xxl),
-      children: [
-        Text(
-          widget.isEdit
-              ? context.l10n.editTeamTitle
-              : context.l10n.addTeamTitle,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
+    // ---- data ----
+    final employees = ref.watch(teamFormEmployeesProvider);
+    final people = employees.whenData(
+      (rows) => teamPersonOptions(
+        employees: rows,
+        current: [...?widget.team?.members, ...?widget.team?.leaders],
+      ),
+    );
+
+    AsyncValue<List<RoutingResponsibility>> rules = const AsyncValue.data([]);
+    if (canManageRouting && widget.isEdit) {
+      rules = ref.watch(teamFormResponsibilitiesProvider);
+      if (rules.hasValue && !rules.isLoading) _seed(rules.requireValue);
+    }
+    final channels = canManageRouting
+        ? ref.watch(channelsProvider)
+        : const AsyncValue<List<ChannelConnection>>.data([]);
+
+    final dirty = _dirty;
+    final canSave = !_submitting && (!widget.isEdit || dirty);
+
+    return PopScope(
+      canPop: !dirty && !_submitting,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop || _submitting) return;
+        if (await confirmDiscardChanges(context) && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: FractionallySizedBox(
+        heightFactor: 0.94,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
           ),
-        ),
-        const SizedBox(height: Space.lg),
-        if (_error != null) ...[
-          InlineError(message: _error!),
-          const SizedBox(height: Space.md),
-        ],
-        TextField(
-          controller: _name,
-          textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(
-            labelText: context.l10n.teamNameFieldLabel,
-          ),
-        ),
-        const SizedBox(height: Space.md),
-        TextField(
-          controller: _description,
-          minLines: 2,
-          maxLines: 4,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(
-            labelText: context.l10n.descriptionFieldLabel,
-          ),
-        ),
-        const SizedBox(height: Space.md),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _language,
-                decoration: InputDecoration(
-                  labelText: context.l10n.languageLabel,
-                  hintText: 'en',
+          child: Column(
+            children: [
+              _Header(
+                title: widget.isEdit ? l10n.editTeamTitle : l10n.addTeamTitle,
+                colorPreview: parseTeamColor(_color),
+                onClose: _submitting ? null : _cancel,
+              ),
+              Divider(height: 1, color: colors.border),
+              Expanded(
+                child: ListView(
+                  key: const ValueKey('teamFormScroll'),
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(
+                    Space.lg,
+                    Space.md,
+                    Space.lg,
+                    Space.xl,
+                  ),
+                  children: [
+                    Text(
+                      l10n.teamFormRoutingNote,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.mutedForeground,
+                      ),
+                    ),
+                    const SizedBox(height: Space.lg),
+                    TeamInfoFields(
+                      nameKey: _nameKey,
+                      name: _name,
+                      description: _description,
+                      language: _language,
+                      color: _color,
+                      enabled: !_submitting,
+                      errors: _fieldErrors,
+                      onColorChanged: (value) => setState(() {
+                        _color = value;
+                        _fieldErrors = {..._fieldErrors}..remove('color');
+                      }),
+                    ),
+                    const _SectionGap(),
+                    TeamMembersPicker(
+                      people: people,
+                      memberIds: _memberIds,
+                      leaderIds: _leaderIds,
+                      enabled: !_submitting,
+                      errors: _fieldErrors,
+                      onToggleMember: (id) =>
+                          _toggle(_memberIds, id, 'member_ids'),
+                      onToggleLeader: (id) =>
+                          _toggle(_leaderIds, id, 'leader_ids'),
+                      onRetry: () => ref.invalidate(teamFormEmployeesProvider),
+                    ),
+                    if (canManageRouting) ...[
+                      const _SectionGap(),
+                      _responsibilities(context, rules, channels),
+                    ],
+                  ],
                 ),
               ),
+              _Footer(
+                banner: _banner,
+                submitting: _submitting,
+                saveLabel: widget.isEdit
+                    ? l10n.teamFormSaveChangesAction
+                    : l10n.teamFormCreateAction,
+                onSave: canSave ? _submit : null,
+                onCancel: _submitting ? null : _cancel,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _responsibilities(
+    BuildContext context,
+    AsyncValue<List<RoutingResponsibility>> rules,
+    AsyncValue<List<ChannelConnection>> channels,
+  ) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final drafts = _drafts;
+
+    if (drafts == null) {
+      // Edit, and the saved rules have not arrived (or failed).
+      if (rules.hasError && !rules.isLoading) {
+        return Column(
+          key: const ValueKey('teamResponsibilitiesFailed'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.teamResponsibilitiesTitle,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            const SizedBox(width: Space.md),
-            Expanded(
-              child: TextField(
-                controller: _color,
-                decoration: InputDecoration(
-                  labelText: context.l10n.colorFieldLabel,
-                  hintText: '#0F766E',
-                ),
+            const SizedBox(height: Space.xs),
+            InlineError(message: l10n.teamResponsibilitiesLoadFailedMessage),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton(
+                onPressed: () =>
+                    ref.invalidate(teamFormResponsibilitiesProvider),
+                child: Text(l10n.retryMessageAction),
               ),
             ),
           ],
-        ),
-        const SizedBox(height: Space.md),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(context.l10n.activeFieldLabel),
-          value: _isActive,
-          onChanged: (value) => setState(() => _isActive = value),
-        ),
-        const SizedBox(height: Space.lg),
-        _TeamResponsibilitiesCard(
-          responsibilities: _responsibilities,
-          seedFrom: widget.isEdit ? _seedResponsibilities : null,
-          onChanged: (provider, input) => setState(() {
-            _log(
-              'SELECT teamId=${widget.existing?.id ?? 'new'} channel=$provider '
-              'selectedValue=${input == null ? 'none' : '${input.scope}${input.channelConnectionIds}'}',
-            );
-            _responsibilitiesTouched = true;
-            if (input == null) {
-              _responsibilities.remove(provider);
-            } else {
-              _responsibilities[provider] = input;
-            }
-          }),
-        ),
-        const SizedBox(height: Space.md),
-        Text(context.l10n.leadersFieldLabel, style: theme.textTheme.labelLarge),
-        employees.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: Space.md),
-            child: LoadingState(),
+        );
+      }
+      return Semantics(
+        label: l10n.teamResponsibilitiesTitle,
+        child: Container(
+          key: const ValueKey('teamResponsibilitiesLoading'),
+          height: 120,
+          decoration: BoxDecoration(
+            color: AppColors.of(context).muted,
+            borderRadius: BorderRadius.circular(Radii.lg),
           ),
-          error: (error, _) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: Space.sm),
-            child: Text(
-              context.l10n.employeesLoadFailedMessage,
-              style: theme.textTheme.bodySmall,
-            ),
-          ),
-          data: (rows) => Column(
-            children: [
-              for (final employee in rows)
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(employee.fullName),
-                  value: _leaderIds.contains(employee.id),
-                  onChanged: (checked) => setState(() {
-                    if (checked ?? false) {
-                      _leaderIds.add(employee.id);
-                    } else {
-                      _leaderIds.remove(employee.id);
-                    }
-                  }),
-                ),
-            ],
+          alignment: Alignment.center,
+          child: const SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
           ),
         ),
-        const SizedBox(height: Space.md),
-        Text(context.l10n.membersFieldLabel, style: theme.textTheme.labelLarge),
-        employees.when(
-          loading: () => const SizedBox.shrink(),
-          error: (error, _) => const SizedBox.shrink(),
-          data: (rows) => Column(
-            children: [
-              for (final employee in rows)
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(employee.fullName),
-                  value: _memberIds.contains(employee.id),
-                  onChanged: (checked) => setState(() {
-                    if (checked ?? false) {
-                      _memberIds.add(employee.id);
-                    } else {
-                      _memberIds.remove(employee.id);
-                    }
-                  }),
-                ),
-            ],
+      );
+    }
+
+    final rows = (channels.value ?? const <ChannelConnection>[])
+        .where((c) => c.provider.toUpperCase() != 'MOCK')
+        .toList();
+    final ruleRows = rules.value ?? const <RoutingResponsibility>[];
+    final teamId = widget.team?.id;
+    return ChannelResponsibilitySection(
+      drafts: drafts,
+      accounts: {
+        for (final p in routableProviders)
+          p: responsibilityAccountOptions(
+            provider: p,
+            channels: rows,
+            rules: ruleRows,
+            teamId: teamId,
           ),
-        ),
-        const SizedBox(height: Space.xl),
-        FilledButton(
-          onPressed: _submitting ? null : _submit,
-          child: _submitting
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text(context.l10n.commonSave),
-        ),
-      ],
+      },
+      accountsLoading: channels.isLoading && !channels.hasValue,
+      accountsFailed: channels.hasError && !channels.hasValue,
+      expanded: _expanded,
+      onToggleExpanded: _toggleExpanded,
+      onChanged: _changeChannel,
+      enabled: !_submitting,
+      providerErrors: _channelErrors,
+      error: _responsibilitiesError,
+      redundantProviders: teamId == null
+          ? const []
+          : redundantRuleProviders(ruleRows, teamId),
+      sectionKeys: _channelKeys,
     );
   }
 }
 
-/// One row per provider: none / all accounts / selected accounts, with a
-/// channel picker that appears only for "selected."
-///
-/// On edit, [seedFrom] is called once real data arrives from
-/// [routingResponsibilitiesProvider] — there is no per-team read endpoint,
-/// so current state is derived client-side from the full organization list
-/// (see `_TeamFormSheetState._seedResponsibilities`). On add, [seedFrom] is
-/// null: a new team starts with no responsibilities, same as the backend's
-/// own default.
-class _TeamResponsibilitiesCard extends ConsumerWidget {
-  const _TeamResponsibilitiesCard({
-    required this.responsibilities,
-    required this.seedFrom,
-    required this.onChanged,
-  });
-
-  final Map<String, TeamResponsibilityInput> responsibilities;
-  final void Function(List<RoutingResponsibility> all)? seedFrom;
-  final void Function(String provider, TeamResponsibilityInput? input)
-  onChanged;
+class _SectionGap extends StatelessWidget {
+  const _SectionGap();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: Space.lg),
+    child: Divider(height: 1, color: AppColors.of(context).border),
+  );
+}
+
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.title,
+    required this.colorPreview,
+    required this.onClose,
+  });
+
+  final String title;
+  final Color? colorPreview;
+  final VoidCallback? onClose;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final channels = ref.watch(channelsProvider);
-    final allResponsibilities = seedFrom == null
-        ? const AsyncValue<List<RoutingResponsibility>>.data([])
-        : ref.watch(routingResponsibilitiesProvider);
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        Space.lg,
+        Space.md,
+        Space.xs,
+        Space.sm,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 6,
+            height: 24,
+            decoration: BoxDecoration(
+              color: colorPreview ?? theme.colorScheme.outlineVariant,
+              borderRadius: BorderRadius.circular(Radii.pill),
+            ),
+          ),
+          const SizedBox(width: Space.md),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          IconButton(
+            key: const ValueKey('teamFormClose'),
+            tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+            onPressed: onClose,
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-    allResponsibilities.whenData((rows) => seedFrom?.call(rows));
+/// Always on screen, under the scrolling content: the error banner, Cancel
+/// and Save.
+class _Footer extends StatelessWidget {
+  const _Footer({
+    required this.banner,
+    required this.submitting,
+    required this.saveLabel,
+    required this.onSave,
+    required this.onCancel,
+  });
 
-    return Container(
+  final String? banner;
+  final bool submitting;
+  final String saveLabel;
+  final VoidCallback? onSave;
+  final VoidCallback? onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = AppColors.of(context);
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(Radii.lg),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+        border: Border(top: BorderSide(color: colors.border)),
+      ),
+      child: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(
+          Space.lg,
+          Space.md,
+          Space.lg,
+          Space.md,
         ),
-      ),
-      padding: const EdgeInsets.all(Space.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.l10n.teamResponsibilitiesTitle,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: Space.xs),
-          Text(
-            context.l10n.teamResponsibilitiesDescription,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: Space.md),
-          if (allResponsibilities.hasError)
-            Text(
-              context.l10n.teamResponsibilitiesLoadFailedMessage,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.error,
-              ),
-            )
-          else
-            for (final provider in _routableProviders) ...[
-              _ProviderResponsibilityRow(
-                provider: provider,
-                current: responsibilities[provider],
-                channels: channels.value
-                    ?.where(
-                      (c) => c.provider.toUpperCase() == provider && c.isActive,
-                    )
-                    .toList(),
-                onChanged: (input) => onChanged(provider, input),
-              ),
-              if (provider != _routableProviders.last)
-                const SizedBox(height: Space.sm),
-            ],
-        ],
-      ),
-    );
-  }
-}
-
-class _ProviderResponsibilityRow extends StatelessWidget {
-  const _ProviderResponsibilityRow({
-    required this.provider,
-    required this.current,
-    required this.channels,
-    required this.onChanged,
-  });
-
-  final String provider;
-  final TeamResponsibilityInput? current;
-  final List<ChannelConnection>? channels;
-  final ValueChanged<TeamResponsibilityInput?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scope = current?.scope ?? 'none';
-    final selectedIds = current?.channelConnectionIds.toSet() ?? const {};
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(
-              ConversationBadges.providerIcon(provider),
-              size: 18,
-              color: ConversationBadges.providerColor(provider),
-            ),
-            const SizedBox(width: Space.sm),
-            Expanded(
-              child: Text(
-                ConversationBadges.providerLabel(context, provider),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+            if (banner != null) ...[
+              InlineError(message: banner!),
+              const SizedBox(height: Space.md),
+            ],
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    key: const ValueKey('teamFormCancel'),
+                    onPressed: onCancel,
+                    child: Text(context.l10n.cancel),
+                  ),
                 ),
-              ),
-            ),
-            DropdownButton<String>(
-              value: scope,
-              underline: const SizedBox.shrink(),
-              items: [
-                DropdownMenuItem(
-                  value: 'none',
-                  child: Text(context.l10n.teamResponsibilityNone),
-                ),
-                DropdownMenuItem(
-                  value: 'all',
-                  child: Text(context.l10n.teamResponsibilityAll),
-                ),
-                DropdownMenuItem(
-                  value: 'selected',
-                  child: Text(context.l10n.teamResponsibilitySelected),
+                const SizedBox(width: Space.md),
+                Expanded(
+                  flex: 2,
+                  child: FilledButton(
+                    key: const ValueKey('teamFormSave'),
+                    onPressed: onSave,
+                    child: submitting
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: theme.colorScheme.onPrimary,
+                            ),
+                          )
+                        : Text(
+                            saveLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                  ),
                 ),
               ],
-              onChanged: (value) {
-                if (value == null || value == 'none') {
-                  onChanged(null);
-                } else if (value == 'all') {
-                  onChanged(
-                    TeamResponsibilityInput(provider: provider, scope: 'all'),
-                  );
-                } else {
-                  onChanged(
-                    TeamResponsibilityInput(
-                      provider: provider,
-                      scope: 'selected',
-                      channelConnectionIds: selectedIds.toList(),
-                    ),
-                  );
-                }
-              },
             ),
           ],
         ),
-        if (scope == 'selected') ...[
-          const SizedBox(height: Space.xs),
-          Padding(
-            padding: const EdgeInsets.only(left: Space.xl),
-            child: (channels == null || channels!.isEmpty)
-                ? Text(
-                    context.l10n.teamResponsibilityNoChannelsMessage,
-                    style: theme.textTheme.bodySmall,
-                  )
-                : Wrap(
-                    spacing: Space.sm,
-                    runSpacing: Space.xs,
-                    children: [
-                      for (final channel in channels!)
-                        FilterChip(
-                          label: Text(channel.displayName),
-                          selected: selectedIds.contains(channel.id),
-                          onSelected: (isSelected) {
-                            final updated = Set<int>.from(selectedIds);
-                            if (isSelected) {
-                              updated.add(channel.id);
-                            } else {
-                              updated.remove(channel.id);
-                            }
-                            onChanged(
-                              TeamResponsibilityInput(
-                                provider: provider,
-                                scope: 'selected',
-                                channelConnectionIds: updated.toList(),
-                              ),
-                            );
-                          },
-                        ),
-                    ],
-                  ),
-          ),
-        ],
-      ],
+      ),
     );
   }
 }

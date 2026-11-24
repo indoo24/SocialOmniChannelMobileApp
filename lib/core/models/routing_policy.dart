@@ -142,6 +142,7 @@ class RoutingResponsibility {
     this.employeeName = '',
     this.channelConnectionId,
     this.channelConnectionName = '',
+    this.strict = false,
   });
 
   final int id;
@@ -163,6 +164,14 @@ class RoutingResponsibility {
   final int? channelConnectionId;
   final String channelConnectionName;
   final bool isActive;
+
+  /// The rule's mode. `false` (flexible): the people it names are offered
+  /// the conversation first, and if none of them can take it the routing
+  /// settings decide who else may. `true` (strict): the conversation never
+  /// leaves the people it names, and stays unassigned if none of them can
+  /// take it. Absent on older payloads, where it reads as flexible — the
+  /// backend's own default.
+  final bool strict;
 
   /// True when this rule covers one specific connected account rather than
   /// every account of [provider] — the building block of a `SELECTED`-scope
@@ -193,6 +202,7 @@ class RoutingResponsibility {
           ? JsonSafe.asString(channel['display_name'])
           : '',
       isActive: JsonSafe.asBool(json['is_active'], fallback: true),
+      strict: JsonSafe.asBool(json['strict'], fallback: false),
     );
   }
 }
@@ -207,6 +217,7 @@ class TeamResponsibilityInput {
     required this.provider,
     required this.scope,
     this.channelConnectionIds = const [],
+    this.strict = false,
   });
 
   final String provider;
@@ -215,9 +226,16 @@ class TeamResponsibilityInput {
   final String scope;
   final List<int> channelConnectionIds;
 
+  /// Flexible (`false`) or strict (`true`) — see
+  /// [RoutingResponsibility.strict]. Always sent, as the web does: the
+  /// backend's default is `false`, so leaving it out would quietly turn a
+  /// strict rule flexible on the next save.
+  final bool strict;
+
   Map<String, dynamic> toJson() => {
     'provider': provider,
     'scope': scope,
     if (scope == 'selected') 'channel_connection_ids': channelConnectionIds,
+    'strict': strict,
   };
 }

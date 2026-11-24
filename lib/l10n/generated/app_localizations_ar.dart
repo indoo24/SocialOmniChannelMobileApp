@@ -2257,28 +2257,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get employeesLoadFailedMessage => 'تعذّر تحميل الموظفين.';
 
   @override
-  String get teamResponsibilitiesTitle => 'مسؤوليات القنوات';
+  String get teamResponsibilitiesTitle => 'مسؤولية القنوات';
 
   @override
   String get teamResponsibilitiesDescription =>
-      'القنوات التي يُعرض على هذا الفريق محادثاتها الجديدة. هذا يحدد من يُعرض عليه العمل أولاً — ولا يغيّر أبدًا من يمكنه رؤية المحادثة.';
+      'حدد القنوات أو الحسابات التي يتولى هذا الفريق استقبال محادثاتها الجديدة.';
 
   @override
-  String get teamResponsibilityNone => 'لا شيء';
-
-  @override
-  String get teamResponsibilityAll => 'جميع الحسابات';
-
-  @override
-  String get teamResponsibilitySelected => 'حسابات محددة';
+  String get teamResponsibilityNone => 'بدون مسؤولية';
 
   @override
   String get teamResponsibilitiesLoadFailedMessage =>
-      'تعذّر تحميل المسؤوليات الحالية.';
-
-  @override
-  String get teamResponsibilityNoChannelsMessage =>
-      'لا توجد حسابات متصلة بهذه القناة بعد.';
+      'تعذّر تحميل مسؤوليات هذا الفريق، لذا لا يمكن تغييرها الآن. ستُحفظ تغييراتك الأخرى.';
 
   @override
   String get deactivateTeamConfirmTitle => 'إلغاء تفعيل الفريق؟';
@@ -5769,4 +5759,220 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get historyTeamTransferred => 'حُوّلت إلى فريق آخر';
+
+  @override
+  String get teamLeadersLabel => 'القادة';
+
+  @override
+  String get deactivateTeamAction => 'إلغاء تفعيل الفريق';
+
+  @override
+  String get reactivateTeamAction => 'إعادة تفعيل الفريق';
+
+  @override
+  String teamReactivatedSnackbar(String name) {
+    return 'تمت إعادة تفعيل $name';
+  }
+
+  @override
+  String teamMoreMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'و$count عضو آخر',
+      many: 'و$count عضوًا آخر',
+      few: 'و$count أعضاء آخرين',
+      two: 'وعضوان آخران',
+      one: 'وعضو آخر',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get teamFormRoutingNote =>
+      'تنظّم الفرق الموظفين وتحدد ما يمكن لقائد الفريق الاطلاع عليه. تحدد مسؤولية القنوات أي المحادثات الجديدة تُعرض على الفريق أولًا، ولا تغيّر أبدًا من يستطيع رؤية المحادثة.';
+
+  @override
+  String get teamFormInfoSection => 'بيانات الفريق';
+
+  @override
+  String get teamFormNamePlaceholder => 'خدمة العملاء بالعربية';
+
+  @override
+  String get teamFormDescriptionPlaceholder => 'ما الذي يتولاه هذا الفريق';
+
+  @override
+  String get teamFormLanguageHelper => 'رمز اللغة، مثل ar أو en';
+
+  @override
+  String get teamFormColorPickerTitle => 'لون الفريق';
+
+  @override
+  String get teamFormColorHexLabel => 'رمز اللون';
+
+  @override
+  String get teamFormColorInvalid =>
+      'أدخل اللون بعلامة # تليها ستة أرقام سداسية عشرية.';
+
+  @override
+  String teamFormColorSwatch(String hex) {
+    return 'اللون $hex';
+  }
+
+  @override
+  String get teamFormColorApply => 'استخدام اللون';
+
+  @override
+  String teamFormMembersSelected(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count شخص محدد',
+      many: '$count شخصًا محددًا',
+      few: '$count أشخاص محددين',
+      two: 'شخصان محددان',
+      one: 'شخص واحد محدد',
+      zero: 'لم يُحدَّد أحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String teamFormLeadersSelected(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count قائد',
+      many: '$count قائدًا',
+      few: '$count قادة',
+      two: 'قائدان',
+      one: 'قائد واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get teamFormMembersHint =>
+      'حدد الأشخاص في هذا الفريق. واضغط «قائد» لتعيين أحدهم قائدًا للفريق.';
+
+  @override
+  String get teamFormLeaderToggle => 'قائد';
+
+  @override
+  String teamFormMakeLeader(String name) {
+    return 'تعيين $name قائدًا';
+  }
+
+  @override
+  String teamFormRemoveLeader(String name) {
+    return 'إلغاء تعيين $name قائدًا';
+  }
+
+  @override
+  String get teamFormSearchPeople => 'ابحث في الموظفين';
+
+  @override
+  String teamFormNoPersonMatch(String query) {
+    return 'لا يوجد موظف يطابق ”$query“.';
+  }
+
+  @override
+  String get teamFormNoEmployees => 'لا يوجد موظفون نشطون بعد.';
+
+  @override
+  String get teamFormCreateAction => 'إنشاء فريق';
+
+  @override
+  String get teamFormSaveChangesAction => 'حفظ التغييرات';
+
+  @override
+  String get teamFormFixFields => 'يرجى تصحيح الحقول المحددة.';
+
+  @override
+  String get teamResponsibilityNotVisibility =>
+      'يحدد هذا فقط من تُعرض عليه المحادثات الجديدة أولًا، ولا يغيّر من يستطيع رؤية المحادثات.';
+
+  @override
+  String teamResponsibilityAllOf(String accounts) {
+    return 'كل $accounts';
+  }
+
+  @override
+  String teamResponsibilitySelectedOf(String accounts) {
+    return '$accounts محددة';
+  }
+
+  @override
+  String teamResponsibilitySelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count حسابات محددة',
+      one: 'حساب واحد محدد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get teamAccountsWhatsapp => 'أرقام WhatsApp';
+
+  @override
+  String get teamAccountsFacebook => 'صفحات Facebook';
+
+  @override
+  String get teamAccountsInstagram => 'حسابات Instagram';
+
+  @override
+  String get teamAccountsTiktok => 'حسابات TikTok';
+
+  @override
+  String get teamResponsibilityIncludesFuture =>
+      'تشمل الحسابات التي تُربط لاحقًا.';
+
+  @override
+  String get teamResponsibilityModeLabel => 'الوضع';
+
+  @override
+  String get teamResponsibilityFlexible => 'مرن';
+
+  @override
+  String get teamResponsibilityStrict => 'صارم';
+
+  @override
+  String get teamResponsibilityFlexibleHint =>
+      'تُعرض المحادثة أولًا على الأشخاص المذكورين هنا. وإذا لم يستطع أحدهم استلامها تحدّد إعدادات التوزيع من غيرهم يمكنه ذلك.';
+
+  @override
+  String get teamResponsibilityStrictHint =>
+      'لا تخرج محادثات هذا الحساب عن الأشخاص المذكورين هنا. وإذا لم يستطع أحدهم استلام محادثة تبقى بدون إسناد.';
+
+  @override
+  String teamResponsibilityNoAccounts(String accounts) {
+    return 'لا توجد $accounts مربوطة بعد.';
+  }
+
+  @override
+  String get teamResponsibilitySearchAccounts => 'ابحث في الحسابات';
+
+  @override
+  String teamResponsibilityNoAccountMatch(String query) {
+    return 'لا يوجد حساب يطابق ”$query“.';
+  }
+
+  @override
+  String get teamResponsibilityNotConnected => 'غير مربوط';
+
+  @override
+  String teamResponsibilityChooseAccount(String provider) {
+    return 'اختر حسابًا واحدًا على الأقل لـ $provider، أو اختر خيارًا آخر.';
+  }
+
+  @override
+  String teamResponsibilityRedundantRules(String providers) {
+    return 'لدى هذا الفريق أيضًا قواعد لحسابات $providers فردية يغطيها خيار «كل الحسابات» بالفعل. عند حفظ أي تغيير على مسؤولياته ستُزال.';
+  }
+
+  @override
+  String get teamResponsibilityAccountsLoadFailed =>
+      'تعذّر تحميل الحسابات المربوطة.';
 }

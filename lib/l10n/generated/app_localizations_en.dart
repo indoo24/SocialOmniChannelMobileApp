@@ -2240,24 +2240,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get teamResponsibilitiesDescription =>
-      'Which channels this team is offered new conversations from. This decides who is offered work first — it never changes who can see a conversation.';
+      'Choose which channels or accounts this team should receive new conversations from.';
 
   @override
-  String get teamResponsibilityNone => 'None';
-
-  @override
-  String get teamResponsibilityAll => 'All accounts';
-
-  @override
-  String get teamResponsibilitySelected => 'Selected accounts';
+  String get teamResponsibilityNone => 'No responsibility';
 
   @override
   String get teamResponsibilitiesLoadFailedMessage =>
-      'Couldn\'t load current responsibilities.';
-
-  @override
-  String get teamResponsibilityNoChannelsMessage =>
-      'No connected accounts for this channel yet.';
+      'Couldn\'t load this team\'s channel responsibilities, so they can\'t be changed right now. Your other changes still save.';
 
   @override
   String get deactivateTeamConfirmTitle => 'Deactivate team?';
@@ -5725,4 +5715,211 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get historyTeamTransferred => 'Transferred to another team';
+
+  @override
+  String get teamLeadersLabel => 'Leaders';
+
+  @override
+  String get deactivateTeamAction => 'Deactivate team';
+
+  @override
+  String get reactivateTeamAction => 'Reactivate team';
+
+  @override
+  String teamReactivatedSnackbar(String name) {
+    return '$name reactivated';
+  }
+
+  @override
+  String teamMoreMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'and $count more members',
+      one: 'and 1 more member',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get teamFormRoutingNote =>
+      'Teams organise people and set what a team leader can see. A team\'s channel responsibilities decide which new conversations it is offered first; they never change who can see a conversation.';
+
+  @override
+  String get teamFormInfoSection => 'Team details';
+
+  @override
+  String get teamFormNamePlaceholder => 'Arabic Customer Service';
+
+  @override
+  String get teamFormDescriptionPlaceholder => 'What this team handles';
+
+  @override
+  String get teamFormLanguageHelper => 'Language code, e.g. ar or en';
+
+  @override
+  String get teamFormColorPickerTitle => 'Team colour';
+
+  @override
+  String get teamFormColorHexLabel => 'Hex code';
+
+  @override
+  String get teamFormColorInvalid =>
+      'Enter a colour as # followed by six hex digits.';
+
+  @override
+  String teamFormColorSwatch(String hex) {
+    return 'Colour $hex';
+  }
+
+  @override
+  String get teamFormColorApply => 'Use colour';
+
+  @override
+  String teamFormMembersSelected(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count selected',
+      one: '1 selected',
+      zero: 'None selected',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String teamFormLeadersSelected(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count leaders',
+      one: '1 leader',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get teamFormMembersHint =>
+      'Tick the people in this team. Tap Leader to make someone a team leader.';
+
+  @override
+  String get teamFormLeaderToggle => 'Leader';
+
+  @override
+  String teamFormMakeLeader(String name) {
+    return 'Make $name a leader';
+  }
+
+  @override
+  String teamFormRemoveLeader(String name) {
+    return 'Remove $name as leader';
+  }
+
+  @override
+  String get teamFormSearchPeople => 'Search people';
+
+  @override
+  String teamFormNoPersonMatch(String query) {
+    return 'No one matches “$query”.';
+  }
+
+  @override
+  String get teamFormNoEmployees => 'No active employees yet.';
+
+  @override
+  String get teamFormCreateAction => 'Create team';
+
+  @override
+  String get teamFormSaveChangesAction => 'Save changes';
+
+  @override
+  String get teamFormFixFields => 'Please fix the highlighted fields.';
+
+  @override
+  String get teamResponsibilityNotVisibility =>
+      'This only decides who is offered new conversations first. It does not change who can see conversations.';
+
+  @override
+  String teamResponsibilityAllOf(String accounts) {
+    return 'All $accounts';
+  }
+
+  @override
+  String teamResponsibilitySelectedOf(String accounts) {
+    return 'Selected $accounts';
+  }
+
+  @override
+  String teamResponsibilitySelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count accounts selected',
+      one: '1 account selected',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get teamAccountsWhatsapp => 'WhatsApp numbers';
+
+  @override
+  String get teamAccountsFacebook => 'Facebook Pages';
+
+  @override
+  String get teamAccountsInstagram => 'Instagram accounts';
+
+  @override
+  String get teamAccountsTiktok => 'TikTok accounts';
+
+  @override
+  String get teamResponsibilityIncludesFuture =>
+      'Includes accounts connected later.';
+
+  @override
+  String get teamResponsibilityModeLabel => 'Mode';
+
+  @override
+  String get teamResponsibilityFlexible => 'Flexible';
+
+  @override
+  String get teamResponsibilityStrict => 'Strict';
+
+  @override
+  String get teamResponsibilityFlexibleHint =>
+      'The people named here are offered the conversation first. If none of them can take it, your routing settings decide who else may.';
+
+  @override
+  String get teamResponsibilityStrictHint =>
+      'Work on this account never leaves the people named here. If none of them can take a conversation it stays unassigned.';
+
+  @override
+  String teamResponsibilityNoAccounts(String accounts) {
+    return 'No $accounts connected yet.';
+  }
+
+  @override
+  String get teamResponsibilitySearchAccounts => 'Search accounts';
+
+  @override
+  String teamResponsibilityNoAccountMatch(String query) {
+    return 'No account matches “$query”.';
+  }
+
+  @override
+  String get teamResponsibilityNotConnected => 'Not connected';
+
+  @override
+  String teamResponsibilityChooseAccount(String provider) {
+    return 'Choose at least one account for $provider, or pick another option.';
+  }
+
+  @override
+  String teamResponsibilityRedundantRules(String providers) {
+    return 'This team also has rules for individual $providers accounts that “All accounts” already covers. Saving a change to its responsibilities removes them.';
+  }
+
+  @override
+  String get teamResponsibilityAccountsLoadFailed =>
+      'Couldn\'t load the connected accounts.';
 }

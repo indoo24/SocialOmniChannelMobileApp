@@ -91,6 +91,31 @@ final routingResponsibilitiesProvider =
       return ref.watch(directoryRepositoryProvider).routingResponsibilities();
     });
 
+/// The same rules, read fresh each time a team form opens — the form seeds
+/// its channel choices from them once, so a copy cached from before some
+/// other edit would show (and then save back) an out-of-date selection.
+final teamFormResponsibilitiesProvider =
+    FutureProvider.autoDispose<List<RoutingResponsibility>>((ref) {
+      return ref.watch(directoryRepositoryProvider).routingResponsibilities();
+    });
+
+/// Every active employee, for the team form's member and leader picker —
+/// as the web form lists them (`is_active=true`). Deliberately not
+/// [employeeDirectoryProvider]: that one follows whatever search and
+/// filters the Employees screen has applied, and a team form must not hide
+/// people because of them.
+final teamFormEmployeesProvider =
+    FutureProvider.autoDispose<List<DirectoryEmployee>>((ref) async {
+      final repository = ref.watch(directoryRepositoryProvider);
+      final employees = <DirectoryEmployee>[];
+      for (var page = 1; ; page++) {
+        final batch = await repository.employees(isActive: true, page: page);
+        employees.addAll(batch.results);
+        if (!batch.hasMore || batch.results.isEmpty || page >= 20) break;
+      }
+      return employees;
+    });
+
 /// Volume per connected channel, served from [AnalyticsCache].
 ///
 /// Takes no date parameters, so it occupies a single cache entry and is

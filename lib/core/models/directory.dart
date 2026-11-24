@@ -25,6 +25,8 @@ class Team {
     this.description = '',
     this.memberIds = const [],
     this.leaderIds = const [],
+    this.members = const [],
+    this.leaders = const [],
   });
 
   final int id;
@@ -39,6 +41,11 @@ class Team {
   /// IDs of members and leaders for pre-filling the team editor sheet.
   final List<int> memberIds;
   final List<int> leaderIds;
+
+  /// The members and leaders as the list sends them (`TeamMember`: id, name,
+  /// initials, avatar) — what a card shows, with no request of its own.
+  final List<EmployeeBrief> members;
+  final List<EmployeeBrief> leaders;
 
   factory Team.fromJson(Map<String, dynamic> json) {
     List<String> names(String key) => JsonSafe.asObjectList(json[key])
@@ -70,6 +77,13 @@ class Team {
           .toList();
     }
 
+    // Member and leader records, when the list carries them as objects; an
+    // older payload of bare ids yields none (the card then shows only counts).
+    List<EmployeeBrief> people(String key) => [
+      for (final item in JsonSafe.asObjectList(json[key]))
+        if (item is Map) EmployeeBrief.fromJson(JsonSafe.asMap(item)),
+    ];
+
     final members = json['members'];
     return Team(
       id: JsonSafe.asInt(json['id'], fallback: -1),
@@ -84,6 +98,8 @@ class Team {
       description: JsonSafe.asString(json['description']),
       memberIds: ids('member_ids', 'members'),
       leaderIds: ids('leader_ids', 'leaders'),
+      members: people('members'),
+      leaders: people('leaders'),
     );
   }
 }
