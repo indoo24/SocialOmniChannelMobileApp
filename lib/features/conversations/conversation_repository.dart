@@ -9,6 +9,7 @@ library;
 import 'package:dio/dio.dart';
 
 import '../../core/api/api_client.dart';
+import '../../core/models/ai_suggestion.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/conversation_group.dart';
 import '../../core/models/conversation_event.dart';
@@ -491,6 +492,8 @@ class ConversationRepository {
   /// an optimistic (negative, not-yet-sent) id here.
   /// [contacts], when given, sends a `CONTACT` message: the shared contact
   /// is the whole message, so its text is empty and it carries no files.
+  /// [suggestionId] (`Reply.suggestion_id`) names the AI suggestion this
+  /// reply was written from, when it was — see [aiSuggestion].
   Future<Message> reply(
     int conversationId,
     String text, {
@@ -498,6 +501,7 @@ class ConversationRepository {
     String? clientMessageId,
     int? replyToId,
     List<ContactCard> contacts = const [],
+    String? suggestionId,
   }) async {
     final isContact = contacts.isNotEmpty;
     final data = await _api.post<Map<String, dynamic>>(
@@ -510,6 +514,8 @@ class ConversationRepository {
           'attachment_ids': attachmentIds,
         'client_message_id': ?clientMessageId,
         'reply_to_id': ?replyToId,
+        if (!isContact && suggestionId != null && suggestionId.isNotEmpty)
+          'suggestion_id': suggestionId,
       },
     );
     return Message.fromJson(data);
@@ -770,6 +776,39 @@ class ConversationRepository {
       body: {'policy': policy},
     );
     return Conversation.fromJson(JsonSafe.asMap(data));
+  }
+
+  /// `POST /conversations/{id}/ai-suggestion/` `{regenerate}` — asks the AI
+  /// for a draft reply to this conversation.
+  ///
+  /// Sends nothing: no message is created and nothing about the
+  /// conversation changes. Needs `conversation.reply`, the organization in
+  /// the AI pilot and the channel in `SUGGEST` mode; any of those missing is
+  /// a 404. Throttled (429). [regenerate] retires this employee's previous
+  /// draft on the conversation.
+  Future<AiSuggestion> aiSuggestion(
+    int conversationId, {
+    bool regenerate = false,
+  }) async {
+    final data = await _api.post<dynamic>(
+      '/conversations/$conversationId/ai-suggestion/',
+      body: {'regenerate': regenerate},
+    );
+    return AiSuggestion.fromJson(JsonSafe.asMap(data));
+  }
+
+  /// `POST /ai/suggestions/{public_id}/outcome/` `{outcome}` — whether a
+  /// draft was used ([AiSuggestionOutcome.used]: placed into the composer;
+  /// it sends nothing) or discarded. Telemetry only: a failure here never
+  /// affects what the employee can do.
+  Future<void> reportAiSuggestionOutcome(
+    String suggestionId,
+    String outcome,
+  ) async {
+    await _api.post<dynamic>(
+      '/ai/suggestions/$suggestionId/outcome/',
+      body: {'outcome': outcome},
+    );
   }
 
   /// `POST /conversations/{id}/ai-resume/` — lets the AI answer this

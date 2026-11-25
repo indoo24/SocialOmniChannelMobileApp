@@ -5975,4 +5975,88 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get teamResponsibilityAccountsLoadFailed =>
       'تعذّر تحميل الحسابات المربوطة.';
+
+  @override
+  String get aiSuggestAction => 'اقتراح بالذكاء الاصطناعي';
+
+  @override
+  String get aiSuggestGenerating => 'جاري إنشاء الاقتراح…';
+
+  @override
+  String get aiSuggestFailed => 'تعذر إنشاء اقتراح';
+
+  @override
+  String get aiSuggestRegenerate => 'إعادة الاقتراح';
+
+  @override
+  String get aiSuggestNotSentHint => 'لا يُرسل شيء حتى تضغط إرسال.';
+
+  @override
+  String get aiSuggestStale => 'المحادثة تغيرت — أعد الاقتراح';
+
+  @override
+  String get aiSuggestReady => 'الاقتراح جاهز.';
+
+  @override
+  String get aiSuggestUse => 'استخدام الرد';
+
+  @override
+  String get aiSuggestUnavailable =>
+      'اقتراحات الذكاء الاصطناعي غير متاحة لهذه المحادثة.';
+
+  @override
+  String get aiSuggestEmpty =>
+      'لم يُرجع الذكاء الاصطناعي ردًا صالحًا للاستخدام. لم يتغير نصك.';
+
+  @override
+  String get aiSuggestNotInKb =>
+      'لم يتم العثور على إجابة موثوقة في قاعدة المعرفة';
+
+  @override
+  String get aiSuggestNotInKbHint =>
+      'لا شيء هنا يجيب عن هذا. اكتب الرد بنفسك، أو أضف المعرفة ليجيب في المرة القادمة.';
+
+  @override
+  String get aiSuggestAttachmentNeeded =>
+      'الاقتراح غير متاح — هذه الرسالة تحتاج مراجعة مرفق';
+
+  @override
+  String get aiSuggestNoCustomerMessage => 'لا يوجد ما يُرد عليه بعد';
+
+  @override
+  String get aiSuggestNoKnowledgeBase => 'لم يتم إعداد قاعدة معرفة بعد';
+
+  @override
+  String get aiSuggestConflict => 'معلومات متعارضة في قاعدة المعرفة';
+
+  @override
+  String get aiSuggestConflictHint =>
+      'توجد مصدران أو أكثر تجيب عن هذا بشكل مختلف. لا يُقترح شيء حتى تُصحّح أحدهما.';
+
+  @override
+  String aiSuggestConflictSources(String sources) {
+    return 'المصادر المتعارضة: $sources';
+  }
+
+  @override
+  String get aiSuggestReplaceTitle => 'استبدال ما كتبته؟';
+
+  @override
+  String get aiSuggestReplaceBody =>
+      'مربع الكتابة به نص بالفعل. استبدله بالاقتراح، أو أضف الاقتراح أسفله.';
+
+  @override
+  String get aiSuggestKeepMine => 'الاحتفاظ بنصي';
+
+  @override
+  String get aiSuggestAddBelow => 'إضافة أسفله';
+
+  @override
+  String get aiSuggestReplace => 'استبدال';
+
+  @override
+  String get aiSuggestDiscard => 'تجاهل';
+
+  @override
+  String get aiSuggestHeading => 'اقتراح الذكاء الاصطناعي';
 }

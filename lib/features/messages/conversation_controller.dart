@@ -414,6 +414,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     QuotedMessage? replyTo,
     String? reuseLocalId,
     List<ContactCard> contacts = const [],
+    String? suggestionId,
   }) async {
     final current = state.value;
     // A shared contact is a message on its own: no text, no files.
@@ -476,6 +477,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
             clientMessageId: localId,
             replyToId: replyTo?.id,
             contacts: contacts,
+            suggestionId: suggestionId,
           );
 
       RealtimeLogger.log(

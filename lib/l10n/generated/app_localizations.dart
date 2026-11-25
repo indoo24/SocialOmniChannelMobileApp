@@ -10151,6 +10151,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the connected accounts.'**
   String get teamResponsibilityAccountsLoadFailed;
+
+  /// No description provided for @aiSuggestAction.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Suggest'**
+  String get aiSuggestAction;
+
+  /// No description provided for @aiSuggestGenerating.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating suggestion…'**
+  String get aiSuggestGenerating;
+
+  /// No description provided for @aiSuggestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t create a suggestion'**
+  String get aiSuggestFailed;
+
+  /// No description provided for @aiSuggestRegenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate'**
+  String get aiSuggestRegenerate;
+
+  /// No description provided for @aiSuggestNotSentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is sent until you press Send.'**
+  String get aiSuggestNotSentHint;
+
+  /// No description provided for @aiSuggestStale.
+  ///
+  /// In en, this message translates to:
+  /// **'The conversation has moved on — regenerate the suggestion'**
+  String get aiSuggestStale;
+
+  /// No description provided for @aiSuggestReady.
+  ///
+  /// In en, this message translates to:
+  /// **'A suggestion is ready.'**
+  String get aiSuggestReady;
+
+  /// No description provided for @aiSuggestUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use reply'**
+  String get aiSuggestUse;
+
+  /// No description provided for @aiSuggestUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'AI suggestions aren\'t available for this conversation.'**
+  String get aiSuggestUnavailable;
+
+  /// No description provided for @aiSuggestEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI didn\'t return a usable reply. Your text is unchanged.'**
+  String get aiSuggestEmpty;
+
+  /// No description provided for @aiSuggestNotInKb.
+  ///
+  /// In en, this message translates to:
+  /// **'No reliable answer in the knowledge base'**
+  String get aiSuggestNotInKb;
+
+  /// No description provided for @aiSuggestNotInKbHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here answers this. Write the reply yourself, or add the knowledge so next time it can.'**
+  String get aiSuggestNotInKbHint;
+
+  /// No description provided for @aiSuggestAttachmentNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'AI suggestion unavailable — this message needs an attachment reviewed'**
+  String get aiSuggestAttachmentNeeded;
+
+  /// No description provided for @aiSuggestNoCustomerMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to reply to yet'**
+  String get aiSuggestNoCustomerMessage;
+
+  /// No description provided for @aiSuggestNoKnowledgeBase.
+  ///
+  /// In en, this message translates to:
+  /// **'No knowledge base has been set up yet'**
+  String get aiSuggestNoKnowledgeBase;
+
+  /// No description provided for @aiSuggestConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Conflicting information in the knowledge base'**
+  String get aiSuggestConflict;
+
+  /// No description provided for @aiSuggestConflictHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Two or more sources would answer this differently. Nothing is suggested until one of them is corrected.'**
+  String get aiSuggestConflictHint;
+
+  /// No description provided for @aiSuggestConflictSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources that disagree: {sources}'**
+  String aiSuggestConflictSources(String sources);
+
+  /// No description provided for @aiSuggestReplaceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace what you have written?'**
+  String get aiSuggestReplaceTitle;
+
+  /// No description provided for @aiSuggestReplaceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your reply box already has text. Replace it with the suggestion, or add the suggestion below it.'**
+  String get aiSuggestReplaceBody;
+
+  /// No description provided for @aiSuggestKeepMine.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep mine'**
+  String get aiSuggestKeepMine;
+
+  /// No description provided for @aiSuggestAddBelow.
+  ///
+  /// In en, this message translates to:
+  /// **'Add below'**
+  String get aiSuggestAddBelow;
+
+  /// No description provided for @aiSuggestReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get aiSuggestReplace;
+
+  /// No description provided for @aiSuggestDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get aiSuggestDiscard;
+
+  /// No description provided for @aiSuggestHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'AI suggestion'**
+  String get aiSuggestHeading;
 }
 
 class _AppLocalizationsDelegate

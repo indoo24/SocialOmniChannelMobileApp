@@ -5922,4 +5922,90 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get teamResponsibilityAccountsLoadFailed =>
       'Couldn\'t load the connected accounts.';
+
+  @override
+  String get aiSuggestAction => 'AI Suggest';
+
+  @override
+  String get aiSuggestGenerating => 'Generating suggestion…';
+
+  @override
+  String get aiSuggestFailed => 'Couldn\'t create a suggestion';
+
+  @override
+  String get aiSuggestRegenerate => 'Regenerate';
+
+  @override
+  String get aiSuggestNotSentHint => 'Nothing is sent until you press Send.';
+
+  @override
+  String get aiSuggestStale =>
+      'The conversation has moved on — regenerate the suggestion';
+
+  @override
+  String get aiSuggestReady => 'A suggestion is ready.';
+
+  @override
+  String get aiSuggestUse => 'Use reply';
+
+  @override
+  String get aiSuggestUnavailable =>
+      'AI suggestions aren\'t available for this conversation.';
+
+  @override
+  String get aiSuggestEmpty =>
+      'The AI didn\'t return a usable reply. Your text is unchanged.';
+
+  @override
+  String get aiSuggestNotInKb => 'No reliable answer in the knowledge base';
+
+  @override
+  String get aiSuggestNotInKbHint =>
+      'Nothing here answers this. Write the reply yourself, or add the knowledge so next time it can.';
+
+  @override
+  String get aiSuggestAttachmentNeeded =>
+      'AI suggestion unavailable — this message needs an attachment reviewed';
+
+  @override
+  String get aiSuggestNoCustomerMessage => 'Nothing to reply to yet';
+
+  @override
+  String get aiSuggestNoKnowledgeBase =>
+      'No knowledge base has been set up yet';
+
+  @override
+  String get aiSuggestConflict =>
+      'Conflicting information in the knowledge base';
+
+  @override
+  String get aiSuggestConflictHint =>
+      'Two or more sources would answer this differently. Nothing is suggested until one of them is corrected.';
+
+  @override
+  String aiSuggestConflictSources(String sources) {
+    return 'Sources that disagree: $sources';
+  }
+
+  @override
+  String get aiSuggestReplaceTitle => 'Replace what you have written?';
+
+  @override
+  String get aiSuggestReplaceBody =>
+      'Your reply box already has text. Replace it with the suggestion, or add the suggestion below it.';
+
+  @override
+  String get aiSuggestKeepMine => 'Keep mine';
+
+  @override
+  String get aiSuggestAddBelow => 'Add below';
+
+  @override
+  String get aiSuggestReplace => 'Replace';
+
+  @override
+  String get aiSuggestDiscard => 'Discard';
+
+  @override
+  String get aiSuggestHeading => 'AI suggestion';
 }

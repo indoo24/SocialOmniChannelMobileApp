@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import '../../app/router.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/models/ai_suggestion.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/employee.dart';
 import '../../core/models/message.dart';
@@ -33,6 +34,8 @@ import '../templates/templates_providers.dart';
 import '../saved_replies/saved_reply.dart';
 import '../saved_replies/saved_reply_picker.dart';
 import '../../core/models/template.dart';
+import 'ai_suggestion_bar.dart';
+import 'ai_suggestion_controller.dart';
 import 'assign_conversation_sheet.dart';
 import 'conversation_ai_banner.dart';
 import 'conversation_review.dart' show ConversationReviewBanner;
@@ -726,6 +729,15 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     if ((text.isEmpty && !hasAttachment) || _sending) return;
 
     final replyTo = _replyingTo;
+    // Read before the composer is cleared: clearing it ends the suggestion.
+    // Only a reply with text carries it — the draft is text.
+    final suggestionId = text.isEmpty
+        ? null
+        : ref
+              .read(
+                aiSuggestionControllerProvider(widget.conversationId).notifier,
+              )
+              .takeForSend();
     setState(() {
       _sending = true;
       _replyingTo = null;
@@ -742,6 +754,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             replyTo: replyTo == null
                 ? null
                 : QuotedMessage.fromMessage(replyTo),
+            suggestionId: suggestionId,
           );
       _scrollToBottom(animated: true);
     } on ApiException catch (error) {
@@ -2384,6 +2397,13 @@ class _ComposerState extends ConsumerState<_Composer> {
   bool _isRecording = false;
   final _voiceRecorderKey = GlobalKey<ComposerVoiceRecorderState>();
 
+  /// The reply box, focused once an AI draft is placed in it.
+  final _replyFocus = FocusNode(debugLabel: 'composer_reply');
+
+  /// The tab the composer last showed — where an AI draft that arrives may
+  /// go (only the reply box takes one).
+  _ComposerMode _shownMode = _ComposerMode.reply;
+
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -2401,14 +2421,90 @@ class _ComposerState extends ConsumerState<_Composer> {
       conversationId: widget.conversationId,
       onFailed: _explainUploadFailure,
     )..addListener(_onUploadsChanged);
+    widget.controller.addListener(_onComposerTextChanged);
   }
 
   @override
   void dispose() {
+    widget.controller.removeListener(_onComposerTextChanged);
+    _replyFocus.dispose();
     _uploads
       ..removeListener(_onUploadsChanged)
       ..dispose();
     super.dispose();
+  }
+
+  /// An emptied reply box holds nothing of an AI draft any more, so the
+  /// next message is not sent as that suggestion — as on the web.
+  void _onComposerTextChanged() {
+    if (!mounted || widget.controller.text.trim().isNotEmpty) return;
+    ref
+        .read(aiSuggestionControllerProvider(widget.conversationId).notifier)
+        .composerCleared();
+  }
+
+  /// Asks for an AI draft for this conversation and puts it in the reply
+  /// box. Never sends: the employee reviews, edits and presses Send.
+  Future<void> _requestAiSuggestion({required bool regenerate}) async {
+    final conversationId = widget.conversationId;
+    final notifier = ref.read(
+      aiSuggestionControllerProvider(conversationId).notifier,
+    );
+    final suggestion = await notifier.request(regenerate: regenerate);
+    // Dropped when this composer has gone or now shows another
+    // conversation: a draft only ever lands where it was asked for.
+    if (suggestion == null ||
+        !mounted ||
+        conversationId != widget.conversationId) {
+      return;
+    }
+    await _placeAiSuggestion(notifier, suggestion);
+  }
+
+  /// "Use reply" on a draft that arrived while another tab was open.
+  Future<void> _useReadyAiSuggestion() async {
+    final provider = aiSuggestionControllerProvider(widget.conversationId);
+    final suggestion = ref.read(provider).suggestion;
+    if (suggestion == null || !suggestion.hasDraft) return;
+    await _placeAiSuggestion(ref.read(provider.notifier), suggestion);
+  }
+
+  Future<void> _placeAiSuggestion(
+    AiSuggestionController notifier,
+    AiSuggestion suggestion,
+  ) async {
+    final conversationId = widget.conversationId;
+    // The reply box is shared with the note tab; a draft never goes into
+    // an internal note. It waits to be used instead.
+    if (_shownMode != _ComposerMode.reply || _isRecording) {
+      notifier.park(suggestion);
+      return;
+    }
+    final current = widget.controller.text;
+    final placedText = ref
+        .read(aiSuggestionControllerProvider(conversationId))
+        .placedText;
+    // Nothing of the employee's own would be lost: the box is empty, or
+    // still holds exactly the previous draft, unedited.
+    final untouched =
+        current.trim().isEmpty || (placedText != null && current == placedText);
+    var placement = AiDraftPlacement.replace;
+    if (!untouched) {
+      placement = await askAiDraftPlacement(context, suggestion.draft);
+      if (!mounted || conversationId != widget.conversationId) return;
+    }
+    if (placement == AiDraftPlacement.keep) {
+      notifier.declined(suggestion);
+      return;
+    }
+    final value = placeAiDraft(
+      widget.controller.text,
+      suggestion.draft,
+      placement,
+    );
+    widget.controller.value = value;
+    notifier.placed(suggestion, value.text);
+    _replyFocus.requestFocus();
   }
 
   /// A card was added, removed or changed state — the only upload events
@@ -2486,6 +2582,16 @@ class _ComposerState extends ConsumerState<_Composer> {
     );
   }
 
+  /// The newest stored (server-confirmed) message, for telling a draft
+  /// written against an older one.
+  static int? _newestMessageId(List<Message>? messages) {
+    int? newest;
+    for (final m in messages ?? const <Message>[]) {
+      if (m.id > 0 && (newest == null || m.id > newest)) newest = m.id;
+    }
+    return newest;
+  }
+
   void _onVoiceStaged(StagedAttachment staged) {
     // A voice note sends immediately on finishing recording rather than
     // sitting in the composer for a separate Send tap — matching the "Stop
@@ -2504,10 +2610,20 @@ class _ComposerState extends ConsumerState<_Composer> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final canNote = ref.watch(canProvider(Perm.conversationNote));
-    final convo = ref
+    final threadState = ref
         .watch(conversationControllerProvider(widget.conversationId))
-        .value
-        ?.conversation;
+        .value;
+    final convo = threadState?.conversation;
+    // Watched here, where the composer lives, so a request in flight
+    // survives switching tabs — and ends with this conversation's composer.
+    final aiSuggestion = ref.watch(
+      aiSuggestionControllerProvider(widget.conversationId),
+    );
+    // Offered exactly where the server would answer: the channel is in
+    // `SUGGEST` mode (the web composer's own test). Anything else is a 404.
+    final offersAiSuggestion =
+        convo?.aiAssistMode.toUpperCase() == 'SUGGEST' &&
+        aiSuggestion.phase != AiSuggestionPhase.hidden;
     final isWhatsApp = convo != null
         ? (convo.provider.toUpperCase() == 'WHATSAPP')
         : widget.isWhatsApp;
@@ -2531,6 +2647,7 @@ class _ComposerState extends ConsumerState<_Composer> {
         ? _ComposerMode.reply
         : _mode;
 
+    _shownMode = currentMode;
     final isInternal = currentMode == _ComposerMode.internalNote;
     final composerBackground = isInternal
         ? (isDark ? const Color(0xFF231B06) : const Color(0xFFFEFCE8))
@@ -2647,6 +2764,23 @@ class _ComposerState extends ConsumerState<_Composer> {
                       ),
                     ),
                   ),
+                // "AI Suggest": drafts a reply into the box below, never
+                // sends it.
+                if (offersAiSuggestion && !_isRecording)
+                  AiSuggestionStrip(
+                    state: aiSuggestion,
+                    enabled: !widget.sending,
+                    newestMessageId: _newestMessageId(threadState?.messages),
+                    onSuggest: _requestAiSuggestion,
+                    onUseReady: _useReadyAiSuggestion,
+                    onDismiss: ref
+                        .read(
+                          aiSuggestionControllerProvider(
+                            widget.conversationId,
+                          ).notifier,
+                        )
+                        .dismiss,
+                  ),
                 if (_uploads.count > 0)
                   Align(
                     alignment: AlignmentDirectional.centerStart,
@@ -2707,6 +2841,7 @@ class _ComposerState extends ConsumerState<_Composer> {
                           builder: (context, value, _) => TextField(
                             key: const ValueKey('composer_reply_input'),
                             controller: widget.controller,
+                            focusNode: _replyFocus,
                             textDirection: inputDirectionOf(value.text),
                             minLines: 1,
                             maxLines: 5,
