@@ -10301,6 +10301,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI suggestion'**
   String get aiSuggestHeading;
+
+  /// No description provided for @conversationHeaderPhoneSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone {phone}'**
+  String conversationHeaderPhoneSemantics(String phone);
+
+  /// No description provided for @conversationHeaderChannelSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel: {channel}'**
+  String conversationHeaderChannelSemantics(String channel);
+
+  /// No description provided for @conversationHeaderAccountSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Account: {account}'**
+  String conversationHeaderAccountSemantics(String account);
 }
 
 class _AppLocalizationsDelegate

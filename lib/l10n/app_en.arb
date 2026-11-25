@@ -3067,5 +3067,11 @@
   "aiSuggestAddBelow": "Add below",
   "aiSuggestReplace": "Replace",
   "aiSuggestDiscard": "Discard",
-  "aiSuggestHeading": "AI suggestion"
+  "aiSuggestHeading": "AI suggestion",
+  "conversationHeaderPhoneSemantics": "Phone {phone}",
+  "@conversationHeaderPhoneSemantics": {"placeholders": {"phone": {"type": "String"}}},
+  "conversationHeaderChannelSemantics": "Channel: {channel}",
+  "@conversationHeaderChannelSemantics": {"placeholders": {"channel": {"type": "String"}}},
+  "conversationHeaderAccountSemantics": "Account: {account}",
+  "@conversationHeaderAccountSemantics": {"placeholders": {"account": {"type": "String"}}}
 }

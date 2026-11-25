@@ -678,8 +678,13 @@ void main() {
     final reviewButton = find.byKey(
       const Key('conversation_actions_sheet_review_button'),
     );
+    // Pin moved to the conversation header; the sheet's top row is
+    // Transfer to team (for those who may) and Review.
     final pinButton = find.byKey(
       const Key('conversation_actions_sheet_pin_button'),
+    );
+    final transferButton = find.byKey(
+      const Key('conversation_actions_sheet_transfer_button'),
     );
     Finder titled(Finder button, String title) =>
         find.descendant(of: button, matching: find.text(title));
@@ -717,25 +722,28 @@ void main() {
           await tester.pumpAndSettle();
           expect(banner, findsNothing);
 
-          // At the top of the actions sheet, beside the pin, on its row —
-          // with Resolve full width under the two of them.
+          // At the top of the actions sheet — the whole row to itself for
+          // someone who may not transfer — with Resolve full width under it.
+          // The pin is in the header now, not here.
           await openActionsSheet(tester);
+          expect(pinButton, findsNothing);
+          expect(transferButton, findsNothing);
           expect(
-            tester.getCenter(reviewButton).dy,
-            tester.getCenter(pinButton).dy,
+            find.byKey(const Key('conversation_header_pin_button')),
+            findsOneWidget,
           );
-          final pinX = tester.getCenter(pinButton).dx;
-          final reviewX = tester.getCenter(reviewButton).dx;
-          expect(arabic ? reviewX < pinX : reviewX > pinX, isTrue);
           final resolveButton = find.byKey(
             const Key('conversation_actions_sheet_resolve_button'),
           );
           expect(resolveButton, findsOneWidget);
           expect(
             tester.getRect(resolveButton).top,
-            greaterThanOrEqualTo(tester.getRect(pinButton).bottom),
+            greaterThanOrEqualTo(tester.getRect(reviewButton).bottom),
           );
-          expect(titled(pinButton, l10n.pinConversationAction), findsOneWidget);
+          expect(
+            tester.getRect(reviewButton).width,
+            closeTo(tester.getRect(resolveButton).width, 1),
+          );
           expect(
             titled(reviewButton, l10n.requestReviewAction),
             findsOneWidget,
@@ -1022,8 +1030,10 @@ void main() {
       await tester.pumpAndSettle();
       await openActionsSheet(tester);
 
-      expect(pinButton, findsOneWidget);
+      // Neither Review nor (without the right) Transfer: no top row at all.
       expect(reviewButton, findsNothing);
+      expect(transferButton, findsNothing);
+      expect(pinButton, findsNothing);
     });
 
     testWidgets('someone who cannot reply is not offered Change reviewer or '

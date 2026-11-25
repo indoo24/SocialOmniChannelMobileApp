@@ -19,6 +19,7 @@ import '../../core/models/employee.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
+import '../../core/widgets/key_value_row.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import '../directory/directory_providers.dart';
@@ -95,33 +96,14 @@ class CustomFieldsSection extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: Space.xs),
+        // The same flexible label/value row as the conversation details:
+        // nothing cut, whatever the label or the system text size.
         for (final row in rows)
-          Padding(
-            padding: const EdgeInsets.only(bottom: Space.xs),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 120,
-                  child: Text(
-                    row.definition.label,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    row.hasValue
-                        ? displayCustomFieldValue(
-                            context,
-                            row.definition,
-                            row.value,
-                          )
-                        : '—',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ),
-              ],
-            ),
+          KeyValueRow(
+            label: row.definition.label,
+            value: row.hasValue
+                ? displayCustomFieldValue(context, row.definition, row.value)
+                : '',
           ),
       ],
     );

@@ -6059,4 +6059,19 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get aiSuggestHeading => 'اقتراح الذكاء الاصطناعي';
+
+  @override
+  String conversationHeaderPhoneSemantics(String phone) {
+    return 'الهاتف $phone';
+  }
+
+  @override
+  String conversationHeaderChannelSemantics(String channel) {
+    return 'القناة: $channel';
+  }
+
+  @override
+  String conversationHeaderAccountSemantics(String account) {
+    return 'الحساب: $account';
+  }
 }

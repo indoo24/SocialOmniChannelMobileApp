@@ -239,3 +239,71 @@ Future<void> showConversationQuickActions(
     ),
   );
 }
+
+/// Pin / unpin in the conversation header — the same [toggleConversationPin]
+/// the inbox row and the conversation sheet use, not a second pin.
+///
+/// Filled and tinted while pinned, an outline otherwise; a spinner while a
+/// request is on its way, which also takes no second tap ([PinningController]
+/// sends nothing for a conversation already in flight). The state shown is
+/// the conversation the controller holds — the server's confirmed answer —
+/// so a refresh or a realtime update can never leave it stale.
+class ConversationPinButton extends ConsumerWidget {
+  const ConversationPinButton({
+    required this.conversation,
+    this.extent = Sizes.touchTarget,
+    super.key,
+  });
+
+  final Conversation conversation;
+
+  /// The button's square touch target.
+  final double extent;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colors = AppColors.of(context);
+    final pinned = conversation.isPinned;
+    final busy = ref.watch(pinningProvider).contains(conversation.id);
+    final (label, icon) = pinActionLabel(context.l10n, pinned);
+    // One node: the button, announced as on/off.
+    return MergeSemantics(
+      child: Semantics(
+        toggled: pinned,
+        child: IconButton(
+          key: const Key('conversation_header_pin_button'),
+          tooltip: label,
+          isSelected: pinned,
+          padding: EdgeInsets.zero,
+          constraints: BoxConstraints.tightFor(width: extent, height: extent),
+          style: IconButton.styleFrom(
+            backgroundColor: pinned
+                ? colors.primary.withValues(alpha: 0.12)
+                : Colors.transparent,
+          ),
+          onPressed: busy
+              ? null
+              : () => toggleConversationPin(
+                  context,
+                  conversationId: conversation.id,
+                  currentlyPinned: pinned,
+                ),
+          icon: busy
+              ? const SizedBox.square(
+                  key: Key('conversation_header_pin_busy'),
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(
+                  icon,
+                  size: Sizes.iconMd + 2,
+                  color: pinned
+                      ? colors.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+        ),
+      ),
+    );
+  }
+}

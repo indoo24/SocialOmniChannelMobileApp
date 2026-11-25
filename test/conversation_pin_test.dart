@@ -680,36 +680,46 @@ void main() {
       }
     }
 
-    testWidgets('the actions sheet pins and then offers to unpin', (
-      tester,
-    ) async {
+    testWidgets('the header pins and then offers to unpin; the actions '
+        'sheet no longer has a pin', (tester) async {
       final server = _Server();
       await tester.pumpWidget(
         app(server, const ConversationScreen(conversationId: 3)),
       );
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('conversation_header_customer_area')),
-      );
-      await tester.pumpAndSettle();
 
-      final button = find.byKey(
-        const Key('conversation_actions_sheet_pin_button'),
+      final button = find.byKey(const Key('conversation_header_pin_button'));
+      expect(find.byTooltip('Pin conversation'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: button,
+          matching: find.byIcon(Icons.push_pin_outlined),
+        ),
+        findsOneWidget,
       );
-      // The button carries its title beside the icon.
-      Finder titled(String title) =>
-          find.descendant(of: button, matching: find.text(title));
-      expect(titled('Pin conversation'), findsOneWidget);
       await tester.tap(button);
       await tester.pumpAndSettle();
 
       expect(server.pinRequests, ['POST /conversations/3/pin/']);
-      expect(titled('Unpin conversation'), findsOneWidget);
+      expect(find.byTooltip('Unpin conversation'), findsOneWidget);
+      expect(
+        find.descendant(of: button, matching: find.byIcon(Icons.push_pin)),
+        findsOneWidget,
+      );
 
       await tester.tap(button);
       await tester.pumpAndSettle();
       expect(server.pinRequests.last, 'DELETE /conversations/3/pin/');
-      expect(titled('Pin conversation'), findsOneWidget);
+      expect(find.byTooltip('Pin conversation'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const Key('conversation_header_customer_area')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('conversation_actions_sheet_pin_button')),
+        findsNothing,
+      );
     });
 
     Future<void> pinFromQuickActions(

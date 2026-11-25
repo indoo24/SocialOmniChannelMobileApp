@@ -6008,4 +6008,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiSuggestHeading => 'AI suggestion';
+
+  @override
+  String conversationHeaderPhoneSemantics(String phone) {
+    return 'Phone $phone';
+  }
+
+  @override
+  String conversationHeaderChannelSemantics(String channel) {
+    return 'Channel: $channel';
+  }
+
+  @override
+  String conversationHeaderAccountSemantics(String account) {
+    return 'Account: $account';
+  }
 }

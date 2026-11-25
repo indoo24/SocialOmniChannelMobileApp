@@ -117,10 +117,12 @@ Employee _employee({bool canChangeStatus = true}) => Employee(
     Perm.conversationReply,
     Perm.conversationChangePriority,
     Perm.conversationChangeCategory,
+    Perm.conversationAssignAny,
     if (canChangeStatus) Perm.conversationChangeStatus,
   },
   visibilityScope: 'ALL',
   organization: const Organization(id: 1, name: 'Acme Retail'),
+  teamTransferEnabled: true,
 );
 
 Future<void> _openSheet(
@@ -164,8 +166,10 @@ Future<void> _openSheet(
 
 Finder get _resolve =>
     find.byKey(const Key('conversation_actions_sheet_resolve_button'));
-Finder get _pin =>
-    find.byKey(const Key('conversation_actions_sheet_pin_button'));
+
+/// "Transfer to team" — in the place Pin had before it moved to the header.
+Finder get _transfer =>
+    find.byKey(const Key('conversation_actions_sheet_transfer_button'));
 Finder get _review =>
     find.byKey(const Key('conversation_actions_sheet_review_button'));
 
@@ -201,14 +205,18 @@ Color? _fill(WidgetTester tester, String key) => tester
 
 void main() {
   group('Resolve', () {
-    testWidgets('a full-width green button directly below Pin and Review', (
-      tester,
-    ) async {
+    testWidgets('a full-width green button directly below Transfer and '
+        'Review', (tester) async {
       await _openSheet(tester, _Server());
 
-      expect(_pin, findsOneWidget);
+      expect(_transfer, findsOneWidget);
       expect(_review, findsOneWidget);
       expect(_resolve, findsOneWidget);
+      // Pin is no longer in the sheet.
+      expect(
+        find.byKey(const Key('conversation_actions_sheet_pin_button')),
+        findsNothing,
+      );
       expect(find.text('Resolve'), findsOneWidget);
       expect(
         find.descendant(
@@ -218,12 +226,12 @@ void main() {
         findsOneWidget,
       );
 
-      final pin = tester.getRect(_pin);
+      final pin = tester.getRect(_transfer);
       final review = tester.getRect(_review);
       final resolve = tester.getRect(_resolve);
       expect(resolve.top, greaterThanOrEqualTo(pin.bottom));
       expect(resolve.top - pin.bottom, lessThan(16));
-      // Spans what Pin and Review span together.
+      // Spans what Transfer and Review span together.
       expect(resolve.left, closeTo(pin.left, 1));
       expect(resolve.right, closeTo(review.right, 1));
 
@@ -312,7 +320,7 @@ void main() {
         _Server(),
         employee: _employee(canChangeStatus: false),
       );
-      expect(_pin, findsOneWidget);
+      expect(_transfer, findsOneWidget);
       expect(_resolve, findsNothing);
       await _reveal(tester, _chip('priority_chip_URGENT'));
       expect(_chip('status_chip_OPEN'), findsNothing);

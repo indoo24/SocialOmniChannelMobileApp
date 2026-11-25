@@ -480,6 +480,14 @@ void main() {
         }
       ''');
 
+      // Tall enough for all four bubbles at once: both quotes are tapped
+      // where they are, without scrolling — a scroll would move the clock
+      // this test measures. (The conversation header has its own rows for
+      // the customer and the conversation's details since this was written.)
+      tester.view.physicalSize = const Size(800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
       await tester.pumpWidget(_harness(client));
       await tester.pumpAndSettle();
 

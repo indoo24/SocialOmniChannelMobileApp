@@ -15,8 +15,8 @@ import '../../core/providers.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
-import '../../core/utils/text_direction.dart';
 import '../../core/widgets/avatar.dart';
+import '../../core/widgets/key_value_row.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
@@ -41,7 +41,6 @@ import '../directory/save_to_contacts.dart';
 import '../orders/customer_data_sheet.dart';
 import '../orders/order_and_fact_dialogs.dart';
 import '../orders/order_details.dart';
-import '../conversations/conversation_pin.dart';
 import 'transfer_team_sheet.dart';
 
 const _statuses = [
@@ -272,21 +271,40 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
           ),
 
         // ------------------------------------------------------------
-        // TOP QUICK ACTIONS: PIN AND REVIEW, THEN RESOLVE
+        // TOP QUICK ACTIONS: TRANSFER TO TEAM AND REVIEW, THEN RESOLVE
+        // (Pin / unpin is in the conversation header.)
         // ------------------------------------------------------------
         if (conversation != null) ...[
-          Row(
-            children: [
-              Expanded(child: _SheetPinButton(conversation: conversation)),
+          Builder(
+            builder: (context) {
+              // The web's rule for who may hand the thread to another team
+              // — the same one the Actions section's entry uses.
+              final canTransfer = canTransferToTeam(employee, conversation);
               // Asking for a review needs `conversation.reply` (the server
-              // refuses anyone without it), so it is not offered to them. An
-              // existing review can still be opened.
-              if (conversation.review != null ||
-                  ref.watch(canProvider(Perm.conversationReply))) ...[
-                const SizedBox(width: Space.sm),
-                Expanded(child: _SheetReviewButton(conversation: conversation)),
-              ],
-            ],
+              // refuses anyone without it), so it is not offered to them.
+              // An existing review can still be opened.
+              final canReview =
+                  conversation.review != null ||
+                  ref.watch(canProvider(Perm.conversationReply));
+              if (!canTransfer && !canReview) return const SizedBox.shrink();
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (canTransfer)
+                    Expanded(
+                      child: _SheetTransferButton(
+                        conversation: conversation,
+                        enabled: !_busy,
+                      ),
+                    ),
+                  if (canTransfer && canReview) const SizedBox(width: Space.sm),
+                  if (canReview)
+                    Expanded(
+                      child: _SheetReviewButton(conversation: conversation),
+                    ),
+                ],
+              );
+            },
           ),
           // Resolve: the status change to RESOLVED — the same endpoint and
           // value as the Resolved status chip below, gated on the same
@@ -991,8 +1009,11 @@ class _CustomerDetailsView extends ConsumerWidget {
                 children: [
                   Text(
                     customer.displayName,
+                    key: const Key('contactName'),
+                    softWrap: true,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
+                      height: 1.3,
                     ),
                   ),
                   // The number is the first thing wanted from here, so it
@@ -1001,23 +1022,24 @@ class _CustomerDetailsView extends ConsumerWidget {
                     const SizedBox(height: 2),
                     _PhoneLine(phone: phone),
                   ],
-                  const SizedBox(height: 2),
-                  Row(
+                  const SizedBox(height: 4),
+                  // Wraps rather than cutting a long account name.
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 2,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       _ChannelPill(provider: conversation.provider),
-                      if (conversation.channelName.isNotEmpty) ...[
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            conversation.channelName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
+                      if (conversation.channelName.isNotEmpty)
+                        Text(
+                          conversation.channelName,
+                          key: const Key('contactChannelName'),
+                          softWrap: true,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 11.5,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
-                      ],
                     ],
                   ),
                 ],
@@ -1028,80 +1050,80 @@ class _CustomerDetailsView extends ConsumerWidget {
         const SizedBox(height: Space.md),
 
         // Key-Value rows table
-        _KeyValueRow(
+        KeyValueRow(
           label: context.l10n.statusSection,
           value: ConversationBadges.status(context, conversation.status).$1,
         ),
-        _KeyValueRow(
+        KeyValueRow(
           label: context.l10n.prioritySection,
           value: ConversationBadges.priority(context, conversation.priority).$1,
         ),
-        _KeyValueRow(
+        KeyValueRow(
           label: context.l10n.categoryFieldLabel,
           value: conversation.category?.label ?? '—',
         ),
-        _KeyValueRow(
+        KeyValueRow(
           label: context.l10n.assignedToFieldLabel,
           value:
               conversation.assignedTo?.fullName ?? context.l10n.unassignedBadge,
         ),
         if (conversation.assignedTeam != null)
-          _KeyValueRow(
+          KeyValueRow(
             label: context.l10n.teamFieldLabel,
             value: conversation.assignedTeam!.name,
           ),
         if (conversation.claimedBy != null)
-          _KeyValueRow(
+          KeyValueRow(
             label: context.l10n.claimedByFieldLabel,
             value: conversation.claimedBy!.fullName,
           ),
-        _KeyValueRow(
+        KeyValueRow(
           label: context.l10n.messagesFieldLabel,
           value: '${conversation.messageCount}',
         ),
         if (conversation.startedAt != null)
-          _KeyValueRow(
+          KeyValueRow(
             label: context.l10n.startedFieldLabel,
             value: formatDateTime(context, conversation.startedAt),
           ),
         if (conversation.lastMessageAt != null)
-          _KeyValueRow(
+          KeyValueRow(
             label: context.l10n.lastMessageFieldLabel,
             value: formatDateTime(context, conversation.lastMessageAt),
           ),
         if (conversation.firstResponseAt != null)
-          _KeyValueRow(
+          KeyValueRow(
             label: context.l10n.firstResponseFieldLabel,
             value: formatDateTime(context, conversation.firstResponseAt),
           ),
         if (conversation.lastAgentMessageAt != null)
-          _KeyValueRow(
+          KeyValueRow(
             label: context.l10n.lastAgentMessageFieldLabel,
             value: formatDateTime(context, conversation.lastAgentMessageAt),
           ),
         if (conversation.resolvedAt != null)
-          _KeyValueRow(
+          KeyValueRow(
             label: context.l10n.resolvedFieldLabel,
             value: formatDateTime(context, conversation.resolvedAt),
           ),
         if (customer.lifecycleStage.isNotEmpty)
-          _KeyValueRow(
+          KeyValueRow(
             label: context.l10n.lifecycleFieldLabel,
             value: humanizeEnum(customer.lifecycleStage),
           ),
         if (customer.preferredLanguage.isNotEmpty)
-          _KeyValueRow(
+          KeyValueRow(
             label: context.l10n.languageLabel,
             value: customer.preferredLanguage,
           ),
         if (customer.email.isNotEmpty)
-          _KeyValueRow(
+          KeyValueRow(
             label: context.l10n.emailFieldLabel,
             value: customer.email,
             ltr: true,
           ),
         if (customer.city.isNotEmpty || customer.country.isNotEmpty)
-          _KeyValueRow(
+          KeyValueRow(
             label: context.l10n.localeName.startsWith('ar')
                 ? 'الموقع'
                 : 'Location',
@@ -1244,9 +1266,10 @@ class _CustomerDataPreview extends StatelessWidget {
   }
 }
 
-/// The customer's number under their name: an icon, then the number in the
-/// semibold body size, always left-to-right (so a leading `+` stays in front
-/// in Arabic) and on one line, shortened rather than overflowing.
+/// The customer's number under their name: an icon, then the number,
+/// always left-to-right (so a leading `+` stays in front in Arabic) and on
+/// one line — shrunk to fit a narrow sheet, never cut, since a partial number
+/// is no use.
 class _PhoneLine extends StatelessWidget {
   const _PhoneLine({required this.phone});
 
@@ -1265,67 +1288,26 @@ class _PhoneLine extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Flexible(
-          child: Text(
-            phone,
-            key: const Key('contactPhoneText'),
-            textDirection: TextDirection.ltr,
-            maxLines: 1,
-            softWrap: false,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(
+              phone,
+              key: const Key('contactPhoneText'),
+              textDirection: TextDirection.ltr,
+              maxLines: 1,
+              softWrap: false,
+              // Kept a step above the detail rows: the number is what is
+              // most often wanted from here.
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
           ),
         ),
       ],
-    );
-  }
-}
-
-class _KeyValueRow extends StatelessWidget {
-  const _KeyValueRow({
-    required this.label,
-    required this.value,
-    this.ltr = false,
-  });
-
-  final String label;
-  final String value;
-
-  /// For phone numbers and e-mail addresses: always left-to-right, so in
-  /// Arabic a leading `+` stays in front of the number.
-  final bool ltr;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3.5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value.isEmpty ? '—' : value,
-              textDirection: ltr && value.isNotEmpty ? TextDirection.ltr : null,
-              textAlign: ltr ? ambientStartAlign(context) : null,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1782,35 +1764,35 @@ class _Label extends StatelessWidget {
   );
 }
 
-/// Pin / unpin for the signed-in employee. The title follows the state the
-/// server confirmed (this sheet shows the conversation's controller), and
-/// the button waits while a request is on its way.
-class _SheetPinButton extends ConsumerWidget {
-  const _SheetPinButton({required this.conversation});
+/// "Transfer to team" — the same transfer sheet (and the same
+/// `POST /conversations/{id}/transfer-team/`) as the Actions section's
+/// entry; offered on the same rule ([canTransferToTeam]).
+class _SheetTransferButton extends StatelessWidget {
+  const _SheetTransferButton({
+    required this.conversation,
+    required this.enabled,
+  });
 
   final Conversation conversation;
 
+  /// False while the sheet has a request of its own on its way.
+  final bool enabled;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final busy = ref.watch(pinningProvider).contains(conversation.id);
-    final (label, icon) = pinActionLabel(context.l10n, conversation.isPinned);
+  Widget build(BuildContext context) {
     return _SheetQuickAction(
-      key: const Key('conversation_actions_sheet_pin_button'),
-      icon: icon,
-      label: label,
-      selected: conversation.isPinned,
-      busy: busy,
-      onPressed: () => toggleConversationPin(
-        context,
-        conversationId: conversation.id,
-        currentlyPinned: conversation.isPinned,
-      ),
+      key: const Key('conversation_actions_sheet_transfer_button'),
+      icon: Icons.groups_2_outlined,
+      label: context.l10n.transferTeamAction,
+      enabled: enabled,
+      onPressed: () =>
+          showTransferTeamSheet(context, conversation: conversation),
     );
   }
 }
 
 /// Request a review when there is none; open the pending one otherwise,
-/// highlighted as a pinned pin is.
+/// highlighted.
 class _SheetReviewButton extends StatelessWidget {
   const _SheetReviewButton({required this.conversation});
 
@@ -1838,14 +1820,14 @@ class _SheetReviewButton extends StatelessWidget {
 }
 
 /// An icon with its title, outlined; tinted in the primary colour while
-/// [selected]. A spinner stands in for the icon while [busy].
+/// [selected]; disabled while not [enabled].
 class _SheetQuickAction extends StatelessWidget {
   const _SheetQuickAction({
     required this.icon,
     required this.label,
     required this.onPressed,
     this.selected = false,
-    this.busy = false,
+    this.enabled = true,
     super.key,
   });
 
@@ -1853,16 +1835,19 @@ class _SheetQuickAction extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
   final bool selected;
-  final bool busy;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     return OutlinedButton.icon(
-      onPressed: busy ? null : onPressed,
+      onPressed: enabled ? onPressed : null,
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(0, 46),
-        padding: const EdgeInsets.symmetric(horizontal: Space.sm),
+        padding: const EdgeInsets.symmetric(
+          horizontal: Space.sm,
+          vertical: Space.xs,
+        ),
         foregroundColor: selected
             ? colors.primary
             : Theme.of(context).colorScheme.onSurface,
@@ -1878,19 +1863,25 @@ class _SheetQuickAction extends StatelessWidget {
           borderRadius: BorderRadius.circular(Radii.md),
         ),
       ),
-      icon: busy
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(icon, size: 20),
-      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      icon: Icon(icon, size: 20),
+      // Two lines before anything is cut — a long label (or a large system
+      // text size) wraps inside the button instead of being truncated.
+      label: Text(
+        label,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          height: 1.25,
+        ),
+      ),
     );
   }
 }
 
-/// Resolve — full width under Pin and Review, in the success green.
+/// Resolve — full width under Transfer and Review, in the success green.
 ///
 /// White on a green deepened from the theme's own success colour until the
 /// label reads at 4.5:1. Once the conversation is resolved it says so,

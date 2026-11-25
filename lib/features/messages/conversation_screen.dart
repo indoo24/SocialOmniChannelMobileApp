@@ -23,7 +23,7 @@ import '../../core/theme/tokens.dart';
 import '../../core/utils/formatting.dart';
 import '../../core/utils/text_direction.dart';
 import '../../core/widgets/avatar.dart';
-import '../../core/widgets/badges.dart';
+import '../../core/widgets/shimmer.dart';
 import '../../core/widgets/states.dart';
 import '../../core/realtime/realtime_bridge.dart';
 import '../../core/realtime/realtime_logger.dart';
@@ -42,6 +42,8 @@ import 'conversation_review.dart' show ConversationReviewBanner;
 import 'composer_attachment.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
+import 'conversation_header.dart';
+import '../conversations/conversation_pin.dart';
 import 'conversation_sold_button.dart';
 import 'conversation_skeleton.dart';
 import 'conversation_source_card.dart';
@@ -52,7 +54,6 @@ import 'package:flutter/rendering.dart';
 import 'highlight_message_coordinator.dart';
 import 'contact_share.dart';
 import 'image_gallery.dart';
-import 'transfer_team_sheet.dart';
 import 'notes_controller.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
@@ -896,17 +897,36 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       });
     });
 
+    // Every action in the header's first row shares one touch size — a
+    // little smaller on the narrowest phones, so all of them (pin included)
+    // fit beside the back button without one being pushed off.
+    final narrowHeader = MediaQuery.sizeOf(context).width < 360;
+    final actionExtent = narrowHeader ? 40.0 : Sizes.touchTarget;
+
+    void openDetails() => showConversationActionsSheet(
+      context,
+      conversationId: widget.conversationId,
+    );
+
     return Scaffold(
+      // The header's first row: back, and the conversation's actions. Who
+      // the conversation is with — name, phone, channel, account, team,
+      // assignee — is the row below ([ConversationHeaderDetails]), so none
+      // of it has to share this row's width with the actions and be cut.
       appBar: AppBar(
         titleSpacing: 0,
-        title: async.maybeWhen(
-          data: (state) => _Header(conversation: state.conversation),
-          orElse: () => const ConversationHeaderSkeleton(),
-        ),
+        // The details row below carries the header's bottom line, and keeps
+        // one colour with this row when the thread scrolls under it.
+        shape: const Border(),
+        notificationPredicate: (_) => false,
+        leadingWidth: narrowHeader ? 44 : null,
         actions: [
           async.maybeWhen(
             data: (state) => state.conversation.hasUnread
-                ? _MarkReadButton(conversationId: widget.conversationId)
+                ? _MarkReadButton(
+                    conversationId: widget.conversationId,
+                    extent: actionExtent,
+                  )
                 : const SizedBox.shrink(),
             orElse: () => const SizedBox.shrink(),
           ),
@@ -918,10 +938,19 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 ConversationSoldButton(conversation: state.conversation),
             orElse: () => const ConversationActionSkeleton(),
           ),
+          // Pin / unpin — moved here from the conversation sheet.
+          async.maybeWhen(
+            data: (state) => ConversationPinButton(
+              conversation: state.conversation,
+              extent: actionExtent,
+            ),
+            orElse: () => const SizedBox.shrink(),
+          ),
           async.maybeWhen(
             data: (state) => _FollowUpButton(
               conversation: state.conversation,
               canChange: canChangeCategory,
+              extent: actionExtent,
             ),
             orElse: () => const SizedBox.shrink(),
           ),
@@ -929,137 +958,173 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             data: (state) => _AssigneeAvatar(
               conversation: state.conversation,
               canAssignAny: canAssignAny,
+              extent: actionExtent,
             ),
             orElse: () => const ConversationAssigneeSkeleton(),
           ),
-          const SizedBox(width: Space.xs),
+          // The same details and actions the customer row opens, where a
+          // menu is expected.
+          async.maybeWhen(
+            data: (_) => IconButton(
+              key: const Key('conversation_header_more_button'),
+              tooltip: context.l10n.moreActionsTooltip,
+              onPressed: openDetails,
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints.tightFor(
+                width: actionExtent,
+                height: actionExtent,
+              ),
+              icon: const Icon(Icons.more_vert_rounded),
+            ),
+            orElse: () => const SizedBox.shrink(),
+          ),
+          const SizedBox(width: Space.xxs),
         ],
       ),
       body: async.when(
-        loading: () => const ConversationThreadSkeleton(),
+        loading: () => const Column(
+          children: [
+            _HeaderDetailsSkeleton(),
+            Expanded(child: ConversationThreadSkeleton()),
+          ],
+        ),
         error: (error, _) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(
             conversationControllerProvider(widget.conversationId),
           ),
         ),
-        data: (state) => Column(
-          children: [
-            // Above the thread, never in the composer's place: a pending
-            // review leaves replying exactly as it was.
-            if (state.conversation.review case final review?)
-              ConversationReviewBanner(
-                conversationId: widget.conversationId,
-                review: review,
+        data: (state) => LayoutBuilder(
+          builder: (context, body) => Column(
+            children: [
+              // The rest of the header. Its height is whatever its rows need;
+              // the thread below takes what is left. Folded to one line while
+              // the screen is short (the keyboard is up), so the reply box
+              // always fits.
+              ConversationHeaderDetails(
+                conversation: state.conversation,
+                onOpenDetails: openDetails,
+                compact:
+                    body.maxHeight <
+                    ConversationHeaderDetails.compactBelowBodyHeight,
               ),
-            // Pinned above the thread rather than scrolled with it, so the
-            // AI's state stays in view while reading back.
-            if (state.conversation.aiState case final ai?)
-              ConversationAiBanner(
-                conversationId: widget.conversationId,
-                state: ai,
-              ),
-            Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child:
-                        (state.messages.isEmpty &&
-                            (ref
-                                        .watch(
-                                          notesControllerProvider(
-                                            widget.conversationId,
-                                          ),
-                                        )
-                                        .value ??
-                                    const [])
-                                .isEmpty)
-                        ? EmptyState(
-                            title: context.l10n.noMessagesYetTitle,
-                            message: context.l10n.noMessagesYetMessage,
-                            icon: Icons.chat_bubble_outline,
-                          )
-                        : Opacity(
-                            // Kept in the tree and laid out either way, so
-                            // maxScrollExtent is measurable — only visibility
-                            // is gated. This is what keeps the initial jump
-                            // to the latest message invisible: the user's
-                            // first painted frame is the positioned one, not
-                            // an unpositioned frame followed by a jump.
-                            opacity: _initialScrollDone ? 1 : 0,
-                            child: NotificationListener<ScrollNotification>(
-                              onNotification: (notification) {
-                                if ((notification is ScrollStartNotification &&
-                                        notification.dragDetails != null) ||
-                                    (notification is UserScrollNotification &&
-                                        notification.direction !=
-                                            ScrollDirection.idle)) {
-                                  _onUserScroll();
-                                }
-                                return false;
-                              },
-                              // An image tapped in this thread opens the
-                              // gallery over the whole conversation.
-                              child: ConversationGalleryScope(
-                                conversationId: widget.conversationId,
-                                child: _MessageList(
-                                  state: state,
-                                  controller: _scrollController,
+              // Above the thread, never in the composer's place: a pending
+              // review leaves replying exactly as it was.
+              if (state.conversation.review case final review?)
+                ConversationReviewBanner(
+                  conversationId: widget.conversationId,
+                  review: review,
+                ),
+              // Pinned above the thread rather than scrolled with it, so the
+              // AI's state stays in view while reading back.
+              if (state.conversation.aiState case final ai?)
+                ConversationAiBanner(
+                  conversationId: widget.conversationId,
+                  state: ai,
+                ),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child:
+                          (state.messages.isEmpty &&
+                              (ref
+                                          .watch(
+                                            notesControllerProvider(
+                                              widget.conversationId,
+                                            ),
+                                          )
+                                          .value ??
+                                      const [])
+                                  .isEmpty)
+                          ? EmptyState(
+                              title: context.l10n.noMessagesYetTitle,
+                              message: context.l10n.noMessagesYetMessage,
+                              icon: Icons.chat_bubble_outline,
+                            )
+                          : Opacity(
+                              // Kept in the tree and laid out either way, so
+                              // maxScrollExtent is measurable — only visibility
+                              // is gated. This is what keeps the initial jump
+                              // to the latest message invisible: the user's
+                              // first painted frame is the positioned one, not
+                              // an unpositioned frame followed by a jump.
+                              opacity: _initialScrollDone ? 1 : 0,
+                              child: NotificationListener<ScrollNotification>(
+                                onNotification: (notification) {
+                                  if ((notification
+                                              is ScrollStartNotification &&
+                                          notification.dragDetails != null) ||
+                                      (notification is UserScrollNotification &&
+                                          notification.direction !=
+                                              ScrollDirection.idle)) {
+                                    _onUserScroll();
+                                  }
+                                  return false;
+                                },
+                                // An image tapped in this thread opens the
+                                // gallery over the whole conversation.
+                                child: ConversationGalleryScope(
                                   conversationId: widget.conversationId,
-                                  onInitialLayout: _initialScrollDone
-                                      ? null
-                                      : _jumpToBottomInitial,
-                                  onReply: canReply ? _startReplyingTo : null,
-                                  onQuoteTap: _scrollToQuotedMessage,
-                                  keyForMessage: _bubbleKeyFor,
-                                  sourceCardKey: _sourceCardKey,
+                                  child: _MessageList(
+                                    state: state,
+                                    controller: _scrollController,
+                                    conversationId: widget.conversationId,
+                                    onInitialLayout: _initialScrollDone
+                                        ? null
+                                        : _jumpToBottomInitial,
+                                    onReply: canReply ? _startReplyingTo : null,
+                                    onQuoteTap: _scrollToQuotedMessage,
+                                    keyForMessage: _bubbleKeyFor,
+                                    sourceCardKey: _sourceCardKey,
+                                  ),
                                 ),
                               ),
                             ),
+                    ),
+                    if (state.conversation.attribution != null &&
+                        state.messages.isNotEmpty &&
+                        _initialScrollDone &&
+                        !_sourceCardVisible)
+                      Positioned(
+                        top: Space.sm,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: ConversationSourceJumpButton(
+                            key: const ValueKey('conversationSourceJump'),
+                            onPressed: _jumpToSource,
                           ),
-                  ),
-                  if (state.conversation.attribution != null &&
-                      state.messages.isNotEmpty &&
-                      _initialScrollDone &&
-                      !_sourceCardVisible)
-                    Positioned(
-                      top: Space.sm,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: ConversationSourceJumpButton(
-                          key: const ValueKey('conversationSourceJump'),
-                          onPressed: _jumpToSource,
                         ),
                       ),
+                    PositionedDirectional(
+                      end: Space.md,
+                      bottom: Space.sm,
+                      child: _ScrollToBottomButton(
+                        visible: _showScrollToBottom,
+                        onPressed: () => _scrollToBottom(animated: true),
+                      ),
                     ),
-                  PositionedDirectional(
-                    end: Space.md,
-                    bottom: Space.sm,
-                    child: _ScrollToBottomButton(
-                      visible: _showScrollToBottom,
-                      onPressed: () => _scrollToBottom(animated: true),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (canReply)
-              _Composer(
-                conversationId: widget.conversationId,
-                controller: _composerController,
-                sending: _sending,
-                onSend: _send,
-                isWhatsApp:
-                    async.value?.conversation.provider.toUpperCase() ==
-                    'WHATSAPP',
-                replyingTo: _replyingTo,
-                onCancelReply: _cancelReply,
-                onShareContact: _shareContact,
-              )
-            else
-              const _ReadOnlyNotice(),
-          ],
+              if (canReply)
+                _Composer(
+                  conversationId: widget.conversationId,
+                  controller: _composerController,
+                  sending: _sending,
+                  onSend: _send,
+                  isWhatsApp:
+                      async.value?.conversation.provider.toUpperCase() ==
+                      'WHATSAPP',
+                  replyingTo: _replyingTo,
+                  onCancelReply: _cancelReply,
+                  onShareContact: _shareContact,
+                )
+              else
+                const _ReadOnlyNotice(),
+            ],
+          ),
         ),
       ),
     );
@@ -1075,9 +1140,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 /// clear it on purpose. The button disappears once the server confirms;
 /// on failure it stays, with the badge, and says so.
 class _MarkReadButton extends ConsumerStatefulWidget {
-  const _MarkReadButton({required this.conversationId});
+  const _MarkReadButton({
+    required this.conversationId,
+    this.extent = Sizes.touchTarget,
+  });
 
   final int conversationId;
+  final double extent;
 
   @override
   ConsumerState<_MarkReadButton> createState() => _MarkReadButtonState();
@@ -1112,9 +1181,9 @@ class _MarkReadButtonState extends ConsumerState<_MarkReadButton> {
       key: const ValueKey('markAsReadButton'),
       tooltip: context.l10n.markAsReadAction,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(
-        minWidth: Sizes.touchTarget,
-        minHeight: Sizes.touchTarget,
+      constraints: BoxConstraints.tightFor(
+        width: widget.extent,
+        height: widget.extent,
       ),
       icon: _busy
           ? const SizedBox.square(
@@ -1133,10 +1202,15 @@ class _MarkReadButtonState extends ConsumerState<_MarkReadButton> {
 
 /// Standalone Follow-up Flag button in the conversation header.
 class _FollowUpButton extends ConsumerWidget {
-  const _FollowUpButton({required this.conversation, required this.canChange});
+  const _FollowUpButton({
+    required this.conversation,
+    required this.canChange,
+    this.extent = Sizes.touchTarget,
+  });
 
   final Conversation conversation;
   final bool canChange;
+  final double extent;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1157,10 +1231,7 @@ class _FollowUpButton extends ConsumerWidget {
     return IconButton(
       tooltip: tooltip,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(
-        minWidth: Sizes.touchTarget,
-        minHeight: Sizes.touchTarget,
-      ),
+      constraints: BoxConstraints.tightFor(width: extent, height: extent),
       icon: Icon(
         isFollowUp ? Icons.flag_rounded : Icons.flag_outlined,
         color: flagColor,
@@ -1183,10 +1254,14 @@ class _AssigneeAvatar extends StatelessWidget {
   const _AssigneeAvatar({
     required this.conversation,
     required this.canAssignAny,
+    this.extent = Sizes.touchTarget,
   });
 
   final Conversation conversation;
   final bool canAssignAny;
+
+  /// The touch target around the 26 px avatar.
+  final double extent;
 
   @override
   Widget build(BuildContext context) {
@@ -1226,8 +1301,8 @@ class _AssigneeAvatar extends StatelessWidget {
           conversation: conversation,
         ),
         child: Padding(
-          // 26 px avatar + 9 px each side = a 44 px target.
-          padding: const EdgeInsets.all(9),
+          // 26 px avatar + 9 px each side = a 44 px target (7 px: 40 px).
+          padding: EdgeInsets.all((extent - 26) / 2),
           child: avatar,
         ),
       ),
@@ -1492,204 +1567,27 @@ class _ScrollToBottomButton extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.conversation});
-
-  final dynamic conversation;
+/// The details row's placeholder while the conversation loads, on the same
+/// surface and with the same bottom line.
+class _HeaderDetailsSkeleton extends StatelessWidget {
+  const _HeaderDetailsSkeleton();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    return Tooltip(
-      message: context.l10n.customerDetailsTitle,
-      child: InkWell(
-        key: const Key('conversation_header_customer_area'),
-        onTap: () => showConversationActionsSheet(
-          context,
-          conversationId: conversation.id as int,
+    return Material(
+      color: theme.appBarTheme.backgroundColor ?? theme.colorScheme.surface,
+      shape: Border(bottom: BorderSide(color: AppColors.of(context).border)),
+      child: const Padding(
+        padding: EdgeInsetsDirectional.fromSTEB(
+          Space.md,
+          Space.xs,
+          Space.md,
+          Space.sm,
         ),
-        borderRadius: BorderRadius.circular(Radii.md),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          child: Row(
-            children: [
-              InitialsAvatar(
-                initials: conversation.customer.initials as String,
-                imageUrl: conversation.customer.avatarUrl as String,
-                size: 36,
-                provider: conversation.provider as String,
-              ),
-              const SizedBox(width: Space.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      conversation.customer.displayName as String,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        height: 1.25,
-                      ),
-                    ),
-                    const SizedBox(height: Space.xxs),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final maxW = constraints.maxWidth;
-                        // The responsible team, beside the channel: a
-                        // team pill, never the assignee's avatar (that
-                        // stays on the right of the bar).
-                        final team = conversation.assignedTeam as TeamBrief?;
-                        if (maxW < 75) {
-                          return Row(
-                            children: [
-                              Flexible(
-                                child: _ChannelPill(
-                                  provider: conversation.provider as String,
-                                ),
-                              ),
-                            ],
-                          );
-                        }
-                        return Row(
-                          children: [
-                            Flexible(
-                              child: _ChannelPill(
-                                provider: conversation.provider as String,
-                              ),
-                            ),
-                            if (team != null) ...[
-                              const SizedBox(width: 4),
-                              Flexible(child: ConversationTeamPill(team: team)),
-                            ],
-                            const SizedBox(width: 5),
-                            Expanded(
-                              child: Text(
-                                _formatSubtitle(context, conversation),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        child: AppShimmer(child: ConversationHeaderSkeleton()),
       ),
     );
-  }
-
-  static String _formatSubtitle(BuildContext context, dynamic conversation) {
-    final phone = conversation.customer.phone as String?;
-    final channelName = conversation.channelName as String?;
-    final parts = <String>[
-      // Isolated left-to-right, so in Arabic a leading `+` or the `@` does
-      // not jump to the far end of the number.
-      if (phone != null && phone.isNotEmpty) '\u2066@$phone\u2069',
-      if (channelName != null && channelName.isNotEmpty) channelName,
-    ];
-    if (parts.isNotEmpty) return parts.join(' · ');
-    return ConversationBadges.providerLabel(
-      context,
-      conversation.provider as String,
-    );
-  }
-}
-
-class _ChannelPill extends StatelessWidget {
-  const _ChannelPill({required this.provider});
-
-  final String provider;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final (icon, color, label) = _providerInfo(context, provider, isDark);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: isDark ? 0.16 : 0.1),
-        borderRadius: BorderRadius.circular(Radii.pill),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 3),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                height: 1.35,
-                color: color,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Glyph, text colour and name of the channel. The text colours are darker
-  /// (light theme) or lighter (dark theme) than the brand colours, which
-  /// are too faint as small text on either background.
-  static (IconData, Color, String) _providerInfo(
-    BuildContext context,
-    String provider,
-    bool isDark,
-  ) {
-    final key = provider.toUpperCase();
-    final label = switch (key) {
-      'MESSENGER' => 'Messenger',
-      'TELEGRAM' => 'Telegram',
-      _ => ConversationBadges.providerLabel(context, key),
-    };
-    return switch (key) {
-      'WHATSAPP' => (
-        Icons.chat_bubble_rounded,
-        isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
-        label,
-      ),
-      'FACEBOOK' || 'MESSENGER' => (
-        Icons.facebook,
-        isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
-        label,
-      ),
-      'INSTAGRAM' => (
-        Icons.camera_alt_outlined,
-        isDark ? const Color(0xFFFB7185) : const Color(0xFFBE123C),
-        label,
-      ),
-      'TIKTOK' => (
-        Icons.music_note,
-        Theme.of(context).colorScheme.onSurface,
-        label,
-      ),
-      'TELEGRAM' => (
-        Icons.send_rounded,
-        isDark ? const Color(0xFF38BDF8) : const Color(0xFF0369A1),
-        label,
-      ),
-      _ => (
-        Icons.chat_bubble_outline_rounded,
-        Theme.of(context).colorScheme.primary,
-        label,
-      ),
-    };
   }
 }
 
