@@ -29,6 +29,8 @@ import 'conversation_controller.dart';
 import 'conversation_review.dart'
     show showConversationReviewSheet, showRequestReviewSheet;
 import 'conversation_history_sheet.dart';
+import 'conversation_markers.dart';
+import 'conversation_sold_button.dart' show confirmSale;
 import 'conversion_sheet.dart';
 import 'customer_intelligence_section.dart';
 import 'intelligence_providers.dart';
@@ -242,6 +244,20 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
         conversation?.assignedTo != null &&
         (canAssignAny || (canAssignSelf && isMine));
 
+    // Team-first ownership (the server's per-organization switch): the team
+    // owns the conversation and the employee works it inside the team.
+    final teamFirst = employee?.teamFirstAssignmentEnabled ?? false;
+
+    // Conversation markers (the server's own per-organization switch): the
+    // header's prominent button is the primary marker, so confirming a
+    // purchase is offered here instead — as the web's actions menu does.
+    final markersEnabled = employee?.conversationMarkersEnabled ?? false;
+    final canConfirmPurchase =
+        employee?.can(Perm.conversationConfirmPurchase) ?? false;
+    final keptTeam = conversation?.assignedTeam?.name.trim().isNotEmpty == true
+        ? conversation!.assignedTeam!.name
+        : null;
+
     final customerId = conversation?.customer.id;
     final intelAsync = ref.watch(
       conversationIntelligenceProvider(widget.conversationId),
@@ -338,6 +354,24 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
           ],
           const SizedBox(height: Space.lg),
         ],
+
+        // ------------------------------------------------------------
+        // MARKERS — what the conversation wears, and adding or removing
+        // them. Annotations only: nothing here changes the status, the
+        // priority, the assignment or the purchase.
+        // ------------------------------------------------------------
+        if (markersEnabled && conversation != null)
+          ConversationMarkersSection(
+            conversation: conversation,
+            frame: (child) => Padding(
+              padding: const EdgeInsets.only(bottom: Space.lg),
+              child: _SectionCard(
+                title: context.l10n.markersSectionTitle,
+                icon: Icons.sell_outlined,
+                child: child,
+              ),
+            ),
+          ),
 
         // ------------------------------------------------------------
         // 1. CONTACT SECTION
@@ -578,6 +612,41 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // "تم البيع" — purchase confirmation, out of the header while
+              // the primary marker holds its place. The same request and the
+              // same checks as the header button (`confirmSale`).
+              if (markersEnabled && canConfirmPurchase && conversation != null)
+                ListTile(
+                  key: const Key('saleCompletedAction'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    intel?.isAgentConfirmed == true
+                        ? Icons.done_all_rounded
+                        : Icons.check_circle_outline_rounded,
+                    color: AppColors.of(context).success,
+                  ),
+                  title: Text(context.l10n.markSoldTooltip),
+                  subtitle: Text(
+                    intel?.isAgentConfirmed == true
+                        ? context.l10n.purchaseConfirmedMessage
+                        : context.l10n.confirmSaleActionHint,
+                  ),
+                  enabled: !_busy,
+                  onTap: _busy
+                      ? null
+                      : () async {
+                          setState(() => _busy = true);
+                          try {
+                            await confirmSale(
+                              context,
+                              ref,
+                              widget.conversationId,
+                            );
+                          } finally {
+                            if (mounted) setState(() => _busy = false);
+                          }
+                        },
+                ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.history),
@@ -629,12 +698,25 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
               // assign_conversation_sheet.dart.
               if (canAssignAny)
                 ListTile(
+                  key: const Key('assignAction'),
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.people_alt_outlined),
-                  title: Text(context.l10n.assignAction),
+                  // Team-first: the team, then who is working it inside it.
+                  title: Text(
+                    teamFirst
+                        ? context.l10n.teamAssignChange
+                        : context.l10n.assignAction,
+                  ),
                   subtitle: Text(
-                    conversation?.assignedTo?.fullName ??
-                        context.l10n.unassignedBadge,
+                    [
+                      if (teamFirst &&
+                          conversation?.assignedTeam?.name.isNotEmpty == true)
+                        conversation!.assignedTeam!.name,
+                      conversation?.assignedTo?.fullName ??
+                          (teamFirst
+                              ? context.l10n.conversationHeaderUnassigned
+                              : context.l10n.unassignedBadge),
+                    ].join(' · '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -689,11 +771,26 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
               // than assign_self — they just cannot take someone else's off
               // them. `canRelease` mirrors exactly that split rather than
               // requiring assign_any for every release.
+              // Team-first: unassigning takes the employee off and leaves the
+              // team — `/assign/` with `assignee_id: null` and no `team_id`,
+              // which the endpoint documents as "leave the team alone".
               if (canRelease)
                 ListTile(
+                  key: const Key('releaseAction'),
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.person_remove_alt_1_outlined),
-                  title: Text(context.l10n.releaseToQueueAction),
+                  title: Text(
+                    teamFirst && keptTeam != null
+                        ? context.l10n.unassignEmployeeAction
+                        : context.l10n.releaseToQueueAction,
+                  ),
+                  subtitle: teamFirst && keptTeam != null
+                      ? Text(
+                          context.l10n.unassignEmployeeStays(keptTeam),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      : null,
                   enabled: !_busy,
                   onTap: _busy
                       ? null
@@ -707,7 +804,9 @@ class _ActionsSheetState extends ConsumerState<_ActionsSheet> {
                             widget.conversationId,
                             releaseAssignee: true,
                           ),
-                          context.l10n.releasedToQueueMessage,
+                          teamFirst && keptTeam != null
+                              ? context.l10n.unassignEmployeeDone(keptTeam)
+                              : context.l10n.releasedToQueueMessage,
                         ),
                 ),
 

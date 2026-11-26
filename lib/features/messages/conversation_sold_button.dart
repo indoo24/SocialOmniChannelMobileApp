@@ -38,6 +38,71 @@ import '../authentication/auth_controller.dart';
 import 'conversation_controller.dart';
 import 'intelligence_providers.dart';
 
+/// Confirms the purchase on conversation [conversationId] — the header
+/// button's tap, shared with the actions sheet's entry (where it lives while
+/// conversation markers hold the header's place):
+///  - without `conversation.confirm_purchase`: says so; nothing is sent;
+///  - on a purchase already known to be confirmed: says by whom; nothing is
+///    sent;
+///  - otherwise: `POST /conversations/{id}/confirm-purchase/`, then
+///    "Purchase confirmed", or the server's refusal.
+///
+/// Resolves to the server's answer, or null when nothing was confirmed.
+Future<ConversationIntelligence?> confirmSale(
+  BuildContext context,
+  WidgetRef ref,
+  int conversationId,
+) async {
+  final l10n = context.l10n;
+  final messenger = ScaffoldMessenger.of(context);
+  final errorColor = Theme.of(context).colorScheme.error;
+  void say(String message, {bool isError = false}) => messenger.showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: isError ? errorColor : null,
+    ),
+  );
+
+  if (!ref.read(canProvider(Perm.conversationConfirmPurchase))) {
+    say(l10n.confirmPurchaseForbiddenMessage, isError: true);
+    return null;
+  }
+  // What is already known — not waited for: the tap acts now. Only to
+  // avoid a second confirmation of a purchase already confirmed; not a
+  // condition for selling (no AI claim is needed).
+  final known = ref.read(conversationIntelligenceProvider(conversationId)).value;
+  if (known != null && known.isAgentConfirmed) {
+    say(
+      known.confirmedByName.trim().isEmpty
+          ? l10n.purchaseConfirmedMessage
+          : l10n.purchaseConfirmedBy(known.confirmedByName.trim()),
+    );
+    return null;
+  }
+
+  try {
+    final result = await ref
+        .read(conversationControllerProvider(conversationId).notifier)
+        .confirmPurchase();
+    say(l10n.purchaseConfirmedMessage);
+    return result;
+  } on SessionExpiredException {
+    // The app is already on its way back to sign-in.
+  } on RequestCancelledException {
+    // Abandoned on purpose: nothing to say.
+  } on ApiException catch (error) {
+    say(switch (error) {
+      _ when error.isForbidden => l10n.confirmPurchaseForbiddenMessage,
+      _ when error.isNotFound => l10n.conversationNoLongerAvailable,
+      // 400 (while the server still requires a claim: no claim to rule
+      // on) and everything else: the server's own explanation.
+      _ when error.message.trim().isNotEmpty => error.message,
+      _ => l10n.genericErrorFallbackMessage,
+    }, isError: true);
+  }
+  return null;
+}
+
 class ConversationSoldButton extends ConsumerStatefulWidget {
   const ConversationSoldButton({required this.conversation, super.key});
 
@@ -110,57 +175,12 @@ class _ConversationSoldButtonState extends ConsumerState<ConversationSoldButton>
     super.dispose();
   }
 
-  void _say(String message, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
-      ),
-    );
-  }
-
   Future<void> _handleTap() async {
     if (_busy) return;
-    final l10n = context.l10n;
-    if (!ref.read(canProvider(Perm.conversationConfirmPurchase))) {
-      _say(l10n.confirmPurchaseForbiddenMessage, isError: true);
-      return;
-    }
-    // What is already known — not waited for: the tap acts now. Only to
-    // avoid a second confirmation of a purchase already confirmed; not a
-    // condition for selling (no AI claim is needed).
-    final known = ref.read(conversationIntelligenceProvider(_id)).value;
-    if (known != null && known.isAgentConfirmed) {
-      _say(
-        known.confirmedByName.trim().isEmpty
-            ? l10n.purchaseConfirmedMessage
-            : l10n.purchaseConfirmedBy(known.confirmedByName.trim()),
-      );
-      return;
-    }
-
     setState(() => _busy = true);
     try {
-      final result = await ref
-          .read(conversationControllerProvider(_id).notifier)
-          .confirmPurchase();
-      if (!mounted) return;
-      if (_confirmedIn(result)) _controller.forward(from: 0.0);
-      _say(l10n.purchaseConfirmedMessage);
-    } on SessionExpiredException {
-      // The app is already on its way back to sign-in.
-    } on RequestCancelledException {
-      // Abandoned on purpose: nothing to say.
-    } on ApiException catch (error) {
-      _say(switch (error) {
-        _ when error.isForbidden => l10n.confirmPurchaseForbiddenMessage,
-        _ when error.isNotFound => l10n.conversationNoLongerAvailable,
-        // 400 (while the server still requires a claim: no claim to rule
-        // on) and everything else: the server's own explanation.
-        _ when error.message.trim().isNotEmpty => error.message,
-        _ => l10n.genericErrorFallbackMessage,
-      }, isError: true);
+      final result = await confirmSale(context, ref, _id);
+      if (mounted && _confirmedIn(result)) _controller.forward(from: 0.0);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

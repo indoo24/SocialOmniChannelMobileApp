@@ -140,8 +140,10 @@ class _HistoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // A marker row says its label in the title; nothing to repeat beneath.
     final hasTransition =
-        event.fromValue.isNotEmpty || event.toValue.isNotEmpty;
+        !_isMarkerEvent(event.eventType) &&
+        (event.fromValue.isNotEmpty || event.toValue.isNotEmpty);
     final fallbackReasons = _fallbackReasonsFor(context, event);
 
     return Container(
@@ -217,6 +219,19 @@ class _HistoryRow extends StatelessWidget {
   /// person's own reply, not routing; a fallback placement says it had no
   /// better option; a reassignment names who it moved the work off of.
   static String _titleFor(BuildContext context, ConversationEvent event) {
+    // A marker put on or taken off — worded as the web words it: the label
+    // (`to_value`, else `metadata.marker_label`), then its team when it has
+    // one.
+    if (_isMarkerEvent(event.eventType)) {
+      final label = event.toValue.isNotEmpty
+          ? event.toValue
+          : (event.metadata['marker_label']?.toString() ?? '');
+      final team = event.metadata['team_name']?.toString().trim() ?? '';
+      final title = event.eventType == 'MARKER_APPLIED'
+          ? context.l10n.markerHistoryApplied(label)
+          : context.l10n.markerHistoryRemoved(label);
+      return team.isEmpty ? title : '$title — $team';
+    }
     // The teams themselves are in the from → to row beneath.
     if (event.eventType == 'TEAM_TRANSFERRED') {
       return context.l10n.historyTeamTransferred;
@@ -260,7 +275,11 @@ class _HistoryRow extends StatelessWidget {
     );
   }
 
+  static bool _isMarkerEvent(String eventType) =>
+      eventType == 'MARKER_APPLIED' || eventType == 'MARKER_REMOVED';
+
   static IconData _iconFor(String eventType) => switch (eventType) {
+    'MARKER_APPLIED' || 'MARKER_REMOVED' => Icons.sell_outlined,
     'ASSIGNED' ||
     'UNASSIGNED' ||
     'TRANSFERRED' ||

@@ -452,6 +452,8 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                         key: ValueKey('inbox-conversation-${conversation.id}'),
                         conversation: conversation,
                         currentEmployeeId: employee?.id,
+                        teamFirst:
+                            employee?.teamFirstAssignmentEnabled ?? false,
                         searchQuery: searchQuery,
                         showWaiting: filters.needsReply,
                         onTap: () => _openConversation(conversation.id),
@@ -680,6 +682,7 @@ class ConversationRow extends StatelessWidget {
     required this.onTap,
     this.onLongPress,
     this.currentEmployeeId,
+    this.teamFirst = false,
     this.searchQuery = '',
     this.showWaiting = false,
     super.key,
@@ -687,6 +690,11 @@ class ConversationRow extends StatelessWidget {
 
   final Conversation conversation;
   final VoidCallback onTap;
+
+  /// The organization is on team-first ownership: a conversation with a
+  /// team and nobody working it is the team's, not ownerless, and its badge
+  /// names the team.
+  final bool teamFirst;
 
   /// Shows how long the customer has been waiting (the Needs reply view).
   final bool showWaiting;
@@ -763,7 +771,14 @@ class ConversationRow extends StatelessWidget {
             _FollowUpBadge(followUpDate: conversation.followUpDate),
           if (conversation.isUnassigned)
             StatusBadge(
-              label: context.l10n.unassignedBadge,
+              key: const ValueKey('rowUnassignedBadge'),
+              label:
+                  teamFirst &&
+                      conversation.assignedTeam?.name.trim().isNotEmpty == true
+                  ? context.l10n.teamUnassignedBadge(
+                      conversation.assignedTeam!.name,
+                    )
+                  : context.l10n.unassignedBadge,
               tone: BadgeTone.warning,
               dense: true,
             )

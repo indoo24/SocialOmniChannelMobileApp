@@ -23,11 +23,13 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../core/models/conversation.dart';
+import '../../core/models/conversation_marker.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/badges.dart';
 import '../../l10n/l10n_extensions.dart';
+import 'conversation_markers.dart' show MarkerMetaChip, headerMarkers;
 import 'transfer_team_sheet.dart' show ConversationTeamPill;
 
 class ConversationHeaderDetails extends StatelessWidget {
@@ -35,10 +37,25 @@ class ConversationHeaderDetails extends StatelessWidget {
     required this.conversation,
     required this.onOpenDetails,
     this.compact = false,
+    this.teamFirst = false,
+    this.markersEnabled = false,
     super.key,
   });
 
   final Conversation conversation;
+
+  /// The organization is on team-first ownership: the team owns the
+  /// conversation, so "nobody working it" and "no team" (a legacy
+  /// conversation the server has not given one) are both said outright
+  /// rather than left as an absent chip.
+  final bool teamFirst;
+
+  /// The organization uses conversation markers: what the conversation
+  /// wears is shown beside its team and assignee.
+  final bool markersEnabled;
+
+  /// At most this many marker chips; the rest are counted in one more.
+  static const maxMarkerChips = 3;
 
   /// The customer details and conversation actions sheet.
   final VoidCallback onOpenDetails;
@@ -58,7 +75,14 @@ class ConversationHeaderDetails extends StatelessWidget {
     final phone = customer.phone.trim();
     final account = conversation.channelName.trim();
     final team = conversation.assignedTeam;
+    final hasTeam = team != null && team.name.trim().isNotEmpty;
     final assignee = conversation.assignedTo;
+    // The primary marker's own button already says when it is on.
+    final markers = markersEnabled
+        ? headerMarkers(conversation)
+        : const <ConversationMarker>[];
+    final shownMarkers = markers.take(maxMarkerChips).toList();
+    final hiddenMarkers = markers.skip(maxMarkerChips).toList();
 
     final metaLabels = [
       l10n.conversationHeaderChannelSemantics(
@@ -69,10 +93,15 @@ class ConversationHeaderDetails extends StatelessWidget {
         ).$3,
       ),
       if (account.isNotEmpty) l10n.conversationHeaderAccountSemantics(account),
-      if (team != null && team.name.trim().isNotEmpty)
-        l10n.conversationTeamSemantics(team.name),
+      if (hasTeam)
+        l10n.conversationTeamSemantics(team.name)
+      else if (teamFirst)
+        l10n.conversationHeaderNoTeam,
       if (assignee != null && assignee.fullName.trim().isNotEmpty)
-        l10n.assignedToSemantics(assignee.fullName),
+        l10n.assignedToSemantics(assignee.fullName)
+      else if (teamFirst && hasTeam)
+        l10n.conversationHeaderUnassigned,
+      for (final marker in markers) l10n.markerChipSemantics(marker.label),
     ];
 
     final chips = <Widget>[
@@ -85,8 +114,17 @@ class ConversationHeaderDetails extends StatelessWidget {
           color: colors.mutedForeground,
           semanticsLabel: l10n.conversationHeaderAccountSemantics(account),
         ),
-      if (team != null && team.name.trim().isNotEmpty)
-        ConversationTeamPill(team: team),
+      if (hasTeam)
+        ConversationTeamPill(team: team)
+      else if (teamFirst)
+        // Not inferred from anything — the server sent no team.
+        _MetaChip(
+          key: const ValueKey('conversationHeaderNoTeam'),
+          icon: Icons.group_off_outlined,
+          label: l10n.conversationHeaderNoTeam,
+          color: colors.mutedForeground,
+          semanticsLabel: l10n.conversationHeaderNoTeam,
+        ),
       if (assignee != null && assignee.fullName.trim().isNotEmpty)
         _MetaChip(
           key: const ValueKey('conversationHeaderAssignee'),
@@ -94,6 +132,27 @@ class ConversationHeaderDetails extends StatelessWidget {
           label: assignee.fullName,
           color: colors.mutedForeground,
           semanticsLabel: l10n.assignedToSemantics(assignee.fullName),
+        )
+      else if (teamFirst && hasTeam)
+        // The team's, and nobody is working it yet — a valid state.
+        _MetaChip(
+          key: const ValueKey('conversationHeaderUnassigned'),
+          icon: Icons.person_off_outlined,
+          label: l10n.conversationHeaderUnassigned,
+          color: colors.warning,
+          background: colors.warningSurface,
+          semanticsLabel: l10n.conversationHeaderUnassigned,
+        ),
+      for (final marker in shownMarkers) MarkerMetaChip(marker: marker),
+      if (hiddenMarkers.isNotEmpty)
+        _MetaChip(
+          key: const ValueKey('conversationHeaderMoreMarkers'),
+          icon: Icons.sell_outlined,
+          label: '+${hiddenMarkers.length}',
+          color: colors.mutedForeground,
+          semanticsLabel: hiddenMarkers
+              .map((m) => l10n.markerChipSemantics(m.label))
+              .join(', '),
         ),
     ];
 

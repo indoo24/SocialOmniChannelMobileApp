@@ -43,6 +43,7 @@ import 'composer_attachment.dart';
 import 'conversation_actions_sheet.dart';
 import 'conversation_controller.dart';
 import 'conversation_header.dart';
+import 'conversation_markers.dart';
 import '../conversations/conversation_pin.dart';
 import 'conversation_sold_button.dart';
 import 'conversation_skeleton.dart';
@@ -902,6 +903,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     // fit beside the back button without one being pushed off.
     final narrowHeader = MediaQuery.sizeOf(context).width < 360;
     final actionExtent = narrowHeader ? 40.0 : Sizes.touchTarget;
+    final markersEnabled =
+        ref.watch(currentEmployeeProvider)?.conversationMarkersEnabled ?? false;
 
     void openDetails() => showConversationActionsSheet(
       context,
@@ -934,8 +937,23 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             // "تم البيع": confirms the customer's purchase claim
             // (`conversation.confirm_purchase`). Resolving is in the actions
             // sheet's Status section.
-            data: (state) =>
-                ConversationSoldButton(conversation: state.conversation),
+            //
+            // With conversation markers switched on for the organization,
+            // this place is the conversation's primary marker instead — the
+            // web's header does the same — and confirming a purchase is in
+            // the actions sheet. A marker is an annotation; it confirms no
+            // purchase.
+            data: (state) => markersEnabled
+                ? ConversationPrimaryMarkerButton(
+                    conversation: state.conversation,
+                    maxWidth: _primaryMarkerRoom(
+                      context,
+                      narrow: narrowHeader,
+                      actionExtent: actionExtent,
+                      hasUnread: state.conversation.hasUnread,
+                    ),
+                  )
+                : ConversationSoldButton(conversation: state.conversation),
             orElse: () => const ConversationActionSkeleton(),
           ),
           // Pin / unpin — moved here from the conversation sheet.
@@ -1004,6 +1022,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               ConversationHeaderDetails(
                 conversation: state.conversation,
                 onOpenDetails: openDetails,
+                teamFirst:
+                    ref
+                        .watch(currentEmployeeProvider)
+                        ?.teamFirstAssignmentEnabled ??
+                    false,
+                markersEnabled: markersEnabled,
                 compact:
                     body.maxHeight <
                     ConversationHeaderDetails.compactBelowBodyHeight,
@@ -1139,6 +1163,23 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 /// one by looking at all ([Employee.marksReadExplicitly]). This is how they
 /// clear it on purpose. The button disappears once the server confirms;
 /// on failure it stays, with the badge, and says so.
+/// How wide the primary marker may be in the header's first row: the screen
+/// less the back button and the other actions (mark read when it shows, pin,
+/// follow-up, assignee and more), so all of them always fit beside it.
+double _primaryMarkerRoom(
+  BuildContext context, {
+  required bool narrow,
+  required double actionExtent,
+  required bool hasUnread,
+}) {
+  final leading = narrow ? 44.0 : kToolbarHeight;
+  final others = (hasUnread ? 5 : 4) * actionExtent;
+  // The row's trailing gap, the marker's own padding and a little air.
+  const spacing = Space.xxs + 4 + Space.sm;
+  final room = MediaQuery.sizeOf(context).width - leading - others - spacing;
+  return room.clamp(0.0, 168.0);
+}
+
 class _MarkReadButton extends ConsumerStatefulWidget {
   const _MarkReadButton({
     required this.conversationId,

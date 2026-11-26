@@ -624,6 +624,34 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     return action.whenComplete(() => _aiAction = null);
   }
 
+  /// Puts marker [markerId] on this conversation
+  /// (`POST /conversations/{id}/markers/`), then reads the conversation
+  /// again so its `markers` and `primary_marker` are the server's — nothing
+  /// is shown as applied before it answers. An annotation only: status,
+  /// priority, assignment and purchase state are untouched.
+  ///
+  /// A refusal is rethrown for the caller to explain. A 404 here means the
+  /// *marker* is not this employee's to apply (another team's, another
+  /// organization's) as often as a lost conversation, so it is not taken as
+  /// lost access — the detail read below settles that on its own.
+  Future<void> applyMarker(int markerId) async {
+    await ref
+        .read(conversationRepositoryProvider)
+        .applyMarker(conversationId, markerId);
+    if (!ref.mounted) return;
+    await _refreshConversationDetail();
+  }
+
+  /// Takes marker [markerId] off (`DELETE …/markers/{marker_id}/`), then
+  /// reads the conversation again. See [applyMarker].
+  Future<void> removeMarker(int markerId) async {
+    await ref
+        .read(conversationRepositoryProvider)
+        .removeMarker(conversationId, markerId);
+    if (!ref.mounted) return;
+    await _refreshConversationDetail();
+  }
+
   Future<void> _refreshConversationDetail() async {
     try {
       final epoch = _readEpoch;

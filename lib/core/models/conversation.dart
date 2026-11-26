@@ -4,6 +4,7 @@ import '../logging/app_log.dart';
 import '../utils/json_safe.dart';
 
 import 'conversation_attribution.dart';
+import 'conversation_marker.dart';
 import 'conversation_review.dart';
 import 'employee.dart';
 import 'message.dart';
@@ -190,6 +191,8 @@ class Conversation {
     this.searchMatch,
     this.aiAssistMode = '',
     this.aiState,
+    this.markers = const [],
+    this.primaryMarker,
   });
 
   final int id;
@@ -275,6 +278,16 @@ class Conversation {
   /// Detail responses only; null on list rows and outside the AI pilot.
   final AiConversationState? aiState;
 
+  /// The markers the conversation wears (`markers`), in definition order —
+  /// annotations only; see `conversation_marker.dart`. Empty when the
+  /// response carries none.
+  final List<ConversationMarker> markers;
+
+  /// The marker the header's prominent button applies (`primary_marker`),
+  /// with whether it is on. Detail responses only; null on list rows, and
+  /// when no marker is configured for this conversation's team.
+  final PrimaryMarker? primaryMarker;
+
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
     id: JsonSafe.asInt(json['id'], fallback: -1),
     customer: CustomerBrief.fromJson(JsonSafe.asMap(json['customer'])),
@@ -340,6 +353,8 @@ class Conversation {
     searchMatch: SearchMatch.fromJson(json['search_match']),
     aiAssistMode: JsonSafe.asString(json['ai_assist_mode']),
     aiState: AiConversationState.fromJson(json['ai_state']),
+    markers: parseMarkers(json['markers']),
+    primaryMarker: PrimaryMarker.fromJson(json['primary_marker']),
   );
 
   /// True when the platform's own limits refuse another message right now.
@@ -442,6 +457,9 @@ class Conversation {
     searchMatch: searchMatch,
     aiAssistMode: aiAssistMode,
     aiState: aiState,
+    // Only a detail read changes these; a patch keeps what was loaded.
+    markers: markers,
+    primaryMarker: primaryMarker,
   );
 }
 

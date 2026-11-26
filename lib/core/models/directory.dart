@@ -27,6 +27,7 @@ class Team {
     this.leaderIds = const [],
     this.members = const [],
     this.leaders = const [],
+    this.isSystemDefault = false,
   });
 
   final int id;
@@ -46,6 +47,13 @@ class Team {
   /// initials, avatar) — what a card shows, with no request of its own.
   final List<EmployeeBrief> members;
   final List<EmployeeBrief> leaders;
+
+  /// The organization's system-managed default team (`is_system_default`) —
+  /// "Global". Managed by the server: every eligible active employee belongs
+  /// to it (so its [members] are not a roster anyone edits), it cannot be
+  /// archived, and it owns the accounts no team is explicitly responsible
+  /// for. Only an organization in the team-first rollout has one.
+  final bool isSystemDefault;
 
   factory Team.fromJson(Map<String, dynamic> json) {
     List<String> names(String key) => JsonSafe.asObjectList(json[key])
@@ -100,6 +108,7 @@ class Team {
       leaderIds: ids('leader_ids', 'leaders'),
       members: people('members'),
       leaders: people('leaders'),
+      isSystemDefault: JsonSafe.asBool(json['is_system_default']),
     );
   }
 }
@@ -896,3 +905,184 @@ class DirectoryEmployee {
     routingProviders: JsonSafe.asStringList(json['routing_providers']),
   );
 }
+
+/// `POST /teams/{id}/membership-impact/` — what saving a roster would do to
+/// the work the team already owns. Read-only; the server changes nothing.
+///
+/// [teamFirst] is false for an organization outside the team-first rollout,
+/// and every count is then zero: removing somebody from a team does not move
+/// that organization's conversations.
+class TeamMembershipImpact {
+  const TeamMembershipImpact({
+    required this.teamFirst,
+    required this.teamName,
+    this.affectedConversations = 0,
+    this.redistributable = 0,
+    this.stranded = 0,
+    this.teamActiveConversations = 0,
+    this.leavesTeamWithoutEligibleEmployee = false,
+  });
+
+  final bool teamFirst;
+  final String teamName;
+
+  /// Active conversations the team owns that are held by the people being
+  /// removed.
+  final int affectedConversations;
+
+  /// Of those, how many can be redistributed inside the team now.
+  final int redistributable;
+
+  /// Of those, how many stay unassigned in the team — nobody eligible is
+  /// left to take them.
+  final int stranded;
+  final int teamActiveConversations;
+  final bool leavesTeamWithoutEligibleEmployee;
+
+  /// Whether the save needs the administrator's confirmation — the web's
+  /// own test.
+  bool get needsConfirmation =>
+      teamFirst &&
+      (affectedConversations > 0 || leavesTeamWithoutEligibleEmployee);
+
+  factory TeamMembershipImpact.fromJson(Map<String, dynamic> json) =>
+      TeamMembershipImpact(
+        teamFirst: JsonSafe.asBool(json['team_first']),
+        teamName: JsonSafe.asString(json['team_name']),
+        affectedConversations: JsonSafe.asInt(json['affected_conversations']),
+        redistributable: JsonSafe.asInt(json['redistributable']),
+        stranded: JsonSafe.asInt(json['stranded']),
+        teamActiveConversations: JsonSafe.asInt(
+          json['team_active_conversations'],
+        ),
+        leavesTeamWithoutEligibleEmployee: JsonSafe.asBool(
+          json['leaves_team_without_eligible_employee'],
+        ),
+      );
+}
+
+/// The team an incoming account routes to (`EntryTeamRef`), and what kind of
+/// team it is — the system default ("Global") is labelled from
+/// [isSystemDefault], never from its name.
+class EntryTeamRef {
+  const EntryTeamRef({
+    required this.id,
+    required this.name,
+    this.isActive = true,
+    this.isSystemDefault = false,
+  });
+
+  final int id;
+  final String name;
+  final bool isActive;
+  final bool isSystemDefault;
+
+  static EntryTeamRef? fromJson(Object? json) {
+    if (json is! Map) return null;
+    final map = JsonSafe.asMap(json);
+    final id = JsonSafe.asIntOrNull(map['id']);
+    if (id == null) return null;
+    return EntryTeamRef(
+      id: id,
+      name: JsonSafe.asString(map['name']),
+      isActive: map['is_active'] == null
+          ? true
+          : JsonSafe.asBool(map['is_active']),
+      isSystemDefault: JsonSafe.asBool(map['is_system_default']),
+    );
+  }
+}
+
+/// Where an account's entry team comes from — the three states the server
+/// distinguishes, read exactly as the web reads them.
+enum EntryTeamSource {
+  /// `configured` and `explicit`: a rule names this account.
+  explicit,
+
+  /// `configured`, not `explicit`: a provider rule covers the whole channel
+  /// and this account inherits it.
+  inherited,
+
+  /// Not `configured` (`fallback`): nothing maps the account, so the system
+  /// default team owns its conversations at runtime. A gap to fill, not a
+  /// setting — and never filled in by the app.
+  notConfigured,
+}
+
+/// One row of `GET /routing/entry-teams/` (`ConnectionRouting`): an account
+/// and the one team a message arriving on it is routed to. Every value is
+/// the server's — the same rows its router reads.
+class ConnectionRouting {
+  const ConnectionRouting({
+    required this.channelConnectionId,
+    required this.provider,
+    required this.displayName,
+    this.status = '',
+    this.isLive = false,
+    this.team,
+    this.scope = '',
+    this.explicit = false,
+    this.fallback = false,
+    this.configured = false,
+    this.reason = '',
+    this.routableEmployeeCount = 0,
+    this.ruleIds = const [],
+  });
+
+  final int channelConnectionId;
+  final String provider;
+  final String displayName;
+  final String status;
+  final bool isLive;
+
+  /// The team new conversations on this account enter — null when the
+  /// server names none.
+  final EntryTeamRef? team;
+  final String scope;
+  final bool explicit;
+  final bool fallback;
+  final bool configured;
+
+  /// Why nothing matched, when [fallback].
+  final String reason;
+
+  /// How many people in [team] can be given work. Zero means nobody.
+  final int routableEmployeeCount;
+  final List<int> ruleIds;
+
+  EntryTeamSource get source => !configured
+      ? EntryTeamSource.notConfigured
+      : explicit
+      ? EntryTeamSource.explicit
+      : EntryTeamSource.inherited;
+
+  /// The team the picker shows as chosen: the explicit one, or none
+  /// ("inherit") — as the web's selector.
+  int? get explicitTeamId => explicit ? team?.id : null;
+
+  factory ConnectionRouting.fromJson(Map<String, dynamic> json) =>
+      ConnectionRouting(
+        channelConnectionId: JsonSafe.asInt(
+          json['channel_connection_id'],
+          fallback: -1,
+        ),
+        provider: JsonSafe.asString(json['provider']),
+        displayName: JsonSafe.asString(json['display_name']),
+        status: JsonSafe.asString(json['status']),
+        isLive: JsonSafe.asBool(json['is_live']),
+        team: EntryTeamRef.fromJson(json['team']),
+        scope: JsonSafe.asString(json['scope']),
+        explicit: JsonSafe.asBool(json['explicit']),
+        fallback: JsonSafe.asBool(json['fallback']),
+        configured: JsonSafe.asBool(json['configured']),
+        reason: JsonSafe.asString(json['reason']),
+        routableEmployeeCount: JsonSafe.asInt(
+          json['routable_employee_count'],
+        ),
+        ruleIds: [
+          for (final id in JsonSafe.asObjectList(json['rule_ids']))
+            ?JsonSafe.asIntOrNull(id),
+        ],
+      );
+}
+

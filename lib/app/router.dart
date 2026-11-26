@@ -32,6 +32,7 @@ import '../features/dashboard/dashboard_screen.dart';
 import '../features/directory/customer_profile_screen.dart';
 import '../features/directory/customers_screen.dart';
 import '../features/directory/employees_screen.dart';
+import '../features/directory/entry_teams_screen.dart';
 import '../features/directory/teams_screen.dart';
 import '../features/messages/conversation_screen.dart';
 import '../features/notifications/notifications_screen.dart';
@@ -47,6 +48,9 @@ class Routes {
   static const customers = '/customers';
   static const employees = '/employees';
   static const teams = '/teams';
+
+  /// Teams → Incoming routing: each account's entry team.
+  static const entryTeams = '/teams/entry-teams';
   static const analytics = '/analytics';
   static const templates = '/templates';
   static const settings = '/settings';
@@ -184,6 +188,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.teams,
         builder: (context, state) =>
             guard(Routes.teams, 'Teams', const TeamsScreen()),
+        routes: [
+          // Checks `routing.manage` and the team-first rollout itself, so a
+          // deep link from anyone without them lands on "not available".
+          GoRoute(
+            path: 'entry-teams',
+            builder: (context, state) =>
+                guard(Routes.teams, 'Teams', const EntryTeamsScreen()),
+          ),
+        ],
       ),
       GoRoute(
         path: Routes.analytics,

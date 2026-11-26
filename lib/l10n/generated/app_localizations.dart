@@ -10319,6 +10319,504 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Account: {account}'**
   String conversationHeaderAccountSemantics(String account);
+
+  /// No description provided for @teamAssignTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignment'**
+  String get teamAssignTitle;
+
+  /// No description provided for @teamAssignBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A conversation belongs to a team. The employee is whoever is working it inside that team.'**
+  String get teamAssignBody;
+
+  /// No description provided for @teamAssignTeamLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Team'**
+  String get teamAssignTeamLabel;
+
+  /// No description provided for @teamAssignTeamPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a team'**
+  String get teamAssignTeamPlaceholder;
+
+  /// No description provided for @teamAssignSystemTeamOption.
+  ///
+  /// In en, this message translates to:
+  /// **'{team} — all employees'**
+  String teamAssignSystemTeamOption(String team);
+
+  /// No description provided for @teamAssignNoTeams.
+  ///
+  /// In en, this message translates to:
+  /// **'No active teams yet.'**
+  String get teamAssignNoTeams;
+
+  /// No description provided for @teamAssignLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the teams.'**
+  String get teamAssignLoadFailed;
+
+  /// No description provided for @teamAssignTeamChangeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Changing the team releases the current employee and their claim.'**
+  String get teamAssignTeamChangeNote;
+
+  /// No description provided for @teamAssignWho.
+  ///
+  /// In en, this message translates to:
+  /// **'Employee'**
+  String get teamAssignWho;
+
+  /// No description provided for @teamAssignEmployeePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an employee'**
+  String get teamAssignEmployeePlaceholder;
+
+  /// No description provided for @teamAssignEmptyTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'{team} has nobody who can be assigned work yet.'**
+  String teamAssignEmptyTeam(String team);
+
+  /// No description provided for @teamAssignModeEmployee.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign to a specific employee'**
+  String get teamAssignModeEmployee;
+
+  /// No description provided for @teamAssignModeAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto assign — let routing choose inside this team'**
+  String get teamAssignModeAuto;
+
+  /// No description provided for @teamAssignModeUnassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave unassigned'**
+  String get teamAssignModeUnassigned;
+
+  /// No description provided for @teamAssignUnassignedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The team keeps the conversation. Unassigning an employee does not remove it from the team.'**
+  String get teamAssignUnassignedHint;
+
+  /// No description provided for @teamAssignNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get teamAssignNote;
+
+  /// No description provided for @teamAssignSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Save assignment'**
+  String get teamAssignSubmit;
+
+  /// No description provided for @teamAssignFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not change the assignment.'**
+  String get teamAssignFailed;
+
+  /// No description provided for @teamAssignChooseTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a team first.'**
+  String get teamAssignChooseTeam;
+
+  /// No description provided for @teamAssignChooseEmployee.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an employee, or pick auto assign.'**
+  String get teamAssignChooseEmployee;
+
+  /// No description provided for @teamAssignChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change assignment'**
+  String get teamAssignChange;
+
+  /// No description provided for @teamAssignResultAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignment saved — {team}, {name}'**
+  String teamAssignResultAssigned(String team, String name);
+
+  /// No description provided for @teamAssignResultUnassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignment saved — {team}, unassigned'**
+  String teamAssignResultUnassigned(String team);
+
+  /// No description provided for @unassignEmployeeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Unassign employee'**
+  String get unassignEmployeeAction;
+
+  /// No description provided for @unassignEmployeeStays.
+  ///
+  /// In en, this message translates to:
+  /// **'Stays with {team}'**
+  String unassignEmployeeStays(String team);
+
+  /// No description provided for @unassignEmployeeDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Unassigned — the conversation stays with {team}'**
+  String unassignEmployeeDone(String team);
+
+  /// No description provided for @teamUnassignedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{team} · Unassigned'**
+  String teamUnassignedBadge(String team);
+
+  /// No description provided for @conversationHeaderUnassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Unassigned'**
+  String get conversationHeaderUnassigned;
+
+  /// No description provided for @conversationHeaderNoTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'No team'**
+  String get conversationHeaderNoTeam;
+
+  /// No description provided for @transferTeamDoneAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Transferred to {team} — assigned to {name}'**
+  String transferTeamDoneAssigned(String team, String name);
+
+  /// No description provided for @transferTeamDoneUnassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Transferred to {team} — waiting for someone in the team'**
+  String transferTeamDoneUnassigned(String team);
+
+  /// No description provided for @systemTeamBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get systemTeamBadge;
+
+  /// No description provided for @systemTeamMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'All eligible employees'**
+  String get systemTeamMembers;
+
+  /// No description provided for @systemTeamNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Managed automatically. Every eligible employee belongs to it, and it owns the accounts no team is explicitly responsible for.'**
+  String get systemTeamNote;
+
+  /// No description provided for @teamImpactTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This will reassign work'**
+  String get teamImpactTitle;
+
+  /// No description provided for @teamImpactAffected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 active conversation in {team} is assigned to the people being removed.} other{{count} active conversations in {team} are assigned to the people being removed.}}'**
+  String teamImpactAffected(int count, String team);
+
+  /// No description provided for @teamImpactRedistribute.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} can be redistributed now.'**
+  String teamImpactRedistribute(int count);
+
+  /// No description provided for @teamImpactStranded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} will remain unassigned in {team} because no eligible replacement exists.'**
+  String teamImpactStranded(int count, String team);
+
+  /// No description provided for @teamImpactUnstaffed.
+  ///
+  /// In en, this message translates to:
+  /// **'This change leaves {team} with no employee who can be assigned work. Its {count} active conversations stay with the team, unassigned.'**
+  String teamImpactUnstaffed(String team, int count);
+
+  /// No description provided for @teamImpactStays.
+  ///
+  /// In en, this message translates to:
+  /// **'The conversations stay with {team}. They never follow an employee to another team.'**
+  String teamImpactStays(String team);
+
+  /// No description provided for @teamImpactConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Save and redistribute'**
+  String get teamImpactConfirm;
+
+  /// No description provided for @markersSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Markers'**
+  String get markersSectionTitle;
+
+  /// No description provided for @markersSectionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'These label the conversation for a team\'s workflow. They do not change the conversation\'s status.'**
+  String get markersSectionHint;
+
+  /// No description provided for @markersEveryone.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone'**
+  String get markersEveryone;
+
+  /// No description provided for @markersAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add marker'**
+  String get markersAdd;
+
+  /// No description provided for @markersPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a marker'**
+  String get markersPickerTitle;
+
+  /// No description provided for @markersPickerEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No markers available to you yet.'**
+  String get markersPickerEmpty;
+
+  /// No description provided for @markersApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Marker applied.'**
+  String get markersApplied;
+
+  /// No description provided for @markersRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Marker removed.'**
+  String get markersRemoved;
+
+  /// No description provided for @markersRemoveOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {label}'**
+  String markersRemoveOne(String label);
+
+  /// No description provided for @markersArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived marker'**
+  String get markersArchived;
+
+  /// No description provided for @markersFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update the marker.'**
+  String get markersFailed;
+
+  /// No description provided for @markersForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to change markers.'**
+  String get markersForbidden;
+
+  /// No description provided for @markersLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the markers.'**
+  String get markersLoadFailed;
+
+  /// No description provided for @markerChipSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Marker: {label}'**
+  String markerChipSemantics(String label);
+
+  /// No description provided for @primaryMarkerApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} — applied'**
+  String primaryMarkerApplied(String label);
+
+  /// No description provided for @primaryMarkerNotApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} — not applied'**
+  String primaryMarkerNotApplied(String label);
+
+  /// No description provided for @markerHistoryApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Marker applied: “{label}”'**
+  String markerHistoryApplied(String label);
+
+  /// No description provided for @markerHistoryRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Marker removed: “{label}”'**
+  String markerHistoryRemoved(String label);
+
+  /// No description provided for @confirmSaleActionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Records the customer\'s purchase. It does not change the conversation\'s status.'**
+  String get confirmSaleActionHint;
+
+  /// No description provided for @entryTeamsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Incoming routing'**
+  String get entryTeamsTitle;
+
+  /// No description provided for @entryTeamsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Where a message arriving on each account is sent. One account, one team.'**
+  String get entryTeamsBody;
+
+  /// No description provided for @entryTeamsNewOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'This changes where new conversations enter. Conversations that already exist keep their team.'**
+  String get entryTeamsNewOnly;
+
+  /// No description provided for @entryTeamsEntryTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Entry team'**
+  String get entryTeamsEntryTeam;
+
+  /// No description provided for @entryTeamsLive.
+  ///
+  /// In en, this message translates to:
+  /// **'Live'**
+  String get entryTeamsLive;
+
+  /// No description provided for @entryTeamsNotLive.
+  ///
+  /// In en, this message translates to:
+  /// **'Not live'**
+  String get entryTeamsNotLive;
+
+  /// No description provided for @entryTeamsNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Not configured'**
+  String get entryTeamsNotConfigured;
+
+  /// No description provided for @entryTeamsNotConfiguredHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing routes this account. Its conversations go to {team} until you choose one.'**
+  String entryTeamsNotConfiguredHint(String team);
+
+  /// No description provided for @entryTeamsNotConfiguredCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 account is not configured} other{{count} accounts are not configured}}'**
+  String entryTeamsNotConfiguredCount(int count);
+
+  /// No description provided for @entryTeamsInherited.
+  ///
+  /// In en, this message translates to:
+  /// **'From the channel rule'**
+  String get entryTeamsInherited;
+
+  /// No description provided for @entryTeamsExplicit.
+  ///
+  /// In en, this message translates to:
+  /// **'Set here'**
+  String get entryTeamsExplicit;
+
+  /// No description provided for @entryTeamsInherit.
+  ///
+  /// In en, this message translates to:
+  /// **'Inherit from the channel'**
+  String get entryTeamsInherit;
+
+  /// No description provided for @entryTeamsInheritHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows the channel\'s rule, or the system team when no rule covers it.'**
+  String get entryTeamsInheritHint;
+
+  /// No description provided for @entryTeamsPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Entry team for {account}'**
+  String entryTeamsPickerTitle(String account);
+
+  /// No description provided for @entryTeamsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Entry team updated'**
+  String get entryTeamsSaved;
+
+  /// No description provided for @entryTeamsSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not change the entry team.'**
+  String get entryTeamsSaveFailed;
+
+  /// No description provided for @entryTeamsNoConnections.
+  ///
+  /// In en, this message translates to:
+  /// **'No connected accounts yet.'**
+  String get entryTeamsNoConnections;
+
+  /// No description provided for @entryTeamsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the incoming routing.'**
+  String get entryTeamsLoadFailed;
+
+  /// No description provided for @entryTeamsRoutableNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody can be assigned work in this team'**
+  String get entryTeamsRoutableNone;
+
+  /// No description provided for @entryTeamsSystemTeamNote.
+  ///
+  /// In en, this message translates to:
+  /// **'System team — every eligible employee'**
+  String get entryTeamsSystemTeamNote;
+
+  /// No description provided for @entryTeamsNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Incoming routing isn\'t available for your account.'**
+  String get entryTeamsNotAvailable;
+
+  /// No description provided for @entryTeamsForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to change incoming routing.'**
+  String get entryTeamsForbidden;
+
+  /// No description provided for @entryTeamsChangeTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Change entry team'**
+  String get entryTeamsChangeTeam;
 }
 
 class _AppLocalizationsDelegate

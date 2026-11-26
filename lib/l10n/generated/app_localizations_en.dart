@@ -6023,4 +6023,329 @@ class AppLocalizationsEn extends AppLocalizations {
   String conversationHeaderAccountSemantics(String account) {
     return 'Account: $account';
   }
+
+  @override
+  String get teamAssignTitle => 'Assignment';
+
+  @override
+  String get teamAssignBody =>
+      'A conversation belongs to a team. The employee is whoever is working it inside that team.';
+
+  @override
+  String get teamAssignTeamLabel => 'Team';
+
+  @override
+  String get teamAssignTeamPlaceholder => 'Choose a team';
+
+  @override
+  String teamAssignSystemTeamOption(String team) {
+    return '$team — all employees';
+  }
+
+  @override
+  String get teamAssignNoTeams => 'No active teams yet.';
+
+  @override
+  String get teamAssignLoadFailed => 'Couldn\'t load the teams.';
+
+  @override
+  String get teamAssignTeamChangeNote =>
+      'Changing the team releases the current employee and their claim.';
+
+  @override
+  String get teamAssignWho => 'Employee';
+
+  @override
+  String get teamAssignEmployeePlaceholder => 'Choose an employee';
+
+  @override
+  String teamAssignEmptyTeam(String team) {
+    return '$team has nobody who can be assigned work yet.';
+  }
+
+  @override
+  String get teamAssignModeEmployee => 'Assign to a specific employee';
+
+  @override
+  String get teamAssignModeAuto =>
+      'Auto assign — let routing choose inside this team';
+
+  @override
+  String get teamAssignModeUnassigned => 'Leave unassigned';
+
+  @override
+  String get teamAssignUnassignedHint =>
+      'The team keeps the conversation. Unassigning an employee does not remove it from the team.';
+
+  @override
+  String get teamAssignNote => 'Note (optional)';
+
+  @override
+  String get teamAssignSubmit => 'Save assignment';
+
+  @override
+  String get teamAssignFailed => 'Could not change the assignment.';
+
+  @override
+  String get teamAssignChooseTeam => 'Choose a team first.';
+
+  @override
+  String get teamAssignChooseEmployee =>
+      'Choose an employee, or pick auto assign.';
+
+  @override
+  String get teamAssignChange => 'Change assignment';
+
+  @override
+  String teamAssignResultAssigned(String team, String name) {
+    return 'Assignment saved — $team, $name';
+  }
+
+  @override
+  String teamAssignResultUnassigned(String team) {
+    return 'Assignment saved — $team, unassigned';
+  }
+
+  @override
+  String get unassignEmployeeAction => 'Unassign employee';
+
+  @override
+  String unassignEmployeeStays(String team) {
+    return 'Stays with $team';
+  }
+
+  @override
+  String unassignEmployeeDone(String team) {
+    return 'Unassigned — the conversation stays with $team';
+  }
+
+  @override
+  String teamUnassignedBadge(String team) {
+    return '$team · Unassigned';
+  }
+
+  @override
+  String get conversationHeaderUnassigned => 'Unassigned';
+
+  @override
+  String get conversationHeaderNoTeam => 'No team';
+
+  @override
+  String transferTeamDoneAssigned(String team, String name) {
+    return 'Transferred to $team — assigned to $name';
+  }
+
+  @override
+  String transferTeamDoneUnassigned(String team) {
+    return 'Transferred to $team — waiting for someone in the team';
+  }
+
+  @override
+  String get systemTeamBadge => 'System';
+
+  @override
+  String get systemTeamMembers => 'All eligible employees';
+
+  @override
+  String get systemTeamNote =>
+      'Managed automatically. Every eligible employee belongs to it, and it owns the accounts no team is explicitly responsible for.';
+
+  @override
+  String get teamImpactTitle => 'This will reassign work';
+
+  @override
+  String teamImpactAffected(int count, String team) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count active conversations in $team are assigned to the people being removed.',
+      one:
+          '1 active conversation in $team is assigned to the people being removed.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String teamImpactRedistribute(int count) {
+    return '$count can be redistributed now.';
+  }
+
+  @override
+  String teamImpactStranded(int count, String team) {
+    return '$count will remain unassigned in $team because no eligible replacement exists.';
+  }
+
+  @override
+  String teamImpactUnstaffed(String team, int count) {
+    return 'This change leaves $team with no employee who can be assigned work. Its $count active conversations stay with the team, unassigned.';
+  }
+
+  @override
+  String teamImpactStays(String team) {
+    return 'The conversations stay with $team. They never follow an employee to another team.';
+  }
+
+  @override
+  String get teamImpactConfirm => 'Save and redistribute';
+
+  @override
+  String get markersSectionTitle => 'Markers';
+
+  @override
+  String get markersSectionHint =>
+      'These label the conversation for a team\'s workflow. They do not change the conversation\'s status.';
+
+  @override
+  String get markersEveryone => 'Everyone';
+
+  @override
+  String get markersAdd => 'Add marker';
+
+  @override
+  String get markersPickerTitle => 'Add a marker';
+
+  @override
+  String get markersPickerEmpty => 'No markers available to you yet.';
+
+  @override
+  String get markersApplied => 'Marker applied.';
+
+  @override
+  String get markersRemoved => 'Marker removed.';
+
+  @override
+  String markersRemoveOne(String label) {
+    return 'Remove $label';
+  }
+
+  @override
+  String get markersArchived => 'Archived marker';
+
+  @override
+  String get markersFailed => 'Could not update the marker.';
+
+  @override
+  String get markersForbidden =>
+      'You don\'t have permission to change markers.';
+
+  @override
+  String get markersLoadFailed => 'Couldn\'t load the markers.';
+
+  @override
+  String markerChipSemantics(String label) {
+    return 'Marker: $label';
+  }
+
+  @override
+  String primaryMarkerApplied(String label) {
+    return '$label — applied';
+  }
+
+  @override
+  String primaryMarkerNotApplied(String label) {
+    return '$label — not applied';
+  }
+
+  @override
+  String markerHistoryApplied(String label) {
+    return 'Marker applied: “$label”';
+  }
+
+  @override
+  String markerHistoryRemoved(String label) {
+    return 'Marker removed: “$label”';
+  }
+
+  @override
+  String get confirmSaleActionHint =>
+      'Records the customer\'s purchase. It does not change the conversation\'s status.';
+
+  @override
+  String get entryTeamsTitle => 'Incoming routing';
+
+  @override
+  String get entryTeamsBody =>
+      'Where a message arriving on each account is sent. One account, one team.';
+
+  @override
+  String get entryTeamsNewOnly =>
+      'This changes where new conversations enter. Conversations that already exist keep their team.';
+
+  @override
+  String get entryTeamsEntryTeam => 'Entry team';
+
+  @override
+  String get entryTeamsLive => 'Live';
+
+  @override
+  String get entryTeamsNotLive => 'Not live';
+
+  @override
+  String get entryTeamsNotConfigured => 'Not configured';
+
+  @override
+  String entryTeamsNotConfiguredHint(String team) {
+    return 'Nothing routes this account. Its conversations go to $team until you choose one.';
+  }
+
+  @override
+  String entryTeamsNotConfiguredCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count accounts are not configured',
+      one: '1 account is not configured',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get entryTeamsInherited => 'From the channel rule';
+
+  @override
+  String get entryTeamsExplicit => 'Set here';
+
+  @override
+  String get entryTeamsInherit => 'Inherit from the channel';
+
+  @override
+  String get entryTeamsInheritHint =>
+      'Follows the channel\'s rule, or the system team when no rule covers it.';
+
+  @override
+  String entryTeamsPickerTitle(String account) {
+    return 'Entry team for $account';
+  }
+
+  @override
+  String get entryTeamsSaved => 'Entry team updated';
+
+  @override
+  String get entryTeamsSaveFailed => 'Could not change the entry team.';
+
+  @override
+  String get entryTeamsNoConnections => 'No connected accounts yet.';
+
+  @override
+  String get entryTeamsLoadFailed => 'Could not load the incoming routing.';
+
+  @override
+  String get entryTeamsRoutableNone =>
+      'Nobody can be assigned work in this team';
+
+  @override
+  String get entryTeamsSystemTeamNote =>
+      'System team — every eligible employee';
+
+  @override
+  String get entryTeamsNotAvailable =>
+      'Incoming routing isn\'t available for your account.';
+
+  @override
+  String get entryTeamsForbidden =>
+      'You don\'t have permission to change incoming routing.';
+
+  @override
+  String get entryTeamsChangeTeam => 'Change entry team';
 }

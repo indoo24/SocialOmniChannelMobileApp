@@ -199,6 +199,13 @@ class TeamFormBackend {
   /// Answers `POST /teams/` and `PATCH /teams/{id}/`. Defaults to success.
   FutureOr<ResponseBody> Function(RequestOptions options)? write;
 
+  /// Answers `POST /teams/{id}/membership-impact/`. Defaults to an
+  /// organization outside the team-first rollout (nothing to warn about).
+  FutureOr<ResponseBody> Function(RequestOptions options)? impact;
+
+  List<RequestOptions> get impactRequests =>
+      received.where((r) => r.path.endsWith('/membership-impact/')).toList();
+
   final List<RequestOptions> received = [];
 
   List<RequestOptions> get writes => received
@@ -216,6 +223,21 @@ class TeamFormBackend {
 
   Future<ResponseBody> _handle(RequestOptions o) async {
     received.add(o);
+    if (o.method == 'POST' && o.path.endsWith('/membership-impact/')) {
+      final custom = impact;
+      if (custom != null) return custom(o);
+      return jsonBody({
+        'team_first': false,
+        'team_id': 5,
+        'team_name': 'Support',
+        'affected_conversations': 0,
+        'redistributable': 0,
+        'stranded': 0,
+        'team_active_conversations': 0,
+        'leaves_team_without_eligible_employee': false,
+        'warning': '',
+      }, 200);
+    }
     final isWrite =
         (o.method == 'POST' && o.path == '/teams/') ||
         (o.method == 'PATCH' && o.path.startsWith('/teams/'));

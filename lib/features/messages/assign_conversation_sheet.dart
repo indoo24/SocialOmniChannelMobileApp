@@ -32,20 +32,41 @@ import '../../core/theme/tokens.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
 import 'conversation_controller.dart';
+import 'team_assignment_sheet.dart';
 
 /// Opens the assignment picker for [conversationId].
 ///
 /// [conversation] is the caller's current read of the thread, used only to
 /// mark the current assignee in the list — the assignment itself is always
 /// re-read from the server's response.
+///
+/// In an organization on team-first ownership
+/// ([Employee.teamFirstAssignmentEnabled]) this opens the team-first
+/// assignment instead — team first, then an employee of that team, auto, or
+/// nobody yet ([showTeamAssignmentSheet]). Everyone else keeps this picker,
+/// unchanged.
 Future<void> showAssignConversationSheet(
   BuildContext context, {
   required int conversationId,
   Conversation? conversation,
 }) {
+  final container = ProviderScope.containerOf(context, listen: false);
+  if (container.read(currentEmployeeProvider)?.teamFirstAssignmentEnabled ??
+      false) {
+    final current =
+        conversation ??
+        container
+            .read(conversationControllerProvider(conversationId))
+            .value
+            ?.conversation;
+    if (current != null) {
+      return showTeamAssignmentSheet(context, conversation: current);
+    }
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,

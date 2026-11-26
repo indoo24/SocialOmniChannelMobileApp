@@ -29,6 +29,7 @@ import '../../core/providers.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/tokens.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../authentication/auth_controller.dart';
 import '../conversations/inbox_controller.dart';
 import '../directory/directory_providers.dart';
 import 'conversation_controller.dart';
@@ -57,13 +58,19 @@ class TransferTarget {
     required this.id,
     required this.name,
     required this.staffed,
+    this.isSystemDefault = false,
   });
 
   final int id;
   final String name;
 
   /// Has members or leaders — a team with neither cannot take the work.
+  /// Always true for the system default team, whose members are every
+  /// eligible employee rather than a roster.
   final bool staffed;
+
+  /// The organization's system-managed default team ("Global").
+  final bool isSystemDefault;
 }
 
 /// The web's list: active teams other than [currentTeamId], in the order the
@@ -74,7 +81,11 @@ List<TransferTarget> transferTargets(List<Team> teams, int? currentTeamId) => [
       TransferTarget(
         id: team.id,
         name: team.name,
+        isSystemDefault: team.isSystemDefault,
+        // The default team has no roster to count — every eligible
+        // employee belongs to it — so an empty member list says nothing.
         staffed:
+            team.isSystemDefault ||
             team.memberCount > 0 ||
             team.leaderIds.isNotEmpty ||
             team.leaderNames.isNotEmpty,
@@ -143,10 +154,24 @@ class _TransferTeamSheetState extends ConsumerState<_TransferTeamSheet> {
           .updateConversation(updated);
       ref.read(inboxControllerProvider.notifier).refreshQuietly();
       Navigator.of(context).pop();
+      final teamName = updated.assignedTeam?.name ?? target.name;
+      // Team-first: say what the server actually did inside the new team —
+      // who it went to, or that it waits there for someone — rather than
+      // assume either.
+      final teamFirst =
+          ref.read(currentEmployeeProvider)?.teamFirstAssignmentEnabled ??
+          false;
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            l10n.transferTeamDone(updated.assignedTeam?.name ?? target.name),
+            !teamFirst
+                ? l10n.transferTeamDone(teamName)
+                : updated.assignedTo != null
+                ? l10n.transferTeamDoneAssigned(
+                    teamName,
+                    updated.assignedTo!.fullName,
+                  )
+                : l10n.transferTeamDoneUnassigned(teamName),
           ),
         ),
       );
@@ -233,9 +258,11 @@ class _TransferTeamSheetState extends ConsumerState<_TransferTeamSheet> {
                             // Nobody there to take it: shown, not offered.
                             enabled: target.staffed,
                             child: Text(
-                              target.staffed
-                                  ? target.name
-                                  : l10n.transferTeamUnstaffed(target.name),
+                              !target.staffed
+                                  ? l10n.transferTeamUnstaffed(target.name)
+                                  : target.isSystemDefault
+                                  ? l10n.teamAssignSystemTeamOption(target.name)
+                                  : target.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: target.staffed

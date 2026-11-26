@@ -181,6 +181,46 @@ class DirectoryRepository {
   /// `PATCH /teams/{id}/` — ADMIN only server-side (`team.manage`).
   ///
   /// [fields] should only carry what the administrator actually changed.
+  /// `POST /teams/{id}/membership-impact/` — the preflight for a roster
+  /// save: send the same [memberIds] / [leaderIds] about to be saved (each
+  /// omitted to leave that half alone). Changes nothing; needs `team.manage`.
+  /// `GET /routing/entry-teams/` — every account in the organization and the
+  /// team a message arriving on it is routed to (`routing.manage`). Archived
+  /// accounts are left out, as the server does by default.
+  Future<List<ConnectionRouting>> entryTeams() async {
+    final data = await _api.get<dynamic>('/routing/entry-teams/');
+    return JsonSafe.parseList(data, ConnectionRouting.fromJson);
+  }
+
+  /// `PUT /routing/entry-teams/{connection_id}/` with `{team_id}` — makes
+  /// [teamId] the account's entry team, or with null clears the setting
+  /// made here so the account inherits again (`routing.manage`). Only where
+  /// *new* conversations enter changes; existing ones keep their team.
+  /// Returns the account's row as the server now has it.
+  Future<ConnectionRouting> setEntryTeam(
+    int connectionId, {
+    required int? teamId,
+  }) async {
+    final data = await _api.put<Map<String, dynamic>>(
+      '/routing/entry-teams/$connectionId/',
+      // `team_id` is required and nullable: null is sent, never omitted.
+      body: {'team_id': teamId},
+    );
+    return ConnectionRouting.fromJson(data);
+  }
+
+  Future<TeamMembershipImpact> teamMembershipImpact(
+    int teamId, {
+    List<int>? memberIds,
+    List<int>? leaderIds,
+  }) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/teams/$teamId/membership-impact/',
+      body: {'member_ids': ?memberIds, 'leader_ids': ?leaderIds},
+    );
+    return TeamMembershipImpact.fromJson(data);
+  }
+
   Future<Team> updateTeam(int teamId, Map<String, dynamic> fields) async {
     final data = await _api.patch<Map<String, dynamic>>(
       '/teams/$teamId/',

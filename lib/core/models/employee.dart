@@ -75,6 +75,8 @@ class Employee {
     this.aiKnowledgeEnabled = false,
     this.teamIds = const {},
     this.teamTransferEnabled = false,
+    this.teamFirstAssignmentEnabled = false,
+    this.conversationMarkersEnabled = false,
   });
 
   final int id;
@@ -127,6 +129,22 @@ class Employee {
   /// backend never offers an action it cannot carry out — the web's own
   /// gate.
   final bool teamTransferEnabled;
+
+  /// Whether the organization is in the team-first ownership rollout
+  /// (`/auth/me/`'s `team_first_assignment_enabled`): a conversation belongs
+  /// to a team, and the employee is whoever is working it inside that team.
+  /// It is the server's own per-organization switch — today Scenario
+  /// (organization 4) only — so nothing here names an organization. False on
+  /// an older backend, which keeps everything exactly as it was.
+  final bool teamFirstAssignmentEnabled;
+
+  /// Whether the organization uses conversation markers (`/auth/me/`'s
+  /// `conversation_markers_enabled`) — its own per-organization switch, apart
+  /// from [teamFirstAssignmentEnabled], exactly as the web reads it. While it
+  /// is on, the header's prominent button is the conversation's primary
+  /// marker and purchase confirmation ("Sale completed") moves into the
+  /// conversation's actions, as on the web. False on an older backend.
+  final bool conversationMarkersEnabled;
 
   /// Providers that stay coming soon when the server has not said otherwise,
   /// so an older backend or a partial payload can never widen access.
@@ -205,6 +223,12 @@ class Employee {
             JsonSafe.asIntOrNull(team['id'])!,
       },
       teamTransferEnabled: JsonSafe.asBool(json['team_transfer_enabled']),
+      teamFirstAssignmentEnabled: JsonSafe.asBool(
+        json['team_first_assignment_enabled'],
+      ),
+      conversationMarkersEnabled: JsonSafe.asBool(
+        json['conversation_markers_enabled'],
+      ),
     );
   }
 
@@ -259,6 +283,8 @@ class Employee {
     aiKnowledgeEnabled: aiKnowledgeEnabled,
     teamIds: teamIds,
     teamTransferEnabled: teamTransferEnabled,
+    teamFirstAssignmentEnabled: teamFirstAssignmentEnabled,
+    conversationMarkersEnabled: conversationMarkersEnabled,
   );
 }
 
@@ -284,6 +310,10 @@ class Perm {
   /// exactly the people who hold this.
   static const conversationReview = 'conversation.review';
   static const conversationConfirmPurchase = 'conversation.confirm_purchase';
+
+  /// Put a marker on a conversation, or take one off. An annotation only —
+  /// no purchase, order, status or assignment follows from it.
+  static const conversationApplyMarker = 'conversation.apply_marker';
   static const conversationRefreshIntelligence =
       'conversation.refresh_intelligence';
   static const intelligenceOverrideScore = 'intelligence.override_score';

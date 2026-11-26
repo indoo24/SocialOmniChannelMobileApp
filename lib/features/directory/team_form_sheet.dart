@@ -351,6 +351,46 @@ class _TeamFormSheetState extends ConsumerState<TeamFormSheet> {
     });
   }
 
+  /// Whether the roster being saved drops anyone the team has now.
+  bool get _removesPeople {
+    final kept = {..._memberIds, ..._leaderIds};
+    return {
+      ..._initialMemberIds,
+      ..._initialLeaderIds,
+    }.any((id) => !kept.contains(id));
+  }
+
+  /// The membership preflight (`POST /teams/{id}/membership-impact/`) with
+  /// exactly the roster [body] saves. True to go ahead: nothing to warn
+  /// about, the admin confirmed, or the preflight itself failed — it is
+  /// advice, and the save is the backend's to refuse.
+  Future<bool> _confirmImpact(Map<String, dynamic> body) async {
+    final TeamMembershipImpact impact;
+    try {
+      impact = await ref
+          .read(directoryRepositoryProvider)
+          .teamMembershipImpact(
+            widget.team!.id,
+            memberIds: (body['member_ids'] as List?)?.cast<int>(),
+            leaderIds: (body['leader_ids'] as List?)?.cast<int>(),
+          );
+    } catch (error) {
+      _log('IMPACT teamId=${widget.team!.id} failed=$error');
+      return true;
+    }
+    if (!impact.needsConfirmation || !mounted) return true;
+    // Nothing is being saved while the admin decides: no spinner behind the
+    // question. The dialog is modal, so Save cannot be tapped meanwhile.
+    setState(() => _submitting = false);
+    final confirmed = await showTeamMembershipImpactDialog(
+      context,
+      impact: impact,
+      fallbackTeamName: widget.team!.name,
+    );
+    if (confirmed && mounted) setState(() => _submitting = true);
+    return confirmed;
+  }
+
   Future<void> _submit() async {
     if (_submitting) return;
     FocusScope.of(context).unfocus();
@@ -365,6 +405,14 @@ class _TeamFormSheetState extends ConsumerState<TeamFormSheet> {
       _channelErrors = const {};
       _responsibilitiesError = null;
     });
+
+    // Removing people from a team that owns work: the server says what the
+    // save would do to their conversations, and the admin confirms first.
+    if (widget.isEdit && _removesPeople && !await _confirmImpact(body)) {
+      if (mounted) setState(() => _submitting = false);
+      return;
+    }
+    if (!mounted) return;
     _log(
       'SUBMIT teamId=${widget.team?.id ?? 'new'} fields=${body.keys.toList()} '
       'responsibilities=${body['responsibilities']}',
@@ -808,4 +856,65 @@ class _Footer extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "This will reassign work": what removing people from a team would do to
+/// the conversations it owns, as the server counted them. Resolves to true
+/// when the admin chooses to save anyway.
+Future<bool> showTeamMembershipImpactDialog(
+  BuildContext context, {
+  required TeamMembershipImpact impact,
+  required String fallbackTeamName,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      final l10n = dialogContext.l10n;
+      final theme = Theme.of(dialogContext);
+      final team = impact.teamName.trim().isEmpty
+          ? fallbackTeamName
+          : impact.teamName;
+      final lines = [
+        if (impact.leavesTeamWithoutEligibleEmployee)
+          l10n.teamImpactUnstaffed(team, impact.teamActiveConversations)
+        else ...[
+          l10n.teamImpactAffected(impact.affectedConversations, team),
+          if (impact.redistributable > 0)
+            l10n.teamImpactRedistribute(impact.redistributable),
+          if (impact.stranded > 0)
+            l10n.teamImpactStranded(impact.stranded, team),
+        ],
+        l10n.teamImpactStays(team),
+      ];
+      return AlertDialog(
+        key: const ValueKey('teamImpactDialog'),
+        title: Text(l10n.teamImpactTitle),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final line in lines) ...[
+                Text(line, style: theme.textTheme.bodyMedium),
+                const SizedBox(height: Space.sm),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.aiUnsavedKeepEditing),
+          ),
+          FilledButton(
+            key: const ValueKey('teamImpactConfirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+            child: Text(l10n.teamImpactConfirm),
+          ),
+        ],
+      );
+    },
+  );
+  return confirmed == true;
 }

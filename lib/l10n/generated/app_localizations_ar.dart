@@ -6074,4 +6074,330 @@ class AppLocalizationsAr extends AppLocalizations {
   String conversationHeaderAccountSemantics(String account) {
     return 'الحساب: $account';
   }
+
+  @override
+  String get teamAssignTitle => 'الإسناد';
+
+  @override
+  String get teamAssignBody =>
+      'المحادثة تنتمي إلى فريق، والموظف هو من يعمل عليها داخل ذلك الفريق.';
+
+  @override
+  String get teamAssignTeamLabel => 'الفريق';
+
+  @override
+  String get teamAssignTeamPlaceholder => 'اختر فريقًا';
+
+  @override
+  String teamAssignSystemTeamOption(String team) {
+    return '$team — كل الموظفين';
+  }
+
+  @override
+  String get teamAssignNoTeams => 'لا توجد فرق نشطة بعد.';
+
+  @override
+  String get teamAssignLoadFailed => 'تعذّر تحميل الفرق.';
+
+  @override
+  String get teamAssignTeamChangeNote =>
+      'تغيير الفريق يُحرّر الموظف الحالي ومطالبته بالمحادثة.';
+
+  @override
+  String get teamAssignWho => 'الموظف';
+
+  @override
+  String get teamAssignEmployeePlaceholder => 'اختر موظفًا';
+
+  @override
+  String teamAssignEmptyTeam(String team) {
+    return 'لا يوجد في $team من يمكن إسناد العمل إليه بعد.';
+  }
+
+  @override
+  String get teamAssignModeEmployee => 'إسناد إلى موظف محدد';
+
+  @override
+  String get teamAssignModeAuto =>
+      'إسناد تلقائي — اترك التوجيه يختار من داخل هذا الفريق';
+
+  @override
+  String get teamAssignModeUnassigned => 'اتركها دون إسناد';
+
+  @override
+  String get teamAssignUnassignedHint =>
+      'يبقى الفريق مالكًا للمحادثة. إلغاء إسناد الموظف لا يزيلها من الفريق.';
+
+  @override
+  String get teamAssignNote => 'ملاحظة (اختياري)';
+
+  @override
+  String get teamAssignSubmit => 'حفظ الإسناد';
+
+  @override
+  String get teamAssignFailed => 'تعذّر تغيير الإسناد.';
+
+  @override
+  String get teamAssignChooseTeam => 'اختر فريقًا أولًا.';
+
+  @override
+  String get teamAssignChooseEmployee =>
+      'اختر موظفًا، أو اختر الإسناد التلقائي.';
+
+  @override
+  String get teamAssignChange => 'تغيير الإسناد';
+
+  @override
+  String teamAssignResultAssigned(String team, String name) {
+    return 'تم حفظ الإسناد — $team، $name';
+  }
+
+  @override
+  String teamAssignResultUnassigned(String team) {
+    return 'تم حفظ الإسناد — $team، دون إسناد';
+  }
+
+  @override
+  String get unassignEmployeeAction => 'إلغاء إسناد الموظف';
+
+  @override
+  String unassignEmployeeStays(String team) {
+    return 'تبقى مع $team';
+  }
+
+  @override
+  String unassignEmployeeDone(String team) {
+    return 'أُلغي الإسناد — تبقى المحادثة مع $team';
+  }
+
+  @override
+  String teamUnassignedBadge(String team) {
+    return '$team · دون إسناد';
+  }
+
+  @override
+  String get conversationHeaderUnassigned => 'دون إسناد';
+
+  @override
+  String get conversationHeaderNoTeam => 'بلا فريق';
+
+  @override
+  String transferTeamDoneAssigned(String team, String name) {
+    return 'حُوّلت إلى $team — أُسندت إلى $name';
+  }
+
+  @override
+  String transferTeamDoneUnassigned(String team) {
+    return 'حُوّلت إلى $team — بانتظار موظف من الفريق';
+  }
+
+  @override
+  String get systemTeamBadge => 'النظام';
+
+  @override
+  String get systemTeamMembers => 'كل الموظفين المؤهلين';
+
+  @override
+  String get systemTeamNote =>
+      'مُدار تلقائيًا. ينتمي إليه كل موظف مؤهل، ويملك الحسابات التي لا يوجد فريق مسؤول عنها صريحًا.';
+
+  @override
+  String get teamImpactTitle => 'سيؤدي هذا إلى إعادة توزيع محادثات';
+
+  @override
+  String teamImpactAffected(int count, String team) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة نشطة في $team مُسندة إلى من تُزيلهم.',
+      many: '$count محادثة نشطة في $team مُسندة إلى من تُزيلهم.',
+      few: '$count محادثات نشطة في $team مُسندة إلى من تُزيلهم.',
+      two: 'محادثتان نشطتان في $team مُسندتان إلى من تُزيلهم.',
+      one: 'محادثة نشطة واحدة في $team مُسندة إلى من تُزيلهم.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String teamImpactRedistribute(int count) {
+    return 'يمكن إعادة توزيع $count منها الآن.';
+  }
+
+  @override
+  String teamImpactStranded(int count, String team) {
+    return 'ستبقى $count منها دون إسناد في $team لعدم وجود بديل مؤهل.';
+  }
+
+  @override
+  String teamImpactUnstaffed(String team, int count) {
+    return 'سيترك هذا التغيير $team بلا أي موظف يمكن إسناد العمل إليه. ستبقى محادثاته النشطة ($count) مع الفريق دون إسناد.';
+  }
+
+  @override
+  String teamImpactStays(String team) {
+    return 'تبقى المحادثات مع $team، ولا تنتقل مع الموظف إلى فريق آخر أبدًا.';
+  }
+
+  @override
+  String get teamImpactConfirm => 'احفظ وأعد التوزيع';
+
+  @override
+  String get markersSectionTitle => 'العلامات';
+
+  @override
+  String get markersSectionHint =>
+      'توصف المحادثة لسير عمل الفريق، ولا تغير حالة المحادثة.';
+
+  @override
+  String get markersEveryone => 'الجميع';
+
+  @override
+  String get markersAdd => 'إضافة علامة';
+
+  @override
+  String get markersPickerTitle => 'إضافة علامة';
+
+  @override
+  String get markersPickerEmpty => 'لا توجد علامات متاحة لك بعد.';
+
+  @override
+  String get markersApplied => 'تم وضع العلامة.';
+
+  @override
+  String get markersRemoved => 'تمت إزالة العلامة.';
+
+  @override
+  String markersRemoveOne(String label) {
+    return 'إزالة $label';
+  }
+
+  @override
+  String get markersArchived => 'علامة مؤرشفة';
+
+  @override
+  String get markersFailed => 'تعذّر تحديث العلامة.';
+
+  @override
+  String get markersForbidden => 'ليست لديك صلاحية تغيير العلامات.';
+
+  @override
+  String get markersLoadFailed => 'تعذّر تحميل العلامات.';
+
+  @override
+  String markerChipSemantics(String label) {
+    return 'علامة: $label';
+  }
+
+  @override
+  String primaryMarkerApplied(String label) {
+    return '$label — موضوعة';
+  }
+
+  @override
+  String primaryMarkerNotApplied(String label) {
+    return '$label — غير موضوعة';
+  }
+
+  @override
+  String markerHistoryApplied(String label) {
+    return 'تم وضع العلامة «$label»';
+  }
+
+  @override
+  String markerHistoryRemoved(String label) {
+    return 'تمت إزالة العلامة «$label»';
+  }
+
+  @override
+  String get confirmSaleActionHint =>
+      'يسجّل شراء العميل. لا يغيّر حالة المحادثة.';
+
+  @override
+  String get entryTeamsTitle => 'توجيه الرسائل الواردة';
+
+  @override
+  String get entryTeamsBody =>
+      'إلى أين تُرسل الرسالة الواردة على كل حساب. حساب واحد، فريق واحد.';
+
+  @override
+  String get entryTeamsNewOnly =>
+      'هذا يغيّر مكان دخول المحادثات الجديدة. المحادثات الموجودة تبقى مع فريقها.';
+
+  @override
+  String get entryTeamsEntryTeam => 'فريق الاستقبال';
+
+  @override
+  String get entryTeamsLive => 'نشط';
+
+  @override
+  String get entryTeamsNotLive => 'غير نشط';
+
+  @override
+  String get entryTeamsNotConfigured => 'غير مُعدّ';
+
+  @override
+  String entryTeamsNotConfiguredHint(String team) {
+    return 'لا توجد قاعدة توجّه هذا الحساب. تذهب محادثاته إلى $team حتى تختار فريقًا.';
+  }
+
+  @override
+  String entryTeamsNotConfiguredCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count حساب غير مُعدّ',
+      many: '$count حسابًا غير مُعدّ',
+      few: '$count حسابات غير مُعدّة',
+      two: 'حسابان غير مُعدّين',
+      one: 'حساب واحد غير مُعدّ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get entryTeamsInherited => 'من قاعدة القناة';
+
+  @override
+  String get entryTeamsExplicit => 'محدد هنا';
+
+  @override
+  String get entryTeamsInherit => 'اتبع قاعدة القناة';
+
+  @override
+  String get entryTeamsInheritHint =>
+      'يتبع قاعدة القناة، أو فريق النظام إن لم تغطّه أي قاعدة.';
+
+  @override
+  String entryTeamsPickerTitle(String account) {
+    return 'فريق الاستقبال لـ $account';
+  }
+
+  @override
+  String get entryTeamsSaved => 'تم تحديث فريق الاستقبال';
+
+  @override
+  String get entryTeamsSaveFailed => 'تعذّر تغيير فريق الاستقبال.';
+
+  @override
+  String get entryTeamsNoConnections => 'لا توجد حسابات مربوطة بعد.';
+
+  @override
+  String get entryTeamsLoadFailed => 'تعذّر تحميل توجيه الرسائل الواردة.';
+
+  @override
+  String get entryTeamsRoutableNone =>
+      'لا يوجد في هذا الفريق من يمكن إسناد العمل إليه';
+
+  @override
+  String get entryTeamsSystemTeamNote => 'فريق النظام — كل الموظفين المؤهلين';
+
+  @override
+  String get entryTeamsNotAvailable => 'توجيه الرسائل الواردة غير متاح لحسابك.';
+
+  @override
+  String get entryTeamsForbidden =>
+      'ليست لديك صلاحية تغيير توجيه الرسائل الواردة.';
+
+  @override
+  String get entryTeamsChangeTeam => 'تغيير فريق الاستقبال';
 }

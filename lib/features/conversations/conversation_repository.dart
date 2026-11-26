@@ -13,6 +13,7 @@ import '../../core/models/ai_suggestion.dart';
 import '../../core/models/conversation.dart';
 import '../../core/models/conversation_group.dart';
 import '../../core/models/conversation_event.dart';
+import '../../core/models/conversation_marker.dart';
 import '../../core/models/conversation_review.dart';
 import '../../core/models/conversion_event.dart';
 import '../../core/models/intelligence.dart';
@@ -287,6 +288,18 @@ class ConversationFilters {
     }
     return true;
   }
+}
+
+/// `AssignmentChangeModeEnum` — what happens about the person once the team
+/// is chosen.
+enum AssignmentMode {
+  employee('employee'),
+  auto('auto'),
+  unassigned('unassigned');
+
+  const AssignmentMode(this.wire);
+
+  final String wire;
 }
 
 class ConversationRepository {
@@ -645,6 +658,74 @@ class ConversationRepository {
       body: {'team_id': teamId, if (trimmed.isNotEmpty) 'note': trimmed},
     );
     return Conversation.fromJson(data);
+  }
+
+  /// `POST /conversations/{id}/assignment/` — the team-first assignment, as
+  /// one operation: [teamId] (required — this never makes a conversation
+  /// team-less), then what to do about the person: [AssignmentMode.employee]
+  /// with [assigneeId] (who must belong to the team; the server refuses
+  /// anyone else with `team_ownership`), [AssignmentMode.auto] (the
+  /// allocator chooses inside the team) or [AssignmentMode.unassigned] (the
+  /// team owns it and nobody is working it yet).
+  ///
+  /// Changing the team releases the previous assignee and their claim and
+  /// records a transfer — the same service as `/transfer-team/`. Returns the
+  /// conversation as the server now holds it.
+  Future<Conversation> changeAssignment(
+    int conversationId, {
+    required int teamId,
+    required AssignmentMode mode,
+    int? assigneeId,
+    String note = '',
+  }) async {
+    assert(
+      mode != AssignmentMode.employee || assigneeId != null,
+      'Assigning to an employee needs their id.',
+    );
+    final trimmed = note.trim();
+    final data = await _api.post<Map<String, dynamic>>(
+      '/conversations/$conversationId/assignment/',
+      body: {
+        'team_id': teamId,
+        'mode': mode.wire,
+        // Only `employee` reads it; the others are sent nothing to misread.
+        if (mode == AssignmentMode.employee) 'assignee_id': assigneeId,
+        if (trimmed.isNotEmpty) 'note': trimmed,
+      },
+    );
+    return Conversation.fromJson(data);
+  }
+
+  /// `GET /conversations/{id}/markers/` — the markers the conversation
+  /// wears (`current`) and the ones this employee may add (`available`).
+  /// Any employee who can see the conversation may read it.
+  Future<ConversationMarkers> conversationMarkers(int conversationId) async {
+    final data = await _api.get<dynamic>(
+      '/conversations/$conversationId/markers/',
+    );
+    return ConversationMarkers.fromJson(data);
+  }
+
+  /// `POST /conversations/{id}/markers/` with `{marker_id}` — puts a marker
+  /// on (`conversation.apply_marker`). Idempotent on the server: applying one
+  /// already on answers 200 and records nothing twice. The answer's body is
+  /// not documented, so nothing is read from it — the caller reads the
+  /// conversation again, as the web does. An annotation only: no purchase,
+  /// status, priority or assignment changes.
+  Future<void> applyMarker(int conversationId, int markerId) async {
+    await _api.post<dynamic>(
+      '/conversations/$conversationId/markers/',
+      body: {'marker_id': markerId},
+    );
+  }
+
+  /// `DELETE /conversations/{id}/markers/{marker_id}/` — takes a marker off
+  /// (`conversation.apply_marker`). 204 whether or not it was on, so a
+  /// repeated removal is not an error. Allowed for an archived marker too.
+  Future<void> removeMarker(int conversationId, int markerId) async {
+    await _api.delete<dynamic>(
+      '/conversations/$conversationId/markers/$markerId/',
+    );
   }
 
   Future<Conversation> assign(

@@ -15,6 +15,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../app/router.dart' show Routes;
 
 import '../../core/api/api_exception.dart';
 import '../../core/models/directory.dart';
@@ -30,6 +33,7 @@ import '../../core/widgets/states.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../authentication/auth_controller.dart';
 import 'deactivate_team_dialog.dart';
+import 'entry_teams_screen.dart' show canManageEntryTeamsProvider;
 import 'directory_providers.dart';
 import 'team_form_sheet.dart';
 
@@ -41,6 +45,9 @@ class TeamsScreen extends ConsumerWidget {
     final teams = ref.watch(teamsProvider);
     final canManage =
         ref.watch(isAdminProvider) && ref.watch(canProvider(Perm.teamManage));
+    // Incoming routing — `routing.manage` in a team-first organization, as
+    // on the web's Teams page.
+    final showEntryTeams = ref.watch(canManageEntryTeamsProvider);
 
     return SectionScaffold(
       title: context.l10n.navTeams,
@@ -65,6 +72,16 @@ class TeamsScreen extends ConsumerWidget {
           if (rows.isEmpty) {
             return ListView(
               children: [
+                if (showEntryTeams)
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      Space.lg,
+                      Space.lg,
+                      Space.lg,
+                      0,
+                    ),
+                    child: EntryTeamsEntryCard(),
+                  ),
                 SizedBox(
                   height: MediaQuery.sizeOf(context).height * 0.6,
                   child: EmptyState(
@@ -78,14 +95,84 @@ class TeamsScreen extends ConsumerWidget {
           }
 
           // The server's order, kept.
+          final lead = showEntryTeams ? 1 : 0;
           return ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(Space.lg),
-            itemCount: rows.length,
-            itemBuilder: (context, index) =>
-                TeamCard(team: rows[index], canManage: canManage),
+            itemCount: rows.length + lead,
+            itemBuilder: (context, index) => index < lead
+                ? const Padding(
+                    padding: EdgeInsets.only(bottom: Space.md),
+                    child: EntryTeamsEntryCard(),
+                  )
+                : TeamCard(team: rows[index - lead], canManage: canManage),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Incoming routing's way in from the Teams screen: which team receives the
+/// conversations that start on each account.
+class EntryTeamsEntryCard extends StatelessWidget {
+  const EntryTeamsEntryCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = AppColors.of(context);
+    final l10n = context.l10n;
+    return Material(
+      color: colors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radii.lg),
+        side: BorderSide(color: colors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('entryTeamsEntry'),
+        onTap: () => context.push(Routes.entryTeams),
+        child: Padding(
+          padding: const EdgeInsets.all(Space.md),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: colors.infoSurface,
+                  borderRadius: BorderRadius.circular(Radii.md),
+                ),
+                child: Icon(Icons.alt_route_rounded, color: colors.info),
+              ),
+              const SizedBox(width: Space.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.entryTeamsTitle,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.entryTeamsBody,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: Space.sm),
+              // Mirrors itself in Arabic.
+              Icon(Icons.chevron_right_rounded, color: colors.mutedForeground),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -168,11 +255,27 @@ class TeamCard extends ConsumerWidget {
                           runSpacing: 2,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
+                            // The default team has no roster: every eligible
+                            // employee belongs to it, so a count would say
+                            // something untrue.
                             Text(
-                              l10n.memberCountBadge(team.memberCount),
+                              team.isSystemDefault
+                                  ? l10n.systemTeamMembers
+                                  : l10n.memberCountBadge(team.memberCount),
                               key: const ValueKey('teamMemberCount'),
                               style: muted,
                             ),
+                            if (team.isSystemDefault)
+                              Tooltip(
+                                message: l10n.systemTeamNote,
+                                child: StatusBadge(
+                                  key: ValueKey('teamSystemBadge_${team.id}'),
+                                  label: l10n.systemTeamBadge,
+                                  tone: BadgeTone.info,
+                                  dense: true,
+                                  icon: Icons.verified_outlined,
+                                ),
+                              ),
                             if (team.language.isNotEmpty)
                               _OutlineTag(team.language.toUpperCase()),
                             if (!team.isActive)
@@ -186,7 +289,10 @@ class TeamCard extends ConsumerWidget {
                     ),
                   ),
                 ),
-                if (canManage) ...[
+                // The system default team is managed by the server: its
+                // membership is not a roster, and it cannot be archived — so
+                // neither edit nor deactivate (nor reactivate) is offered.
+                if (canManage && !team.isSystemDefault) ...[
                   IconButton(
                     key: ValueKey('teamEdit_${team.id}'),
                     tooltip: l10n.editTeamTitle,
